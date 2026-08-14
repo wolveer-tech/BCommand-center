@@ -773,12 +773,12 @@
             <div class="dashboard-stack">
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title">🔥 Trending Manhwa</div>
+                        <div class="card-title">🔥 Trending Manga</div>
                         <button class="refresh-btn" onclick="loadTrendingManga()">🔄 Refresh</button>
                     </div>
                     <div id="mangaContent">
                         <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
-                            Loading trending manhwa...
+                            Loading trending manga...
                         </div>
                     </div>
                 </div>
@@ -911,24 +911,54 @@
         setInterval(updateDateTime, 1000);
         updateDateTime();
 
-        // Load trending manga from MangaDex
+        // Load trending manga from MangaDex with CORS proxy
         async function loadTrendingManga() {
             const content = document.getElementById('mangaContent');
             
-            content.innerHTML = '<div style="text-align: center; padding: 20px;">Loading trending manhwa...</div>';
+            content.innerHTML = '<div style="text-align: center; padding: 20px;">Loading trending manga...</div>';
             
             try {
-                // Fetch popular manga with cover art
-                const response = await fetch('https://api.mangadex.org/manga?limit=20&includes[]=cover_art&order[followedCount]=desc&contentRating[]=safe&availableTranslatedLanguage[]=en');
+                // Try multiple CORS proxies
+                const apiUrl = 'https://api.mangadex.org/manga?limit=20&includes[]=cover_art&order[followedCount]=desc&contentRating[]=safe&availableTranslatedLanguage[]=en';
                 
-                if (!response.ok) {
-                    throw new Error(`API error: ${response.status}`);
+                let data = null;
+                
+                // Proxy 1: allorigins
+                try {
+                    const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(apiUrl));
+                    if (response.ok) {
+                        data = await response.json();
+                    }
+                } catch (e) {
+                    console.log('Proxy 1 failed, trying proxy 2...');
                 }
                 
-                const data = await response.json();
+                // Proxy 2: corsproxy.io
+                if (!data) {
+                    try {
+                        const response = await fetch('https://corsproxy.io/?' + encodeURIComponent(apiUrl));
+                        if (response.ok) {
+                            data = await response.json();
+                        }
+                    } catch (e) {
+                        console.log('Proxy 2 failed, trying direct...');
+                    }
+                }
                 
-                if (!data.data || data.data.length === 0) {
-                    throw new Error('No manga found');
+                // Direct attempt (might work on some browsers)
+                if (!data) {
+                    try {
+                        const response = await fetch(apiUrl);
+                        if (response.ok) {
+                            data = await response.json();
+                        }
+                    } catch (e) {
+                        console.log('Direct fetch failed');
+                    }
+                }
+                
+                if (!data || !data.data || data.data.length === 0) {
+                    throw new Error('Could not load manga data');
                 }
                 
                 content.innerHTML = `
@@ -942,17 +972,15 @@
                             const mangaStatus = attributes.status || 'unknown';
                             const rating = attributes.rating?.bayesian?.toFixed(1) || 'N/A';
                             
-                            // Get tags
                             const tags = attributes.tags?.slice(0, 2).map(tag => 
                                 tag.attributes.name.en || 'Tag'
                             ) || [];
                             
-                            // Get cover art
                             let coverUrl = null;
                             if (manga.relationships) {
                                 const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
                                 if (coverRel && coverRel.attributes) {
-                                    coverUrl = `https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes.fileName}.512.jpg`;
+                                    coverUrl = `https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes.fileName}.256.jpg`;
                                 }
                             }
                             
@@ -1259,7 +1287,7 @@
             if (message.toLowerCase().includes('manga') || message.toLowerCase().includes('manhwa')) {
                 addChatMessage('user', message);
                 input.value = '';
-                addChatMessage('ai', 'Check the Manga tab for trending manhwa! 📚');
+                addChatMessage('ai', 'Check the Manga tab for trending manga! 📚');
                 switchPage('manga', document.querySelectorAll('.nav-tab')[1]);
                 loadTrendingManga();
                 return;
