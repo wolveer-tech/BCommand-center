@@ -233,40 +233,38 @@
             100% { opacity: 1; }
         }
 
-        /* Manga Styles */
-        .manga-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        /* Manga Grid Styles */
+        .manga-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
             max-height: 600px;
             overflow-y: auto;
+            padding: 5px;
         }
 
-        .manga-item {
-            display: flex;
-            gap: 12px;
+        .manga-card {
             background: var(--bg-card);
-            padding: 10px;
             border-radius: 10px;
+            overflow: hidden;
             cursor: pointer;
             transition: all 0.3s ease;
+            position: relative;
         }
 
-        .manga-item:active {
-            background: var(--border-color);
+        .manga-card:active {
+            transform: scale(0.95);
         }
 
         .manga-cover {
-            width: 60px;
-            height: 80px;
-            border-radius: 8px;
+            width: 100%;
+            height: 180px;
             background: linear-gradient(135deg, var(--mangadex-orange), #8b5cf6);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            flex-shrink: 0;
-            overflow: hidden;
+            font-size: 3rem;
+            position: relative;
         }
 
         .manga-cover img {
@@ -275,16 +273,31 @@
             object-fit: cover;
         }
 
+        .manga-rating {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: var(--accent-gold);
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
         .manga-info {
-            flex: 1;
-            min-width: 0;
+            padding: 10px;
         }
 
         .manga-title {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 600;
-            margin-bottom: 3px;
+            margin-bottom: 5px;
             line-height: 1.2;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .manga-tags {
@@ -295,18 +308,18 @@
         }
 
         .manga-tag {
-            font-size: 0.65rem;
-            padding: 2px 6px;
-            border-radius: 4px;
+            font-size: 0.6rem;
+            padding: 2px 5px;
+            border-radius: 3px;
             background: var(--border-color);
             color: var(--text-secondary);
         }
 
         .manga-status {
             display: inline-block;
-            padding: 3px 8px;
-            border-radius: 5px;
-            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
             font-weight: 500;
         }
 
@@ -330,14 +343,23 @@
             color: #ef4444;
         }
 
-        .mangaDex-connect {
-            text-align: center;
-            padding: 20px;
+        .refresh-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            background: var(--mangadex-orange);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
         }
 
-        .mangaDex-connect .mangaDex-logo {
-            font-size: 3rem;
-            margin-bottom: 10px;
+        .refresh-btn:active {
+            transform: scale(0.95);
         }
 
         /* Words Display */
@@ -649,15 +671,6 @@
             </div>
             
             <div class="config-section">
-                <h3>📚 MangaDex MDList</h3>
-                <div class="config-input">
-                    <label>MangaDex Username</label>
-                    <input type="text" id="mangaDexUsername" placeholder="Enter your MangaDex username">
-                </div>
-                <button class="btn btn-secondary" onclick="connectMangaDex()">Load MDList</button>
-            </div>
-            
-            <div class="config-section">
                 <h3>📱 Reddit</h3>
                 <div class="config-input">
                     <label>Subreddit</label>
@@ -760,17 +773,12 @@
             <div class="dashboard-stack">
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title">📚 My MDList</div>
-                        <span id="mangaDexStatus"><span class="status-indicator status-live"></span>Ready</span>
+                        <div class="card-title">🔥 Trending Manhwa</div>
+                        <button class="refresh-btn" onclick="loadTrendingManga()">🔄 Refresh</button>
                     </div>
                     <div id="mangaContent">
-                        <div class="mangaDex-connect">
-                            <div class="mangaDex-logo">📚</div>
-                            <h3 style="margin-bottom: 10px;">Load Your MDList</h3>
-                            <p style="color: var(--text-secondary); margin-bottom: 15px;">
-                                Enter your MangaDex username in Settings to load your MDList
-                            </p>
-                            <button class="btn btn-primary" onclick="toggleSettings()">Go to Settings</button>
+                        <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
+                            Loading trending manhwa...
                         </div>
                     </div>
                 </div>
@@ -807,8 +815,7 @@
             weatherCity: 'London',
             subreddit: 'worldnews',
             deepseekApiKey: '',
-            reminders: [],
-            mangaDexUsername: ''
+            reminders: []
         };
 
         const yourWords = ['Comfortable', 'Appreciated', 'Admired', 'Sure', 'Upbeat', 'Hopeful', 'Authentic', 'Thrilled', 'Enthusiastic', 'Stimulated', 'Free'];
@@ -846,19 +853,13 @@
             document.getElementById('weatherCity').value = config.weatherCity;
             document.getElementById('subreddit').value = config.subreddit;
             document.getElementById('deepseekApiKey').value = config.deepseekApiKey;
-            document.getElementById('mangaDexUsername').value = config.mangaDexUsername;
             displayReminders();
-            
-            if (config.mangaDexUsername) {
-                loadMangaDex();
-            }
         }
 
         function saveSettings() {
             config.weatherCity = document.getElementById('weatherCity').value || 'London';
             config.subreddit = document.getElementById('subreddit').value || 'worldnews';
             config.deepseekApiKey = document.getElementById('deepseekApiKey').value;
-            config.mangaDexUsername = document.getElementById('mangaDexUsername').value;
             
             localStorage.setItem('cmdCenterConfig', JSON.stringify(config));
             toggleSettings();
@@ -874,6 +875,10 @@
             document.getElementById(page + 'Page').classList.add('active');
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
             if (tabElement) tabElement.classList.add('active');
+            
+            if (page === 'manga') {
+                loadTrendingManga();
+            }
         }
 
         function getLocation() {
@@ -906,135 +911,67 @@
         setInterval(updateDateTime, 1000);
         updateDateTime();
 
-        // MangaDex MDList Integration
-        async function connectMangaDex() {
-            const username = document.getElementById('mangaDexUsername').value.trim();
-            if (!username) {
-                alert('Please enter your MangaDex username');
-                return;
-            }
-            
-            config.mangaDexUsername = username;
-            localStorage.setItem('cmdCenterConfig', JSON.stringify(config));
-            
-            await loadMangaDex();
-        }
-
-        async function loadMangaDex() {
-            if (!config.mangaDexUsername) return;
-            
+        // Load trending manga from MangaDex
+        async function loadTrendingManga() {
             const content = document.getElementById('mangaContent');
-            const status = document.getElementById('mangaDexStatus');
             
-            content.innerHTML = '<div style="text-align: center; padding: 20px;">Loading your MDList...</div>';
+            content.innerHTML = '<div style="text-align: center; padding: 20px;">Loading trending manhwa...</div>';
             
             try {
-                // Step 1: Get user ID
-                const userResponse = await fetch(`https://api.mangadex.org/user?username=${encodeURIComponent(config.mangaDexUsername)}`);
-                const userData = await userResponse.json();
+                // Fetch popular manga with cover art
+                const response = await fetch('https://api.mangadex.org/manga?limit=20&includes[]=cover_art&order[followedCount]=desc&contentRating[]=safe&availableTranslatedLanguage[]=en');
                 
-                if (!userData.data || userData.data.length === 0) {
-                    throw new Error(`User "${config.mangaDexUsername}" not found`);
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
                 }
                 
-                const userId = userData.data[0].id;
+                const data = await response.json();
                 
-                // Step 2: Get user's MDList (public custom list)
-                const listResponse = await fetch(`https://api.mangadex.org/user/${userId}/list`);
-                
-                if (!listResponse.ok) {
-                    throw new Error('Your MDList is private. Make it public in MangaDex settings.');
+                if (!data.data || data.data.length === 0) {
+                    throw new Error('No manga found');
                 }
                 
-                const listData = await listResponse.json();
-                
-                // Check if there are items
-                if (!listData.data || listData.data.length === 0) {
-                    content.innerHTML = `
-                        <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
-                            Your MDList is empty.
-                            <br><br>
-                            <p style="font-size: 0.85rem;">Add manga to your MDList on MangaDex first.</p>
-                            <br>
-                            <button class="btn btn-secondary" onclick="window.open('https://mangadex.org', '_blank')">
-                                Go to MangaDex
-                            </button>
-                        </div>
-                    `;
-                    status.innerHTML = '<span class="status-indicator status-live"></span>Connected';
-                    return;
-                }
-                
-                // Get manga IDs
-                const mangaIds = listData.data
-                    .filter(item => item.type === 'manga')
-                    .map(item => item.id);
-                
-                if (mangaIds.length === 0) {
-                    content.innerHTML = `
-                        <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
-                            No manga found in your MDList.
-                        </div>
-                    `;
-                    return;
-                }
-                
-                // Step 3: Get manga details
-                const idsQuery = mangaIds.map(id => `ids[]=${id}`).join('&');
-                const mangaResponse = await fetch(`https://api.mangadex.org/manga?${idsQuery}&includes[]=cover_art&limit=100`);
-                
-                if (!mangaResponse.ok) {
-                    throw new Error('Failed to load manga details');
-                }
-                
-                const mangaData = await mangaResponse.json();
-                
-                // Process manga
-                const mangaList = mangaData.data.map(manga => {
-                    const attributes = manga.attributes;
-                    const title = attributes.title.en || 
-                                  Object.values(attributes.title)[0] || 
-                                  'Unknown Title';
-                    
-                    const mangaStatus = attributes.status || 'unknown';
-                    const tags = attributes.tags?.slice(0, 3).map(tag => 
-                        tag.attributes.name.en || 'Tag'
-                    ) || [];
-                    
-                    let coverUrl = null;
-                    if (manga.relationships) {
-                        const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
-                        if (coverRel && coverRel.attributes) {
-                            coverUrl = `https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes.fileName}.256.jpg`;
-                        }
-                    }
-                    
-                    return {
-                        id: manga.id,
-                        title: title,
-                        status: mangaStatus,
-                        tags: tags,
-                        coverUrl: coverUrl
-                    };
-                });
-                
-                // Display manga
                 content.innerHTML = `
-                    <div class="manga-list">
-                        ${mangaList.map(manga => {
-                            const statusClass = `status-${manga.status}`;
-                            const statusLabel = manga.status.charAt(0).toUpperCase() + manga.status.slice(1);
+                    <div class="manga-grid">
+                        ${data.data.map(manga => {
+                            const attributes = manga.attributes;
+                            const title = attributes.title.en || 
+                                          Object.values(attributes.title)[0] || 
+                                          'Unknown Title';
+                            
+                            const mangaStatus = attributes.status || 'unknown';
+                            const rating = attributes.rating?.bayesian?.toFixed(1) || 'N/A';
+                            
+                            // Get tags
+                            const tags = attributes.tags?.slice(0, 2).map(tag => 
+                                tag.attributes.name.en || 'Tag'
+                            ) || [];
+                            
+                            // Get cover art
+                            let coverUrl = null;
+                            if (manga.relationships) {
+                                const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
+                                if (coverRel && coverRel.attributes) {
+                                    coverUrl = `https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes.fileName}.512.jpg`;
+                                }
+                            }
+                            
+                            const statusClass = `status-${mangaStatus}`;
+                            const statusLabel = mangaStatus.charAt(0).toUpperCase() + mangaStatus.slice(1);
                             
                             return `
-                                <div class="manga-item" onclick="window.open('https://mangadex.org/title/${manga.id}', '_blank')">
+                                <div class="manga-card" onclick="window.open('https://mangadex.org/title/${manga.id}', '_blank')">
                                     <div class="manga-cover">
-                                        ${manga.coverUrl ? `<img src="${manga.coverUrl}" alt="${manga.title}" onerror="this.parentElement.innerHTML='📖'">` : '📖'}
+                                        ${coverUrl ? `<img src="${coverUrl}" alt="${title}" onerror="this.parentElement.innerHTML='📖'" loading="lazy">` : '📖'}
+                                        <div class="manga-rating">⭐ ${rating}</div>
                                     </div>
                                     <div class="manga-info">
-                                        <div class="manga-title">${manga.title}</div>
-                                        <div class="manga-tags">
-                                            ${manga.tags.map(tag => `<span class="manga-tag">${tag}</span>`).join('')}
-                                        </div>
+                                        <div class="manga-title">${title}</div>
+                                        ${tags.length > 0 ? `
+                                            <div class="manga-tags">
+                                                ${tags.map(tag => `<span class="manga-tag">${tag}</span>`).join('')}
+                                            </div>
+                                        ` : ''}
                                         <span class="manga-status ${statusClass}">${statusLabel}</span>
                                     </div>
                                 </div>
@@ -1043,28 +980,21 @@
                     </div>
                 `;
                 
-                status.innerHTML = '<span class="status-indicator status-live"></span>Connected';
-                
             } catch (error) {
                 console.error('MangaDex error:', error);
                 
                 content.innerHTML = `
                     <div style="text-align: center; padding: 20px; color: var(--accent-red);">
                         <div style="font-size: 1.5rem; margin-bottom: 10px;">⚠️</div>
-                        <div style="margin-bottom: 10px;">${error.message}</div>
-                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 15px;">
-                            How to fix:
-                            <br>1. Go to mangadex.org and log in
-                            <br>2. Go to Settings
-                            <br>3. Make your MDList public
-                            <br>4. Add manga to your MDList
+                        <div>Failed to load manga</div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 10px;">
+                            ${error.message}
                         </div>
-                        <button class="btn btn-secondary" onclick="window.open('https://mangadex.org/settings', '_blank')">
-                            Open MangaDex Settings
-                        </button>
+                        <br>
+                        <button class="btn btn-secondary" onclick="loadTrendingManga()">Try Again</button>
+                        <button class="btn btn-secondary" onclick="window.open('https://mangadex.org', '_blank')">Open MangaDex</button>
                     </div>
                 `;
-                status.innerHTML = '<span class="status-indicator status-error"></span>Error';
             }
         }
 
@@ -1326,11 +1256,12 @@
                 return;
             }
             
-            if (message.toLowerCase().includes('manga') || message.toLowerCase().includes('mangadex')) {
+            if (message.toLowerCase().includes('manga') || message.toLowerCase().includes('manhwa')) {
                 addChatMessage('user', message);
                 input.value = '';
-                addChatMessage('ai', 'Check the Manga tab for your MDList! 📚');
+                addChatMessage('ai', 'Check the Manga tab for trending manhwa! 📚');
                 switchPage('manga', document.querySelectorAll('.nav-tab')[1]);
+                loadTrendingManga();
                 return;
             }
             
@@ -1380,7 +1311,6 @@
             loadPortfolio();
             loadReddit();
             loadWeather();
-            if (config.mangaDexUsername) loadMangaDex();
         }
 
         // Initialize
