@@ -21,6 +21,8 @@
             --accent-orange: #ff4500;
             --accent-pink: #ec4899;
             --accent-cyan: #06b6d4;
+            --accent-gold: #fbbf24;
+            --mangadex-orange: #FF6740;
             --border-color: #2d3748;
         }
 
@@ -78,6 +80,43 @@
             border-radius: 10px;
             cursor: pointer;
             font-size: 1.2rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 10px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            min-width: fit-content;
+        }
+
+        .nav-tab.active {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
         }
 
         .config-panel {
@@ -194,6 +233,113 @@
             100% { opacity: 1; }
         }
 
+        /* Manga Styles */
+        .manga-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .manga-item {
+            display: flex;
+            gap: 12px;
+            background: var(--bg-card);
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .manga-item:active {
+            background: var(--border-color);
+        }
+
+        .manga-cover {
+            width: 60px;
+            height: 80px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--mangadex-orange), #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .manga-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .manga-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .manga-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 3px;
+            line-height: 1.2;
+        }
+
+        .manga-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 5px;
+        }
+
+        .manga-tag {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .manga-status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .status-ongoing {
+            background: #3b82f620;
+            color: #3b82f6;
+        }
+
+        .status-completed {
+            background: #10b98120;
+            color: #10b981;
+        }
+
+        .status-hiatus {
+            background: #f59e0b20;
+            color: #f59e0b;
+        }
+
+        .status-cancelled {
+            background: #ef444420;
+            color: #ef4444;
+        }
+
+        .mangaDex-connect {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .mangaDex-connect .mangaDex-logo {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
         /* Words Display */
         .words-container {
             display: flex;
@@ -230,14 +376,8 @@
         .word-tag:nth-child(11) { background: #6366f120; color: #6366f1; border: 1px solid #6366f140; }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .word-of-moment {
@@ -258,46 +398,29 @@
             animation: pulse 3s infinite;
         }
 
-        /* Reddit Styles */
-        .reddit-posts {
-            max-height: 400px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
+        /* Bible Reading Styles */
+        .bible-card {
+            background: linear-gradient(135deg, #1a2332 0%, #1e3a5f 100%);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 15px;
         }
 
-        .reddit-post {
-            background: var(--bg-card);
-            padding: 12px;
-            border-radius: 10px;
+        .bible-reference {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-gold);
             margin-bottom: 10px;
-            cursor: pointer;
-            transition: background 0.2s ease;
         }
 
-        .reddit-post:active {
-            background: var(--border-color);
-        }
-
-        .reddit-post-title {
-            font-size: 0.9rem;
-            font-weight: 500;
-            margin-bottom: 5px;
-            line-height: 1.3;
-        }
-
-        .reddit-post-meta {
-            display: flex;
-            gap: 15px;
-            font-size: 0.75rem;
+        .bible-theme {
             color: var(--text-secondary);
-            flex-wrap: wrap;
+            font-size: 0.9rem;
+            line-height: 1.5;
         }
 
-        .reddit-post-subreddit {
-            color: var(--accent-orange);
-            font-weight: 600;
-        }
-
+        /* Portfolio Styles */
         .portfolio-value {
             font-size: 2rem;
             font-weight: 700;
@@ -333,7 +456,7 @@
         .negative { color: var(--accent-red); }
 
         .holdings-list {
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
         }
 
@@ -344,54 +467,41 @@
             border-bottom: 1px solid var(--border-color);
         }
 
-        .video-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        /* Reddit Styles */
+        .reddit-posts {
             max-height: 400px;
             overflow-y: auto;
         }
 
-        .video-item {
-            display: flex;
-            gap: 10px;
+        .reddit-post {
             background: var(--bg-card);
-            padding: 10px;
+            padding: 12px;
             border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
         }
 
-        .video-thumbnail {
-            width: 100px;
-            height: 56px;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            flex-shrink: 0;
-        }
-
-        .video-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .video-title {
-            font-size: 0.85rem;
+        .reddit-post-title {
+            font-size: 0.9rem;
             font-weight: 500;
-            margin-bottom: 3px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+            margin-bottom: 5px;
+            line-height: 1.3;
         }
 
-        .video-channel {
+        .reddit-post-meta {
+            display: flex;
+            gap: 15px;
             font-size: 0.75rem;
             color: var(--text-secondary);
+            flex-wrap: wrap;
         }
 
+        .reddit-post-subreddit {
+            color: var(--accent-orange);
+            font-weight: 600;
+        }
+
+        /* Weather Styles */
         .weather-main {
             display: flex;
             align-items: center;
@@ -417,23 +527,7 @@
             text-align: center;
         }
 
-        .forecast {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
-        }
-
-        .forecast-day {
-            text-align: center;
-            padding: 8px 4px;
-            background: var(--bg-card);
-            border-radius: 8px;
-        }
-
-        .forecast-icon { font-size: 1.2rem; margin-bottom: 3px; }
-        .forecast-temp { font-size: 0.75rem; font-weight: 600; }
-        .forecast-temp-range { font-size: 0.65rem; color: var(--text-secondary); }
-
+        /* Chat Styles */
         .chat-container {
             display: flex;
             flex-direction: column;
@@ -494,6 +588,37 @@
         }
 
         .typing-indicator.active { display: block; }
+
+        /* Reminders Styles */
+        .reminders-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .reminder-item {
+            background: var(--bg-card);
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .reminder-text {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        .reminder-delete {
+            background: var(--accent-red);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
     </style>
 </head>
 <body>
@@ -504,6 +629,13 @@
                 <div class="datetime" id="datetime"></div>
             </div>
             <button class="btn-settings" onclick="toggleSettings()">⚙️</button>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="switchPage('dashboard', this)">📊 Dashboard</div>
+            <div class="nav-tab" onclick="switchPage('manga', this)">📚 Manga</div>
+            <div class="nav-tab" onclick="switchPage('briefing', this)">📋 Briefing</div>
         </div>
 
         <div class="config-panel" id="settingsPanel">
@@ -517,11 +649,29 @@
             </div>
             
             <div class="config-section">
+                <h3>📚 MangaDex MDList</h3>
+                <div class="config-input">
+                    <label>MangaDex Username</label>
+                    <input type="text" id="mangaDexUsername" placeholder="Enter your MangaDex username">
+                </div>
+                <button class="btn btn-secondary" onclick="connectMangaDex()">Load MDList</button>
+            </div>
+            
+            <div class="config-section">
                 <h3>📱 Reddit</h3>
                 <div class="config-input">
-                    <label>Subreddit (e.g., worldnews, technology)</label>
-                    <input type="text" id="subreddit" placeholder="Enter subreddit name">
+                    <label>Subreddit</label>
+                    <input type="text" id="subreddit" placeholder="e.g., worldnews">
                 </div>
+            </div>
+            
+            <div class="config-section">
+                <h3>📝 Reminders</h3>
+                <div class="config-input">
+                    <label>Add Reminder</label>
+                    <input type="text" id="reminderInput" placeholder="Enter reminder">
+                </div>
+                <button class="btn btn-secondary" onclick="addReminder()">Add Reminder</button>
             </div>
             
             <div class="config-section">
@@ -532,87 +682,120 @@
                 </div>
             </div>
             
-            <div class="config-section">
-                <h3>▶️ YouTube (Optional)</h3>
-                <div class="config-input">
-                    <label>API Key</label>
-                    <input type="password" id="youtubeApiKey" placeholder="Enter API Key">
-                </div>
-            </div>
-            
             <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
         </div>
 
-        <div class="dashboard-stack">
-            <!-- Words Display Card -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">💭 My Words</div>
-                    <span><span class="status-indicator status-live"></span>Live</span>
+        <!-- Dashboard Page -->
+        <div class="page active" id="dashboardPage">
+            <div class="dashboard-stack">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">💭 My Words</div>
+                        <span><span class="status-indicator status-live"></span>Live</span>
+                    </div>
+                    <div class="word-of-moment">
+                        <div class="featured-word" id="featuredWord">Comfortable</div>
+                    </div>
+                    <div class="words-container" id="wordsContainer"></div>
                 </div>
-                <div class="word-of-moment">
-                    <div class="featured-word" id="featuredWord">Comfortable</div>
-                </div>
-                <div class="words-container" id="wordsContainer">
-                    <!-- Words will be inserted here -->
-                </div>
-            </div>
 
-            <!-- Trading 212 Card -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">📈 Trading 212</div>
-                    <span><span class="status-indicator status-live"></span>Live</span>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📖 Today's Bible Reading</div>
+                        <span><span class="status-indicator status-live"></span>Daily</span>
+                    </div>
+                    <div class="bible-card">
+                        <div class="bible-reference" id="bibleReference">Loading...</div>
+                        <div class="bible-theme" id="bibleTheme">Loading theme...</div>
+                    </div>
                 </div>
-                <div id="t212Content"></div>
-            </div>
 
-            <!-- Reddit Card -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">📱 Reddit</div>
-                    <span id="redditStatus"><span class="status-indicator status-loading"></span>Loading...</span>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📈 My Portfolio</div>
+                        <span><span class="status-indicator status-live"></span>Live</span>
+                    </div>
+                    <div id="portfolioContent"></div>
                 </div>
-                <div id="redditContent">
-                    <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
-                        Loading Reddit posts...
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📱 Reddit</div>
+                        <span id="redditStatus"><span class="status-indicator status-live"></span>Loading...</span>
+                    </div>
+                    <div id="redditContent">
+                        <div style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🌤️ Weather</div>
+                        <span id="weatherStatus">Loading...</span>
+                    </div>
+                    <div id="weatherContent">Loading weather...</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🤖 AI Assistant</div>
+                        <span>Ready</span>
+                    </div>
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="chat-message ai">Hello! How can I help you today? 👋</div>
+                        </div>
+                        <div class="typing-indicator" id="typingIndicator">AI is typing...</div>
+                        <div class="chat-input-container">
+                            <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..." onkeypress="handleChatKeyPress(event)">
+                            <button class="btn btn-primary" onclick="sendChatMessage()" style="width: auto;">Send</button>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Weather Card -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">🌤️ Weather</div>
-                    <span id="weatherStatus">Loading...</span>
-                </div>
-                <div id="weatherContent">Loading weather...</div>
-            </div>
-
-            <!-- YouTube Card -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">▶️ YouTube</div>
-                    <span>Trending</span>
-                </div>
-                <div id="youtubeContent"></div>
-            </div>
-
-            <!-- AI Chat Card -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">🤖 AI Assistant</div>
-                    <span>Ready</span>
-                </div>
-                <div class="chat-container">
-                    <div class="chat-messages" id="chatMessages">
-                        <div class="chat-message ai">Hello! How can I help you today? 👋</div>
+        <!-- Manga Page -->
+        <div class="page" id="mangaPage">
+            <div class="dashboard-stack">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📚 My MDList</div>
+                        <span id="mangaDexStatus"><span class="status-indicator status-live"></span>Ready</span>
                     </div>
-                    <div class="typing-indicator" id="typingIndicator">AI is typing...</div>
-                    <div class="chat-input-container">
-                        <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..." onkeypress="handleChatKeyPress(event)">
-                        <button class="btn btn-primary" onclick="sendChatMessage()" style="width: auto;">Send</button>
+                    <div id="mangaContent">
+                        <div class="mangaDex-connect">
+                            <div class="mangaDex-logo">📚</div>
+                            <h3 style="margin-bottom: 10px;">Load Your MDList</h3>
+                            <p style="color: var(--text-secondary); margin-bottom: 15px;">
+                                Enter your MangaDex username in Settings to load your MDList
+                            </p>
+                            <button class="btn btn-primary" onclick="toggleSettings()">Go to Settings</button>
+                        </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Briefing Page -->
+        <div class="page" id="briefingPage">
+            <div class="dashboard-stack">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📋 Daily Briefing</div>
+                        <span id="briefingDate"></span>
+                    </div>
+                    <div id="briefingContent">
+                        <button class="btn btn-primary" onclick="generateBriefing()">Generate Daily Briefing</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📝 My Reminders</div>
+                        <span><span class="status-indicator status-live"></span>Active</span>
+                    </div>
+                    <div id="remindersList" class="reminders-list"></div>
                 </div>
             </div>
         </div>
@@ -624,22 +807,31 @@
             weatherCity: 'London',
             subreddit: 'worldnews',
             deepseekApiKey: '',
-            youtubeApiKey: ''
+            reminders: [],
+            mangaDexUsername: ''
         };
 
-        // Your words
-        const yourWords = [
-            'Comfortable',
-            'Appreciated',
-            'Admired',
-            'Sure',
-            'Upbeat',
-            'Hopeful',
-            'Authentic',
-            'Thrilled',
-            'Enthusiastic',
-            'Stimulated',
-            'Free'
+        const yourWords = ['Comfortable', 'Appreciated', 'Admired', 'Sure', 'Upbeat', 'Hopeful', 'Authentic', 'Thrilled', 'Enthusiastic', 'Stimulated', 'Free'];
+
+        const portfolioStocks = [
+            { symbol: 'VWRP', name: 'Vanguard FTSE All-World', shares: 12, buyPrice: 95.50, currentPrice: 98.75 },
+            { symbol: 'PAF', name: 'Pan African Resources', shares: 950, buyPrice: 0.1550, currentPrice: 0.1825 },
+            { symbol: 'RR', name: 'Rolls Royce', shares: 55, buyPrice: 2.15, currentPrice: 2.48 },
+            { symbol: 'RKLB', name: 'Rocket Lab', shares: 10, buyPrice: 4.85, currentPrice: 5.32 },
+            { symbol: 'TUN', name: 'Tungsten West', shares: 220, buyPrice: 0.085, currentPrice: 0.092 }
+        ];
+
+        const biblePlan = [
+            { book: "Genesis", chapters: "1-3", theme: "Creation, the fall of man, and the promise of redemption" },
+            { book: "Genesis", chapters: "4-7", theme: "Cain and Abel, Noah's ark, and God's judgment" },
+            { book: "Genesis", chapters: "8-11", theme: "God's covenant with Noah and the Tower of Babel" },
+            { book: "Genesis", chapters: "12-15", theme: "God's covenant with Abraham" },
+            { book: "Matthew", chapters: "1-3", theme: "The birth of Jesus and beginning of His ministry" },
+            { book: "Matthew", chapters: "4-6", theme: "Jesus' temptation and Sermon on the Mount" },
+            { book: "Matthew", chapters: "7-9", theme: "Jesus' teachings and miracles" },
+            { book: "Psalms", chapters: "1-5", theme: "The blessed life and trust in God" },
+            { book: "Proverbs", chapters: "1-3", theme: "The value of wisdom and understanding" },
+            { book: "Romans", chapters: "1-3", theme: "The gospel and God's righteousness" }
         ];
 
         function loadConfig() {
@@ -654,14 +846,19 @@
             document.getElementById('weatherCity').value = config.weatherCity;
             document.getElementById('subreddit').value = config.subreddit;
             document.getElementById('deepseekApiKey').value = config.deepseekApiKey;
-            document.getElementById('youtubeApiKey').value = config.youtubeApiKey;
+            document.getElementById('mangaDexUsername').value = config.mangaDexUsername;
+            displayReminders();
+            
+            if (config.mangaDexUsername) {
+                loadMangaDex();
+            }
         }
 
         function saveSettings() {
             config.weatherCity = document.getElementById('weatherCity').value || 'London';
             config.subreddit = document.getElementById('subreddit').value || 'worldnews';
             config.deepseekApiKey = document.getElementById('deepseekApiKey').value;
-            config.youtubeApiKey = document.getElementById('youtubeApiKey').value;
+            config.mangaDexUsername = document.getElementById('mangaDexUsername').value;
             
             localStorage.setItem('cmdCenterConfig', JSON.stringify(config));
             toggleSettings();
@@ -670,6 +867,13 @@
 
         function toggleSettings() {
             document.getElementById('settingsPanel').classList.toggle('active');
+        }
+
+        function switchPage(page, tabElement) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(page + 'Page').classList.add('active');
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            if (tabElement) tabElement.classList.add('active');
         }
 
         function getLocation() {
@@ -702,15 +906,173 @@
         setInterval(updateDateTime, 1000);
         updateDateTime();
 
+        // MangaDex MDList Integration
+        async function connectMangaDex() {
+            const username = document.getElementById('mangaDexUsername').value.trim();
+            if (!username) {
+                alert('Please enter your MangaDex username');
+                return;
+            }
+            
+            config.mangaDexUsername = username;
+            localStorage.setItem('cmdCenterConfig', JSON.stringify(config));
+            
+            await loadMangaDex();
+        }
+
+        async function loadMangaDex() {
+            if (!config.mangaDexUsername) return;
+            
+            const content = document.getElementById('mangaContent');
+            const status = document.getElementById('mangaDexStatus');
+            
+            content.innerHTML = '<div style="text-align: center; padding: 20px;">Loading your MDList...</div>';
+            
+            try {
+                // Step 1: Get user ID
+                const userResponse = await fetch(`https://api.mangadex.org/user?username=${encodeURIComponent(config.mangaDexUsername)}`);
+                const userData = await userResponse.json();
+                
+                if (!userData.data || userData.data.length === 0) {
+                    throw new Error(`User "${config.mangaDexUsername}" not found`);
+                }
+                
+                const userId = userData.data[0].id;
+                
+                // Step 2: Get user's MDList (public custom list)
+                const listResponse = await fetch(`https://api.mangadex.org/user/${userId}/list`);
+                
+                if (!listResponse.ok) {
+                    throw new Error('Your MDList is private. Make it public in MangaDex settings.');
+                }
+                
+                const listData = await listResponse.json();
+                
+                // Check if there are items
+                if (!listData.data || listData.data.length === 0) {
+                    content.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
+                            Your MDList is empty.
+                            <br><br>
+                            <p style="font-size: 0.85rem;">Add manga to your MDList on MangaDex first.</p>
+                            <br>
+                            <button class="btn btn-secondary" onclick="window.open('https://mangadex.org', '_blank')">
+                                Go to MangaDex
+                            </button>
+                        </div>
+                    `;
+                    status.innerHTML = '<span class="status-indicator status-live"></span>Connected';
+                    return;
+                }
+                
+                // Get manga IDs
+                const mangaIds = listData.data
+                    .filter(item => item.type === 'manga')
+                    .map(item => item.id);
+                
+                if (mangaIds.length === 0) {
+                    content.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
+                            No manga found in your MDList.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Step 3: Get manga details
+                const idsQuery = mangaIds.map(id => `ids[]=${id}`).join('&');
+                const mangaResponse = await fetch(`https://api.mangadex.org/manga?${idsQuery}&includes[]=cover_art&limit=100`);
+                
+                if (!mangaResponse.ok) {
+                    throw new Error('Failed to load manga details');
+                }
+                
+                const mangaData = await mangaResponse.json();
+                
+                // Process manga
+                const mangaList = mangaData.data.map(manga => {
+                    const attributes = manga.attributes;
+                    const title = attributes.title.en || 
+                                  Object.values(attributes.title)[0] || 
+                                  'Unknown Title';
+                    
+                    const mangaStatus = attributes.status || 'unknown';
+                    const tags = attributes.tags?.slice(0, 3).map(tag => 
+                        tag.attributes.name.en || 'Tag'
+                    ) || [];
+                    
+                    let coverUrl = null;
+                    if (manga.relationships) {
+                        const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
+                        if (coverRel && coverRel.attributes) {
+                            coverUrl = `https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes.fileName}.256.jpg`;
+                        }
+                    }
+                    
+                    return {
+                        id: manga.id,
+                        title: title,
+                        status: mangaStatus,
+                        tags: tags,
+                        coverUrl: coverUrl
+                    };
+                });
+                
+                // Display manga
+                content.innerHTML = `
+                    <div class="manga-list">
+                        ${mangaList.map(manga => {
+                            const statusClass = `status-${manga.status}`;
+                            const statusLabel = manga.status.charAt(0).toUpperCase() + manga.status.slice(1);
+                            
+                            return `
+                                <div class="manga-item" onclick="window.open('https://mangadex.org/title/${manga.id}', '_blank')">
+                                    <div class="manga-cover">
+                                        ${manga.coverUrl ? `<img src="${manga.coverUrl}" alt="${manga.title}" onerror="this.parentElement.innerHTML='📖'">` : '📖'}
+                                    </div>
+                                    <div class="manga-info">
+                                        <div class="manga-title">${manga.title}</div>
+                                        <div class="manga-tags">
+                                            ${manga.tags.map(tag => `<span class="manga-tag">${tag}</span>`).join('')}
+                                        </div>
+                                        <span class="manga-status ${statusClass}">${statusLabel}</span>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                
+                status.innerHTML = '<span class="status-indicator status-live"></span>Connected';
+                
+            } catch (error) {
+                console.error('MangaDex error:', error);
+                
+                content.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: var(--accent-red);">
+                        <div style="font-size: 1.5rem; margin-bottom: 10px;">⚠️</div>
+                        <div style="margin-bottom: 10px;">${error.message}</div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 15px;">
+                            How to fix:
+                            <br>1. Go to mangadex.org and log in
+                            <br>2. Go to Settings
+                            <br>3. Make your MDList public
+                            <br>4. Add manga to your MDList
+                        </div>
+                        <button class="btn btn-secondary" onclick="window.open('https://mangadex.org/settings', '_blank')">
+                            Open MangaDex Settings
+                        </button>
+                    </div>
+                `;
+                status.innerHTML = '<span class="status-indicator status-error"></span>Error';
+            }
+        }
+
         function loadWords() {
             const container = document.getElementById('wordsContainer');
-            
             container.innerHTML = yourWords.map((word, index) => `
-                <div class="word-tag" style="animation-delay: ${index * 0.1}s" onclick="featureWord('${word}')">
-                    ${word}
-                </div>
+                <div class="word-tag" style="animation-delay: ${index * 0.1}s" onclick="featureWord('${word}')">${word}</div>
             `).join('');
-            
             const randomIndex = Math.floor(Math.random() * yourWords.length);
             document.getElementById('featuredWord').textContent = yourWords[randomIndex];
         }
@@ -719,50 +1081,135 @@
             document.getElementById('featuredWord').textContent = word;
             const featuredEl = document.getElementById('featuredWord');
             featuredEl.style.animation = 'none';
-            setTimeout(() => {
-                featuredEl.style.animation = 'pulse 3s infinite';
-            }, 10);
+            setTimeout(() => { featuredEl.style.animation = 'pulse 3s infinite'; }, 10);
         }
 
-        function loadTrading212() {
-            const mockData = {
-                totalValue: 25480.75,
-                dailyChange: 325.50,
-                totalReturn: 27.40,
-                holdings: [
-                    { symbol: 'TSLA', name: 'Tesla Inc.', value: 5230.25, change: 2.45 },
-                    { symbol: 'AAPL', name: 'Apple Inc.', value: 4320.80, change: -0.85 },
-                    { symbol: 'NVDA', name: 'NVIDIA Corp.', value: 3850.60, change: 3.12 }
-                ]
-            };
+        function loadBibleReading() {
+            const today = new Date();
+            const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+            const reading = biblePlan[dayOfYear % biblePlan.length];
+            document.getElementById('bibleReference').textContent = `${reading.book} ${reading.chapters}`;
+            document.getElementById('bibleTheme').textContent = `Theme: ${reading.theme}`;
+        }
+
+        function loadPortfolio() {
+            const content = document.getElementById('portfolioContent');
+            const totalValue = portfolioStocks.reduce((sum, stock) => sum + (stock.currentPrice * stock.shares), 0);
+            const totalCost = portfolioStocks.reduce((sum, stock) => sum + (stock.buyPrice * stock.shares), 0);
+            const totalProfit = totalValue - totalCost;
+            const profitPercent = (totalProfit / totalCost) * 100;
             
-            document.getElementById('t212Content').innerHTML = `
-                <div class="portfolio-value">$${mockData.totalValue.toFixed(2)}</div>
+            content.innerHTML = `
+                <div class="portfolio-value">£${totalValue.toFixed(2)}</div>
                 <div class="portfolio-stats">
                     <div class="stat-item">
-                        <div class="stat-label">Today's Change</div>
-                        <div class="stat-value positive">+$${mockData.dailyChange.toFixed(2)}</div>
+                        <div class="stat-label">Total Profit/Loss</div>
+                        <div class="stat-value ${totalProfit >= 0 ? 'positive' : 'negative'}">${totalProfit >= 0 ? '+' : ''}£${totalProfit.toFixed(2)}</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-label">Total Return</div>
-                        <div class="stat-value positive">+${mockData.totalReturn.toFixed(2)}%</div>
+                        <div class="stat-label">Return</div>
+                        <div class="stat-value ${profitPercent >= 0 ? 'positive' : 'negative'}">${profitPercent >= 0 ? '+' : ''}${profitPercent.toFixed(2)}%</div>
                     </div>
                 </div>
                 <div class="holdings-list">
-                    ${mockData.holdings.map(h => `
-                        <div class="holding-item">
-                            <div>
-                                <div style="font-weight: 500;">${h.symbol}</div>
-                                <div style="color: var(--text-secondary); font-size: 0.8rem;">${h.name}</div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div>$${h.value.toFixed(2)}</div>
-                                <div class="${h.change >= 0 ? 'positive' : 'negative'}">
-                                    ${h.change >= 0 ? '▲' : '▼'} ${Math.abs(h.change)}%
+                    ${portfolioStocks.map(stock => {
+                        const stockValue = stock.currentPrice * stock.shares;
+                        const stockCost = stock.buyPrice * stock.shares;
+                        const stockProfit = stockValue - stockCost;
+                        const stockPercent = (stockProfit / stockCost) * 100;
+                        return `
+                            <div class="holding-item">
+                                <div>
+                                    <div style="font-weight: 600;">${stock.symbol}</div>
+                                    <div style="color: var(--text-secondary); font-size: 0.8rem;">${stock.name}</div>
+                                    <div style="color: var(--text-secondary); font-size: 0.75rem;">${stock.shares} shares</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div>£${stockValue.toFixed(2)}</div>
+                                    <div class="${stockProfit >= 0 ? 'positive' : 'negative'}" style="font-size: 0.85rem;">${stockProfit >= 0 ? '+' : ''}£${stockProfit.toFixed(2)}</div>
+                                    <div class="${stockPercent >= 0 ? 'positive' : 'negative'}" style="font-size: 0.75rem;">${stockPercent >= 0 ? '▲' : '▼'} ${Math.abs(stockPercent).toFixed(2)}%</div>
                                 </div>
                             </div>
-                        </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function addReminder() {
+            const input = document.getElementById('reminderInput');
+            const reminder = input.value.trim();
+            if (reminder) {
+                config.reminders.push(reminder);
+                input.value = '';
+                localStorage.setItem('cmdCenterConfig', JSON.stringify(config));
+                displayReminders();
+            }
+        }
+
+        function deleteReminder(index) {
+            config.reminders.splice(index, 1);
+            localStorage.setItem('cmdCenterConfig', JSON.stringify(config));
+            displayReminders();
+        }
+
+        function displayReminders() {
+            const container = document.getElementById('remindersList');
+            if (config.reminders.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 20px;">No reminders yet</div>';
+            } else {
+                container.innerHTML = config.reminders.map((reminder, index) => `
+                    <div class="reminder-item">
+                        <div class="reminder-text">${reminder}</div>
+                        <button class="reminder-delete" onclick="deleteReminder(${index})">✕</button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        async function generateBriefing() {
+            const content = document.getElementById('briefingContent');
+            const now = new Date();
+            const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+            const reading = biblePlan[dayOfYear % biblePlan.length];
+            
+            let weatherText = 'Weather unavailable';
+            try {
+                const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(config.weatherCity)}&count=1&language=en&format=json`);
+                const geoData = await geoResponse.json();
+                if (geoData.results && geoData.results.length > 0) {
+                    const location = geoData.results[0];
+                    const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code&timezone=auto`);
+                    const weatherData = await weatherResponse.json();
+                    const weatherInfo = getWeatherInfo(weatherData.current.weather_code);
+                    weatherText = `${Math.round(weatherData.current.temperature_2m)}°C ${weatherInfo.description}`;
+                }
+            } catch (e) {
+                console.error('Weather error:', e);
+            }
+            
+            const totalValue = portfolioStocks.reduce((sum, stock) => sum + (stock.currentPrice * stock.shares), 0);
+            const totalCost = portfolioStocks.reduce((sum, stock) => sum + (stock.buyPrice * stock.shares), 0);
+            const totalProfit = totalValue - totalCost;
+            
+            content.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--accent-blue); margin-bottom: 10px;">🌤️ Weather</h3>
+                    <p>${weatherText} in ${config.weatherCity}</p>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--accent-green); margin-bottom: 10px;">📈 Portfolio</h3>
+                    <p>Total Value: £${totalValue.toFixed(2)}</p>
+                    <p class="${totalProfit >= 0 ? 'positive' : 'negative'}">${totalProfit >= 0 ? 'Profit' : 'Loss'}: ${totalProfit >= 0 ? '+' : ''}£${totalProfit.toFixed(2)}</p>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--accent-gold); margin-bottom: 10px;">📖 Bible Reading</h3>
+                    <p>${reading.book} ${reading.chapters}</p>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">${reading.theme}</p>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--accent-purple); margin-bottom: 10px;">📝 Reminders</h3>
+                    ${config.reminders.length > 0 ? config.reminders.map(r => `<p>• ${r}</p>`).join('') : '<p style="color: var(--text-secondary);">No reminders for today</p>'}
                 </div>
             `;
         }
@@ -770,151 +1217,51 @@
         async function loadReddit() {
             const content = document.getElementById('redditContent');
             const status = document.getElementById('redditStatus');
-            
-            try {
-                // Try multiple approaches to fetch Reddit data
-                let data = null;
-                
-                // Approach 1: Direct fetch with headers
-                try {
-                    const response = await fetch(`https://www.reddit.com/r/${config.subreddit}/hot.json?limit=10`, {
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                            'Accept': 'application/json'
-                        }
-                    });
-                    if (response.ok) {
-                        data = await response.json();
-                    }
-                } catch (e) {
-                    console.log('Direct fetch failed, trying alternative...');
-                }
-                
-                // Approach 2: Use reddit's oauth API
-                if (!data) {
-                    try {
-                        const response = await fetch(`https://oauth.reddit.com/r/${config.subreddit}/hot?limit=10`, {
-                            headers: {
-                                'User-Agent': 'CommandCenter/1.0'
-                            }
-                        });
-                        if (response.ok) {
-                            data = await response.json();
-                        }
-                    } catch (e) {
-                        console.log('OAuth fetch failed, trying alternative...');
-                    }
-                }
-                
-                // Approach 3: Use a CORS proxy
-                if (!data) {
-                    try {
-                        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.reddit.com/r/${config.subreddit}/hot.json?limit=10`)}`);
-                        if (response.ok) {
-                            data = await response.json();
-                        }
-                    } catch (e) {
-                        console.log('Proxy fetch failed');
-                    }
-                }
-                
-                if (!data || !data.data || !data.data.children) {
-                    throw new Error('Failed to load Reddit data');
-                }
-                
-                const posts = data.data.children;
-                
-                content.innerHTML = `
-                    <div class="reddit-posts">
-                        ${posts.map(post => {
-                            const postData = post.data;
-                            const score = postData.score > 1000 ? `${(postData.score / 1000).toFixed(1)}k` : postData.score;
-                            const comments = postData.num_comments > 1000 ? `${(postData.num_comments / 1000).toFixed(1)}k` : postData.num_comments;
-                            const author = postData.author || 'unknown';
-                            
-                            return `
-                                <div class="reddit-post" onclick="window.open('https://reddit.com${postData.permalink}', '_blank')">
-                                    <div class="reddit-post-title">${postData.title}</div>
-                                    <div class="reddit-post-meta">
-                                        <span class="reddit-post-subreddit">r/${postData.subreddit}</span>
-                                        <span>⬆️ ${score}</span>
-                                        <span>💬 ${comments}</span>
-                                        <span>👤 ${author}</span>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `;
-                
-                status.innerHTML = '<span class="status-indicator status-live"></span>Live';
-            } catch (error) {
-                console.error('Reddit error:', error);
-                
-                // Show fallback content
-                const fallbackPosts = [
-                    { title: 'Reddit API requires authentication for browser access', subreddit: 'info', score: 'N/A', comments: 'N/A', author: 'system' },
-                    { title: 'Try using a Reddit API wrapper or backend proxy', subreddit: 'tip', score: 'N/A', comments: 'N/A', author: 'system' },
-                    { title: 'You can still view Reddit in your browser', subreddit: 'tip', score: 'N/A', comments: 'N/A', author: 'system' }
-                ];
-                
-                content.innerHTML = `
-                    <div class="reddit-posts">
-                        ${fallbackPosts.map(post => `
-                            <div class="reddit-post">
-                                <div class="reddit-post-title">${post.title}</div>
-                                <div class="reddit-post-meta">
-                                    <span class="reddit-post-subreddit">r/${post.subreddit}</span>
-                                    <span>${post.score}</span>
-                                    <span>${post.comments}</span>
-                                    <span>${post.author}</span>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div style="margin-top: 10px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 5px;">
-                        <div style="color: var(--accent-green); font-size: 0.85rem;">
-                            💡 Tip: Reddit's API blocks browser requests. To get live Reddit data, you can use a backend proxy or the Reddit API with authentication.
-                        </div>
-                    </div>
-                `;
-                
-                status.innerHTML = '<span class="status-indicator status-live"></span>Info';
-            }
-        }
-
-        function loadYouTube() {
-            const videos = [
-                { title: 'The Future of AI in 2024', channel: 'Tech Insights', views: '1.2M' },
-                { title: 'Top 10 Investment Strategies', channel: 'Finance Daily', views: '850K' },
-                { title: 'Learn Python in 30 Minutes', channel: 'Code Academy', views: '2.1M' }
+            const endpoints = [
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.reddit.com/r/${config.subreddit}/hot.json?limit=5`)}`,
+                `https://api.reddit.com/r/${config.subreddit}/hot?limit=5`
             ];
             
-            document.getElementById('youtubeContent').innerHTML = `
-                <div class="video-grid">
-                    ${videos.map(v => `
-                        <div class="video-item">
-                            <div class="video-thumbnail">▶️</div>
-                            <div class="video-info">
-                                <div class="video-title">${v.title}</div>
-                                <div class="video-channel">${v.channel}</div>
-                                <div class="video-channel" style="color: var(--accent-blue);">${v.views} views</div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
+            for (let i = 0; i < endpoints.length; i++) {
+                try {
+                    const response = await fetch(endpoints[i]);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && data.data && data.data.children) {
+                            const posts = data.data.children;
+                            content.innerHTML = posts.map(post => {
+                                const postData = post.data;
+                                return `
+                                    <div class="reddit-post" onclick="window.open('https://reddit.com${postData.permalink}', '_blank')">
+                                        <div class="reddit-post-title">${postData.title}</div>
+                                        <div class="reddit-post-meta">
+                                            <span class="reddit-post-subreddit">r/${postData.subreddit}</span>
+                                            <span>⬆️ ${postData.score}</span>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('');
+                            status.innerHTML = '<span class="status-indicator status-live"></span>Live';
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.log(`Endpoint ${i + 1} failed`);
+                }
+            }
+            
+            content.innerHTML = '<div style="text-align: center; padding: 20px;">Unable to load Reddit</div>';
+            status.innerHTML = '<span class="status-indicator status-error"></span>Blocked';
         }
 
         async function loadWeather() {
             try {
                 const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(config.weatherCity)}&count=1&language=en&format=json`);
                 const geoData = await geoResponse.json();
-                
                 if (!geoData.results || geoData.results.length === 0) throw new Error('City not found');
                 
                 const location = geoData.results[0];
-                const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`);
+                const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto`);
                 const data = await weatherResponse.json();
                 
                 const current = data.current;
@@ -947,7 +1294,7 @@
                 
                 document.getElementById('weatherStatus').innerHTML = '<span class="status-indicator status-live"></span>Live';
             } catch (error) {
-                document.getElementById('weatherContent').innerHTML = `Failed to load weather for "${config.weatherCity}"`;
+                document.getElementById('weatherContent').innerHTML = 'Failed to load weather';
                 document.getElementById('weatherStatus').innerHTML = 'Error';
             }
         }
@@ -969,6 +1316,23 @@
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
             if (!message) return;
+            
+            if (message.toLowerCase().includes('briefing')) {
+                addChatMessage('user', message);
+                input.value = '';
+                addChatMessage('ai', 'Here is your daily briefing. Check the Briefing tab! 📋');
+                switchPage('briefing', document.querySelectorAll('.nav-tab')[2]);
+                generateBriefing();
+                return;
+            }
+            
+            if (message.toLowerCase().includes('manga') || message.toLowerCase().includes('mangadex')) {
+                addChatMessage('user', message);
+                input.value = '';
+                addChatMessage('ai', 'Check the Manga tab for your MDList! 📚');
+                switchPage('manga', document.querySelectorAll('.nav-tab')[1]);
+                return;
+            }
             
             addChatMessage('user', message);
             input.value = '';
@@ -1012,19 +1376,18 @@
 
         function refreshAll() {
             loadWords();
-            loadTrading212();
+            loadBibleReading();
+            loadPortfolio();
             loadReddit();
-            loadYouTube();
             loadWeather();
+            if (config.mangaDexUsername) loadMangaDex();
         }
 
         // Initialize
         loadConfig();
         refreshAll();
         setInterval(loadWeather, 900000);
-        setInterval(loadReddit, 300000);
         
-        // Rotate featured word every 30 seconds
         setInterval(() => {
             const randomIndex = Math.floor(Math.random() * yourWords.length);
             document.getElementById('featuredWord').textContent = yourWords[randomIndex];
