@@ -52,7 +52,7 @@
       <div class="stack">
         <article class="card"><div class="card-head"><div><div class="title">📈 Portfolio</div><div class="status" id="portfolioFullStatus"><span class="dot loading"></span>Loading live prices</div></div><div class="toolbar"><button class="btn" id="refreshPortfolio">↻ Refresh</button><button class="btn primary" id="addHoldingBtn">+ Holding</button></div></div><div class="metric" id="portfolioValue">—</div><div class="sub">Estimated market value in GBP</div><div class="mini-grid" style="margin-top:12px"><div class="mini"><strong id="portfolioCost">—</strong><span>Total cost</span></div><div class="mini"><strong id="portfolioPL">—</strong><span>Unrealised P/L</span></div><div class="mini"><strong id="portfolioReturn">—</strong><span>Return</span></div><div class="mini"><strong id="portfolioUpdated">—</strong><span>Last quote update</span></div></div></article>
         <article class="card"><div class="card-head"><div><div class="title">Holdings</div><div class="sub">Shares are the quantities you actually own. Prices are fetched live.</div></div></div><div class="table-head"><div>Holding</div><div class="number">Shares</div><div class="number">Live</div><div class="number">Value</div><div></div></div><div id="holdingsList" class="holdings"></div></article>
-        <article class="card"><div class="warning">This tracks the shares you enter and values them using live market quotes from Twelve Data. It does not place trades or connect to your broker. Your API key is kept in this browser only; for a public app, move it behind your own server.</div></article>
+        <article class="card"><div class="warning">This tracks the shares you enter and values them using Twelve Data quotes. The app resolves each ticker against its exchange, then tries quote → price → EOD. If all three are denied, your Twelve Data plan/key is the likely cause. It does not place trades or connect to your broker. Your API key is kept in this browser only; for a public app, move it behind your own server.</div></article>
       </div>
     </section>
 
@@ -76,11 +76,11 @@
       <div class="stack"><article class="card"><div class="card-head"><div><div class="title">📋 Daily Briefing</div><div class="sub">A simple snapshot of your day</div></div><button class="btn primary" id="generateBriefing">Generate</button></div><div id="briefingContent"><div class="empty">Press Generate.</div></div></article><article class="card"><div class="card-head"><div><div class="title">📝 Reminders</div><div class="sub">Manage your list</div></div><button class="btn primary" id="addReminderBtn2">+ Add</button></div><div id="remindersBriefing"></div></article></div>
     </section>
   </main>
-  <div class="footer-note">Market data is informational and may be delayed. This app does not execute trades.</div>
+  <div class="footer-note">Market data is informational. Twelve Data identifies the London Stock Exchange as XLON; LSE data may be EOD depending on your plan. This app does not execute trades.</div>
 </div>
 
 <div class="modal" id="settingsModal"><div class="modal-card"><div class="modal-head"><div><div class="title">Settings</div><div class="sub">Saved locally on this device</div></div><button class="icon-btn" data-close="settingsModal">×</button></div><div class="stack"><div class="field"><label>Weather city</label><input id="settingsCity" value="London" /></div><div class="field"><label>DeepSeek API key</label><input id="settingsDeepSeek" type="password" placeholder="Optional" autocomplete="off" /></div><div class="field"><label>Twelve Data API key</label><input id="settingsMarketKey" type="password" placeholder="Paste your Twelve Data key" autocomplete="off" /></div><div class="field"><label>Reddit proxy/API URL (optional)</label><input id="settingsRedditProxy" placeholder="https://your-server.example/reddit" /></div><div class="setting-note">The DeepSeek and Twelve Data keys are stored only in this browser. For a real production app, move secrets to a server. Reddit’s public unauthenticated JSON endpoints are restricted, so live post feeds require an authorised proxy/API; direct Reddit links still work without one.</div></div><div class="modal-actions"><button class="btn" data-close="settingsModal">Cancel</button><button class="btn primary" id="saveSettings">Save</button></div></div></div>
-<div class="modal" id="holdingModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="holdingModalTitle">Add holding</div><div class="sub">Enter the position you own</div></div><button class="icon-btn" data-close="holdingModal">×</button></div><div class="form"><div class="field"><label>Ticker</label><input id="holdSymbol" placeholder="VWRP.L" autocapitalize="characters" /></div><div class="field"><label>Name</label><input id="holdName" placeholder="Vanguard FTSE All-World" /></div><div class="field"><label>Shares</label><input id="holdShares" type="number" min="0" step="0.000001" placeholder="12" /></div><div class="field"><label>Average buy price (GBP)</label><input id="holdBuyPrice" type="number" min="0" step="0.000001" placeholder="95.50" /></div><div class="field"><label>Exchange</label><select id="holdExchange"><option value="LSE">London Stock Exchange (LSE)</option><option value="NASDAQ">NASDAQ</option><option value="NYSE">NYSE</option><option value="AMEX">AMEX</option></select></div><div class="field"><label>Market currency</label><select id="holdCurrency"><option value="GBP">GBP</option><option value="GBp">GBp (pence)</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="Other">Other</option></select></div><div class="field"><label>Exchange note</label><input id="holdNote" placeholder="Optional" /></div></div><div class="modal-actions"><button class="btn red" id="deleteHoldingBtn" style="display:none;margin-right:auto">Delete</button><button class="btn" data-close="holdingModal">Cancel</button><button class="btn primary" id="saveHolding">Save</button></div></div></div>
+<div class="modal" id="holdingModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="holdingModalTitle">Add holding</div><div class="sub">Enter the position you own</div></div><button class="icon-btn" data-close="holdingModal">×</button></div><div class="form"><div class="field"><label>Ticker</label><input id="holdSymbol" placeholder="VWRP.L" autocapitalize="characters" /></div><div class="field"><label>Name</label><input id="holdName" placeholder="Vanguard FTSE All-World" /></div><div class="field"><label>Shares</label><input id="holdShares" type="number" min="0" step="0.000001" placeholder="12" /></div><div class="field"><label>Average buy price (native currency)</label><input id="holdBuyPrice" type="number" min="0" step="0.000001" placeholder="95.50" /></div><div class="field"><label>Exchange</label><select id="holdExchange"><option value="LSE">London Stock Exchange (LSE)</option><option value="NASDAQ">NASDAQ</option><option value="NYSE">NYSE</option><option value="AMEX">AMEX</option></select></div><div class="field"><label>Market currency</label><select id="holdCurrency"><option value="GBP">GBP</option><option value="GBp">GBp (pence)</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="Other">Other</option></select></div><div class="field"><label>Exchange note</label><input id="holdNote" placeholder="Optional" /></div></div><div class="modal-actions"><button class="btn red" id="deleteHoldingBtn" style="display:none;margin-right:auto">Delete</button><button class="btn" data-close="holdingModal">Cancel</button><button class="btn primary" id="saveHolding">Save</button></div></div></div>
 <div class="modal" id="reminderModal"><div class="modal-card"><div class="modal-head"><div><div class="title">Add reminder</div><div class="sub">Simple local reminder list</div></div><button class="icon-btn" data-close="reminderModal">×</button></div><div class="field"><label>Reminder</label><textarea id="reminderText" placeholder="e.g. Check ISA contribution on Friday"></textarea></div><div class="modal-actions"><button class="btn" data-close="reminderModal">Cancel</button><button class="btn primary" id="saveReminder">Add reminder</button></div></div></div>
 <div class="toast" id="toast"></div>
 
@@ -106,7 +106,19 @@ let state = loadState();
 state.holdings = state.holdings.map(h=>({...h, exchange:h.exchange || (String(h.symbol).toUpperCase().endsWith('.L')?'LSE':'NASDAQ'), symbol:String(h.symbol).replace(/\.L$/i,'')}));
 let quoteCache = {};
 let editingHoldingId = null;
-let mangaPool = [];
+const FALLBACK_MANGA=[
+  {mal_id:1,title:'One Piece',score:9.22,type:'Manga',url:'https://myanimelist.net/manga/13/One_Piece',images:{jpg:{image_url:'https://cdn.myanimelist.net/images/manga/2/253146.jpg'}}},
+  {mal_id:2,title:'Berserk',score:9.47,type:'Manga',url:'https://myanimelist.net/manga/2/Berserk',images:{jpg:{image_url:'https://cdn.myanimelist.net/images/manga/1/157897.jpg'}}},
+  {mal_id:3,title:'Vagabond',score:9.22,type:'Manga',url:'https://myanimelist.net/manga/656/Vagabond',images:{jpg:{image_url:'https://cdn.myanimelist.net/images/manga/1/259070.jpg'}}},
+  {mal_id:4,title:'Monster',score:9.15,type:'Manga',url:'https://myanimelist.net/manga/1/Monster',images:{jpg:{image_url:'https://cdn.myanimelist.net/images/manga/3/258224.jpg'}}},
+  {mal_id:5,title:'20th Century Boys',score:9.08,type:'Manga',url:'https://myanimelist.net/manga/3/20th_Century_Boys',images:{jpg:{image_url:'https://cdn.myanimelist.net/images/manga/4/263699.jpg'}}},
+  {mal_id:6,title:'Vinland Saga',score:9.08,type:'Manga',url:'https://myanimelist.net/manga/642/Vinland_Saga',images:{jpg:{image_url:'https://cdn.myanimelist.net/images/manga/2/259129.jpg'}}},
+  {mal_id:7,title:'Kingdom',score:9.02,type:'Manga',url:'https://myanimelist.net/manga/16765/Kingdom',images:{jpg:{image_url:'https://cdn.myanimelist.net/images/manga/2/171321.jpg'}}},
+  {mal_id:8,title:'Attack on Titan',score:8.92,type:'Manga',url:'https://myanimelist.net/manga/23390/Shingeki_no_Kyojin',images:{jpg:{image_url:'https://cdn.myanimelist.net/images/manga/2/37846.jpg'}}},
+  {mal_id:9,title:'Death Note',score:8.70,type:'Manga',url:'https://myanimelist.net/manga/21/Death_Note',images:{jpg:{image_url:'https://cdn.myanimelist.net/images/manga/1/258116.jpg'}}},
+  {mal_id:10,title:'Fullmetal Alchemist',score:9.03,type:'Manga',url:'https://myanimelist.net/manga/25/Fullmetal_Alchemist',images:{jpg:{image_url:'https://cdn.myanimelist.net/images/manga/3/243675.jpg'}}}
+];
+let mangaPool = FALLBACK_MANGA.slice();
 
 const qs = s => document.querySelector(s);
 const qsa = s => [...document.querySelectorAll(s)];
@@ -115,8 +127,10 @@ const money = (n,c='GBP') => Number.isFinite(n) ? new Intl.NumberFormat('en-GB',
 const gbp = n => money(n,'GBP');
 const pct = n => Number.isFinite(n) ? `${n>=0?'+':''}${n.toFixed(2)}%` : '—';
 const nowIso = () => new Date().toISOString();
-function loadState(){try{return {...structuredClone(DEFAULT_STATE),...JSON.parse(localStorage.getItem(STORAGE)||'{}')}}catch{return structuredClone(DEFAULT_STATE)}}
+function cloneDefault(){return JSON.parse(JSON.stringify(DEFAULT_STATE))}
+function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE)||'{}');return {...cloneDefault(),...saved,holdings:Array.isArray(saved.holdings)?saved.holdings:cloneDefault().holdings,reminders:Array.isArray(saved.reminders)?saved.reminders:[]}}catch{return cloneDefault()}}
 function saveState(){localStorage.setItem(STORAGE,JSON.stringify(state))}
+function makeId(prefix='item'){return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,9)}`}
 function toast(msg){const el=qs('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2400)}
 function openModal(id){qs('#'+id).classList.add('open')}
 function closeModal(id){qs('#'+id).classList.remove('open')}
@@ -129,25 +143,33 @@ async function fetchJson(url, options={}, timeout=10000){
   finally{clearTimeout(timer)}
 }
 
+function bind(id,event,fn){const el=qs('#'+id);if(el)el.addEventListener(event,fn)}
 function init(){
-  qs('#clock').textContent='';
-  qsa('.tab').forEach(btn=>btn.addEventListener('click',()=>switchPage(btn.dataset.page)));
-  qsa('[data-page-jump]').forEach(b=>b.addEventListener('click',()=>switchPage(b.dataset.pageJump)));
-  qs('#settingsBtn').onclick=()=>openSettings();
-  qsa('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
-  ['settingsModal','holdingModal','reminderModal'].forEach(id=>qs('#'+id).addEventListener('click',e=>{if(e.target.id===id)closeModal(id)}));
-  qs('#saveSettings').onclick=saveSettings;
-  qs('#addHoldingBtn').onclick=()=>openHolding(); qs('#refreshPortfolio').onclick=()=>loadPortfolio(true);
-  qs('#moreManga').onclick=()=>loadManga(true);
-  qs('#redditRetry').onclick=loadReddit;
-  qs('#weatherRefresh').onclick=()=>loadWeather();qs('#weatherFullRefresh').onclick=()=>loadWeather();
-  qs('#generateBriefing').onclick=generateBriefing;
-  qs('#addReminderBtn').onclick=()=>openModal('reminderModal');qs('#addReminderBtn2').onclick=()=>openModal('reminderModal');
-  qs('#saveReminder').onclick=saveReminder;
-  qs('#saveHolding').onclick=saveHolding;qs('#deleteHoldingBtn').onclick=deleteEditingHolding;
-  qs('#sendChat').onclick=sendChat;qs('#chatInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat()});
-  applySettingsUI(); updateClock();setInterval(updateClock,1000);
-  renderBible();renderReminders();loadManga();loadPortfolio();loadWeather();loadReddit();
+  try{
+    qsa('.tab').forEach(btn=>btn.addEventListener('click',()=>switchPage(btn.dataset.page)));
+    qsa('[data-page-jump]').forEach(b=>b.addEventListener('click',()=>switchPage(b.dataset.pageJump)));
+    bind('settingsBtn','click',openSettings);
+    qsa('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
+    ['settingsModal','holdingModal','reminderModal'].forEach(id=>{const el=qs('#'+id);if(el)el.addEventListener('click',e=>{if(e.target.id===id)closeModal(id)})});
+    bind('saveSettings','click',saveSettings);
+    bind('addHoldingBtn','click',()=>openHolding());
+    bind('refreshPortfolio','click',()=>loadPortfolio(true));
+    bind('moreManga','click',()=>loadManga(true));
+    bind('redditRetry','click',loadReddit);
+    bind('weatherRefresh','click',()=>loadWeather());
+    bind('weatherFullRefresh','click',()=>loadWeather());
+    bind('generateBriefing','click',generateBriefing);
+    bind('addReminderBtn','click',()=>openModal('reminderModal'));
+    bind('addReminderBtn2','click',()=>openModal('reminderModal'));
+    bind('saveReminder','click',saveReminder);
+    bind('saveHolding','click',saveHolding);
+    bind('deleteHoldingBtn','click',deleteEditingHolding);
+    bind('sendChat','click',sendChat);
+    const chat=qs('#chatInput');if(chat)chat.addEventListener('keydown',e=>{if(e.key==='Enter')sendChat()});
+    applySettingsUI();updateClock();setInterval(updateClock,1000);
+    renderBible();renderReminders();renderMangaGrid(mangaPool.slice(0,9));renderDailyManga();
+    loadManga();loadPortfolio();loadWeather();loadReddit();
+  }catch(err){console.error('Command Center init error',err);toast('App started with limited features — reload if needed');}
 }
 function updateClock(){const d=new Date();qs('#clock').textContent=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' • '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
 function switchPage(page){qsa('.page').forEach(p=>p.classList.remove('active'));qsa('.tab').forEach(t=>t.classList.toggle('active',t.dataset.page===page));qs('#'+page+'Page').classList.add('active');if(page==='portfolio')loadPortfolio();if(page==='manga')loadManga();if(page==='reddit')loadReddit();if(page==='weather')loadWeather()}
@@ -160,19 +182,24 @@ const readings=[
 ];
 function renderBible(){const r=readings[dayOfYear()%readings.length];qs('#bible').innerHTML=`<div class="metric" style="font-size:20px">${r[0]} ${r[1]}</div><div class="sub" style="margin-top:6px">${esc(r[2])}</div>`}
 
-function getDailyMangaLocal(){let cached={};try{cached=JSON.parse(localStorage.getItem('dailyMangaV3')||'{}')}catch{};if(cached.date===dayKey()&&cached.item)return cached.item;if(!mangaPool.length)return null;const item=mangaPool[Math.floor(Math.random()*mangaPool.length)];localStorage.setItem('dailyMangaV3',JSON.stringify({date:dayKey(),item}));return item}
+function getDailyMangaLocal(){let cached={};try{cached=JSON.parse(localStorage.getItem('dailyMangaV3')||'{}')}catch{};if(cached.date===dayKey()&&cached.item)return cached.item;const pool=mangaPool.length?mangaPool:FALLBACK_MANGA;const item=pool[Math.floor(Math.random()*pool.length)];try{localStorage.setItem('dailyMangaV3',JSON.stringify({date:dayKey(),item}))}catch{}return item}
 function renderDailyManga(){const item=getDailyMangaLocal();const el=qs('#dailyManga');if(!item){el.innerHTML='<div class="empty">Manga data is still loading.</div>';return}el.innerHTML=`<div class="daily"><img class="cover-mini" src="${esc(item.images?.jpg?.image_url||'')}" alt="${esc(item.title)} cover" onerror="this.style.visibility='hidden'"><div><h3>${esc(item.title)}</h3><div class="meta">⭐ ${item.score??'—'} • ${esc((item.type||'Manga'))}<br>${esc((item.genres||[]).slice(0,3).map(g=>g.name).join(' • '))}<br><span class="positive">Open MyAnimeList ↗</span></div></div></div>`;el.querySelector('.daily').onclick=()=>window.open(item.url||`https://myanimelist.net/manga/${item.mal_id}`,'_blank','noopener')}
 async function loadManga(force=false){
-  if(mangaPool.length&&!force){renderMangaGrid(mangaPool.slice(0,9));renderDailyManga();return}
-  qs('#mangaStatus').textContent='Loading popular manga…';
+  if(!force&&mangaPool.length){renderMangaGrid([...mangaPool].sort(()=>Math.random()-0.5).slice(0,9));renderDailyManga();}
+  const status=qs('#mangaStatus');if(status)status.textContent='Loading popular manga…';
   try{
-    const page=1+Math.floor(Math.random()*3);
-    const data=await fetchJson(`https://api.jikan.moe/v4/top/manga?page=${page}&limit=25&type=manga`);
-    mangaPool=(data.data||[]).filter(x=>x.mal_id&&x.url).sort(()=>Math.random()-0.5);
-    if(!mangaPool.length)throw new Error('No manga returned');
-    qs('#mangaStatus').textContent=`Live data from MyAnimeList via Jikan • ${mangaPool.length} popular titles loaded`;
-    renderMangaGrid(mangaPool.slice(0,9));renderDailyManga();
-  }catch(e){qs('#mangaStatus').textContent='Could not reach live manga data. Try More again.';toast('Manga service unavailable')}
+    const page=1+Math.floor(Math.random()*4);
+    const data=await fetchJson(`https://api.jikan.moe/v4/top/manga?page=${page}&limit=25&type=manga`,{},12000);
+    const live=(data.data||[]).filter(x=>x.mal_id&&x.url);
+    if(!live.length)throw new Error('No manga returned');
+    mangaPool=live;
+    if(status)status.textContent=`Live popular manga • ${live.length} titles`;
+    renderMangaGrid([...live].sort(()=>Math.random()-0.5).slice(0,9));renderDailyManga();
+  }catch(e){
+    if(!mangaPool.length)mangaPool=FALLBACK_MANGA.slice();
+    if(status)status.textContent='Popular manga loaded from the built-in list (live service unavailable).';
+    renderMangaGrid([...mangaPool].sort(()=>Math.random()-0.5).slice(0,9));renderDailyManga();
+  }
 }
 function renderMangaGrid(items){qs('#mangaContent').innerHTML=`<div class="manga-grid">${items.map(item=>`<article class="manga" data-url="${esc(item.url||`https://myanimelist.net/manga/${item.mal_id}`)}"><img src="${esc(item.images?.jpg?.large_image_url||item.images?.jpg?.image_url||'')}" alt="${esc(item.title)} cover" loading="lazy" onerror="this.style.visibility='hidden'"><div class="manga-body"><div class="manga-title">${esc(item.title)}</div><div class="manga-meta">⭐ ${item.score??'—'} • ${esc(item.type||'Manga')}</div></div></article>`).join('')}</div>`;qsa('.manga').forEach(card=>card.onclick=()=>window.open(card.dataset.url,'_blank','noopener'))}
 
@@ -196,16 +223,68 @@ async function getFX(){
   if(!Number.isFinite(gbpUsd)||!Number.isFinite(eurToGbp)) throw new Error('FX unavailable');
   return {gbpUsd,eurToGbp};
 }
+const EXCHANGE_MIC={LSE:'XLON',NASDAQ:'XNAS',NYSE:'XNYS',AMEX:'XASE'};
+const MARKET_ALIAS={LSE:'London Stock Exchange',NASDAQ:'NASDAQ',NYSE:'NYSE',AMEX:'NYSE American'};
+
+function tdError(data){
+  if(!data) return 'Empty response';
+  if(data.message) return data.message;
+  if(data.code) return `Twelve Data error ${data.code}`;
+  return 'Quote unavailable';
+}
+
+async function resolveInstrument(symbol, exchange){
+  const mic=EXCHANGE_MIC[exchange]||exchange||'';
+  const candidates=[symbol, ...(exchange==='LSE' ? [`${symbol}.L`, `${symbol}:LSE`] : [])];
+  let last='Symbol not found';
+  for(const candidate of candidates){
+    try{
+      const params=new URLSearchParams({symbol:candidate,apikey:state.marketKey});
+      if(mic)params.set('mic_code',mic);
+      const data=await fetchJson(`https://api.twelvedata.com/symbol_search?${params.toString()}`,{},12000);
+      if(data.status==='error'||data.code){last=tdError(data);continue;}
+      const matches=(data.data||[]).filter(x=>String(x.mic_code||'').toUpperCase()===mic && String(x.symbol||'').toUpperCase()===candidate.toUpperCase());
+      if(matches[0])return matches[0];
+    }catch(e){last=e.message||last}
+  }
+  // Some accounts do not expose symbol_search consistently; the quote endpoint can still resolve a valid symbol.
+  return {symbol, mic_code:mic, exchange:MARKET_ALIAS[exchange]||exchange, currency:exchange==='LSE'?'GBP':exchange==='NASDAQ'||exchange==='NYSE'||exchange==='AMEX'?'USD':'GBP'};
+}
+
 async function getQuote(symbol,exchange){
   if(!state.marketKey) throw new Error('Market data API key missing');
-  const params=new URLSearchParams({symbol,apikey:state.marketKey});
-  if(exchange)params.set('exchange',exchange);
-  const data=await fetchJson(`https://api.twelvedata.com/quote?${params.toString()}`);
-  if(data.status==='error'||data.code) throw new Error(data.message||'Quote unavailable');
-  const price=Number(data.close??data.price??data.last);
-  if(!Number.isFinite(price))throw new Error('No quote');
-  return {price,currency:data.currency||'GBP',exchange:data.exchange||exchange||'',updatedAt:data.timestamp?new Date(Number(data.timestamp)*1000):new Date(),percentChange:Number(data.percent_change)};
+  const mic=EXCHANGE_MIC[exchange]||exchange||'';
+  const instrument=await resolveInstrument(symbol,exchange);
+  let lastError='Quote unavailable';
+  const candidateSymbols=[instrument.symbol||symbol, ...(exchange==='LSE' ? [`${symbol}.L`, `${symbol}:LSE`] : [])];
+  const seen=new Set();
+  for(const endpoint of ['quote','price','eod']){
+    for(const candidate of candidateSymbols){
+      if(seen.has(`${endpoint}|${candidate}`))continue;
+      seen.add(`${endpoint}|${candidate}`);
+      try{
+        const params=new URLSearchParams({symbol:candidate,apikey:state.marketKey});
+        if(mic)params.set('mic_code',mic);
+        if(endpoint==='eod')params.set('date',new Date().toISOString().slice(0,10));
+        const data=await fetchJson(`https://api.twelvedata.com/${endpoint}?${params.toString()}`,{},12000);
+        if(data.status==='error'||data.code){
+          const m=tdError(data);
+          lastError=m;
+          if(/subscription|plan|permission|premium|not available|trial/i.test(m)) return Promise.reject(new Error(m));
+          continue;
+        }
+        const price=Number(data.close??data.price??data.last);
+        if(!Number.isFinite(price)){lastError='No price returned';continue;}
+        const returnedMic=String(data.mic_code||instrument.mic_code||'').toUpperCase();
+        if(mic && returnedMic && returnedMic!==mic){lastError=`Wrong market returned: ${data.exchange||returnedMic}`;continue;}
+        return {price,currency:data.currency||instrument.currency||'GBP',exchange:data.exchange||instrument.exchange||exchange||'',mic_code:returnedMic||mic,updatedAt:data.timestamp?new Date(Number(data.timestamp)*1000):new Date(),percentChange:Number(data.percent_change),source:endpoint,instrument};
+      }catch(e){lastError=e.message||lastError;}
+    }
+  }
+  if(/subscription|plan|permission|premium|not available|trial/i.test(lastError)) throw new Error(lastError);
+  throw new Error(lastError);
 }
+
 async function loadPortfolio(force=false){
   const statusEls=[qs('#portfolioStatus'),qs('#portfolioFullStatus')];
   statusEls.forEach(el=>{el.innerHTML='<span class="dot loading"></span>Loading live prices'});
@@ -215,38 +294,48 @@ async function loadPortfolio(force=false){
     return;
   }
   try{
-    const fx=await getFX();
+    const needsFx=state.holdings.some(h=>['USD','EUR','GBX','GBp'].includes(String(h.currency)));
+    const fx=needsFx?await getFX():{gbpUsd:1,eurToGbp:1};
+    quoteCache.__fx=fx;
     const results=[];
     for(const h of state.holdings){
       try{
         const q=await getQuote(h.symbol,h.exchange);
         const live=normalizeQuote(q,h,fx);
         if(live==null)throw new Error('Invalid price');
-        results.push({...h,liveGbp:live,marketCurrency:q.currency,quote:q});
+        const buyFx=h.currency==='USD' ? 1/fx.gbpUsd : h.currency==='EUR' ? fx.eurToGbp : (h.currency==='GBp'||h.currency==='GBX' ? 0.01 : 1); results.push({...h,liveGbp:live,marketCurrency:q.currency,quote:q,fxBuy:buyFx});
       }catch(e){results.push({...h,error:e.message||'Live quote unavailable'})}
     }
     quoteCache=Object.fromEntries(results.map(x=>[x.id,x]));
     renderPortfolio(results);
     const good=results.filter(x=>Number.isFinite(x.liveGbp)).length;
-    statusEls.forEach(el=>{el.innerHTML=`<span class="dot ${good===results.length?'live':'error'}"></span>${good}/${results.length} live quotes`});
+    statusEls.forEach(el=>{el.innerHTML=`<span class="dot ${good===results.length?'live':'error'}"></span>${good}/${results.length} quotes • ${good===results.length?'Live':'See holding errors'}`}); if(good===0) toast('No quotes returned. Check your Twelve Data plan/key and the holding errors.');
   }catch(e){
     renderPortfolio(state.holdings.map(h=>({...h,error:e.message||'Live service unavailable'})));
     statusEls.forEach(el=>{el.innerHTML='<span class="dot error"></span>Live market data unavailable'});
     toast('Market data unavailable');
   }
 }
+function buyCostGbp(h,fx){
+  const c=String(h.currency||'GBP');const n=Number(h.buyPrice);if(!Number.isFinite(n))return 0;
+  if(c==='GBp'||c==='GBX')return n/100*h.shares;
+  if(c==='USD')return n/fx.gbpUsd*h.shares;
+  if(c==='EUR')return n*fx.eurToGbp*h.shares;
+  return n*h.shares;
+}
 function renderPortfolio(items){
   const valued=items.filter(x=>Number.isFinite(x.liveGbp));
   const totalValue=valued.reduce((s,h)=>s+h.liveGbp*h.shares,0);
-  const totalCost=state.holdings.reduce((s,h)=>s+h.buyPrice*h.shares,0);
+  const fx={gbpUsd:Number(quoteCache.__fx?.gbpUsd)||1,eurToGbp:Number(quoteCache.__fx?.eurToGbp)||1};
+  const totalCost=state.holdings.reduce((s,h)=>s+buyCostGbp(h,fx),0);
   const pl=totalValue-totalCost;const ret=totalCost?pl/totalCost*100:NaN;
   qs('#portfolioValue').textContent=gbp(totalValue);qs('#portfolioCost').textContent=gbp(totalCost);qs('#portfolioPL').textContent=gbp(pl);qs('#portfolioPL').className=pl>=0?'positive':'negative';qs('#portfolioReturn').textContent=pct(ret);qs('#portfolioReturn').className=ret>=0?'positive':'negative';qs('#portfolioUpdated').textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
   qs('#portfolioSnapshot').innerHTML=`<div class="metric" style="font-size:22px">${gbp(totalValue)}</div><div class="sub ${pl>=0?'positive':'negative'}" style="margin-top:4px">${gbp(pl)} • ${pct(ret)}</div>`;
-  qs('#holdingsList').innerHTML=items.length?items.map(h=>{const value=Number.isFinite(h.liveGbp)?h.liveGbp*h.shares:NaN;const p=Number.isFinite(h.liveGbp)&&h.buyPrice>0?(h.liveGbp-h.buyPrice)/h.buyPrice*100:NaN;return `<div class="holding"><div class="holding-main"><strong>${esc(h.symbol)}</strong><span>${esc(h.name)}${h.error?' • '+esc(h.error):''}</span></div><div class="number"><strong>${h.shares}</strong></div><div class="number">${Number.isFinite(h.liveGbp)?gbp(h.liveGbp):'—'}</div><div class="number"><strong>${Number.isFinite(value)?gbp(value):'—'}</strong><div class="${p>=0?'positive':'negative'}" style="font-size:9px">${pct(p)}</div></div><div class="actions"><button class="btn small" onclick="window.editHolding('${h.id}')">Edit</button></div></div>`}).join(''):'<div class="empty">No holdings yet.</div>';
+  qs('#holdingsList').innerHTML=items.length?items.map(h=>{const value=Number.isFinite(h.liveGbp)?h.liveGbp*h.shares:NaN;const costPerShareGbp=(()=>{const c=String(h.currency||'GBP');const n=Number(h.buyPrice);if(c==='GBp'||c==='GBX')return n/100;if(c==='USD')return n/(Number(quoteCache.__fx?.gbpUsd)||1);if(c==='EUR')return n*(Number(quoteCache.__fx?.eurToGbp)||1);return n})();const p=Number.isFinite(h.liveGbp)&&costPerShareGbp>0?(h.liveGbp-costPerShareGbp)/costPerShareGbp*100:NaN;return `<div class="holding"><div class="holding-main"><strong>${esc(h.symbol)}</strong><span>${esc(h.name)}${h.error?' • '+esc(h.error):''}</span></div><div class="number"><strong>${h.shares}</strong></div><div class="number">${Number.isFinite(h.liveGbp)?gbp(h.liveGbp):'—'}</div><div class="number"><strong>${Number.isFinite(value)?gbp(value):'—'}</strong><div class="${p>=0?'positive':'negative'}" style="font-size:9px">${pct(p)}</div></div><div class="actions"><button class="btn small" onclick="window.editHolding('${h.id}')">Edit</button></div></div>`}).join(''):'<div class="empty">No holdings yet.</div>';
 }
 function openHolding(id=null){editingHoldingId=id;const h=id?state.holdings.find(x=>x.id===id):null;qs('#holdingModalTitle').textContent=h?'Edit holding':'Add holding';qs('#holdSymbol').value=h?.symbol||'';qs('#holdName').value=h?.name||'';qs('#holdShares').value=h?.shares??'';qs('#holdBuyPrice').value=h?.buyPrice??'';qs('#holdExchange').value=h?.exchange||'LSE';qs('#holdCurrency').value=h?.currency||'GBP';qs('#holdNote').value=h?.note||'';qs('#deleteHoldingBtn').style.display=h?'block':'none';openModal('holdingModal')}
 window.editHolding=id=>openHolding(id);
-function saveHolding(){const symbol=qs('#holdSymbol').value.trim().toUpperCase();const name=qs('#holdName').value.trim();const shares=Number(qs('#holdShares').value);const buyPrice=Number(qs('#holdBuyPrice').value);const exchange=qs('#holdExchange').value;const currency=qs('#holdCurrency').value;if(!symbol||!name||!(shares>0)||!(buyPrice>=0)){toast('Enter a ticker, name, shares and buy price');return}const item={id:editingHoldingId||crypto.randomUUID(),symbol,exchange,name,shares,buyPrice,currency,note:qs('#holdNote').value.trim()};if(editingHoldingId){state.holdings=state.holdings.map(h=>h.id===editingHoldingId?item:h)}else state.holdings.push(item);saveState();closeModal('holdingModal');loadPortfolio(true);toast('Holding saved')}
+function saveHolding(){const symbol=qs('#holdSymbol').value.trim().toUpperCase();const name=qs('#holdName').value.trim();const shares=Number(qs('#holdShares').value);const buyPrice=Number(qs('#holdBuyPrice').value);const exchange=qs('#holdExchange').value;const currency=qs('#holdCurrency').value;if(!symbol||!name||!(shares>0)||!(buyPrice>=0)){toast('Enter a ticker, name, shares and buy price');return}const item={id:editingHoldingId||makeId('holding'),symbol,exchange,name,shares,buyPrice,currency,note:qs('#holdNote').value.trim()};if(editingHoldingId){state.holdings=state.holdings.map(h=>h.id===editingHoldingId?item:h)}else state.holdings.push(item);saveState();closeModal('holdingModal');loadPortfolio(true);toast('Holding saved')}
 function deleteEditingHolding(){if(!editingHoldingId)return;if(confirm('Remove this holding from your tracker?')){state.holdings=state.holdings.filter(h=>h.id!==editingHoldingId);saveState();closeModal('holdingModal');loadPortfolio(true);toast('Holding removed')}}
 
 const fallbackPopular=[['r/AskReddit','Questions and discussion','https://www.reddit.com/r/AskReddit/'],['r/worldnews','Global news','https://www.reddit.com/r/worldnews/'],['r/investing','Investing discussion','https://www.reddit.com/r/investing/'],['r/stocks','Stock market discussion','https://www.reddit.com/r/stocks/'],['r/personalfinance','Personal finance','https://www.reddit.com/r/personalfinance/'],['r/manga','Manga community','https://www.reddit.com/r/manga/']];
