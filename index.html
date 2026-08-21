@@ -1,1355 +1,298 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0a0e17">
-    <title>Command Center</title>
-    
-    <style>
-        :root {
-            --bg-primary: #0a0e17;
-            --bg-secondary: #111827;
-            --bg-card: #1a2332;
-            --text-primary: #e5e7eb;
-            --text-secondary: #9ca3af;
-            --accent-green: #10b981;
-            --accent-red: #ef4444;
-            --accent-blue: #3b82f6;
-            --accent-yellow: #f59e0b;
-            --accent-purple: #8b5cf6;
-            --accent-orange: #ff4500;
-            --accent-pink: #ec4899;
-            --accent-cyan: #06b6d4;
-            --accent-gold: #fbbf24;
-            --mangadex-orange: #FF6740;
-            --border-color: #2d3748;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            padding: 10px;
-            background: linear-gradient(135deg, #0a0e17 0%, #1a2332 100%);
-            overscroll-behavior: none;
-        }
-
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding: 15px;
-            background: var(--bg-secondary);
-            border-radius: 15px;
-            border: 1px solid var(--border-color);
-        }
-
-        .header h1 {
-            font-size: 1.3rem;
-            background: linear-gradient(135deg, #3b82f6, #10b981, #8b5cf6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .datetime {
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-        }
-
-        .btn-settings {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 8px 12px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 1.2rem;
-        }
-
-        .nav-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            overflow-x: auto;
-        }
-
-        .nav-tab {
-            flex: 1;
-            padding: 10px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            cursor: pointer;
-            text-align: center;
-            font-size: 0.85rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            min-width: fit-content;
-        }
-
-        .nav-tab.active {
-            background: var(--accent-blue);
-            color: white;
-            border-color: var(--accent-blue);
-        }
-
-        .page {
-            display: none;
-        }
-
-        .page.active {
-            display: block;
-        }
-
-        .config-panel {
-            background: var(--bg-secondary);
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border: 1px solid var(--border-color);
-            display: none;
-        }
-
-        .config-panel.active {
-            display: block;
-        }
-
-        .config-section {
-            margin-bottom: 15px;
-        }
-
-        .config-section h3 {
-            font-size: 0.9rem;
-            margin-bottom: 10px;
-            color: var(--text-secondary);
-        }
-
-        .config-input {
-            margin-bottom: 10px;
-        }
-
-        .config-input label {
-            display: block;
-            margin-bottom: 5px;
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-        }
-
-        .config-input input {
-            width: 100%;
-            padding: 10px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            color: var(--text-primary);
-            font-size: 0.9rem;
-        }
-
-        .btn {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            width: 100%;
-            margin-bottom: 5px;
-        }
-
-        .btn-primary {
-            background: var(--accent-blue);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: var(--bg-card);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-        }
-
-        .dashboard-stack {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .card {
-            background: var(--bg-secondary);
-            border-radius: 15px;
-            padding: 15px;
-            border: 1px solid var(--border-color);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .card-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 4px;
-        }
-
-        .status-live {
-            background: var(--accent-green);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        /* Manga Grid Styles */
-        .manga-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            max-height: 600px;
-            overflow-y: auto;
-            padding: 5px;
-        }
-
-        .manga-card {
-            background: var(--bg-card);
-            border-radius: 10px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .manga-card:active {
-            transform: scale(0.95);
-        }
-
-        .manga-cover {
-            width: 100%;
-            height: 180px;
-            background: linear-gradient(135deg, var(--mangadex-orange), #8b5cf6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-            position: relative;
-        }
-
-        .manga-cover img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .manga-rating {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(0, 0, 0, 0.7);
-            color: var(--accent-gold);
-            padding: 3px 8px;
-            border-radius: 5px;
-            font-size: 0.7rem;
-            font-weight: 600;
-        }
-
-        .manga-info {
-            padding: 10px;
-        }
-
-        .manga-title {
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 5px;
-            line-height: 1.2;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .manga-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            margin-bottom: 5px;
-        }
-
-        .manga-tag {
-            font-size: 0.6rem;
-            padding: 2px 5px;
-            border-radius: 3px;
-            background: var(--border-color);
-            color: var(--text-secondary);
-        }
-
-        .manga-status {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.65rem;
-            font-weight: 500;
-        }
-
-        .status-ongoing {
-            background: #3b82f620;
-            color: #3b82f6;
-        }
-
-        .status-completed {
-            background: #10b98120;
-            color: #10b981;
-        }
-
-        .status-hiatus {
-            background: #f59e0b20;
-            color: #f59e0b;
-        }
-
-        .status-cancelled {
-            background: #ef444420;
-            color: #ef4444;
-        }
-
-        .refresh-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            background: var(--mangadex-orange);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 15px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-
-        .refresh-btn:active {
-            transform: scale(0.95);
-        }
-
-        /* Words Display */
-        .words-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            padding: 10px;
-        }
-
-        .word-tag {
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            animation: fadeIn 0.5s ease;
-            user-select: none;
-        }
-
-        .word-tag:active {
-            transform: scale(0.95);
-        }
-
-        .word-tag:nth-child(1) { background: #10b98120; color: #10b981; border: 1px solid #10b98140; }
-        .word-tag:nth-child(2) { background: #3b82f620; color: #3b82f6; border: 1px solid #3b82f640; }
-        .word-tag:nth-child(3) { background: #8b5cf620; color: #8b5cf6; border: 1px solid #8b5cf640; }
-        .word-tag:nth-child(4) { background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b40; }
-        .word-tag:nth-child(5) { background: #ec489920; color: #ec4899; border: 1px solid #ec489940; }
-        .word-tag:nth-child(6) { background: #06b6d420; color: #06b6d4; border: 1px solid #06b6d440; }
-        .word-tag:nth-child(7) { background: #ef444420; color: #ef4444; border: 1px solid #ef444440; }
-        .word-tag:nth-child(8) { background: #84cc1620; color: #84cc16; border: 1px solid #84cc1640; }
-        .word-tag:nth-child(9) { background: #f9731620; color: #f97316; border: 1px solid #f9731640; }
-        .word-tag:nth-child(10) { background: #14b8a620; color: #14b8a6; border: 1px solid #14b8a640; }
-        .word-tag:nth-child(11) { background: #6366f120; color: #6366f1; border: 1px solid #6366f140; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .word-of-moment {
-            text-align: center;
-            padding: 15px;
-            background: var(--bg-card);
-            border-radius: 10px;
-            margin-bottom: 10px;
-        }
-
-        .word-of-moment .featured-word {
-            font-size: 2rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: pulse 3s infinite;
-        }
-
-        /* Bible Reading Styles */
-        .bible-card {
-            background: linear-gradient(135deg, #1a2332 0%, #1e3a5f 100%);
-            border-radius: 15px;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .bible-reference {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--accent-gold);
-            margin-bottom: 10px;
-        }
-
-        .bible-theme {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            line-height: 1.5;
-        }
-
-        /* Portfolio Styles */
-        .portfolio-value {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 15px;
-            color: var(--accent-green);
-        }
-
-        .portfolio-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .stat-item {
-            background: var(--bg-card);
-            padding: 10px;
-            border-radius: 10px;
-        }
-
-        .stat-label {
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-            margin-bottom: 5px;
-        }
-
-        .stat-value {
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        .positive { color: var(--accent-green); }
-        .negative { color: var(--accent-red); }
-
-        .holdings-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .holding-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        /* Reddit Styles */
-        .reddit-posts {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .reddit-post {
-            background: var(--bg-card);
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            cursor: pointer;
-        }
-
-        .reddit-post-title {
-            font-size: 0.9rem;
-            font-weight: 500;
-            margin-bottom: 5px;
-            line-height: 1.3;
-        }
-
-        .reddit-post-meta {
-            display: flex;
-            gap: 15px;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            flex-wrap: wrap;
-        }
-
-        .reddit-post-subreddit {
-            color: var(--accent-orange);
-            font-weight: 600;
-        }
-
-        /* Weather Styles */
-        .weather-main {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .weather-icon { font-size: 3rem; }
-        .weather-temp { font-size: 2.5rem; font-weight: 700; }
-        .weather-desc { color: var(--text-secondary); font-size: 0.9rem; }
-
-        .weather-details {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 15px;
-        }
-
-        .weather-detail-item {
-            background: var(--bg-card);
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        /* Chat Styles */
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: 400px;
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-            background: var(--bg-card);
-            border-radius: 10px;
-            margin-bottom: 10px;
-        }
-
-        .chat-message {
-            margin-bottom: 10px;
-            padding: 8px 12px;
-            border-radius: 10px;
-            max-width: 85%;
-            word-wrap: break-word;
-            font-size: 0.9rem;
-        }
-
-        .chat-message.user {
-            background: var(--accent-blue);
-            color: white;
-            margin-left: auto;
-        }
-
-        .chat-message.ai {
-            background: var(--bg-secondary);
-            margin-right: auto;
-            border: 1px solid var(--border-color);
-        }
-
-        .chat-input-container {
-            display: flex;
-            gap: 8px;
-        }
-
-        .chat-input {
-            flex: 1;
-            padding: 12px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            color: var(--text-primary);
-            font-size: 0.9rem;
-        }
-
-        .typing-indicator {
-            display: none;
-            padding: 8px 12px;
-            margin-bottom: 10px;
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-        }
-
-        .typing-indicator.active { display: block; }
-
-        /* Reminders Styles */
-        .reminders-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .reminder-item {
-            background: var(--bg-card);
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .reminder-text {
-            flex: 1;
-            font-size: 0.9rem;
-        }
-
-        .reminder-delete {
-            background: var(--accent-red);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 5px 10px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#070b14" />
+<meta name="description" content="Personal Command Center — portfolio, manga, Reddit, weather, reminders and daily briefing." />
+<title>Command Center</title>
+<style>
+:root{--bg:#070b14;--panel:#0f1624;--panel2:#131d2d;--panel3:#18243a;--text:#f3f6fb;--muted:#91a0b5;--line:#223149;--blue:#5b8cff;--green:#27d39b;--red:#ff6876;--gold:#f2c94c;--purple:#a78bfa;--orange:#ff7b39;--cyan:#47d6e8;--shadow:0 14px 40px rgba(0,0,0,.28)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 20% 0%,#14213b 0,#070b14 38%,#050810 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Arial,sans-serif}body{padding:18px 12px 40px}.app{max-width:900px;margin:0 auto}.topbar{position:sticky;top:10px;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;margin-bottom:14px;border:1px solid var(--line);border-radius:22px;background:rgba(9,14,24,.88);backdrop-filter:blur(18px);box-shadow:var(--shadow)}.brand{display:flex;align-items:center;gap:11px}.brand-icon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,var(--blue),var(--purple));font-size:21px}.brand h1{font-size:18px;margin:0}.brand p{font-size:11px;color:var(--muted);margin:3px 0 0}.clock{font-size:11px;color:var(--muted);text-align:right}.icon-btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);height:42px;min-width:42px;border-radius:13px;cursor:pointer;font-size:18px}.tabs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;margin-bottom:15px}.tab{border:1px solid var(--line);background:var(--panel);color:var(--muted);padding:11px 6px;border-radius:13px;cursor:pointer;font-size:12px;font-weight:650;text-align:center}.tab.active{color:white;background:linear-gradient(135deg,#3568e8,#7658db);border-color:transparent;box-shadow:0 8px 25px rgba(91,140,255,.25)}.page{display:none}.page.active{display:block;animation:fade .22s ease}.grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.stack{display:grid;gap:13px}.card{background:linear-gradient(145deg,rgba(19,29,45,.96),rgba(13,20,32,.96));border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:var(--shadow)}.card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:13px}.title{font-size:14px;font-weight:700}.sub{font-size:11px;color:var(--muted)}.hero{padding:18px;border-radius:18px;background:linear-gradient(135deg,rgba(44,88,188,.34),rgba(99,63,180,.28));border:1px solid #38579b}.hero h2{font-size:25px;line-height:1.05;margin:0 0 7px}.hero p{color:#c6d0df;font-size:12px;margin:0}.pill{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;background:#ffffff0d;color:var(--muted);font-size:10px;border:1px solid #ffffff12}.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:9px 11px;border-radius:11px;cursor:pointer;font-weight:650;font-size:11px}.btn.primary{background:linear-gradient(135deg,#3568e8,#7658db);border-color:transparent}.btn.green{background:rgba(39,211,155,.12);border-color:rgba(39,211,155,.3);color:var(--green)}.btn.red{background:rgba(255,104,118,.1);border-color:rgba(255,104,118,.25);color:var(--red)}.btn.small{padding:6px 8px;font-size:10px}.btn:disabled{opacity:.5;cursor:not-allowed}.metric{font-size:25px;font-weight:800;letter-spacing:-.5px}.positive{color:var(--green)}.negative{color:var(--red)}.muted{color:var(--muted)}.list{display:grid;gap:8px}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #ffffff08}.row:last-child{border-bottom:0}.row-left{min-width:0}.row-title{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row-sub{font-size:10px;color:var(--muted);margin-top:3px}.row-right{text-align:right;flex:0 0 auto}.empty{text-align:center;padding:24px;color:var(--muted);font-size:12px}.status{font-size:10px;display:flex;align-items:center;gap:5px;color:var(--muted)}.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}.dot.live{background:var(--green);box-shadow:0 0 10px rgba(39,211,155,.7)}.dot.error{background:var(--red)}.dot.loading{background:var(--gold);animation:pulse 1s infinite}.daily{display:flex;gap:13px;align-items:center}.cover-mini{width:74px;height:98px;border-radius:12px;object-fit:cover;background:#202d44;flex:0 0 auto}.daily h3{margin:0 0 5px;font-size:15px}.daily .meta{font-size:10px;color:var(--muted);line-height:1.5}.manga-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.manga{overflow:hidden;border:1px solid var(--line);border-radius:14px;background:var(--panel2);cursor:pointer}.manga img{width:100%;height:190px;display:block;object-fit:cover;background:#202d44}.manga-body{padding:9px}.manga-title{font-size:11px;font-weight:700;line-height:1.25;min-height:28px}.manga-meta{font-size:9px;color:var(--muted);margin-top:5px}.section-note{padding:8px 0 2px;font-size:10px;color:var(--muted)}.chips{display:flex;flex-wrap:wrap;gap:7px}.chip-link{border:1px solid var(--line);border-radius:999px;padding:8px 10px;background:var(--panel2);color:var(--text);font-size:10px;text-decoration:none}.post{padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2);cursor:pointer}.post:hover,.manga:hover,.chip-link:hover,.btn:hover{filter:brightness(1.08)}.post h4{font-size:12px;margin:0 0 6px;line-height:1.35}.post-meta{font-size:9px;color:var(--muted)}.holdings{display:grid;gap:8px}.holding{display:grid;grid-template-columns:1.1fr .65fr .8fr .9fr auto;align-items:center;gap:10px;padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2)}.holding-main strong{font-size:12px}.holding-main span{display:block;font-size:9px;color:var(--muted);margin-top:3px}.number{text-align:right;font-variant-numeric:tabular-nums}.toolbar{display:flex;flex-wrap:wrap;gap:7px}.table-head{display:grid;grid-template-columns:1.1fr .65fr .8fr .9fr auto;gap:10px;padding:0 11px 7px;color:var(--muted);font-size:9px}.form{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field label{display:block;font-size:10px;color:var(--muted);margin-bottom:5px}.field input,.field select,.field textarea{width:100%;background:#0b1220;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px;font:inherit;font-size:12px;outline:none}.field textarea{min-height:80px;resize:vertical}.field.full{grid-column:1/-1}.modal{position:fixed;inset:0;background:rgba(2,5,10,.78);display:none;place-items:center;padding:15px;z-index:50}.modal.open{display:grid}.modal-card{width:min(520px,100%);background:#0c1422;border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 24px 70px rgba(0,0,0,.55)}.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(30px);opacity:0;pointer-events:none;background:#101a2b;border:1px solid var(--line);padding:10px 13px;border-radius:12px;font-size:11px;z-index:80;transition:.2s}.toast.show{transform:translateX(-50%) translateY(0);opacity:1}.weather-hero{text-align:center;padding:20px;border-radius:17px;background:linear-gradient(135deg,#14345b,#0d1624)}.weather-temp{font-size:56px;font-weight:850}.hourly{display:flex;gap:8px;overflow:auto;padding-bottom:2px}.hour{min-width:72px;text-align:center;background:var(--panel2);padding:10px 5px;border-radius:12px;border:1px solid var(--line);font-size:10px}.hour b{display:block;font-size:15px;margin:5px 0}.setting-note{font-size:10px;color:var(--muted);line-height:1.5}.footer-note{margin-top:13px;text-align:center;font-size:9px;color:#65748a}.skeleton{height:65px;border-radius:12px;background:linear-gradient(90deg,#121c2b,#1b273b,#121c2b);background-size:200% 100%;animation:skeleton 1.3s infinite}.mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.mini{padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2)}.mini strong{display:block;font-size:12px}.mini span{font-size:9px;color:var(--muted)}.warning{padding:10px 11px;border-radius:11px;background:rgba(242,201,76,.08);border:1px solid rgba(242,201,76,.2);color:#e8d68a;font-size:10px;line-height:1.5}.danger{padding:10px 11px;border-radius:11px;background:rgba(255,104,118,.08);border:1px solid rgba(255,104,118,.22);color:#ffadb6;font-size:10px;line-height:1.5}@keyframes fade{from{opacity:.3;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes pulse{50%{opacity:.4}}
+
+@media(max-width:520px){body{padding:8px 8px 28px}.app{width:100%}.topbar{position:sticky;top:6px;padding:11px 12px;border-radius:17px}.brand-icon{width:36px;height:36px;border-radius:11px;font-size:18px}.brand h1{font-size:16px}.brand p{font-size:10px}.tabs{position:sticky;top:71px;z-index:15;grid-template-columns:repeat(6,minmax(78px,1fr));overflow-x:auto;scrollbar-width:none;padding-bottom:3px}.tabs::-webkit-scrollbar{display:none}.tab{min-height:44px;padding:9px 8px;font-size:11px}.card{padding:12px;border-radius:16px}.card-head{align-items:flex-start}.grid{gap:10px}.manga-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.manga img{height:195px}.daily{align-items:flex-start}.cover-mini{width:64px;height:86px}.holding{grid-template-columns:1fr 1fr;gap:8px}.holding .holding-main{grid-column:1/-1}.holding .actions{grid-column:1/-1}.form{gap:8px}.modal{padding:8px}.modal-card{max-height:90vh;overflow:auto;border-radius:17px;padding:13px}.modal-actions{position:sticky;bottom:0;padding-top:10px;background:#0c1422}.chat{min-height:320px}.chat-input{font-size:16px}.btn{min-height:40px}.icon-btn{min-width:40px;height:40px}.hero h2{font-size:22px}.metric{font-size:22px}.weather-temp{font-size:48px}.post{padding:10px}.chip-link{padding:9px 10px}.footer-note{font-size:8px}}
+
+@media(max-width:700px){.tabs{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:1fr}.manga-grid{grid-template-columns:repeat(2,1fr)}.manga img{height:220px}.holding{grid-template-columns:1fr 1fr}.holding .actions{grid-column:1/-1;display:flex;justify-content:flex-end}.table-head{display:none}.form{grid-template-columns:1fr}.clock{display:none}}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div>
-                <h1>🎛️ Command Center</h1>
-                <div class="datetime" id="datetime"></div>
-            </div>
-            <button class="btn-settings" onclick="toggleSettings()">⚙️</button>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-icon">🎛️</div><div><h1>Command Center</h1><p>Personal dashboard</p></div></div>
+    <div style="display:flex;align-items:center;gap:8px"><div class="clock" id="clock"></div><button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙️</button></div>
+  </header>
+
+  <nav class="tabs" aria-label="Main navigation">
+    <button class="tab active" data-page="home">🏠 Home</button>
+    <button class="tab" data-page="portfolio">📈 Portfolio</button>
+    <button class="tab" data-page="manga">📚 Manga</button>
+    <button class="tab" data-page="reddit">📱 Reddit</button>
+    <button class="tab" data-page="weather">🌤️ Weather</button>
+    <button class="tab" data-page="briefing">📋 Briefing</button>
+  </nav>
+
+  <main>
+    <section class="page active" id="homePage">
+      <div class="stack">
+        <div class="hero"><span class="pill">TODAY</span><h2 id="welcome">Your command center.</h2><p id="todayLine">Live information, your portfolio and things worth checking.</p></div>
+        <div class="grid">
+          <article class="card"><div class="card-head"><div><div class="title">📚 Daily Manga Pick</div><div class="sub">One popular pick, refreshed daily</div></div></div><div id="dailyManga"></div></article>
+          <article class="card"><div class="card-head"><div><div class="title">📖 Today’s Reading</div><div class="sub">Your rotating plan</div></div></div><div id="bible"></div></article>
         </div>
-
-        <!-- Navigation Tabs -->
-        <div class="nav-tabs">
-            <div class="nav-tab active" onclick="switchPage('dashboard', this)">📊 Dashboard</div>
-            <div class="nav-tab" onclick="switchPage('manga', this)">📚 Manga</div>
-            <div class="nav-tab" onclick="switchPage('briefing', this)">📋 Briefing</div>
+        <div class="grid">
+          <article class="card"><div class="card-head"><div><div class="title">📈 Portfolio Snapshot</div><div class="status" id="portfolioStatus"><span class="dot loading"></span>Loading</div></div><button class="btn small" data-page-jump="portfolio">Open</button></div><div id="portfolioSnapshot"><div class="skeleton"></div></div></article>
+          <article class="card"><div class="card-head"><div><div class="title">🌤️ Weather</div><div class="sub" id="weatherPlace">London</div></div><button class="btn small" id="weatherRefresh">↻</button></div><div id="weatherSnapshot"><div class="skeleton"></div></div></article>
         </div>
+        <article class="card"><div class="card-head"><div><div class="title">📝 Reminders</div><div class="sub">Stored on this device</div></div><button class="btn primary" id="addReminderBtn">+ Add</button></div><div id="remindersHome"></div></article>
+        <article class="card"><div class="card-head"><div><div class="title">🤖 Assistant</div><div class="sub">Optional DeepSeek chat</div></div></div><div id="chatMessages" style="max-height:260px;overflow:auto;display:grid;gap:8px;margin-bottom:9px"><div class="post" style="cursor:default"><h4>Hi — I’m your Command Center assistant.</h4><div class="post-meta">Add a DeepSeek key in Settings to enable chat.</div></div></div><div style="display:flex;gap:7px"><input id="chatInput" style="flex:1;background:#0b1220;border:1px solid var(--line);color:var(--text);border-radius:11px;padding:10px;font-size:12px" placeholder="Ask something…" /><button class="btn primary" id="sendChat">Send</button></div></article>
+      </div>
+    </section>
 
-        <div class="config-panel" id="settingsPanel">
-            <div class="config-section">
-                <h3>🌤️ Weather Location</h3>
-                <div class="config-input">
-                    <label>City Name</label>
-                    <input type="text" id="weatherCity" placeholder="e.g., London">
-                </div>
-                <button class="btn btn-secondary" onclick="getLocation()">📍 Use My Location</button>
-            </div>
-            
-            <div class="config-section">
-                <h3>📱 Reddit</h3>
-                <div class="config-input">
-                    <label>Subreddit</label>
-                    <input type="text" id="subreddit" placeholder="e.g., worldnews">
-                </div>
-            </div>
-            
-            <div class="config-section">
-                <h3>📝 Reminders</h3>
-                <div class="config-input">
-                    <label>Add Reminder</label>
-                    <input type="text" id="reminderInput" placeholder="Enter reminder">
-                </div>
-                <button class="btn btn-secondary" onclick="addReminder()">Add Reminder</button>
-            </div>
-            
-            <div class="config-section">
-                <h3>🤖 DeepSeek AI (Optional)</h3>
-                <div class="config-input">
-                    <label>API Key</label>
-                    <input type="password" id="deepseekApiKey" placeholder="Enter API Key">
-                </div>
-            </div>
-            
-            <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
-        </div>
+    <section class="page" id="portfolioPage">
+      <div class="stack">
+        <article class="card"><div class="card-head"><div><div class="title">📈 Portfolio</div><div class="status" id="portfolioFullStatus"><span class="dot loading"></span>Loading live prices</div></div><div class="toolbar"><button class="btn" id="refreshPortfolio">↻ Refresh</button><button class="btn primary" id="addHoldingBtn">+ Holding</button></div></div><div class="metric" id="portfolioValue">—</div><div class="sub">Estimated market value in GBP</div><div class="mini-grid" style="margin-top:12px"><div class="mini"><strong id="portfolioCost">—</strong><span>Total cost</span></div><div class="mini"><strong id="portfolioPL">—</strong><span>Unrealised P/L</span></div><div class="mini"><strong id="portfolioReturn">—</strong><span>Return</span></div><div class="mini"><strong id="portfolioUpdated">—</strong><span>Last quote update</span></div></div></article>
+        <article class="card"><div class="card-head"><div><div class="title">Holdings</div><div class="sub">Shares are the quantities you actually own. Prices are fetched live.</div></div></div><div class="table-head"><div>Holding</div><div class="number">Shares</div><div class="number">Live</div><div class="number">Value</div><div></div></div><div id="holdingsList" class="holdings"></div></article>
+        <article class="card"><div class="warning">This tracks the shares you enter and values them using live market quotes from Twelve Data. It does not place trades or connect to your broker. Your API key is kept in this browser only; for a public app, move it behind your own server.</div></article>
+      </div>
+    </section>
 
-        <!-- Dashboard Page -->
-        <div class="page active" id="dashboardPage">
-            <div class="dashboard-stack">
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">💭 My Words</div>
-                        <span><span class="status-indicator status-live"></span>Live</span>
-                    </div>
-                    <div class="word-of-moment">
-                        <div class="featured-word" id="featuredWord">Comfortable</div>
-                    </div>
-                    <div class="words-container" id="wordsContainer"></div>
-                </div>
+    <section class="page" id="mangaPage">
+      <article class="card"><div class="card-head"><div><div class="title">📚 Manga Recommendations</div><div class="sub">Random picks from current popular manga</div></div><button class="btn primary" id="moreManga">🎲 More</button></div><div id="mangaStatus" class="section-note"></div><div id="mangaContent"></div></article>
+    </section>
 
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">📖 Today's Bible Reading</div>
-                        <span><span class="status-indicator status-live"></span>Daily</span>
-                    </div>
-                    <div class="bible-card">
-                        <div class="bible-reference" id="bibleReference">Loading...</div>
-                        <div class="bible-theme" id="bibleTheme">Loading theme...</div>
-                    </div>
-                </div>
+    <section class="page" id="redditPage">
+      <div class="stack">
+        <article class="card"><div class="card-head"><div><div class="title">📱 Reddit</div><div class="sub">Popular communities and your trading feeds</div></div><button class="btn" id="redditRetry">↻ Refresh</button></div><div id="redditNotice"></div><div class="section-note">Popular communities</div><div id="redditPopularSubs" class="chips"></div><div class="section-note" style="margin-top:12px">Recent / active communities</div><div id="redditRecentSubs" class="chips"></div></article>
+        <article class="card"><div class="card-head"><div><div class="title">🔥 r/trading212</div><div class="sub">Popular posts</div></div></div><div id="trading212Posts" class="list"></div></article>
+        <article class="card"><div class="card-head"><div><div class="title">🚀 r/wallstreetbets</div><div class="sub">Popular posts</div></div></div><div id="wsbPosts" class="list"></div></article>
+      </div>
+    </section>
 
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">📈 My Portfolio</div>
-                        <span><span class="status-indicator status-live"></span>Live</span>
-                    </div>
-                    <div id="portfolioContent"></div>
-                </div>
+    <section class="page" id="weatherPage">
+      <article class="card"><div class="card-head"><div><div class="title">🌤️ Weather</div><div class="sub" id="weatherFullPlace">London</div></div><button class="btn" id="weatherFullRefresh">↻ Refresh</button></div><div id="weatherFull"></div></article>
+    </section>
 
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">📱 Reddit</div>
-                        <span id="redditStatus"><span class="status-indicator status-live"></span>Loading...</span>
-                    </div>
-                    <div id="redditContent">
-                        <div style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</div>
-                    </div>
-                </div>
+    <section class="page" id="briefingPage">
+      <div class="stack"><article class="card"><div class="card-head"><div><div class="title">📋 Daily Briefing</div><div class="sub">A simple snapshot of your day</div></div><button class="btn primary" id="generateBriefing">Generate</button></div><div id="briefingContent"><div class="empty">Press Generate.</div></div></article><article class="card"><div class="card-head"><div><div class="title">📝 Reminders</div><div class="sub">Manage your list</div></div><button class="btn primary" id="addReminderBtn2">+ Add</button></div><div id="remindersBriefing"></div></article></div>
+    </section>
+  </main>
+  <div class="footer-note">Market data is informational and may be delayed. This app does not execute trades.</div>
+</div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">🌤️ Weather</div>
-                        <span id="weatherStatus">Loading...</span>
-                    </div>
-                    <div id="weatherContent">Loading weather...</div>
-                </div>
+<div class="modal" id="settingsModal"><div class="modal-card"><div class="modal-head"><div><div class="title">Settings</div><div class="sub">Saved locally on this device</div></div><button class="icon-btn" data-close="settingsModal">×</button></div><div class="stack"><div class="field"><label>Weather city</label><input id="settingsCity" value="London" /></div><div class="field"><label>DeepSeek API key</label><input id="settingsDeepSeek" type="password" placeholder="Optional" autocomplete="off" /></div><div class="field"><label>Twelve Data API key</label><input id="settingsMarketKey" type="password" placeholder="Paste your Twelve Data key" autocomplete="off" /></div><div class="field"><label>Reddit proxy/API URL (optional)</label><input id="settingsRedditProxy" placeholder="https://your-server.example/reddit" /></div><div class="setting-note">The DeepSeek and Twelve Data keys are stored only in this browser. For a real production app, move secrets to a server. Reddit’s public unauthenticated JSON endpoints are restricted, so live post feeds require an authorised proxy/API; direct Reddit links still work without one.</div></div><div class="modal-actions"><button class="btn" data-close="settingsModal">Cancel</button><button class="btn primary" id="saveSettings">Save</button></div></div></div>
+<div class="modal" id="holdingModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="holdingModalTitle">Add holding</div><div class="sub">Enter the position you own</div></div><button class="icon-btn" data-close="holdingModal">×</button></div><div class="form"><div class="field"><label>Ticker</label><input id="holdSymbol" placeholder="VWRP.L" autocapitalize="characters" /></div><div class="field"><label>Name</label><input id="holdName" placeholder="Vanguard FTSE All-World" /></div><div class="field"><label>Shares</label><input id="holdShares" type="number" min="0" step="0.000001" placeholder="12" /></div><div class="field"><label>Average buy price (GBP)</label><input id="holdBuyPrice" type="number" min="0" step="0.000001" placeholder="95.50" /></div><div class="field"><label>Exchange</label><select id="holdExchange"><option value="LSE">London Stock Exchange (LSE)</option><option value="NASDAQ">NASDAQ</option><option value="NYSE">NYSE</option><option value="AMEX">AMEX</option></select></div><div class="field"><label>Market currency</label><select id="holdCurrency"><option value="GBP">GBP</option><option value="GBp">GBp (pence)</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="Other">Other</option></select></div><div class="field"><label>Exchange note</label><input id="holdNote" placeholder="Optional" /></div></div><div class="modal-actions"><button class="btn red" id="deleteHoldingBtn" style="display:none;margin-right:auto">Delete</button><button class="btn" data-close="holdingModal">Cancel</button><button class="btn primary" id="saveHolding">Save</button></div></div></div>
+<div class="modal" id="reminderModal"><div class="modal-card"><div class="modal-head"><div><div class="title">Add reminder</div><div class="sub">Simple local reminder list</div></div><button class="icon-btn" data-close="reminderModal">×</button></div><div class="field"><label>Reminder</label><textarea id="reminderText" placeholder="e.g. Check ISA contribution on Friday"></textarea></div><div class="modal-actions"><button class="btn" data-close="reminderModal">Cancel</button><button class="btn primary" id="saveReminder">Add reminder</button></div></div></div>
+<div class="toast" id="toast"></div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">🤖 AI Assistant</div>
-                        <span>Ready</span>
-                    </div>
-                    <div class="chat-container">
-                        <div class="chat-messages" id="chatMessages">
-                            <div class="chat-message ai">Hello! How can I help you today? 👋</div>
-                        </div>
-                        <div class="typing-indicator" id="typingIndicator">AI is typing...</div>
-                        <div class="chat-input-container">
-                            <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..." onkeypress="handleChatKeyPress(event)">
-                            <button class="btn btn-primary" onclick="sendChatMessage()" style="width: auto;">Send</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<script>
+'use strict';
 
-        <!-- Manga Page -->
-        <div class="page" id="mangaPage">
-            <div class="dashboard-stack">
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">🔥 Trending Manga</div>
-                        <button class="refresh-btn" onclick="loadTrendingManga()">🔄 Refresh</button>
-                    </div>
-                    <div id="mangaContent">
-                        <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
-                            Loading trending manga...
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+const STORAGE = 'commandCenterV3';
+const DEFAULT_STATE = {
+  city:'London',
+  deepSeekKey:'',
+  marketKey:'',
+  redditProxy:'',
+  reminders:[],
+  holdings:[
+    {id:'vwrp',symbol:'VWRP',exchange:'LSE',name:'Vanguard FTSE All-World',shares:12,buyPrice:95.50,currency:'GBP',note:''},
+    {id:'paf',symbol:'PAF',exchange:'LSE',name:'Pan African Resources',shares:950,buyPrice:0.1550,currency:'GBP',note:''},
+    {id:'rr',symbol:'RR',exchange:'LSE',name:'Rolls-Royce Holdings',shares:55,buyPrice:2.15,currency:'GBP',note:''},
+    {id:'rklb',symbol:'RKLB',exchange:'NASDAQ',name:'Rocket Lab',shares:10,buyPrice:4.85,currency:'USD',note:''},
+    {id:'tun',symbol:'TUN',exchange:'LSE',name:'Tungsten West',shares:220,buyPrice:0.085,currency:'GBP',note:''}
+  ]
+};
+let state = loadState();
+state.holdings = state.holdings.map(h=>({...h, exchange:h.exchange || (String(h.symbol).toUpperCase().endsWith('.L')?'LSE':'NASDAQ'), symbol:String(h.symbol).replace(/\.L$/i,'')}));
+let quoteCache = {};
+let editingHoldingId = null;
+let mangaPool = [];
 
-        <!-- Daily Briefing Page -->
-        <div class="page" id="briefingPage">
-            <div class="dashboard-stack">
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">📋 Daily Briefing</div>
-                        <span id="briefingDate"></span>
-                    </div>
-                    <div id="briefingContent">
-                        <button class="btn btn-primary" onclick="generateBriefing()">Generate Daily Briefing</button>
-                    </div>
-                </div>
+const qs = s => document.querySelector(s);
+const qsa = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const money = (n,c='GBP') => Number.isFinite(n) ? new Intl.NumberFormat('en-GB',{style:'currency',currency:c,maximumFractionDigits:2}).format(n) : '—';
+const gbp = n => money(n,'GBP');
+const pct = n => Number.isFinite(n) ? `${n>=0?'+':''}${n.toFixed(2)}%` : '—';
+const nowIso = () => new Date().toISOString();
+function loadState(){try{return {...structuredClone(DEFAULT_STATE),...JSON.parse(localStorage.getItem(STORAGE)||'{}')}}catch{return structuredClone(DEFAULT_STATE)}}
+function saveState(){localStorage.setItem(STORAGE,JSON.stringify(state))}
+function toast(msg){const el=qs('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2400)}
+function openModal(id){qs('#'+id).classList.add('open')}
+function closeModal(id){qs('#'+id).classList.remove('open')}
+function dayOfYear(d=new Date()){const start=new Date(d.getFullYear(),0,0);return Math.floor((d-start)/86400000)}
+function dayKey(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">📝 My Reminders</div>
-                        <span><span class="status-indicator status-live"></span>Active</span>
-                    </div>
-                    <div id="remindersList" class="reminders-list"></div>
-                </div>
-            </div>
-        </div>
-    </div>
+async function fetchJson(url, options={}, timeout=10000){
+  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),timeout);
+  try{const r=await fetch(url,{...options,signal:controller.signal,headers:{Accept:'application/json',...(options.headers||{})}});if(!r.ok) throw new Error(`HTTP ${r.status}`);return await r.json()}
+  finally{clearTimeout(timer)}
+}
 
-    <script>
-        // Configuration
-        let config = {
-            weatherCity: 'London',
-            subreddit: 'worldnews',
-            deepseekApiKey: '',
-            reminders: []
-        };
+function init(){
+  qs('#clock').textContent='';
+  qsa('.tab').forEach(btn=>btn.addEventListener('click',()=>switchPage(btn.dataset.page)));
+  qsa('[data-page-jump]').forEach(b=>b.addEventListener('click',()=>switchPage(b.dataset.pageJump)));
+  qs('#settingsBtn').onclick=()=>openSettings();
+  qsa('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
+  ['settingsModal','holdingModal','reminderModal'].forEach(id=>qs('#'+id).addEventListener('click',e=>{if(e.target.id===id)closeModal(id)}));
+  qs('#saveSettings').onclick=saveSettings;
+  qs('#addHoldingBtn').onclick=()=>openHolding(); qs('#refreshPortfolio').onclick=()=>loadPortfolio(true);
+  qs('#moreManga').onclick=()=>loadManga(true);
+  qs('#redditRetry').onclick=loadReddit;
+  qs('#weatherRefresh').onclick=()=>loadWeather();qs('#weatherFullRefresh').onclick=()=>loadWeather();
+  qs('#generateBriefing').onclick=generateBriefing;
+  qs('#addReminderBtn').onclick=()=>openModal('reminderModal');qs('#addReminderBtn2').onclick=()=>openModal('reminderModal');
+  qs('#saveReminder').onclick=saveReminder;
+  qs('#saveHolding').onclick=saveHolding;qs('#deleteHoldingBtn').onclick=deleteEditingHolding;
+  qs('#sendChat').onclick=sendChat;qs('#chatInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat()});
+  applySettingsUI(); updateClock();setInterval(updateClock,1000);
+  renderBible();renderReminders();loadManga();loadPortfolio();loadWeather();loadReddit();
+}
+function updateClock(){const d=new Date();qs('#clock').textContent=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' • '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
+function switchPage(page){qsa('.page').forEach(p=>p.classList.remove('active'));qsa('.tab').forEach(t=>t.classList.toggle('active',t.dataset.page===page));qs('#'+page+'Page').classList.add('active');if(page==='portfolio')loadPortfolio();if(page==='manga')loadManga();if(page==='reddit')loadReddit();if(page==='weather')loadWeather()}
+function openSettings(){applySettingsUI();openModal('settingsModal')}
+function applySettingsUI(){qs('#settingsCity').value=state.city;qs('#settingsDeepSeek').value=state.deepSeekKey;qs('#settingsMarketKey').value=state.marketKey||'';qs('#settingsRedditProxy').value=state.redditProxy}
+function saveSettings(){state.city=qs('#settingsCity').value.trim()||'London';state.deepSeekKey=qs('#settingsDeepSeek').value.trim();state.marketKey=qs('#settingsMarketKey').value.trim();state.redditProxy=qs('#settingsRedditProxy').value.trim();saveState();applySettingsUI();closeModal('settingsModal');qs('#weatherPlace').textContent=state.city;qs('#weatherFullPlace').textContent=state.city;loadWeather();toast('Settings saved')}
 
-        const yourWords = ['Comfortable', 'Appreciated', 'Admired', 'Sure', 'Upbeat', 'Hopeful', 'Authentic', 'Thrilled', 'Enthusiastic', 'Stimulated', 'Free'];
+const readings=[
+ ['Genesis','1–3','Creation, fall, redemption promise'],['Genesis','4–7','Cain, Noah, judgement'],['Matthew','1–3','Birth of Jesus and ministry begins'],['Matthew','4–6','Temptation and Sermon on the Mount'],['Psalms','1–5','Blessed life and trust'],['Proverbs','1–3','Wisdom and understanding'],['Romans','1–3','Gospel and righteousness']
+];
+function renderBible(){const r=readings[dayOfYear()%readings.length];qs('#bible').innerHTML=`<div class="metric" style="font-size:20px">${r[0]} ${r[1]}</div><div class="sub" style="margin-top:6px">${esc(r[2])}</div>`}
 
-        const portfolioStocks = [
-            { symbol: 'VWRP', name: 'Vanguard FTSE All-World', shares: 12, buyPrice: 95.50, currentPrice: 98.75 },
-            { symbol: 'PAF', name: 'Pan African Resources', shares: 950, buyPrice: 0.1550, currentPrice: 0.1825 },
-            { symbol: 'RR', name: 'Rolls Royce', shares: 55, buyPrice: 2.15, currentPrice: 2.48 },
-            { symbol: 'RKLB', name: 'Rocket Lab', shares: 10, buyPrice: 4.85, currentPrice: 5.32 },
-            { symbol: 'TUN', name: 'Tungsten West', shares: 220, buyPrice: 0.085, currentPrice: 0.092 }
-        ];
+function getDailyMangaLocal(){let cached={};try{cached=JSON.parse(localStorage.getItem('dailyMangaV3')||'{}')}catch{};if(cached.date===dayKey()&&cached.item)return cached.item;if(!mangaPool.length)return null;const item=mangaPool[Math.floor(Math.random()*mangaPool.length)];localStorage.setItem('dailyMangaV3',JSON.stringify({date:dayKey(),item}));return item}
+function renderDailyManga(){const item=getDailyMangaLocal();const el=qs('#dailyManga');if(!item){el.innerHTML='<div class="empty">Manga data is still loading.</div>';return}el.innerHTML=`<div class="daily"><img class="cover-mini" src="${esc(item.images?.jpg?.image_url||'')}" alt="${esc(item.title)} cover" onerror="this.style.visibility='hidden'"><div><h3>${esc(item.title)}</h3><div class="meta">⭐ ${item.score??'—'} • ${esc((item.type||'Manga'))}<br>${esc((item.genres||[]).slice(0,3).map(g=>g.name).join(' • '))}<br><span class="positive">Open MyAnimeList ↗</span></div></div></div>`;el.querySelector('.daily').onclick=()=>window.open(item.url||`https://myanimelist.net/manga/${item.mal_id}`,'_blank','noopener')}
+async function loadManga(force=false){
+  if(mangaPool.length&&!force){renderMangaGrid(mangaPool.slice(0,9));renderDailyManga();return}
+  qs('#mangaStatus').textContent='Loading popular manga…';
+  try{
+    const page=1+Math.floor(Math.random()*3);
+    const data=await fetchJson(`https://api.jikan.moe/v4/top/manga?page=${page}&limit=25&type=manga`);
+    mangaPool=(data.data||[]).filter(x=>x.mal_id&&x.url).sort(()=>Math.random()-0.5);
+    if(!mangaPool.length)throw new Error('No manga returned');
+    qs('#mangaStatus').textContent=`Live data from MyAnimeList via Jikan • ${mangaPool.length} popular titles loaded`;
+    renderMangaGrid(mangaPool.slice(0,9));renderDailyManga();
+  }catch(e){qs('#mangaStatus').textContent='Could not reach live manga data. Try More again.';toast('Manga service unavailable')}
+}
+function renderMangaGrid(items){qs('#mangaContent').innerHTML=`<div class="manga-grid">${items.map(item=>`<article class="manga" data-url="${esc(item.url||`https://myanimelist.net/manga/${item.mal_id}`)}"><img src="${esc(item.images?.jpg?.large_image_url||item.images?.jpg?.image_url||'')}" alt="${esc(item.title)} cover" loading="lazy" onerror="this.style.visibility='hidden'"><div class="manga-body"><div class="manga-title">${esc(item.title)}</div><div class="manga-meta">⭐ ${item.score??'—'} • ${esc(item.type||'Manga')}</div></div></article>`).join('')}</div>`;qsa('.manga').forEach(card=>card.onclick=()=>window.open(card.dataset.url,'_blank','noopener'))}
 
-        const biblePlan = [
-            { book: "Genesis", chapters: "1-3", theme: "Creation, the fall of man, and the promise of redemption" },
-            { book: "Genesis", chapters: "4-7", theme: "Cain and Abel, Noah's ark, and God's judgment" },
-            { book: "Genesis", chapters: "8-11", theme: "God's covenant with Noah and the Tower of Babel" },
-            { book: "Genesis", chapters: "12-15", theme: "God's covenant with Abraham" },
-            { book: "Matthew", chapters: "1-3", theme: "The birth of Jesus and beginning of His ministry" },
-            { book: "Matthew", chapters: "4-6", theme: "Jesus' temptation and Sermon on the Mount" },
-            { book: "Matthew", chapters: "7-9", theme: "Jesus' teachings and miracles" },
-            { book: "Psalms", chapters: "1-5", theme: "The blessed life and trust in God" },
-            { book: "Proverbs", chapters: "1-3", theme: "The value of wisdom and understanding" },
-            { book: "Romans", chapters: "1-3", theme: "The gospel and God's righteousness" }
-        ];
+function normalizeQuote(raw, holding, fx){
+  let price=Number(raw.price);
+  let currency=String(raw.currency||holding.currency||'GBP');
+  if(!Number.isFinite(price))return null;
+  const c=currency.toUpperCase();
+  if(c==='GBX'||c==='GBPENCE'||currency==='GBp') return price/100;
+  if(c==='USD') return price/fx.gbpUsd;
+  if(c==='EUR') return price*fx.eurToGbp;
+  return price;
+}
+async function getFX(){
+  if(!state.marketKey) throw new Error('Market data API key missing');
+  const [usd,eur]=await Promise.all([
+    fetchJson(`https://api.twelvedata.com/exchange_rate?symbol=GBP/USD&apikey=${encodeURIComponent(state.marketKey)}`),
+    fetchJson(`https://api.twelvedata.com/exchange_rate?symbol=EUR/GBP&apikey=${encodeURIComponent(state.marketKey)}`)
+  ]);
+  const gbpUsd=Number(usd.rate), eurToGbp=Number(eur.rate);
+  if(!Number.isFinite(gbpUsd)||!Number.isFinite(eurToGbp)) throw new Error('FX unavailable');
+  return {gbpUsd,eurToGbp};
+}
+async function getQuote(symbol,exchange){
+  if(!state.marketKey) throw new Error('Market data API key missing');
+  const params=new URLSearchParams({symbol,apikey:state.marketKey});
+  if(exchange)params.set('exchange',exchange);
+  const data=await fetchJson(`https://api.twelvedata.com/quote?${params.toString()}`);
+  if(data.status==='error'||data.code) throw new Error(data.message||'Quote unavailable');
+  const price=Number(data.close??data.price??data.last);
+  if(!Number.isFinite(price))throw new Error('No quote');
+  return {price,currency:data.currency||'GBP',exchange:data.exchange||exchange||'',updatedAt:data.timestamp?new Date(Number(data.timestamp)*1000):new Date(),percentChange:Number(data.percent_change)};
+}
+async function loadPortfolio(force=false){
+  const statusEls=[qs('#portfolioStatus'),qs('#portfolioFullStatus')];
+  statusEls.forEach(el=>{el.innerHTML='<span class="dot loading"></span>Loading live prices'});
+  if(!state.marketKey){
+    renderPortfolio(state.holdings.map(h=>({...h,error:'Add Twelve Data API key in Settings'})));
+    statusEls.forEach(el=>{el.innerHTML='<span class="dot error"></span>Market data key required'});
+    return;
+  }
+  try{
+    const fx=await getFX();
+    const results=[];
+    for(const h of state.holdings){
+      try{
+        const q=await getQuote(h.symbol,h.exchange);
+        const live=normalizeQuote(q,h,fx);
+        if(live==null)throw new Error('Invalid price');
+        results.push({...h,liveGbp:live,marketCurrency:q.currency,quote:q});
+      }catch(e){results.push({...h,error:e.message||'Live quote unavailable'})}
+    }
+    quoteCache=Object.fromEntries(results.map(x=>[x.id,x]));
+    renderPortfolio(results);
+    const good=results.filter(x=>Number.isFinite(x.liveGbp)).length;
+    statusEls.forEach(el=>{el.innerHTML=`<span class="dot ${good===results.length?'live':'error'}"></span>${good}/${results.length} live quotes`});
+  }catch(e){
+    renderPortfolio(state.holdings.map(h=>({...h,error:e.message||'Live service unavailable'})));
+    statusEls.forEach(el=>{el.innerHTML='<span class="dot error"></span>Live market data unavailable'});
+    toast('Market data unavailable');
+  }
+}
+function renderPortfolio(items){
+  const valued=items.filter(x=>Number.isFinite(x.liveGbp));
+  const totalValue=valued.reduce((s,h)=>s+h.liveGbp*h.shares,0);
+  const totalCost=state.holdings.reduce((s,h)=>s+h.buyPrice*h.shares,0);
+  const pl=totalValue-totalCost;const ret=totalCost?pl/totalCost*100:NaN;
+  qs('#portfolioValue').textContent=gbp(totalValue);qs('#portfolioCost').textContent=gbp(totalCost);qs('#portfolioPL').textContent=gbp(pl);qs('#portfolioPL').className=pl>=0?'positive':'negative';qs('#portfolioReturn').textContent=pct(ret);qs('#portfolioReturn').className=ret>=0?'positive':'negative';qs('#portfolioUpdated').textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  qs('#portfolioSnapshot').innerHTML=`<div class="metric" style="font-size:22px">${gbp(totalValue)}</div><div class="sub ${pl>=0?'positive':'negative'}" style="margin-top:4px">${gbp(pl)} • ${pct(ret)}</div>`;
+  qs('#holdingsList').innerHTML=items.length?items.map(h=>{const value=Number.isFinite(h.liveGbp)?h.liveGbp*h.shares:NaN;const p=Number.isFinite(h.liveGbp)&&h.buyPrice>0?(h.liveGbp-h.buyPrice)/h.buyPrice*100:NaN;return `<div class="holding"><div class="holding-main"><strong>${esc(h.symbol)}</strong><span>${esc(h.name)}${h.error?' • '+esc(h.error):''}</span></div><div class="number"><strong>${h.shares}</strong></div><div class="number">${Number.isFinite(h.liveGbp)?gbp(h.liveGbp):'—'}</div><div class="number"><strong>${Number.isFinite(value)?gbp(value):'—'}</strong><div class="${p>=0?'positive':'negative'}" style="font-size:9px">${pct(p)}</div></div><div class="actions"><button class="btn small" onclick="window.editHolding('${h.id}')">Edit</button></div></div>`}).join(''):'<div class="empty">No holdings yet.</div>';
+}
+function openHolding(id=null){editingHoldingId=id;const h=id?state.holdings.find(x=>x.id===id):null;qs('#holdingModalTitle').textContent=h?'Edit holding':'Add holding';qs('#holdSymbol').value=h?.symbol||'';qs('#holdName').value=h?.name||'';qs('#holdShares').value=h?.shares??'';qs('#holdBuyPrice').value=h?.buyPrice??'';qs('#holdExchange').value=h?.exchange||'LSE';qs('#holdCurrency').value=h?.currency||'GBP';qs('#holdNote').value=h?.note||'';qs('#deleteHoldingBtn').style.display=h?'block':'none';openModal('holdingModal')}
+window.editHolding=id=>openHolding(id);
+function saveHolding(){const symbol=qs('#holdSymbol').value.trim().toUpperCase();const name=qs('#holdName').value.trim();const shares=Number(qs('#holdShares').value);const buyPrice=Number(qs('#holdBuyPrice').value);const exchange=qs('#holdExchange').value;const currency=qs('#holdCurrency').value;if(!symbol||!name||!(shares>0)||!(buyPrice>=0)){toast('Enter a ticker, name, shares and buy price');return}const item={id:editingHoldingId||crypto.randomUUID(),symbol,exchange,name,shares,buyPrice,currency,note:qs('#holdNote').value.trim()};if(editingHoldingId){state.holdings=state.holdings.map(h=>h.id===editingHoldingId?item:h)}else state.holdings.push(item);saveState();closeModal('holdingModal');loadPortfolio(true);toast('Holding saved')}
+function deleteEditingHolding(){if(!editingHoldingId)return;if(confirm('Remove this holding from your tracker?')){state.holdings=state.holdings.filter(h=>h.id!==editingHoldingId);saveState();closeModal('holdingModal');loadPortfolio(true);toast('Holding removed')}}
 
-        function loadConfig() {
-            const saved = localStorage.getItem('cmdCenterConfig');
-            if (saved) {
-                try {
-                    config = { ...config, ...JSON.parse(saved) };
-                } catch (e) {
-                    console.error('Config parse error:', e);
-                }
-            }
-            document.getElementById('weatherCity').value = config.weatherCity;
-            document.getElementById('subreddit').value = config.subreddit;
-            document.getElementById('deepseekApiKey').value = config.deepseekApiKey;
-            displayReminders();
-        }
+const fallbackPopular=[['r/AskReddit','Questions and discussion','https://www.reddit.com/r/AskReddit/'],['r/worldnews','Global news','https://www.reddit.com/r/worldnews/'],['r/investing','Investing discussion','https://www.reddit.com/r/investing/'],['r/stocks','Stock market discussion','https://www.reddit.com/r/stocks/'],['r/personalfinance','Personal finance','https://www.reddit.com/r/personalfinance/'],['r/manga','Manga community','https://www.reddit.com/r/manga/']];
+const fallbackRecent=[['r/TradingView','Charts and trading ideas','https://www.reddit.com/r/TradingView/'],['r/UKInvesting','UK investing','https://www.reddit.com/r/UKInvesting/'],['r/ValueInvesting','Value investing','https://www.reddit.com/r/ValueInvesting/'],['r/ETFs','ETF discussion','https://www.reddit.com/r/ETFs/'],['r/StockMarket','Market discussion','https://www.reddit.com/r/StockMarket/']];
+function renderSubChips(target,items){qs(target).innerHTML=items.map(x=>`<a class="chip-link" href="${x[2]}" target="_blank" rel="noopener">${esc(x[0])}<span style="color:var(--muted)"> · ${esc(x[1])}</span></a>`).join('')}
+function redditFallbackPosts(sub){return [{title:`Open the latest posts in ${sub}`,score:null,comments:null,url:`https://www.reddit.com/r/${sub.replace(/^r\//,'')}/hot/`},{title:`Open new posts in ${sub}`,score:null,comments:null,url:`https://www.reddit.com/r/${sub.replace(/^r\//,'')}/new/`}];}
+function renderPosts(target,posts,sub){qs(target).innerHTML=(posts||[]).map(p=>`<div class="post" data-url="${esc(p.url)}"><h4>${esc(p.title)}</h4><div class="post-meta">${p.score!=null?'▲ '+Number(p.score).toLocaleString()+' • ':''}${p.comments!=null?Number(p.comments).toLocaleString()+' comments • ':''}${esc(sub)}</div></div>`).join('');qsa('#'+target.replace('#','')+' .post').forEach(p=>p.onclick=()=>window.open(p.dataset.url,'_blank','noopener'))}
+async function loadReddit(){
+  qs('#redditNotice').innerHTML='<div class="warning">Reddit’s current public-data rules require authorised access for live JSON feeds. The app will use live data only when an authorised proxy/API is configured; otherwise it provides working community links instead of fake posts.</div>';
+  renderSubChips('#redditPopularSubs',fallbackPopular);renderSubChips('#redditRecentSubs',fallbackRecent);
+  const pf=redditFallbackPosts('trading212');const wf=redditFallbackPosts('wallstreetbets');renderPosts('#trading212Posts',pf,'r/trading212');renderPosts('#wsbPosts',wf,'r/wallstreetbets');
+  if(!state.redditProxy)return;
+  try{
+    const data=await fetchJson(state.redditProxy,{headers:{'X-Command-Center':'reddit-feed'}});
+    if(Array.isArray(data.popularSubreddits))renderSubChips('#redditPopularSubs',data.popularSubreddits);
+    if(Array.isArray(data.recentSubreddits))renderSubChips('#redditRecentSubs',data.recentSubreddits);
+    if(Array.isArray(data.trading212))renderPosts('#trading212Posts',data.trading212,'r/trading212');
+    if(Array.isArray(data.wallstreetbets))renderPosts('#wsbPosts',data.wallstreetbets,'r/wallstreetbets');
+    qs('#redditNotice').innerHTML='<div class="status"><span class="dot live"></span>Live Reddit data supplied by your configured proxy</div>';
+  }catch(e){qs('#redditNotice').innerHTML+='<div class="danger" style="margin-top:8px">Your Reddit proxy could not be reached, so direct community links are shown instead.</div>'}
+}
 
-        function saveSettings() {
-            config.weatherCity = document.getElementById('weatherCity').value || 'London';
-            config.subreddit = document.getElementById('subreddit').value || 'worldnews';
-            config.deepseekApiKey = document.getElementById('deepseekApiKey').value;
-            
-            localStorage.setItem('cmdCenterConfig', JSON.stringify(config));
-            toggleSettings();
-            refreshAll();
-        }
+function weatherInfo(code){if(code===0)return['☀️','Clear'];if([1,2].includes(code))return['🌤️','Partly cloudy'];if(code===3)return['☁️','Overcast'];if([45,48].includes(code))return['🌫️','Fog'];if([51,53,55,56,57].includes(code))return['🌦️','Drizzle'];if([61,63,65,66,67,80,81,82].includes(code))return['🌧️','Rain'];if([71,73,75,77,85,86].includes(code))return['❄️','Snow'];if([95,96,99].includes(code))return['⛈️','Thunderstorm'];return['🌤️','Unknown']}
+async function loadWeather(){
+  qs('#weatherPlace').textContent=state.city;qs('#weatherFullPlace').textContent=state.city;
+  qs('#weatherSnapshot').innerHTML='<div class="skeleton"></div>';qs('#weatherFull').innerHTML='<div class="empty">Loading…</div>';
+  try{
+    const geo=await fetchJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(state.city)}&count=1&language=en&format=json`);if(!geo.results?.length)throw new Error('City not found');const loc=geo.results[0];
+    const data=await fetchJson(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto&forecast_days=1`);
+    const c=data.current,wi=weatherInfo(c.weather_code);const hours=data.hourly.time.map((t,i)=>({t,temp:data.hourly.temperature_2m[i],p:data.hourly.precipitation_probability[i],code:data.hourly.weather_code[i]})).filter(x=>new Date(x.t)>=new Date()).slice(0,8);
+    qs('#weatherSnapshot').innerHTML=`<div class="metric" style="font-size:22px">${Math.round(c.temperature_2m)}°C</div><div class="sub" style="margin-top:4px">${wi[0]} ${wi[1]} • feels ${Math.round(c.apparent_temperature)}°C</div>`;
+    qs('#weatherFull').innerHTML=`<div class="weather-hero"><div style="font-size:13px">📍 ${esc(loc.name)}, ${esc(loc.country||'')}</div><div class="weather-temp">${Math.round(c.temperature_2m)}°</div><div>${wi[0]} ${wi[1]}</div></div><div class="mini-grid" style="margin-top:10px"><div class="mini"><strong>${Math.round(c.apparent_temperature)}°C</strong><span>Feels like</span></div><div class="mini"><strong>${Math.round(c.relative_humidity_2m)}%</strong><span>Humidity</span></div><div class="mini"><strong>${Math.round(c.wind_speed_10m)} km/h</strong><span>Wind</span></div><div class="mini"><strong>${c.precipitation||0} mm</strong><span>Precipitation</span></div></div><div class="section-note" style="margin-top:12px">Next hours</div><div class="hourly">${hours.map(h=>{const w=weatherInfo(h.code);return `<div class="hour"><div>${new Date(h.t).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div><b>${w[0]}</b><strong>${Math.round(h.temp)}°</strong><div class="muted">💧 ${h.p??0}%</div></div>`}).join('')}</div>`;
+  }catch(e){qs('#weatherSnapshot').innerHTML='<div class="danger">Weather could not be loaded. Check the city name or your connection.</div>';qs('#weatherFull').innerHTML='<div class="danger">Weather could not be loaded.</div>'}
+}
 
-        function toggleSettings() {
-            document.getElementById('settingsPanel').classList.toggle('active');
-        }
+function renderReminders(){const render=id=>{const el=qs(id);if(!state.reminders.length){el.innerHTML='<div class="empty">No reminders yet.</div>';return}el.innerHTML=`<div class="list">${state.reminders.map((r,i)=>`<div class="row"><div class="row-left"><div class="row-title">${esc(r.text)}</div><div class="row-sub">Added ${new Date(r.createdAt).toLocaleDateString('en-GB')}</div></div><button class="btn red small" onclick="window.removeReminder(${i})">Delete</button></div>`).join('')}</div>`};render('#remindersHome');render('#remindersBriefing')}
+function saveReminder(){const text=qs('#reminderText').value.trim();if(!text){toast('Enter a reminder');return}state.reminders.unshift({text,createdAt:nowIso()});saveState();qs('#reminderText').value='';closeModal('reminderModal');renderReminders();toast('Reminder added')}
+window.removeReminder=i=>{state.reminders.splice(i,1);saveState();renderReminders();toast('Reminder deleted')}
 
-        function switchPage(page, tabElement) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(page + 'Page').classList.add('active');
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            if (tabElement) tabElement.classList.add('active');
-            
-            if (page === 'manga') {
-                loadTrendingManga();
-            }
-        }
+async function generateBriefing(){const el=qs('#briefingContent');el.innerHTML='<div class="skeleton"></div>';const manga=getDailyMangaLocal();let weather='Unavailable';try{const geo=await fetchJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(state.city)}&count=1&language=en&format=json`);if(geo.results?.[0]){const l=geo.results[0],w=await fetchJson(`https://api.open-meteo.com/v1/forecast?latitude=${l.latitude}&longitude=${l.longitude}&current=temperature_2m,weather_code&timezone=auto`);const wi=weatherInfo(w.current.weather_code);weather=`${Math.round(w.current.temperature_2m)}°C ${wi[1]}`}}catch{}const r=readings[dayOfYear()%readings.length];el.innerHTML=`<div class="list"><div class="mini"><strong>🌤️ Weather</strong><span>${esc(weather)} in ${esc(state.city)}</span></div><div class="mini"><strong>📚 Manga</strong><span>${manga?esc(manga.title):'Loading popular picks'}</span></div><div class="mini"><strong>📖 Reading</strong><span>${r[0]} ${r[1]} — ${esc(r[2])}</span></div><div class="mini"><strong>📝 Reminders</strong><span>${state.reminders.length?state.reminders.map(x=>esc(x.text)).join(' • '):'None'}</span></div></div>`}
 
-        function getLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    async (position) => {
-                        try {
-                            const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&localityLanguage=en`);
-                            const data = await response.json();
-                            document.getElementById('weatherCity').value = data.city || data.locality || 'London';
-                        } catch (e) {
-                            console.error('Geocoding error:', e);
-                        }
-                    },
-                    () => alert('Unable to get location. Please enter city manually.')
-                );
-            }
-        }
+async function sendChat(){const input=qs('#chatInput');const text=input.value.trim();if(!text)return;addChat('user',text);input.value='';if(!state.deepSeekKey){addChat('ai','DeepSeek is not connected. Add your API key in Settings to enable chat.');return}try{const data=await fetchJson('https://api.deepseek.com/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${state.deepSeekKey}`},body:JSON.stringify({model:'deepseek-chat',messages:[{role:'user',content:text}],temperature:.4})});addChat('ai',data.choices?.[0]?.message?.content||'No response returned.')}catch(e){addChat('ai','The assistant could not be reached. Check the API key and connection.')}}
+function addChat(role,text){const d=document.createElement('div');d.className='post';d.style.cursor='default';d.innerHTML=`<h4>${role==='user'?'You':'Assistant'}</h4><div class="post-meta" style="white-space:pre-wrap;color:${role==='user'?'#c9d6ef':'#b6c2d2'}">${esc(text)}</div>`;qs('#chatMessages').appendChild(d);qs('#chatMessages').scrollTop=qs('#chatMessages').scrollHeight}
 
-        function updateDateTime() {
-            const now = new Date();
-            const options = { 
-                month: 'short', 
-                day: 'numeric',
-                hour: '2-digit', 
-                minute: '2-digit'
-            };
-            document.getElementById('datetime').textContent = now.toLocaleDateString('en-US', options);
-        }
-        setInterval(updateDateTime, 1000);
-        updateDateTime();
-
-        // Load trending manga from MangaDex with CORS proxy
-        async function loadTrendingManga() {
-            const content = document.getElementById('mangaContent');
-            
-            content.innerHTML = '<div style="text-align: center; padding: 20px;">Loading trending manga...</div>';
-            
-            try {
-                // Try multiple CORS proxies
-                const apiUrl = 'https://api.mangadex.org/manga?limit=20&includes[]=cover_art&order[followedCount]=desc&contentRating[]=safe&availableTranslatedLanguage[]=en';
-                
-                let data = null;
-                
-                // Proxy 1: allorigins
-                try {
-                    const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(apiUrl));
-                    if (response.ok) {
-                        data = await response.json();
-                    }
-                } catch (e) {
-                    console.log('Proxy 1 failed, trying proxy 2...');
-                }
-                
-                // Proxy 2: corsproxy.io
-                if (!data) {
-                    try {
-                        const response = await fetch('https://corsproxy.io/?' + encodeURIComponent(apiUrl));
-                        if (response.ok) {
-                            data = await response.json();
-                        }
-                    } catch (e) {
-                        console.log('Proxy 2 failed, trying direct...');
-                    }
-                }
-                
-                // Direct attempt (might work on some browsers)
-                if (!data) {
-                    try {
-                        const response = await fetch(apiUrl);
-                        if (response.ok) {
-                            data = await response.json();
-                        }
-                    } catch (e) {
-                        console.log('Direct fetch failed');
-                    }
-                }
-                
-                if (!data || !data.data || data.data.length === 0) {
-                    throw new Error('Could not load manga data');
-                }
-                
-                content.innerHTML = `
-                    <div class="manga-grid">
-                        ${data.data.map(manga => {
-                            const attributes = manga.attributes;
-                            const title = attributes.title.en || 
-                                          Object.values(attributes.title)[0] || 
-                                          'Unknown Title';
-                            
-                            const mangaStatus = attributes.status || 'unknown';
-                            const rating = attributes.rating?.bayesian?.toFixed(1) || 'N/A';
-                            
-                            const tags = attributes.tags?.slice(0, 2).map(tag => 
-                                tag.attributes.name.en || 'Tag'
-                            ) || [];
-                            
-                            let coverUrl = null;
-                            if (manga.relationships) {
-                                const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
-                                if (coverRel && coverRel.attributes) {
-                                    coverUrl = `https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes.fileName}.256.jpg`;
-                                }
-                            }
-                            
-                            const statusClass = `status-${mangaStatus}`;
-                            const statusLabel = mangaStatus.charAt(0).toUpperCase() + mangaStatus.slice(1);
-                            
-                            return `
-                                <div class="manga-card" onclick="window.open('https://mangadex.org/title/${manga.id}', '_blank')">
-                                    <div class="manga-cover">
-                                        ${coverUrl ? `<img src="${coverUrl}" alt="${title}" onerror="this.parentElement.innerHTML='📖'" loading="lazy">` : '📖'}
-                                        <div class="manga-rating">⭐ ${rating}</div>
-                                    </div>
-                                    <div class="manga-info">
-                                        <div class="manga-title">${title}</div>
-                                        ${tags.length > 0 ? `
-                                            <div class="manga-tags">
-                                                ${tags.map(tag => `<span class="manga-tag">${tag}</span>`).join('')}
-                                            </div>
-                                        ` : ''}
-                                        <span class="manga-status ${statusClass}">${statusLabel}</span>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `;
-                
-            } catch (error) {
-                console.error('MangaDex error:', error);
-                
-                content.innerHTML = `
-                    <div style="text-align: center; padding: 20px; color: var(--accent-red);">
-                        <div style="font-size: 1.5rem; margin-bottom: 10px;">⚠️</div>
-                        <div>Failed to load manga</div>
-                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 10px;">
-                            ${error.message}
-                        </div>
-                        <br>
-                        <button class="btn btn-secondary" onclick="loadTrendingManga()">Try Again</button>
-                        <button class="btn btn-secondary" onclick="window.open('https://mangadex.org', '_blank')">Open MangaDex</button>
-                    </div>
-                `;
-            }
-        }
-
-        function loadWords() {
-            const container = document.getElementById('wordsContainer');
-            container.innerHTML = yourWords.map((word, index) => `
-                <div class="word-tag" style="animation-delay: ${index * 0.1}s" onclick="featureWord('${word}')">${word}</div>
-            `).join('');
-            const randomIndex = Math.floor(Math.random() * yourWords.length);
-            document.getElementById('featuredWord').textContent = yourWords[randomIndex];
-        }
-
-        function featureWord(word) {
-            document.getElementById('featuredWord').textContent = word;
-            const featuredEl = document.getElementById('featuredWord');
-            featuredEl.style.animation = 'none';
-            setTimeout(() => { featuredEl.style.animation = 'pulse 3s infinite'; }, 10);
-        }
-
-        function loadBibleReading() {
-            const today = new Date();
-            const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
-            const reading = biblePlan[dayOfYear % biblePlan.length];
-            document.getElementById('bibleReference').textContent = `${reading.book} ${reading.chapters}`;
-            document.getElementById('bibleTheme').textContent = `Theme: ${reading.theme}`;
-        }
-
-        function loadPortfolio() {
-            const content = document.getElementById('portfolioContent');
-            const totalValue = portfolioStocks.reduce((sum, stock) => sum + (stock.currentPrice * stock.shares), 0);
-            const totalCost = portfolioStocks.reduce((sum, stock) => sum + (stock.buyPrice * stock.shares), 0);
-            const totalProfit = totalValue - totalCost;
-            const profitPercent = (totalProfit / totalCost) * 100;
-            
-            content.innerHTML = `
-                <div class="portfolio-value">£${totalValue.toFixed(2)}</div>
-                <div class="portfolio-stats">
-                    <div class="stat-item">
-                        <div class="stat-label">Total Profit/Loss</div>
-                        <div class="stat-value ${totalProfit >= 0 ? 'positive' : 'negative'}">${totalProfit >= 0 ? '+' : ''}£${totalProfit.toFixed(2)}</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Return</div>
-                        <div class="stat-value ${profitPercent >= 0 ? 'positive' : 'negative'}">${profitPercent >= 0 ? '+' : ''}${profitPercent.toFixed(2)}%</div>
-                    </div>
-                </div>
-                <div class="holdings-list">
-                    ${portfolioStocks.map(stock => {
-                        const stockValue = stock.currentPrice * stock.shares;
-                        const stockCost = stock.buyPrice * stock.shares;
-                        const stockProfit = stockValue - stockCost;
-                        const stockPercent = (stockProfit / stockCost) * 100;
-                        return `
-                            <div class="holding-item">
-                                <div>
-                                    <div style="font-weight: 600;">${stock.symbol}</div>
-                                    <div style="color: var(--text-secondary); font-size: 0.8rem;">${stock.name}</div>
-                                    <div style="color: var(--text-secondary); font-size: 0.75rem;">${stock.shares} shares</div>
-                                </div>
-                                <div style="text-align: right;">
-                                    <div>£${stockValue.toFixed(2)}</div>
-                                    <div class="${stockProfit >= 0 ? 'positive' : 'negative'}" style="font-size: 0.85rem;">${stockProfit >= 0 ? '+' : ''}£${stockProfit.toFixed(2)}</div>
-                                    <div class="${stockPercent >= 0 ? 'positive' : 'negative'}" style="font-size: 0.75rem;">${stockPercent >= 0 ? '▲' : '▼'} ${Math.abs(stockPercent).toFixed(2)}%</div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            `;
-        }
-
-        function addReminder() {
-            const input = document.getElementById('reminderInput');
-            const reminder = input.value.trim();
-            if (reminder) {
-                config.reminders.push(reminder);
-                input.value = '';
-                localStorage.setItem('cmdCenterConfig', JSON.stringify(config));
-                displayReminders();
-            }
-        }
-
-        function deleteReminder(index) {
-            config.reminders.splice(index, 1);
-            localStorage.setItem('cmdCenterConfig', JSON.stringify(config));
-            displayReminders();
-        }
-
-        function displayReminders() {
-            const container = document.getElementById('remindersList');
-            if (config.reminders.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 20px;">No reminders yet</div>';
-            } else {
-                container.innerHTML = config.reminders.map((reminder, index) => `
-                    <div class="reminder-item">
-                        <div class="reminder-text">${reminder}</div>
-                        <button class="reminder-delete" onclick="deleteReminder(${index})">✕</button>
-                    </div>
-                `).join('');
-            }
-        }
-
-        async function generateBriefing() {
-            const content = document.getElementById('briefingContent');
-            const now = new Date();
-            const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
-            const reading = biblePlan[dayOfYear % biblePlan.length];
-            
-            let weatherText = 'Weather unavailable';
-            try {
-                const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(config.weatherCity)}&count=1&language=en&format=json`);
-                const geoData = await geoResponse.json();
-                if (geoData.results && geoData.results.length > 0) {
-                    const location = geoData.results[0];
-                    const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code&timezone=auto`);
-                    const weatherData = await weatherResponse.json();
-                    const weatherInfo = getWeatherInfo(weatherData.current.weather_code);
-                    weatherText = `${Math.round(weatherData.current.temperature_2m)}°C ${weatherInfo.description}`;
-                }
-            } catch (e) {
-                console.error('Weather error:', e);
-            }
-            
-            const totalValue = portfolioStocks.reduce((sum, stock) => sum + (stock.currentPrice * stock.shares), 0);
-            const totalCost = portfolioStocks.reduce((sum, stock) => sum + (stock.buyPrice * stock.shares), 0);
-            const totalProfit = totalValue - totalCost;
-            
-            content.innerHTML = `
-                <div style="margin-bottom: 20px;">
-                    <h3 style="color: var(--accent-blue); margin-bottom: 10px;">🌤️ Weather</h3>
-                    <p>${weatherText} in ${config.weatherCity}</p>
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <h3 style="color: var(--accent-green); margin-bottom: 10px;">📈 Portfolio</h3>
-                    <p>Total Value: £${totalValue.toFixed(2)}</p>
-                    <p class="${totalProfit >= 0 ? 'positive' : 'negative'}">${totalProfit >= 0 ? 'Profit' : 'Loss'}: ${totalProfit >= 0 ? '+' : ''}£${totalProfit.toFixed(2)}</p>
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <h3 style="color: var(--accent-gold); margin-bottom: 10px;">📖 Bible Reading</h3>
-                    <p>${reading.book} ${reading.chapters}</p>
-                    <p style="color: var(--text-secondary); font-size: 0.85rem;">${reading.theme}</p>
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <h3 style="color: var(--accent-purple); margin-bottom: 10px;">📝 Reminders</h3>
-                    ${config.reminders.length > 0 ? config.reminders.map(r => `<p>• ${r}</p>`).join('') : '<p style="color: var(--text-secondary);">No reminders for today</p>'}
-                </div>
-            `;
-        }
-
-        async function loadReddit() {
-            const content = document.getElementById('redditContent');
-            const status = document.getElementById('redditStatus');
-            const endpoints = [
-                `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.reddit.com/r/${config.subreddit}/hot.json?limit=5`)}`,
-                `https://api.reddit.com/r/${config.subreddit}/hot?limit=5`
-            ];
-            
-            for (let i = 0; i < endpoints.length; i++) {
-                try {
-                    const response = await fetch(endpoints[i]);
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data && data.data && data.data.children) {
-                            const posts = data.data.children;
-                            content.innerHTML = posts.map(post => {
-                                const postData = post.data;
-                                return `
-                                    <div class="reddit-post" onclick="window.open('https://reddit.com${postData.permalink}', '_blank')">
-                                        <div class="reddit-post-title">${postData.title}</div>
-                                        <div class="reddit-post-meta">
-                                            <span class="reddit-post-subreddit">r/${postData.subreddit}</span>
-                                            <span>⬆️ ${postData.score}</span>
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('');
-                            status.innerHTML = '<span class="status-indicator status-live"></span>Live';
-                            return;
-                        }
-                    }
-                } catch (error) {
-                    console.log(`Endpoint ${i + 1} failed`);
-                }
-            }
-            
-            content.innerHTML = '<div style="text-align: center; padding: 20px;">Unable to load Reddit</div>';
-            status.innerHTML = '<span class="status-indicator status-error"></span>Blocked';
-        }
-
-        async function loadWeather() {
-            try {
-                const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(config.weatherCity)}&count=1&language=en&format=json`);
-                const geoData = await geoResponse.json();
-                if (!geoData.results || geoData.results.length === 0) throw new Error('City not found');
-                
-                const location = geoData.results[0];
-                const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto`);
-                const data = await weatherResponse.json();
-                
-                const current = data.current;
-                const weatherInfo = getWeatherInfo(current.weather_code);
-                
-                document.getElementById('weatherContent').innerHTML = `
-                    <div style="margin-bottom: 10px; color: var(--text-secondary);">📍 ${location.name}</div>
-                    <div class="weather-main">
-                        <div class="weather-icon">${weatherInfo.emoji}</div>
-                        <div>
-                            <div class="weather-temp">${Math.round(current.temperature_2m)}°C</div>
-                            <div class="weather-desc">${weatherInfo.description}</div>
-                        </div>
-                    </div>
-                    <div class="weather-details">
-                        <div class="weather-detail-item">
-                            <div class="stat-label">Humidity</div>
-                            <div class="stat-value">${current.relative_humidity_2m}%</div>
-                        </div>
-                        <div class="weather-detail-item">
-                            <div class="stat-label">Wind</div>
-                            <div class="stat-value">${Math.round(current.wind_speed_10m)} km/h</div>
-                        </div>
-                        <div class="weather-detail-item">
-                            <div class="stat-label">Feels Like</div>
-                            <div class="stat-value">${Math.round(current.apparent_temperature)}°C</div>
-                        </div>
-                    </div>
-                `;
-                
-                document.getElementById('weatherStatus').innerHTML = '<span class="status-indicator status-live"></span>Live';
-            } catch (error) {
-                document.getElementById('weatherContent').innerHTML = 'Failed to load weather';
-                document.getElementById('weatherStatus').innerHTML = 'Error';
-            }
-        }
-
-        function getWeatherInfo(code) {
-            const map = {
-                0: { emoji: '☀️', description: 'Clear sky' },
-                1: { emoji: '🌤️', description: 'Mainly clear' },
-                2: { emoji: '⛅', description: 'Partly cloudy' },
-                3: { emoji: '☁️', description: 'Overcast' },
-                61: { emoji: '🌧️', description: 'Rain' },
-                71: { emoji: '❄️', description: 'Snow' },
-                95: { emoji: '⛈️', description: 'Thunderstorm' }
-            };
-            return map[code] || { emoji: '🌤️', description: 'Unknown' };
-        }
-
-        async function sendChatMessage() {
-            const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-            if (!message) return;
-            
-            if (message.toLowerCase().includes('briefing')) {
-                addChatMessage('user', message);
-                input.value = '';
-                addChatMessage('ai', 'Here is your daily briefing. Check the Briefing tab! 📋');
-                switchPage('briefing', document.querySelectorAll('.nav-tab')[2]);
-                generateBriefing();
-                return;
-            }
-            
-            if (message.toLowerCase().includes('manga') || message.toLowerCase().includes('manhwa')) {
-                addChatMessage('user', message);
-                input.value = '';
-                addChatMessage('ai', 'Check the Manga tab for trending manga! 📚');
-                switchPage('manga', document.querySelectorAll('.nav-tab')[1]);
-                loadTrendingManga();
-                return;
-            }
-            
-            addChatMessage('user', message);
-            input.value = '';
-            
-            if (!config.deepseekApiKey) {
-                setTimeout(() => addChatMessage('ai', 'Add your DeepSeek API key in settings for AI responses!'), 500);
-                return;
-            }
-            
-            try {
-                const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${config.deepseekApiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: 'deepseek-chat',
-                        messages: [{ role: 'user', content: message }]
-                    })
-                });
-                const data = await response.json();
-                addChatMessage('ai', data.choices[0].message.content);
-            } catch (error) {
-                addChatMessage('ai', 'Error: Check your API key.');
-            }
-        }
-
-        function addChatMessage(type, content) {
-            const container = document.getElementById('chatMessages');
-            const div = document.createElement('div');
-            div.className = `chat-message ${type}`;
-            div.textContent = content;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function handleChatKeyPress(event) {
-            if (event.key === 'Enter') sendChatMessage();
-        }
-
-        function refreshAll() {
-            loadWords();
-            loadBibleReading();
-            loadPortfolio();
-            loadReddit();
-            loadWeather();
-        }
-
-        // Initialize
-        loadConfig();
-        refreshAll();
-        setInterval(loadWeather, 900000);
-        
-        setInterval(() => {
-            const randomIndex = Math.floor(Math.random() * yourWords.length);
-            document.getElementById('featuredWord').textContent = yourWords[randomIndex];
-        }, 30000);
-    </script>
+window.addEventListener('storage',()=>{state=loadState();applySettingsUI();renderReminders();loadPortfolio();loadWeather();});
+init();
+</script>
 </body>
 </html>
