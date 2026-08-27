@@ -5,10 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#070b14" />
 <meta name="description" content="Personal Command Center — portfolio, manga, Reddit, weather, reminders and daily briefing." />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Command Centre" />
 <title>Command Center</title>
 <style>
 :root{--bg:#070b14;--panel:#0f1624;--panel2:#131d2d;--panel3:#18243a;--text:#f3f6fb;--muted:#91a0b5;--line:#223149;--blue:#5b8cff;--green:#27d39b;--red:#ff6876;--gold:#f2c94c;--purple:#a78bfa;--orange:#ff7b39;--cyan:#47d6e8;--shadow:0 14px 40px rgba(0,0,0,.28)}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 20% 0%,#14213b 0,#070b14 38%,#050810 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Arial,sans-serif}body{padding:18px 12px 40px}.app{max-width:900px;margin:0 auto}.topbar{position:sticky;top:10px;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;margin-bottom:14px;border:1px solid var(--line);border-radius:22px;background:rgba(9,14,24,.88);backdrop-filter:blur(18px);box-shadow:var(--shadow)}.brand{display:flex;align-items:center;gap:11px}.brand-icon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,var(--blue),var(--purple));font-size:21px}.brand h1{font-size:18px;margin:0}.brand p{font-size:11px;color:var(--muted);margin:3px 0 0}.clock{font-size:11px;color:var(--muted);text-align:right}.icon-btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);height:42px;min-width:42px;border-radius:13px;cursor:pointer;font-size:18px}.tabs{display:flex;gap:6px;margin-bottom:15px;overflow-x:auto;scrollbar-width:none;padding:5px;border:1px solid var(--line);border-radius:18px;background:rgba(15,22,36,.6)}.tabs::-webkit-scrollbar{display:none}.tab{flex:0 0 auto;border:1px solid transparent;background:transparent;color:var(--muted);padding:10px 14px;border-radius:13px;cursor:pointer;font-size:12px;font-weight:650;text-align:center;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:background .18s ease,color .18s ease,box-shadow .18s ease}.tab:hover{color:var(--text);background:#ffffff08}.tab.active{color:white;background:linear-gradient(135deg,#3568e8,#7658db);border-color:transparent;box-shadow:0 8px 22px rgba(91,140,255,.3)}.page{display:none}.page.active{display:block;animation:fade .22s ease}.grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.stack{display:grid;gap:13px}.card{background:linear-gradient(145deg,rgba(19,29,45,.96),rgba(13,20,32,.96));border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:var(--shadow)}.card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:13px}.title{font-size:14px;font-weight:700}.sub{font-size:11px;color:var(--muted)}.hero{padding:18px;border-radius:18px;background:linear-gradient(135deg,rgba(44,88,188,.34),rgba(99,63,180,.28));border:1px solid #38579b}.hero h2{font-size:25px;line-height:1.05;margin:0 0 7px}.hero p{color:#c6d0df;font-size:12px;margin:0}.pill{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;background:#ffffff0d;color:var(--muted);font-size:10px;border:1px solid #ffffff12}.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:9px 11px;border-radius:11px;cursor:pointer;font-weight:650;font-size:11px}.btn.primary{background:linear-gradient(135deg,#3568e8,#7658db);border-color:transparent}.btn.green{background:rgba(39,211,155,.12);border-color:rgba(39,211,155,.3);color:var(--green)}.btn.red{background:rgba(255,104,118,.1);border-color:rgba(255,104,118,.25);color:var(--red)}.btn.small{padding:6px 8px;font-size:10px}.btn:disabled{opacity:.5;cursor:not-allowed}.metric{font-size:25px;font-weight:800;letter-spacing:-.5px}.positive{color:var(--green)}.negative{color:var(--red)}.muted{color:var(--muted)}.list{display:grid;gap:8px}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #ffffff08}.row:last-child{border-bottom:0}.row-left{min-width:0}.row-title{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row-sub{font-size:10px;color:var(--muted);margin-top:3px}.row-right{text-align:right;flex:0 0 auto}.empty{text-align:center;padding:24px;color:var(--muted);font-size:12px}.status{font-size:10px;display:flex;align-items:center;gap:5px;color:var(--muted)}.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}.dot.live{background:var(--green);box-shadow:0 0 10px rgba(39,211,155,.7)}.dot.error{background:var(--red)}.dot.loading{background:var(--gold);animation:pulse 1s infinite}.daily{display:flex;gap:13px;align-items:center}.cover-mini{width:74px;height:98px;border-radius:12px;object-fit:cover;background:#202d44;flex:0 0 auto}.daily h3{margin:0 0 5px;font-size:15px}.daily .meta{font-size:10px;color:var(--muted);line-height:1.5}.manga-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.manga{overflow:hidden;border:1px solid var(--line);border-radius:14px;background:var(--panel2);cursor:pointer}.manga img{width:100%;height:190px;display:block;object-fit:cover;background:#202d44}.manga-body{padding:9px}.manga-title{font-size:11px;font-weight:700;line-height:1.25;min-height:28px}.manga-meta{font-size:9px;color:var(--muted);margin-top:5px}.section-note{padding:8px 0 2px;font-size:10px;color:var(--muted)}.chips{display:flex;flex-wrap:wrap;gap:7px}.chip-link{border:1px solid var(--line);border-radius:999px;padding:8px 10px;background:var(--panel2);color:var(--text);font-size:10px;text-decoration:none}.chip-link.active{background:linear-gradient(135deg,#3568e8,#7658db);border-color:transparent;color:#fff}.category-heading{margin-top:12px;font-size:10px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:6px}.category-heading .count{font-weight:500;color:var(--muted);text-transform:none;letter-spacing:0}.word-of-moment{text-align:center;padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(167,139,250,.18),rgba(71,214,232,.12));margin-bottom:11px}.featured-word{font-size:26px;font-weight:800;background:linear-gradient(135deg,var(--gold),var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:wordFade 3s ease-in-out infinite}.words-container{display:flex;flex-wrap:wrap;gap:7px}.word-tag{font:inherit;padding:7px 12px;border-radius:999px;font-size:11px;font-weight:650;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--text);outline:none}.word-tag:hover{filter:brightness(1.15)}.word-tag:nth-child(1){color:var(--green);border-color:rgba(39,211,155,.35);background:rgba(39,211,155,.08)}.word-tag:nth-child(2){color:var(--blue);border-color:rgba(91,140,255,.35);background:rgba(91,140,255,.08)}.word-tag:nth-child(3){color:var(--purple);border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.08)}.word-tag:nth-child(4){color:var(--gold);border-color:rgba(242,201,76,.35);background:rgba(242,201,76,.08)}.word-tag:nth-child(5){color:var(--red);border-color:rgba(255,104,118,.35);background:rgba(255,104,118,.08)}.word-tag:nth-child(6){color:var(--cyan);border-color:rgba(71,214,232,.35);background:rgba(71,214,232,.08)}.word-tag:nth-child(7){color:var(--orange);border-color:rgba(255,123,57,.35);background:rgba(255,123,57,.08)}.word-tag:nth-child(8){color:var(--green);border-color:rgba(39,211,155,.35);background:rgba(39,211,155,.08)}.word-tag:nth-child(9){color:var(--blue);border-color:rgba(91,140,255,.35);background:rgba(91,140,255,.08)}.word-tag:nth-child(10){color:var(--purple);border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.08)}.word-tag:nth-child(11){color:var(--gold);border-color:rgba(242,201,76,.35);background:rgba(242,201,76,.08)}@keyframes wordFade{0%,100%{opacity:1}50%{opacity:.72}}.post{padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2);cursor:pointer}.post:hover,.manga:hover,.chip-link:hover,.btn:hover{filter:brightness(1.08)}.post h4{font-size:12px;margin:0 0 6px;line-height:1.35}.post-meta{font-size:9px;color:var(--muted)}.holdings{display:grid;gap:8px}.holding{display:grid;grid-template-columns:1.1fr .65fr .8fr .9fr auto;align-items:center;gap:10px;padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2)}.holding-main strong{font-size:12px}.holding-main span{display:block;font-size:9px;color:var(--muted);margin-top:3px}.number{text-align:right;font-variant-numeric:tabular-nums}.toolbar{display:flex;flex-wrap:wrap;gap:7px}.table-head{display:grid;grid-template-columns:1.1fr .65fr .8fr .9fr auto;gap:10px;padding:0 11px 7px;color:var(--muted);font-size:9px}.form{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field label{display:block;font-size:10px;color:var(--muted);margin-bottom:5px}.field input,.field select,.field textarea{width:100%;background:#0b1220;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px;font:inherit;font-size:12px;outline:none}.field textarea{min-height:80px;resize:vertical}.field.full{grid-column:1/-1}.modal{position:fixed;inset:0;background:rgba(2,5,10,.78);display:none;place-items:center;padding:15px;z-index:50}.modal.open{display:grid}.modal-card{width:min(520px,100%);background:#0c1422;border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 24px 70px rgba(0,0,0,.55)}.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(30px);opacity:0;pointer-events:none;background:#101a2b;border:1px solid var(--line);padding:10px 13px;border-radius:12px;font-size:11px;z-index:80;transition:.2s}.toast.show{transform:translateX(-50%) translateY(0);opacity:1}.weather-hero{text-align:center;padding:20px;border-radius:17px;background:linear-gradient(135deg,#14345b,#0d1624)}.weather-temp{font-size:56px;font-weight:850}.hourly{display:flex;gap:8px;overflow:auto;padding-bottom:2px}.hour{min-width:72px;text-align:center;background:var(--panel2);padding:10px 5px;border-radius:12px;border:1px solid var(--line);font-size:10px}.hour b{display:block;font-size:15px;margin:5px 0}.setting-note{font-size:10px;color:var(--muted);line-height:1.5}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 20% 0%,#14213b 0,#070b14 38%,#050810 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Arial,sans-serif}.layout{display:flex;align-items:flex-start;min-height:100vh}.main-area{flex:1;min-width:0;padding:18px 12px 40px}.app{max-width:900px;margin:0 auto}.topbar{position:sticky;top:10px;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;margin-bottom:14px;border:1px solid var(--line);border-radius:22px;background:rgba(9,14,24,.88);backdrop-filter:blur(18px);box-shadow:var(--shadow)}.brand{display:flex;align-items:center;gap:11px}.brand-icon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,var(--blue),var(--purple));font-size:21px}.brand h1{font-size:18px;margin:0}.brand p{font-size:11px;color:var(--muted);margin:3px 0 0}.clock{font-size:11px;color:var(--muted);text-align:right}.icon-btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);height:42px;min-width:42px;border-radius:13px;cursor:pointer;font-size:18px}
+.sidebar{width:236px;flex:0 0 236px;position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;background:rgba(9,14,24,.92);border-right:1px solid var(--line);padding:22px 14px 24px;display:flex;flex-direction:column;gap:18px;z-index:25;scrollbar-width:thin}.sidebar-brand{display:flex;align-items:center;gap:10px;padding:0 4px}.sidebar-nav{display:flex;flex-direction:column;gap:3px;overflow-y:auto}.sidebar-item{display:flex;align-items:center;gap:10px;text-align:left;border:1px solid transparent;background:transparent;color:var(--muted);padding:11px 12px;border-radius:13px;cursor:pointer;font-size:13px;font-weight:650;width:100%}.sidebar-item:hover{color:var(--text);background:#ffffff08}.sidebar-item.active{color:#fff;background:linear-gradient(135deg,#3568e8,#7658db);box-shadow:0 8px 22px rgba(91,140,255,.3)}.sidebar-emoji{font-size:15px}.sidebar-toggle{display:none}.sidebar-overlay{display:none}.tabs{display:flex;gap:6px;margin-bottom:15px;overflow-x:auto;scrollbar-width:none;padding:5px;border:1px solid var(--line);border-radius:18px;background:rgba(15,22,36,.6)}.tabs::-webkit-scrollbar{display:none}.tab{flex:0 0 auto;border:1px solid transparent;background:transparent;color:var(--muted);padding:10px 14px;border-radius:13px;cursor:pointer;font-size:12px;font-weight:650;text-align:center;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:background .18s ease,color .18s ease,box-shadow .18s ease}.tab:hover{color:var(--text);background:#ffffff08}.tab.active{color:white;background:linear-gradient(135deg,#3568e8,#7658db);border-color:transparent;box-shadow:0 8px 22px rgba(91,140,255,.3)}.page{display:none}.page.active{display:block;animation:fade .22s ease}.grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.stack{display:grid;gap:13px}.card{background:linear-gradient(145deg,rgba(19,29,45,.96),rgba(13,20,32,.96));border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:var(--shadow)}.card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:13px}.title{font-size:14px;font-weight:700}.sub{font-size:11px;color:var(--muted)}.hero{padding:18px;border-radius:18px;background:linear-gradient(135deg,rgba(44,88,188,.34),rgba(99,63,180,.28));border:1px solid #38579b}.hero h2{font-size:25px;line-height:1.05;margin:0 0 7px}.hero p{color:#c6d0df;font-size:12px;margin:0}.pill{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;background:#ffffff0d;color:var(--muted);font-size:10px;border:1px solid #ffffff12}.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:9px 11px;border-radius:11px;cursor:pointer;font-weight:650;font-size:11px}.btn.primary{background:linear-gradient(135deg,#3568e8,#7658db);border-color:transparent}.btn.green{background:rgba(39,211,155,.12);border-color:rgba(39,211,155,.3);color:var(--green)}.btn.red{background:rgba(255,104,118,.1);border-color:rgba(255,104,118,.25);color:var(--red)}.btn.small{padding:6px 8px;font-size:10px}.btn:disabled{opacity:.5;cursor:not-allowed}.metric{font-size:25px;font-weight:800;letter-spacing:-.5px}.positive{color:var(--green)}.negative{color:var(--red)}.muted{color:var(--muted)}.list{display:grid;gap:8px}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #ffffff08}.row:last-child{border-bottom:0}.row-left{min-width:0}.row-title{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row-sub{font-size:10px;color:var(--muted);margin-top:3px}.row-right{text-align:right;flex:0 0 auto}.empty{text-align:center;padding:24px;color:var(--muted);font-size:12px}.status{font-size:10px;display:flex;align-items:center;gap:5px;color:var(--muted)}.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}.dot.live{background:var(--green);box-shadow:0 0 10px rgba(39,211,155,.7)}.dot.error{background:var(--red)}.dot.loading{background:var(--gold);animation:pulse 1s infinite}.daily{display:flex;gap:13px;align-items:center}.cover-mini{width:74px;height:98px;border-radius:12px;object-fit:cover;background:#202d44;flex:0 0 auto}.daily h3{margin:0 0 5px;font-size:15px}.daily .meta{font-size:10px;color:var(--muted);line-height:1.5}.manga-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.manga{overflow:hidden;border:1px solid var(--line);border-radius:14px;background:var(--panel2);cursor:pointer}.manga img{width:100%;height:190px;display:block;object-fit:cover;background:#202d44}.manga-body{padding:9px}.manga-title{font-size:11px;font-weight:700;line-height:1.25;min-height:28px}.manga-meta{font-size:9px;color:var(--muted);margin-top:5px}.section-note{padding:8px 0 2px;font-size:10px;color:var(--muted)}.chips{display:flex;flex-wrap:wrap;gap:7px}.chip-link{border:1px solid var(--line);border-radius:999px;padding:8px 10px;background:var(--panel2);color:var(--text);font-size:10px;text-decoration:none}.chip-link.active{background:linear-gradient(135deg,#3568e8,#7658db);border-color:transparent;color:#fff}.category-heading{margin-top:12px;font-size:10px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:6px}.category-heading .count{font-weight:500;color:var(--muted);text-transform:none;letter-spacing:0}.word-of-moment{text-align:center;padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(167,139,250,.18),rgba(71,214,232,.12));margin-bottom:11px}.featured-word{font-size:26px;font-weight:800;background:linear-gradient(135deg,var(--gold),var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:wordFade 3s ease-in-out infinite}.words-container{display:flex;flex-wrap:wrap;gap:7px}.word-tag{font:inherit;padding:7px 12px;border-radius:999px;font-size:11px;font-weight:650;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--text);outline:none}.word-tag:hover{filter:brightness(1.15)}.word-tag:nth-child(1){color:var(--green);border-color:rgba(39,211,155,.35);background:rgba(39,211,155,.08)}.word-tag:nth-child(2){color:var(--blue);border-color:rgba(91,140,255,.35);background:rgba(91,140,255,.08)}.word-tag:nth-child(3){color:var(--purple);border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.08)}.word-tag:nth-child(4){color:var(--gold);border-color:rgba(242,201,76,.35);background:rgba(242,201,76,.08)}.word-tag:nth-child(5){color:var(--red);border-color:rgba(255,104,118,.35);background:rgba(255,104,118,.08)}.word-tag:nth-child(6){color:var(--cyan);border-color:rgba(71,214,232,.35);background:rgba(71,214,232,.08)}.word-tag:nth-child(7){color:var(--orange);border-color:rgba(255,123,57,.35);background:rgba(255,123,57,.08)}.word-tag:nth-child(8){color:var(--green);border-color:rgba(39,211,155,.35);background:rgba(39,211,155,.08)}.word-tag:nth-child(9){color:var(--blue);border-color:rgba(91,140,255,.35);background:rgba(91,140,255,.08)}.word-tag:nth-child(10){color:var(--purple);border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.08)}.word-tag:nth-child(11){color:var(--gold);border-color:rgba(242,201,76,.35);background:rgba(242,201,76,.08)}@keyframes wordFade{0%,100%{opacity:1}50%{opacity:.72}}.post{padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2);cursor:pointer}.post:hover,.manga:hover,.chip-link:hover,.btn:hover{filter:brightness(1.08)}.post h4{font-size:12px;margin:0 0 6px;line-height:1.35}.post-meta{font-size:9px;color:var(--muted)}.holdings{display:grid;gap:8px}.holding{display:grid;grid-template-columns:1.1fr .65fr .8fr .9fr auto;align-items:center;gap:10px;padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2)}.holding-main strong{font-size:12px}.holding-main span{display:block;font-size:9px;color:var(--muted);margin-top:3px}.number{text-align:right;font-variant-numeric:tabular-nums}.toolbar{display:flex;flex-wrap:wrap;gap:7px}.table-head{display:grid;grid-template-columns:1.1fr .65fr .8fr .9fr auto;gap:10px;padding:0 11px 7px;color:var(--muted);font-size:9px}.form{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field label{display:block;font-size:10px;color:var(--muted);margin-bottom:5px}.field input,.field select,.field textarea{width:100%;background:#0b1220;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px;font:inherit;font-size:12px;outline:none}.field textarea{min-height:80px;resize:vertical}.field.full{grid-column:1/-1}.modal{position:fixed;inset:0;background:rgba(2,5,10,.78);display:none;place-items:center;padding:15px;z-index:50}.modal.open{display:grid}.modal-card{width:min(520px,100%);background:#0c1422;border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 24px 70px rgba(0,0,0,.55)}.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(30px);opacity:0;pointer-events:none;background:#101a2b;border:1px solid var(--line);padding:10px 13px;border-radius:12px;font-size:11px;z-index:80;transition:.2s}.toast.show{transform:translateX(-50%) translateY(0);opacity:1}.weather-hero{text-align:center;padding:20px;border-radius:17px;background:linear-gradient(135deg,#14345b,#0d1624)}.weather-temp{font-size:56px;font-weight:850}.hourly{display:flex;gap:8px;overflow:auto;padding-bottom:2px}.hour{min-width:72px;text-align:center;background:var(--panel2);padding:10px 5px;border-radius:12px;border:1px solid var(--line);font-size:10px}.hour b{display:block;font-size:15px;margin:5px 0}.weather-days{display:flex;gap:8px;overflow:auto;padding-bottom:4px;margin-bottom:12px}.day-chip{flex:0 0 auto;min-width:66px;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px 8px;cursor:pointer;color:var(--text);font:inherit}.day-chip:hover{filter:brightness(1.1)}.day-chip.active{background:linear-gradient(135deg,#3568e8,#7658db);border-color:transparent}.day-chip-label{font-size:10px;font-weight:700;color:var(--muted)}.day-chip.active .day-chip-label{color:#fff}.day-chip-icon{font-size:18px;margin:5px 0}.day-chip-temps{font-size:11px;display:flex;justify-content:center;gap:6px}.day-chip-temps span{color:var(--muted)}.day-chip.active .day-chip-temps span{color:rgba(255,255,255,.8)}.setting-note{font-size:10px;color:var(--muted);line-height:1.5}
 .music-hero-card{background:linear-gradient(145deg,rgba(29,185,84,.12),rgba(19,29,45,.96))}
 .now-playing{display:flex;gap:14px;align-items:center}
 .now-playing-art{width:84px;height:84px;border-radius:12px;object-fit:cover;background:#202d44;flex:0 0 auto;box-shadow:0 10px 26px rgba(0,0,0,.35)}
@@ -31,6 +36,7 @@
 .spotify-embed-frame{width:100%;border-radius:14px;border:none}
 @media(max-width:520px){.playlist-grid{grid-template-columns:repeat(2,1fr)}}
 .calendar-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.calendar-heading strong{font-size:15px}.calendar-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px}.calendar-weekdays div{text-align:center;color:var(--muted);font-size:9px;font-weight:700;padding:5px}.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.calendar-cell{min-height:78px;padding:7px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);cursor:pointer;overflow:hidden}.calendar-cell.muted-day{opacity:.42}.calendar-cell.today{border-color:var(--blue);box-shadow:inset 0 0 0 1px rgba(91,140,255,.25)}.calendar-cell.selected{background:linear-gradient(145deg,rgba(53,104,232,.22),rgba(118,88,219,.15));border-color:#527be2}.calendar-day-number{font-size:11px;font-weight:800;margin-bottom:5px}.calendar-item{display:block;font-size:8px;line-height:1.2;padding:3px 4px;border-radius:5px;background:#ffffff0b;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.calendar-item.event{border-left:2px solid var(--blue)}.calendar-item.reminder{border-left:2px solid var(--green)}.calendar-more{font-size:8px;color:var(--muted);margin-top:3px}.date-control{background:#0b1220;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:9px;font:inherit;font-size:11px;min-height:40px}.item-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.calendar-year-heading{text-align:center;margin-bottom:14px}.calendar-year-heading strong{font-size:19px;font-weight:800;letter-spacing:.5px}.calendar-year-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.mini-month{border:1px solid var(--line);border-radius:16px;background:var(--panel2);padding:11px;cursor:pointer;text-align:left;color:var(--text);font:inherit}.mini-month:hover{filter:brightness(1.12);border-color:#3a507a}.mini-month-title{font-size:11px;font-weight:800;margin-bottom:7px;text-align:center;color:var(--text)}.mini-month-title .mini-month-count{display:block;font-size:8px;font-weight:600;color:var(--muted);margin-top:2px}.mini-month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}.mini-day{font-size:8px;text-align:center;padding:3px 0;border-radius:4px;position:relative;color:var(--muted)}.mini-day.empty{visibility:hidden}.mini-day.today{background:var(--blue);color:#fff;font-weight:800}.mini-dot{position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--gold)}
 
 .notes-toolbar{display:flex;gap:8px;margin-bottom:12px}.notes-search{width:100%;background:#0b1220;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:11px 12px;font:inherit;font-size:11px}.notes-list{display:flex;flex-direction:column;gap:7px}.note-card{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--line);background:var(--panel2);border-radius:11px;cursor:pointer}.note-card:hover{border-color:#3d557c}.note-icon{width:30px;height:30px;border-radius:8px;background:#ffffff08;display:flex;align-items:center;justify-content:center;flex:none}.note-card-main{min-width:0;flex:1}.note-card-title{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.note-card-preview{font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.note-card-date{font-size:9px;color:var(--muted);white-space:nowrap}.note-editor-card{max-width:760px}.note-body-input{min-height:330px;resize:vertical;line-height:1.55}.notes-empty{padding:35px 15px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:11px}.notes-empty strong{display:block;color:var(--text);margin-bottom:5px}
 #noteModal.modal{padding:0;align-items:stretch;justify-content:stretch;background:var(--bg);z-index:60}
@@ -55,29 +61,36 @@
 #noteModal .note-body-input b,#noteModal .note-body-input strong{font-weight:800}
 .footer-note{margin-top:13px;text-align:center;font-size:9px;color:#65748a}.skeleton{height:65px;border-radius:12px;background:linear-gradient(90deg,#121c2b,#1b273b,#121c2b);background-size:200% 100%;animation:skeleton 1.3s infinite}.mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.mini{padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2)}.mini strong{display:block;font-size:12px}.mini span{font-size:9px;color:var(--muted)}.warning{padding:10px 11px;border-radius:11px;background:rgba(242,201,76,.08);border:1px solid rgba(242,201,76,.2);color:#e8d68a;font-size:10px;line-height:1.5}.danger{padding:10px 11px;border-radius:11px;background:rgba(255,104,118,.08);border:1px solid rgba(255,104,118,.22);color:#ffadb6;font-size:10px;line-height:1.5}@keyframes fade{from{opacity:.3;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes pulse{50%{opacity:.4}}
 
-@media(max-width:520px){body{padding:8px 8px 28px}.app{width:100%}.topbar{position:sticky;top:6px;padding:11px 12px;border-radius:17px}.brand-icon{width:36px;height:36px;border-radius:11px;font-size:18px}.brand h1{font-size:16px}.brand p{font-size:10px}.tabs{position:sticky;top:71px;z-index:15;grid-template-columns:unset;overflow-x:auto;scrollbar-width:none;padding:5px}.tabs::-webkit-scrollbar{display:none}.tab{flex:0 0 auto;min-height:40px;padding:9px 12px;font-size:11px}.card{padding:12px;border-radius:16px}.card-head{align-items:flex-start}.grid{gap:10px}.manga-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.manga img{height:195px}.daily{align-items:flex-start}.cover-mini{width:64px;height:86px}.holding{grid-template-columns:1fr 1fr;gap:8px}.holding .holding-main{grid-column:1/-1}.holding .actions{grid-column:1/-1}.form{gap:8px}.modal{padding:8px}.modal-card{max-height:90vh;overflow:auto;border-radius:17px;padding:13px}.modal-actions{position:sticky;bottom:0;padding-top:10px;background:#0c1422}.chat{min-height:320px}.chat-input{font-size:16px}.btn{min-height:40px}.icon-btn{min-width:40px;height:40px}.hero h2{font-size:22px}.metric{font-size:22px}.weather-temp{font-size:48px}.post{padding:10px}.chip-link{padding:9px 10px}.footer-note{font-size:8px}}
+@media(max-width:860px){.sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 20px 60px rgba(0,0,0,.5)}.sidebar.open{transform:translateX(0)}.sidebar-toggle{display:flex;align-items:center;justify-content:center}.sidebar-overlay.open{display:block;position:fixed;inset:0;background:rgba(2,5,10,.6);z-index:24}}
+@media(max-width:520px){.main-area{padding:8px 8px 28px}.app{width:100%}.topbar{position:sticky;top:6px;padding:11px 12px;border-radius:17px}.brand-icon{width:36px;height:36px;border-radius:11px;font-size:18px}.brand h1{font-size:16px}.brand p{font-size:10px}.card{padding:12px;border-radius:16px}.card-head{align-items:flex-start}.grid{gap:10px}.manga-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.manga img{height:195px}.daily{align-items:flex-start}.cover-mini{width:64px;height:86px}.holding{grid-template-columns:1fr 1fr;gap:8px}.holding .holding-main{grid-column:1/-1}.holding .actions{grid-column:1/-1}.form{gap:8px}.modal{padding:8px}.modal-card{max-height:90vh;overflow:auto;border-radius:17px;padding:13px}.modal-actions{position:sticky;bottom:0;padding-top:10px;background:#0c1422}.chat{min-height:320px}.chat-input{font-size:16px}.btn{min-height:40px}.icon-btn{min-width:40px;height:40px}.hero h2{font-size:22px}.metric{font-size:22px}.weather-temp{font-size:48px}.post{padding:10px}.chip-link{padding:9px 10px}.footer-note{font-size:8px}.calendar-year-grid{grid-template-columns:1fr}}
 
-@media(max-width:700px){.tabs{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:1fr}.manga-grid{grid-template-columns:repeat(2,1fr)}.manga img{height:220px}.holding{grid-template-columns:1fr 1fr}.holding .actions{grid-column:1/-1;display:flex;justify-content:flex-end}.table-head{display:none}.form{grid-template-columns:1fr}.clock{display:none}}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.manga-grid{grid-template-columns:repeat(2,1fr)}.manga img{height:220px}.holding{grid-template-columns:1fr 1fr}.holding .actions{grid-column:1/-1;display:flex;justify-content:flex-end}.table-head{display:none}.form{grid-template-columns:1fr}.clock{display:none}.calendar-year-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand"><div class="brand-icon">🎛️</div><div><h1 style="font-size:15px;margin:0">Command Center</h1><p style="font-size:10px;color:var(--muted);margin:3px 0 0">Personal dashboard</p></div></div>
+    <nav class="sidebar-nav" aria-label="Main navigation">
+      <button class="sidebar-item active" data-page="home"><span class="sidebar-emoji">🏠</span> Home</button>
+      <button class="sidebar-item" data-page="portfolio"><span class="sidebar-emoji">📈</span> Portfolio</button>
+      <button class="sidebar-item" data-page="manga"><span class="sidebar-emoji">📚</span> Manga</button>
+      <button class="sidebar-item" data-page="reddit"><span class="sidebar-emoji">📱</span> Reddit</button>
+      <button class="sidebar-item" data-page="weather"><span class="sidebar-emoji">🌤️</span> Weather</button>
+      <button class="sidebar-item" data-page="calendar"><span class="sidebar-emoji">🗓️</span> Calendar</button>
+      <button class="sidebar-item" data-page="notes"><span class="sidebar-emoji">📝</span> Notes</button>
+      <button class="sidebar-item" data-page="music"><span class="sidebar-emoji">🎵</span> Music</button>
+      <button class="sidebar-item" data-page="briefing"><span class="sidebar-emoji">📋</span> Briefing</button>
+    </nav>
+  </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="main-area">
+  <div class="app">
   <header class="topbar">
-    <div class="brand"><div class="brand-icon">🎛️</div><div><h1>Command Center</h1><p>Personal dashboard</p></div></div>
+    <div class="brand"><button class="icon-btn sidebar-toggle" id="sidebarToggle" aria-label="Menu">☰</button><div class="brand-icon">🎛️</div><div><h1>Command Center</h1><p>Personal dashboard</p></div></div>
     <div style="display:flex;align-items:center;gap:8px"><div class="clock" id="clock"></div><button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙️</button></div>
   </header>
-
-  <nav class="tabs" aria-label="Main navigation">
-    <button class="tab active" data-page="home">🏠 Home</button>
-    <button class="tab" data-page="portfolio">📈 Portfolio</button>
-    <button class="tab" data-page="manga">📚 Manga</button>
-    <button class="tab" data-page="reddit">📱 Reddit</button>
-    <button class="tab" data-page="weather">🌤️ Weather</button>
-    <button class="tab" data-page="calendar">🗓️ Calendar</button>
-     <button class="tab" data-page="notes">📝 Notes</button>
-     <button class="tab" data-page="music">🎵 Music</button>
-     <button class="tab" data-page="briefing">📋 Briefing</button>
-  </nav>
 
   <main>
     <section class="page active" id="homePage">
@@ -127,13 +140,19 @@
         <article class="card">
           <div class="card-head">
             <div><div class="title">🗓️ Calendar</div><div class="sub">Events and scheduled reminders</div></div>
-            <div class="toolbar"><button class="btn" id="calendarPrev">‹</button><button class="btn" id="calendarToday">Today</button><button class="btn" id="calendarNext">›</button><button class="btn primary" id="addCalendarEventBtn">+ Event</button></div>
+            <div class="toolbar"><button class="btn" id="calendarBackBtn" style="display:none">‹ Year</button><button class="btn" id="calendarPrev">‹</button><button class="btn" id="calendarToday">Today</button><button class="btn" id="calendarNext">›</button><button class="btn primary" id="addCalendarEventBtn">+ Event</button></div>
           </div>
-          <div class="calendar-heading"><button class="icon-btn" id="calendarMonthPrev">‹</button><strong id="calendarMonthLabel"></strong><button class="icon-btn" id="calendarMonthNext">›</button></div>
-          <div class="calendar-weekdays"><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div></div>
-          <div id="calendarGrid" class="calendar-grid"></div>
+          <div id="calendarYearView">
+            <div class="calendar-year-heading"><strong id="calendarYearLabel"></strong></div>
+            <div id="calendarYearGrid" class="calendar-year-grid"></div>
+          </div>
+          <div id="calendarMonthView" style="display:none">
+            <div class="calendar-heading"><button class="icon-btn" id="calendarMonthPrev">‹</button><strong id="calendarMonthLabel"></strong><button class="icon-btn" id="calendarMonthNext">›</button></div>
+            <div class="calendar-weekdays"><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div></div>
+            <div id="calendarGrid" class="calendar-grid"></div>
+          </div>
         </article>
-        <article class="card">
+        <article class="card" id="calendarSelectedDayCard" style="display:none">
           <div class="card-head"><div><div class="title">📅 Selected day</div><div class="sub" id="selectedCalendarDate"></div></div><button class="btn primary" id="addCalendarEventBtn2">+ Event</button></div>
           <div id="selectedDayItems"></div>
         </article>
@@ -198,9 +217,11 @@
     </section>
   </main>
   <div class="footer-note">Market data is informational. With Twelve Data, the London Stock Exchange is identified as XLON and LSE data may be EOD depending on your plan; with Finnhub, non‑US exchanges may be restricted on the free plan. This app does not execute trades.</div>
+  </div>
+  </div>
 </div>
 
-<div class="modal" id="settingsModal"><div class="modal-card"><div class="modal-head"><div><div class="title">Settings</div><div class="sub">Saved locally on this device</div></div><button class="icon-btn" data-close="settingsModal">×</button></div><div class="stack"><div class="field"><label>Weather city</label><input id="settingsCity" value="London" /></div><div class="field"><label>DeepSeek API key</label><input id="settingsDeepSeek" type="password" placeholder="Optional" autocomplete="off" /></div><div class="field"><label>Portfolio price provider</label><select id="settingsMarketProvider"><option value="twelvedata">Twelve Data</option><option value="finnhub">Finnhub (free tier)</option></select></div><div class="field" id="twelveDataKeyField"><label>Twelve Data API key</label><input id="settingsMarketKey" type="password" placeholder="Paste your Twelve Data key" autocomplete="off" /></div><div class="field" id="finnhubKeyField" style="display:none"><label>Finnhub API key</label><input id="settingsFinnhubKey" type="password" placeholder="Paste your free Finnhub key" autocomplete="off" /></div><div class="setting-note" id="providerNote">Twelve Data covers LSE and US tickers on a free key with a low daily call limit.</div><div class="field"><label>Spotify Client ID</label><input id="settingsSpotifyClientId" placeholder="From your free Spotify Developer app" autocomplete="off" /></div><div class="field"><label>Redirect URI to register in Spotify</label><div style="display:flex;gap:6px"><input id="spotifyRedirectDisplay" readonly style="flex:1;font-size:10px" /><button class="btn small" id="copyRedirectUriBtn" type="button">Copy</button></div></div><div class="setting-note">Create a free app at developer.spotify.com/dashboard, then paste the exact string above into that app's Redirect URIs — it must match character-for-character (protocol, trailing slash, everything), or Spotify returns "redirect_uri: Not matching configuration". If you're testing locally, Spotify requires <code>http://127.0.0.1:PORT/...</code> — plain <code>localhost</code> is no longer accepted. Needed only for Now Playing/Playlists — the quick embed player on the Music tab needs no key.</div><div class="field"><label>Reddit proxy/API URL (optional)</label><input id="settingsRedditProxy" placeholder="https://your-server.example/reddit" /></div><div class="setting-note">Keys are stored only in this browser. For a real production app, move secrets to a server. FX conversion uses a free, keyless exchange-rate API. Reddit’s public unauthenticated JSON endpoints are restricted, so live post feeds require an authorised proxy/API; direct Reddit links still work without one.</div></div><div class="modal-actions"><button class="btn" data-close="settingsModal">Cancel</button><button class="btn primary" id="saveSettings">Save</button></div></div></div>
+<div class="modal" id="settingsModal"><div class="modal-card"><div class="modal-head"><div><div class="title">Settings</div><div class="sub">Saved locally on this device</div></div><button class="icon-btn" data-close="settingsModal">×</button></div><div class="stack"><article class="card" style="padding:13px;background:#0b1220"><div class="card-head"><div><div class="title">🔔 Mobile notifications</div><div class="sub" id="notificationStatus">Checking notification support…</div></div><button class="btn primary" id="enableNotificationsBtn">Enable</button></div><div class="toolbar"><button class="btn" id="testNotificationBtn">Send test</button><button class="btn" id="rescheduleNotificationsBtn">Reschedule reminders</button></div><div class="setting-note" style="margin-top:8px">Command Centre will schedule reminder and calendar notifications on this device. For notifications while the app is completely closed, the app must be installed as a PWA and connected to a push server; the local scheduler works while the app is running.</div></article><div class="field"><label>Weather city</label><input id="settingsCity" value="London" /></div><div class="field"><label>DeepSeek API key</label><input id="settingsDeepSeek" type="password" placeholder="Optional" autocomplete="off" /></div><div class="field"><label>Portfolio price provider</label><select id="settingsMarketProvider"><option value="twelvedata">Twelve Data</option><option value="finnhub">Finnhub (free tier)</option></select></div><div class="field" id="twelveDataKeyField"><label>Twelve Data API key</label><input id="settingsMarketKey" type="password" placeholder="Paste your Twelve Data key" autocomplete="off" /></div><div class="field" id="finnhubKeyField" style="display:none"><label>Finnhub API key</label><input id="settingsFinnhubKey" type="password" placeholder="Paste your free Finnhub key" autocomplete="off" /></div><div class="setting-note" id="providerNote">Twelve Data covers LSE and US tickers on a free key with a low daily call limit.</div><div class="field"><label>Spotify Client ID</label><input id="settingsSpotifyClientId" placeholder="From your free Spotify Developer app" autocomplete="off" /></div><div class="field"><label>Redirect URI to register in Spotify</label><div style="display:flex;gap:6px"><input id="spotifyRedirectDisplay" readonly style="flex:1;font-size:10px" /><button class="btn small" id="copyRedirectUriBtn" type="button">Copy</button></div></div><div class="setting-note">Create a free app at developer.spotify.com/dashboard, then paste the exact string above into that app's Redirect URIs — it must match character-for-character (protocol, trailing slash, everything), or Spotify returns "redirect_uri: Not matching configuration". If you're testing locally, Spotify requires <code>http://127.0.0.1:PORT/...</code> — plain <code>localhost</code> is no longer accepted. Needed only for Now Playing/Playlists — the quick embed player on the Music tab needs no key.</div><div class="field"><label>Reddit proxy/API URL (optional)</label><input id="settingsRedditProxy" placeholder="https://your-server.example/reddit" /></div><div class="setting-note">Keys are stored only in this browser. For a real production app, move secrets to a server. FX conversion uses a free, keyless exchange-rate API. Reddit’s public unauthenticated JSON endpoints are restricted, so live post feeds require an authorised proxy/API; direct Reddit links still work without one.</div></div><div class="modal-actions"><button class="btn" data-close="settingsModal">Cancel</button><button class="btn primary" id="saveSettings">Save</button></div></div></div>
 <div class="modal" id="holdingModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="holdingModalTitle">Add holding</div><div class="sub">Enter the position you own</div></div><button class="icon-btn" data-close="holdingModal">×</button></div><div class="form"><div class="field"><label>Ticker</label><input id="holdSymbol" placeholder="VWRP.L" autocapitalize="characters" /></div><div class="field"><label>Name</label><input id="holdName" placeholder="Vanguard FTSE All-World" /></div><div class="field"><label>Shares</label><input id="holdShares" type="number" min="0" step="0.000001" placeholder="12" /></div><div class="field"><label>Average buy price (native currency)</label><input id="holdBuyPrice" type="number" min="0" step="0.000001" placeholder="95.50" /></div><div class="field"><label>Exchange</label><select id="holdExchange"><option value="LSE">London Stock Exchange (LSE)</option><option value="NASDAQ">NASDAQ</option><option value="NYSE">NYSE</option><option value="AMEX">AMEX</option></select></div><div class="field"><label>Market currency</label><select id="holdCurrency"><option value="GBP">GBP</option><option value="GBp">GBp (pence)</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="Other">Other</option></select></div><div class="field"><label>Exchange note</label><input id="holdNote" placeholder="Optional" /></div></div><div class="modal-actions"><button class="btn red" id="deleteHoldingBtn" style="display:none;margin-right:auto">Delete</button><button class="btn" data-close="holdingModal">Cancel</button><button class="btn primary" id="saveHolding">Save</button></div></div></div>
 <div class="modal" id="reminderModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="reminderModalTitle">Add reminder</div><div class="sub">Choose when it should appear in your briefing.</div></div><button class="icon-btn" data-close="reminderModal">×</button></div><div class="field"><label>Reminder</label><textarea id="reminderText" placeholder="e.g. Check ISA contribution"></textarea></div><div class="form"><div class="field"><label>Category</label><select id="reminderCategory"></select></div><div class="field"><label>First / due date</label><input id="reminderStartDate" type="date" /></div><div class="field"><label>Time (optional)</label><input id="reminderTime" type="time" /></div><div class="field"><label>Frequency</label><select id="reminderFrequency"><option value="none">One time</option><option value="daily">Daily</option><option value="every2days">Every 2 days</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div></div><div class="field" id="newCategoryField" style="display:none"><label>New category name</label><input id="newCategoryInput" placeholder="e.g. Shopping" /></div><div class="setting-note" style="margin-top:8px">A recurring reminder is shown in the briefing only when it is due on that briefing date. “Every 2 days” is the bi-daily option.</div><div class="modal-actions"><button class="btn" data-close="reminderModal">Cancel</button><button class="btn primary" id="saveReminder">Add reminder</button></div></div></div><div class="modal" id="calendarEventModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="calendarEventModalTitle">Add calendar event</div><div class="sub">Put an event on a specific day.</div></div><button class="icon-btn" data-close="calendarEventModal">×</button></div><div class="form"><div class="field full"><label>Event</label><input id="calendarEventTitle" placeholder="e.g. Dentist appointment" /></div><div class="field"><label>Date</label><input id="calendarEventDate" type="date" /></div><div class="field"><label>Time (optional)</label><input id="calendarEventTime" type="time" /></div><div class="field full"><label>Notes (optional)</label><textarea id="calendarEventNotes" placeholder="Anything you want included in the briefing"></textarea></div></div><div class="modal-actions"><button class="btn red" id="deleteCalendarEventBtn" style="display:none;margin-right:auto">Delete</button><button class="btn" data-close="calendarEventModal">Cancel</button><button class="btn primary" id="saveCalendarEvent">Save event</button></div></div></div><div class="modal" id="noteModal"><div class="modal-card note-editor-card"><div class="modal-head"><div><div class="title" id="noteModalTitle">New note</div><div class="sub">Write anything you want to keep.</div></div><button class="icon-btn" data-close="noteModal">×</button></div><div class="field"><input id="noteTitle" placeholder="Note title" /></div><div class="note-toolbar" id="noteToolbar">
 <button type="button" class="fmt-btn" data-cmd="bold" title="Bold"><b>B</b></button>
@@ -247,6 +268,8 @@ const DEFAULT_STATE = {
   reminderCategories:['General','Finance','Personal','Shopping','Work','Health'],
   events:[],
   notes:[],
+  notificationsEnabled:false,
+  notificationLeadMinutes:0,
   holdings:[
     {id:'vwrp',symbol:'VWRP',exchange:'LSE',name:'Vanguard FTSE All-World',shares:12,buyPrice:95.50,currency:'GBP',note:''},
     {id:'paf',symbol:'PAF',exchange:'LSE',name:'Pan African Resources',shares:950,buyPrice:0.1550,currency:'GBP',note:''},
@@ -298,11 +321,106 @@ async function fetchJson(url, options={}, timeout=10000){
 }
 
 function bind(id,event,fn){const el=qs('#'+id);if(el)el.addEventListener(event,fn)}
+// --- Mobile notifications -------------------------------------------------
+let notificationTimers = new Map();
+let notificationSWRegistration = null;
+
+function notificationSupported(){return 'Notification' in window;}
+function notificationStatusText(){
+  if(!notificationSupported()) return 'This browser does not support notifications.';
+  if(Notification.permission==='granted') return 'Notifications are enabled on this device.';
+  if(Notification.permission==='denied') return 'Notifications are blocked. Allow them in your browser/site settings.';
+  return 'Notifications are available — tap Enable.';
+}
+function updateNotificationUI(){
+  const status=qs('#notificationStatus'),btn=qs('#enableNotificationsBtn');
+  if(status)status.textContent=notificationStatusText();
+  if(btn){btn.textContent=Notification.permission==='granted'?'Enabled':'Enable';btn.disabled=Notification.permission==='denied';}
+}
+async function registerNotificationSW(){
+  if(!('serviceWorker' in navigator)) return null;
+  try{
+    notificationSWRegistration=await navigator.serviceWorker.register('./sw.js',{scope:'./'});
+    return notificationSWRegistration;
+  }catch(e){console.warn('Notification service worker registration failed',e);return null}
+}
+async function enableNotifications(){
+  if(!notificationSupported()){toast('This browser does not support notifications');return}
+  try{
+    const permission=await Notification.requestPermission();
+    if(permission==='granted'){
+      state.notificationsEnabled=true;saveState();
+      await registerNotificationSW();
+      scheduleAllNotifications();
+      toast('Notifications enabled');
+    }else if(permission==='denied') toast('Notifications are blocked in browser settings');
+    else toast('Notification permission was not granted');
+  }catch(e){toast('Could not enable notifications')}
+  updateNotificationUI();
+}
+function clearNotificationTimers(){for(const t of notificationTimers.values())clearTimeout(t);notificationTimers.clear()}
+function reminderDueOnDate(r,d){
+  const start=dateFromKey(r.startDate||dayKey());
+  const target=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  if(target<new Date(start.getFullYear(),start.getMonth(),start.getDate()))return false;
+  const diff=Math.round((target-new Date(start.getFullYear(),start.getMonth(),start.getDate()))/86400000);
+  switch(r.frequency){case 'daily':return true;case 'every2days':return diff%2===0;case 'weekly':return diff%7===0;case 'monthly':return target.getDate()===start.getDate();case 'yearly':return target.getDate()===start.getDate()&&target.getMonth()===start.getMonth();default:return diff===0}
+}
+function scheduleNotificationAt(id,title,body,when,url){
+  if(!state.notificationsEnabled||Notification.permission!=='granted')return;
+  const delay=when-Date.now();
+  if(delay<=0||delay>2147483647)return;
+  const timer=setTimeout(async()=>{
+    notificationTimers.delete(id);
+    try{
+      const reg=notificationSWRegistration||await registerNotificationSW();
+      if(reg) await reg.showNotification(title,{body,tag:id,renotify:true,data:{url:url||location.href},icon:'./icon-192.png',badge:'./icon-192.png'});
+      else new Notification(title,{body,tag:id});
+    }catch(e){try{new Notification(title,{body,tag:id})}catch{}}
+  },delay);
+  notificationTimers.set(id,timer);
+}
+function scheduleAllNotifications(){
+  clearNotificationTimers();
+  if(!state.notificationsEnabled||Notification.permission!=='granted')return;
+  const now=new Date();
+  // Schedule the next 7 days so recurring reminders and calendar events work without opening the UI again.
+  for(let offset=0;offset<7;offset++){
+    const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+offset);
+    const key=dayKey(d);
+    state.reminders.forEach(r=>{
+      if(!r.time||!reminderDueOnDate(r,d))return;
+      const [hh,mm]=r.time.split(':').map(Number);
+      const when=new Date(d.getFullYear(),d.getMonth(),d.getDate(),hh,mm,0,0);
+      if(when<=now)return;
+      scheduleNotificationAt(`rem-${r.id}-${key}`, '🔔 Command Centre', r.text, when, location.href+'#reminder-'+r.id);
+    });
+    state.events.forEach(e=>{
+      if(e.date!==key||!e.time)return;
+      const [hh,mm]=e.time.split(':').map(Number);
+      const when=new Date(d.getFullYear(),d.getMonth(),d.getDate(),hh,mm,0,0);
+      if(when<=now)return;
+      scheduleNotificationAt(`event-${e.id}-${key}`, '🗓️ Command Centre', e.title, when, location.href+'#event-'+e.id);
+    });
+  }
+}
+async function testNotification(){
+  if(!notificationSupported()){toast('Notifications are not supported');return}
+  if(Notification.permission!=='granted'){await enableNotifications();if(Notification.permission!=='granted')return}
+  try{const reg=notificationSWRegistration||await registerNotificationSW();if(reg)await reg.showNotification('Command Centre test',{body:'Mobile notifications are working.',tag:'command-centre-test',icon:'./icon-192.png',badge:'./icon-192.png'});else new Notification('Command Centre test',{body:'Mobile notifications are working.'});toast('Test notification sent')}catch(e){toast('Could not send test notification')}
+}
+
 function init(){
   try{
-    qsa('.tab').forEach(btn=>btn.addEventListener('click',()=>switchPage(btn.dataset.page)));
+    qsa('.sidebar-item').forEach(btn=>btn.addEventListener('click',()=>{switchPage(btn.dataset.page);closeSidebar()}));
     qsa('[data-page-jump]').forEach(b=>b.addEventListener('click',()=>switchPage(b.dataset.pageJump)));
+    bind('sidebarToggle','click',toggleSidebar);
+    bind('sidebarOverlay','click',closeSidebar);
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSidebar()});
     bind('settingsBtn','click',openSettings);
+     bind('enableNotificationsBtn','click',enableNotifications);
+     bind('testNotificationBtn','click',testNotification);
+     bind('rescheduleNotificationsBtn','click',()=>{scheduleAllNotifications();toast('Notifications rescheduled')});
     qsa('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
     ['settingsModal','holdingModal','reminderModal','calendarEventModal','noteModal'].forEach(id=>{const el=qs('#'+id);if(el)el.addEventListener('click',e=>{if(e.target.id===id)closeModal(id)})});
     bind('saveSettings','click',saveSettings);
@@ -320,11 +438,12 @@ function init(){
      bind('saveReminder','click',saveReminder);
      bind('addCalendarEventBtn','click',()=>openCalendarEvent());
      bind('addCalendarEventBtn2','click',()=>openCalendarEvent(qs('#selectedCalendarDate')?.dataset.date||dayKey()));
-     bind('calendarPrev','click',()=>changeCalendarMonth(-1));
-     bind('calendarNext','click',()=>changeCalendarMonth(1));
+     bind('calendarPrev','click',()=>{if(calendarView==='year'){calendarYearCursor--;renderCalendarYear()}else{changeCalendarMonth(-1)}});
+     bind('calendarNext','click',()=>{if(calendarView==='year'){calendarYearCursor++;renderCalendarYear()}else{changeCalendarMonth(1)}});
      bind('calendarMonthPrev','click',()=>changeCalendarMonth(-1));
      bind('calendarMonthNext','click',()=>changeCalendarMonth(1));
-     bind('calendarToday','click',()=>{calendarCursor=new Date();selectedCalendarDate=dayKey();renderCalendar()});
+     bind('calendarToday','click',()=>{if(calendarView==='year'){calendarYearCursor=new Date().getFullYear();renderCalendarYear()}else{calendarCursor=new Date();selectedCalendarDate=dayKey();renderCalendarMonth()}});
+     bind('calendarBackBtn','click',()=>{calendarView='year';calendarYearCursor=calendarCursor.getFullYear();renderCalendar()});
      bind('saveCalendarEvent','click',saveCalendarEvent);
      bind('deleteCalendarEventBtn','click',deleteEditingCalendarEvent);
      bind('addNoteBtn','click',()=>openNote());
@@ -344,14 +463,16 @@ function init(){
     const embedInput=qs('#spotifyEmbedInput');if(embedInput)embedInput.addEventListener('keydown',e=>{if(e.key==='Enter')loadSpotifyEmbed()});
     handleSpotifyRedirect();
     updateSpotifyConnectedUI();
-    applySettingsUI();calendarCursor=new Date();selectedCalendarDate=dayKey();updateClock();setInterval(updateClock,1000);generateBriefing();
+    applySettingsUI();calendarCursor=new Date();selectedCalendarDate=dayKey();updateClock();setInterval(updateClock,1000);registerNotificationSW();updateNotificationUI();if(state.notificationsEnabled&&Notification.permission==='granted')scheduleAllNotifications();generateBriefing();
     renderBible();renderReminders();renderCalendar();renderNotes();renderMangaGrid(mangaPool.slice(0,9));renderDailyManga();loadWords();
     setInterval(()=>{const fw=qs('#featuredWord');if(fw)fw.textContent=yourWords[Math.floor(Math.random()*yourWords.length)]},30000);
     loadManga();loadPortfolio();loadWeather();loadReddit();
   }catch(err){console.error('Command Center init error',err);toast('App started with limited features — reload if needed');}
 }
 function updateClock(){const d=new Date();qs('#clock').textContent=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' • '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
-function switchPage(page){qsa('.page').forEach(p=>p.classList.remove('active'));qsa('.tab').forEach(t=>t.classList.toggle('active',t.dataset.page===page));qs('#'+page+'Page').classList.add('active');if(page==='portfolio')loadPortfolio();if(page==='manga')loadManga();if(page==='reddit')loadReddit();if(page==='weather')loadWeather();if(page==='calendar')renderCalendar();if(page==='notes')renderNotes();if(page==='briefing')renderReminders();if(page==='music')refreshMusicPage()}
+function switchPage(page){qsa('.page').forEach(p=>p.classList.remove('active'));qsa('.sidebar-item').forEach(t=>t.classList.toggle('active',t.dataset.page===page));qs('#'+page+'Page').classList.add('active');if(page==='portfolio')loadPortfolio();if(page==='manga')loadManga();if(page==='reddit')loadReddit();if(page==='weather')loadWeather();if(page==='calendar'){calendarView='year';calendarYearCursor=new Date().getFullYear();renderCalendar()}if(page==='notes')renderNotes();if(page==='briefing')renderReminders();if(page==='music')refreshMusicPage()}
+function toggleSidebar(){const sb=qs('#sidebar'),ov=qs('#sidebarOverlay');const open=sb.classList.toggle('open');ov.classList.toggle('open',open)}
+function closeSidebar(){qs('#sidebar')?.classList.remove('open');qs('#sidebarOverlay')?.classList.remove('open')}
 function openSettings(){applySettingsUI();openModal('settingsModal')}
 function updateProviderFieldsUI(){
   const provider=qs('#settingsMarketProvider').value;
@@ -579,16 +700,44 @@ async function loadReddit(){
 }
 
 function weatherInfo(code){if(code===0)return['☀️','Clear'];if([1,2].includes(code))return['🌤️','Partly cloudy'];if(code===3)return['☁️','Overcast'];if([45,48].includes(code))return['🌫️','Fog'];if([51,53,55,56,57].includes(code))return['🌦️','Drizzle'];if([61,63,65,66,67,80,81,82].includes(code))return['🌧️','Rain'];if([71,73,75,77,85,86].includes(code))return['❄️','Snow'];if([95,96,99].includes(code))return['⛈️','Thunderstorm'];return['🌤️','Unknown']}
+let weatherCache=null,weatherSelectedDay=0;
 async function loadWeather(){
   qs('#weatherPlace').textContent=state.city;qs('#weatherFullPlace').textContent=state.city;
   qs('#weatherSnapshot').innerHTML='<div class="skeleton"></div>';qs('#weatherFull').innerHTML='<div class="empty">Loading…</div>';
+  weatherCache=null;weatherSelectedDay=0;
   try{
     const geo=await fetchJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(state.city)}&count=1&language=en&format=json`);if(!geo.results?.length)throw new Error('City not found');const loc=geo.results[0];
-    const data=await fetchJson(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto&forecast_days=1`);
-    const c=data.current,wi=weatherInfo(c.weather_code);const hours=data.hourly.time.map((t,i)=>({t,temp:data.hourly.temperature_2m[i],p:data.hourly.precipitation_probability[i],code:data.hourly.weather_code[i]})).filter(x=>new Date(x.t)>=new Date()).slice(0,8);
+    const data=await fetchJson(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation&hourly=temperature_2m,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7`);
+    weatherCache={loc,data};
+    const c=data.current,wi=weatherInfo(c.weather_code);
     qs('#weatherSnapshot').innerHTML=`<div class="metric" style="font-size:22px">${Math.round(c.temperature_2m)}°C</div><div class="sub" style="margin-top:4px">${wi[0]} ${wi[1]} • feels ${Math.round(c.apparent_temperature)}°C</div>`;
-    qs('#weatherFull').innerHTML=`<div class="weather-hero"><div style="font-size:13px">📍 ${esc(loc.name)}, ${esc(loc.country||'')}</div><div class="weather-temp">${Math.round(c.temperature_2m)}°</div><div>${wi[0]} ${wi[1]}</div></div><div class="mini-grid" style="margin-top:10px"><div class="mini"><strong>${Math.round(c.apparent_temperature)}°C</strong><span>Feels like</span></div><div class="mini"><strong>${Math.round(c.relative_humidity_2m)}%</strong><span>Humidity</span></div><div class="mini"><strong>${Math.round(c.wind_speed_10m)} km/h</strong><span>Wind</span></div><div class="mini"><strong>${c.precipitation||0} mm</strong><span>Precipitation</span></div></div><div class="section-note" style="margin-top:12px">Next hours</div><div class="hourly">${hours.map(h=>{const w=weatherInfo(h.code);return `<div class="hour"><div>${new Date(h.t).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div><b>${w[0]}</b><strong>${Math.round(h.temp)}°</strong><div class="muted">💧 ${h.p??0}%</div></div>`}).join('')}</div>`;
+    renderWeatherFull();
   }catch(e){qs('#weatherSnapshot').innerHTML='<div class="danger">Weather could not be loaded. Check the city name or your connection.</div>';qs('#weatherFull').innerHTML='<div class="danger">Weather could not be loaded.</div>'}
+}
+function selectWeatherDay(i){weatherSelectedDay=i;renderWeatherFull()}
+function renderWeatherFull(){
+  if(!weatherCache)return;
+  const {loc,data}=weatherCache;
+  const days=data.daily.time.map((t,i)=>({date:t,code:data.daily.weather_code[i],max:data.daily.temperature_2m_max[i],min:data.daily.temperature_2m_min[i],pop:data.daily.precipitation_probability_max?.[i]}));
+  const dayChips=days.map((d,i)=>{
+    const w=weatherInfo(d.code);
+    const dt=new Date(d.date+'T00:00:00');
+    const label=i===0?'Today':dt.toLocaleDateString('en-GB',{weekday:'short'});
+    return `<button class="day-chip${i===weatherSelectedDay?' active':''}" onclick="selectWeatherDay(${i})"><div class="day-chip-label">${label}</div><div class="day-chip-icon">${w[0]}</div><div class="day-chip-temps"><strong>${Math.round(d.max)}°</strong><span>${Math.round(d.min)}°</span></div></button>`;
+  }).join('');
+  const sel=days[weatherSelectedDay];
+  let hours=data.hourly.time.map((t,i)=>({t,temp:data.hourly.temperature_2m[i],p:data.hourly.precipitation_probability[i],code:data.hourly.weather_code[i]})).filter(h=>h.t.startsWith(sel.date));
+  if(weatherSelectedDay===0){hours=hours.filter(h=>new Date(h.t)>=new Date())}
+  const heroWi=weatherInfo(sel.code);
+  let heroHtml;
+  if(weatherSelectedDay===0){
+    const c=data.current,cwi=weatherInfo(c.weather_code);
+    heroHtml=`<div class="weather-hero"><div style="font-size:13px">📍 ${esc(loc.name)}, ${esc(loc.country||'')}</div><div class="weather-temp">${Math.round(c.temperature_2m)}°</div><div>${cwi[0]} ${cwi[1]}</div></div><div class="mini-grid" style="margin-top:10px"><div class="mini"><strong>${Math.round(c.apparent_temperature)}°C</strong><span>Feels like</span></div><div class="mini"><strong>${Math.round(c.relative_humidity_2m)}%</strong><span>Humidity</span></div><div class="mini"><strong>${Math.round(c.wind_speed_10m)} km/h</strong><span>Wind</span></div><div class="mini"><strong>${c.precipitation||0} mm</strong><span>Precipitation</span></div></div>`;
+  }else{
+    const dt=new Date(sel.date+'T00:00:00');
+    heroHtml=`<div class="weather-hero"><div style="font-size:13px">📍 ${esc(loc.name)}, ${esc(loc.country||'')} • ${dt.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div><div class="weather-temp">${Math.round(sel.max)}°</div><div>${heroWi[0]} ${heroWi[1]} • Low ${Math.round(sel.min)}°</div></div><div class="mini-grid" style="margin-top:10px"><div class="mini"><strong>${Math.round(sel.max)}°C</strong><span>High</span></div><div class="mini"><strong>${Math.round(sel.min)}°C</strong><span>Low</span></div><div class="mini"><strong>${sel.pop??0}%</strong><span>Rain chance</span></div><div class="mini"><strong>${heroWi[1]}</strong><span>Conditions</span></div></div>`;
+  }
+  qs('#weatherFull').innerHTML=`<div class="weather-days">${dayChips}</div>${heroHtml}<div class="section-note" style="margin-top:12px">${weatherSelectedDay===0?'Next hours':'Hourly forecast'}</div><div class="hourly">${hours.map(h=>{const w=weatherInfo(h.code);return `<div class="hour"><div>${new Date(h.t).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div><b>${w[0]}</b><strong>${Math.round(h.temp)}°</strong><div class="muted">💧 ${h.p??0}%</div></div>`}).join('')||'<div class="empty">No hourly data</div>'}</div>`;
 }
 
 let reminderFilter='All';
@@ -596,6 +745,8 @@ let editingReminderId=null;
 let editingCalendarEventId=null;
 let calendarCursor=new Date();
 let selectedCalendarDate=dayKey();
+let calendarView='year';
+let calendarYearCursor=new Date().getFullYear();
 
 const FREQUENCY_LABELS={none:'One time',daily:'Daily',every2days:'Every 2 days',weekly:'Weekly',monthly:'Monthly',yearly:'Yearly'};
 const formatFrequency=f=>(FREQUENCY_LABELS[f]||'One time');
@@ -638,9 +789,9 @@ function saveReminder(){
   const old=editingReminderId?state.reminders.find(r=>r.id===editingReminderId):null;
   const item={id:editingReminderId||makeId('rem'),text,category,startDate:qs('#reminderStartDate').value||dayKey(),time:qs('#reminderTime').value||'',frequency:qs('#reminderFrequency').value||'none',createdAt:old?.createdAt||nowIso()};
   state.reminders=editingReminderId?state.reminders.map(r=>r.id===editingReminderId?item:r):[item,...state.reminders];
-  saveState();closeModal('reminderModal');renderReminders();renderCalendar();toast(editingReminderId?'Reminder updated':'Reminder added');editingReminderId=null;
+  saveState();closeModal('reminderModal');renderReminders();renderCalendar();scheduleAllNotifications();toast(editingReminderId?'Reminder updated':'Reminder added');editingReminderId=null;
 }
-window.removeReminder=id=>{state.reminders=state.reminders.filter(r=>r.id!==id);saveState();renderReminders();renderCalendar();toast('Reminder deleted')};
+window.removeReminder=id=>{state.reminders=state.reminders.filter(r=>r.id!==id);saveState();renderReminders();renderCalendar();scheduleAllNotifications();toast('Reminder deleted')};
 
 function openCalendarEvent(date=selectedCalendarDate,id=null){
   editingCalendarEventId=id;const e=id?state.events.find(x=>x.id===id):null;
@@ -650,19 +801,61 @@ window.editCalendarEvent=id=>openCalendarEvent(null,id);
 function saveCalendarEvent(){
   const title=qs('#calendarEventTitle').value.trim(),date=qs('#calendarEventDate').value;if(!title||!date){toast('Enter an event name and date');return}
   const item={id:editingCalendarEventId||makeId('event'),title,date,time:qs('#calendarEventTime').value||'',notes:qs('#calendarEventNotes').value.trim()};
-  state.events=editingCalendarEventId?state.events.map(e=>e.id===editingCalendarEventId?item:e):[item,...state.events];selectedCalendarDate=date;calendarCursor=dateFromKey(date);
-  saveState();closeModal('calendarEventModal');renderCalendar();toast(editingCalendarEventId?'Event updated':'Event added');editingCalendarEventId=null;
+  state.events=editingCalendarEventId?state.events.map(e=>e.id===editingCalendarEventId?item:e):[item,...state.events];selectedCalendarDate=date;calendarCursor=dateFromKey(date);calendarView='month';
+  saveState();closeModal('calendarEventModal');renderCalendar();scheduleAllNotifications();toast(editingCalendarEventId?'Event updated':'Event added');editingCalendarEventId=null;
 }
 function deleteEditingCalendarEvent(){
-  if(!editingCalendarEventId)return;if(confirm('Delete this calendar event?')){state.events=state.events.filter(e=>e.id!==editingCalendarEventId);saveState();closeModal('calendarEventModal');renderCalendar();toast('Event deleted');editingCalendarEventId=null}
+  if(!editingCalendarEventId)return;if(confirm('Delete this calendar event?')){state.events=state.events.filter(e=>e.id!==editingCalendarEventId);saveState();closeModal('calendarEventModal');renderCalendar();scheduleAllNotifications();toast('Event deleted');editingCalendarEventId=null}
 }
-function changeCalendarMonth(delta){calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth()+delta,1);renderCalendar()}
+function changeCalendarMonth(delta){calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth()+delta,1);renderCalendarMonth()}
 function calendarItemsForDate(key){return[...state.events.filter(e=>e.date===key).map(e=>({...e,itemType:'event'})),...state.reminders.filter(r=>reminderOccursOn(r,key)).map(r=>({...r,itemType:'reminder'}))]}
 function renderCalendar(){
+  const yearView=qs('#calendarYearView'),monthView=qs('#calendarMonthView'),dayCard=qs('#calendarSelectedDayCard'),backBtn=qs('#calendarBackBtn'),todayBtn=qs('#calendarToday');
+  if(!yearView||!monthView)return;
+  if(calendarView==='year'){
+    yearView.style.display='';monthView.style.display='none';if(dayCard)dayCard.style.display='none';
+    if(backBtn)backBtn.style.display='none';if(todayBtn)todayBtn.textContent='This year';
+    renderCalendarYear();
+  }else{
+    yearView.style.display='none';monthView.style.display='';if(dayCard)dayCard.style.display='';
+    if(backBtn)backBtn.style.display='inline-flex';if(todayBtn)todayBtn.textContent='Today';
+    renderCalendarMonth();
+  }
+}
+function renderMiniMonthCells(y,m){
+  const first=new Date(y,m,1),mondayIndex=(first.getDay()+6)%7,todayKey=dayKey();let cells='';
+  for(let i=0;i<42;i++){
+    const date=new Date(y,m,i-mondayIndex+1),key=dayKey(date),inMonth=date.getMonth()===m;
+    if(!inMonth){cells+='<div class="mini-day empty">·</div>';continue}
+    const hasItems=calendarItemsForDate(key).length>0;
+    cells+=`<div class="mini-day${key===todayKey?' today':''}">${date.getDate()}${hasItems?'<span class="mini-dot"></span>':''}</div>`;
+  }
+  return cells;
+}
+function renderCalendarYear(){
+  const label=qs('#calendarYearLabel'),grid=qs('#calendarYearGrid');if(!label||!grid)return;
+  label.textContent=calendarYearCursor;
+  let html='';
+  for(let m=0;m<12;m++){
+    const monthName=new Date(calendarYearCursor,m,1).toLocaleDateString('en-GB',{month:'long'});
+    const monthPrefix=String(calendarYearCursor)+'-'+String(m+1).padStart(2,'0');
+    const count=state.events.filter(e=>e.date.startsWith(monthPrefix)).length+state.reminders.filter(r=>{for(let d=1;d<=31;d++){const dt=new Date(calendarYearCursor,m,d);if(dt.getMonth()!==m)continue;if(reminderOccursOn(r,dayKey(dt)))return true}return false}).length;
+    html+=`<button class="mini-month" data-month="${m}"><div class="mini-month-title">${monthName}${count?`<span class="mini-month-count">${count} item${count===1?'':'s'}</span>`:''}</div><div class="mini-month-grid">${renderMiniMonthCells(calendarYearCursor,m)}</div></button>`;
+  }
+  grid.innerHTML=html;
+  qsa('#calendarYearGrid .mini-month').forEach(btn=>btn.addEventListener('click',()=>{
+    const m=Number(btn.dataset.month);
+    calendarCursor=new Date(calendarYearCursor,m,1);
+    selectedCalendarDate=dayKey(calendarCursor);
+    calendarView='month';
+    renderCalendar();
+  }));
+}
+function renderCalendarMonth(){
   const label=qs('#calendarMonthLabel'),grid=qs('#calendarGrid');if(!label||!grid)return;label.textContent=calendarCursor.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
   const y=calendarCursor.getFullYear(),m=calendarCursor.getMonth(),first=new Date(y,m,1),mondayIndex=(first.getDay()+6)%7;let cells='';
   for(let i=0;i<42;i++){const date=new Date(y,m,i-mondayIndex+1),key=dayKey(date),inMonth=date.getMonth()===m,items=calendarItemsForDate(key);cells+=`<div class="calendar-cell${inMonth?'':' muted-day'}${key===dayKey()?' today':''}${key===selectedCalendarDate?' selected':''}" data-calendar-date="${key}"><div class="calendar-day-number">${date.getDate()}</div>${items.slice(0,3).map(x=>`<div class="calendar-item ${x.itemType}">${x.itemType==='event'?'📅':'🔔'} ${esc(x.title||x.text)}</div>`).join('')}${items.length>3?`<div class="calendar-more">+${items.length-3} more</div>`:''}</div>`}
-  grid.innerHTML=cells;qsa('#calendarGrid [data-calendar-date]').forEach(c=>c.addEventListener('click',()=>{selectedCalendarDate=c.dataset.calendarDate;renderCalendar()}));renderSelectedCalendarDay();
+  grid.innerHTML=cells;qsa('#calendarGrid [data-calendar-date]').forEach(c=>c.addEventListener('click',()=>{selectedCalendarDate=c.dataset.calendarDate;renderCalendarMonth()}));renderSelectedCalendarDay();
 }
 function renderSelectedCalendarDay(){
   const label=qs('#selectedCalendarDate'),el=qs('#selectedDayItems');if(!label||!el)return;label.dataset.date=selectedCalendarDate;label.textContent=dateFromKey(selectedCalendarDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
