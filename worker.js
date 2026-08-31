@@ -63,6 +63,28 @@ async function fetchNewsData(endpoint,env,params={}){
   if(data.status==='error')throw new Error(data.results?.message||data.message||'NewsData error');
   return Array.isArray(data.results)?data.results:[];
 }
+
+async function fetchAlphaVantageFinancialNews(env){
+  if(!env.ALPHA_VANTAGE_API_KEY) throw new Error('ALPHA_VANTAGE_API_KEY is not configured');
+  const u=new URL('https://www.alphavantage.co/query');
+  u.searchParams.set('function','NEWS_SENTIMENT');
+  u.searchParams.set('topics','financial_markets,economy_macro,economy_monetary,earnings,finance');
+  u.searchParams.set('sort','LATEST');
+  u.searchParams.set('limit','25');
+  u.searchParams.set('apikey',env.ALPHA_VANTAGE_API_KEY);
+  const r=await fetch(u.toString(),{headers:{accept:'application/json'}});
+  if(!r.ok)throw new Error(`Alpha Vantage HTTP ${r.status}`);
+  const data=await r.json();
+  if(data.Note||data.Information)throw new Error(data.Note||data.Information);
+  return (Array.isArray(data.feed)?data.feed:[]).map(a=>({
+    id:String(a.url||`${a.title||''}-${a.time_published||''}`),
+    kind:'financial',title:String(a.title||'').trim(),description:String(a.summary||'').trim().slice(0,500),
+    link:String(a.url||''),source:String(a.source||'Alpha Vantage'),pubDate:a.time_published||'',
+    category:(a.topics||[]).map(x=>x.topic).filter(Boolean),
+    overallSentimentLabel:a.overall_sentiment_label||'',overallSentimentScore:Number(a.overall_sentiment_score)
+  })).filter(a=>a.title&&a.link);
+}
+
 async function newsCategory(env,kind,force=false){
   await ensureNewsTables(env);
   const cached=await env.DB.prepare('SELECT payload,updated_at FROM news_cache WHERE kind=?').bind(kind).first();
@@ -78,12 +100,14 @@ async function newsCategory(env,kind,force=false){
     .bind(kind,JSON.stringify(cleaned),Date.now()).run();
   return cleaned;
 }
-async function getNewsBundle(env,force=false){
-  const [world,financial]=await Promise.all([
-    newsCategory(env,'world',force),
-    newsCategory(env,'financial',force)
-  ]);
-  return {world,financial,updatedAt:new Date().toISOString()};
+async function getNewsBundle(env,force=false,financialProvider='hybrid'){
+  const worldPromise=newsCategory(env,'world',force);
+  let financialPromise;
+  if(financialProvider==='alphavantage') financialPromise=fetchAlphaVantageFinancialNews(env);
+  else if(financialProvider==='newsdata') financialPromise=newsCategory(env,'financial',force);
+  else financialPromise=(async()=>{try{const a=await fetchAlphaVantageFinancialNews(env);if(a.length)return a.slice(0,10)}catch(e){console.warn('Alpha Vantage failed; falling back to NewsData',e)}return newsCategory(env,'financial',force)})();
+  const [world,financial]=await Promise.all([worldPromise,financialPromise]);
+  return {world,financial,updatedAt:new Date().toISOString(),financialProvider};
 }
 function isMajorHeadline(a){
   const s=`${a.title||''} ${a.description||''}`.toLowerCase();
@@ -163,7 +187,8 @@ export default {
       if(url.pathname==='/api/news'&&request.method==='GET'){
         if(!env.NEWSDATA_API_KEY) return json({error:'News service is not configured. Add NEWSDATA_API_KEY as a Worker secret.'},503);
         const force=url.searchParams.get('refresh')==='1';
-        return json(await getNewsBundle(env,force));
+        const financialProvider=url.searchParams.get('financialProvider')||'hybrid';
+        return json(await getNewsBundle(env,force,financialProvider));
       }
       if(url.pathname==='/api/news/preferences'&&request.method==='POST'){
         const {deviceId,worldEnabled=true,financialEnabled=true,pushMode='major'}=await request.json();
