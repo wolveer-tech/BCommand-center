@@ -67,7 +67,7 @@
 
 
 .bible-book.search-hidden{display:none}.bible-book.search-match{outline:1px solid rgba(96,165,250,.45)}.chapter-check.search-hit label{border-color:rgba(96,165,250,.75);box-shadow:0 0 0 1px rgba(96,165,250,.18)}
-.settings-tabs{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;scrollbar-width:none}.settings-tabs::-webkit-scrollbar{display:none}.settings-tabs .btn{white-space:nowrap}.settings-section{display:none}.settings-section.active{display:grid;gap:10px}.settings-mobile-picker{display:none;margin-bottom:10px}@media(max-width:700px){.settings-tabs{display:none}.settings-mobile-picker{display:block}}
+.settings-tabs{display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;padding:2px 2px 10px;margin-bottom:12px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:thin}.settings-tabs::-webkit-scrollbar{height:7px}.settings-tabs::-webkit-scrollbar-thumb{background:#ffffff26;border-radius:999px}.settings-tabs::-webkit-scrollbar-track{background:#ffffff08;border-radius:999px}.settings-tabs .btn{white-space:nowrap;flex:0 0 auto;scroll-snap-align:start}.settings-section{display:none}.settings-section.active{display:grid;gap:10px}.settings-mobile-picker{display:none!important}@media(max-width:700px){.settings-tabs{display:flex;width:100%;padding-bottom:9px;margin-bottom:10px}.settings-tabs .btn{min-height:40px}}
 
 .footer-note{margin-top:13px;text-align:center;font-size:9px;color:#65748a}.skeleton{height:65px;border-radius:12px;background:linear-gradient(90deg,#121c2b,#1b273b,#121c2b);background-size:200% 100%;animation:skeleton 1.3s infinite}.mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.mini{padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2)}.mini strong{display:block;font-size:12px}.mini span{font-size:9px;color:var(--muted)}.warning{padding:10px 11px;border-radius:11px;background:rgba(242,201,76,.08);border:1px solid rgba(242,201,76,.2);color:#e8d68a;font-size:10px;line-height:1.5}.danger{padding:10px 11px;border-radius:11px;background:rgba(255,104,118,.08);border:1px solid rgba(255,104,118,.22);color:#ffadb6;font-size:10px;line-height:1.5}@keyframes fade{from{opacity:.3;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes pulse{50%{opacity:.4}}
 
@@ -264,7 +264,7 @@
 
 <div class="modal" id="settingsModal"><div class="modal-card"><div class="modal-head"><div><div class="title">Settings</div><div class="sub">Choose a section — easier on mobile and desktop</div></div><button class="icon-btn" data-close="settingsModal">×</button></div>
 <div class="stack">
-  <div class="settings-mobile-picker"><label>Settings section</label><select id="settingsSectionSelect"><option value="general">General</option><option value="notifications">Notifications</option><option value="portfolio">Portfolio & Markets</option><option value="news">News</option><option value="integrations">Integrations</option></select></div>
+  
   <div class="settings-tabs">
     <button class="btn settings-tab active" data-settings-section="general">⚙️ General</button>
     <button class="btn settings-tab" data-settings-section="notifications">🔔 Notifications</button>
@@ -589,7 +589,6 @@ function init(){
      bind('notesSearch','input',renderNotes);
      bind('refreshNewsBtn','click',()=>loadNews(true));
      bind('bibleSearch','input',applyBibleSearch);
-     bind('settingsSectionSelect','change',e=>showSettingsSection(e.target.value));
      qsa('.settings-tab').forEach(b=>b.addEventListener('click',()=>showSettingsSection(b.dataset.settingsSection)));
      bind('bibleExpandAll','click',()=>qsa('.bible-book').forEach(x=>x.classList.add('open')));
      bind('bibleCollapseAll','click',()=>qsa('.bible-book').forEach(x=>x.classList.remove('open')));
