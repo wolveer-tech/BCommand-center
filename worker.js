@@ -156,6 +156,87 @@ async function sendNewsPushes(env){
   await env.DB.prepare('DELETE FROM news_sent WHERE sent_at<?').bind(Date.now()-14*86400000).run();
 }
 
+
+async function ensureBriefingTable(env){
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS morning_briefing_preferences (
+    device_id TEXT PRIMARY KEY,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    local_time TEXT NOT NULL DEFAULT '07:30',
+    timezone TEXT NOT NULL DEFAULT 'Europe/London',
+    city TEXT NOT NULL DEFAULT 'London',
+    bible_text TEXT NOT NULL DEFAULT '',
+    last_sent_date TEXT,
+    updated_at INTEGER NOT NULL
+  )`).run();
+}
+function localPartsNow(timezone,date=new Date()){
+  const parts=new Intl.DateTimeFormat('en-GB',{
+    timeZone:timezone,hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'
+  }).formatToParts(date);
+  const get=t=>parts.find(p=>p.type===t)?.value||'';
+  return {date:`${get('year')}-${get('month')}-${get('day')}`,time:`${get('hour')}:${get('minute')}`};
+}
+async function fetchBriefingWeather(city){
+  try{
+    const g=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city||'London')}&count=1&language=en&format=json`);
+    if(!g.ok)return null;
+    const gd=await g.json(),loc=gd.results?.[0];
+    if(!loc)return null;
+    const w=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,weather_code&timezone=auto`);
+    if(!w.ok)return null;
+    const wd=await w.json();
+    const temp=Math.round(Number(wd.current?.temperature_2m));
+    return Number.isFinite(temp)?`${temp}°C`:null;
+  }catch{return null}
+}
+async function cachedHeadlineCount(env){
+  try{
+    await ensureNewsTables(env);
+    const rows=await env.DB.prepare('SELECT payload FROM news_cache').all();
+    let n=0;
+    for(const r of rows.results||[]){
+      try{n+=JSON.parse(r.payload||'[]').length}catch{}
+    }
+    return Math.min(n,20);
+  }catch{return 0}
+}
+async function buildMorningBriefingBody(env,pref,localDate){
+  const [weather,scheduleRow,headlineCount]=await Promise.all([
+    fetchBriefingWeather(pref.city),
+    env.DB.prepare(`SELECT COUNT(*) count FROM notifications WHERE device_id=? AND local_date=? AND kind IN ('reminder','event')`).bind(pref.device_id,localDate).first(),
+    cachedHeadlineCount(env)
+  ]);
+  const pieces=[];
+  if(weather)pieces.push(weather);
+  const count=Number(scheduleRow?.count||0);
+  pieces.push(`${count} scheduled`);
+  if(pref.bible_text)pieces.push(pref.bible_text);
+  if(headlineCount)pieces.push(`${headlineCount} headlines`);
+  return pieces.join(' • ');
+}
+async function sendMorningBriefings(env){
+  await ensureBriefingTable(env);
+  const rows=await env.DB.prepare(`SELECT p.*,d.endpoint,d.p256dh,d.auth
+    FROM morning_briefing_preferences p
+    JOIN devices d ON d.device_id=p.device_id
+    WHERE p.enabled=1`).all();
+  for(const pref of rows.results||[]){
+    const local=localPartsNow(pref.timezone||'Europe/London');
+    if(local.time!==pref.local_time || pref.last_sent_date===local.date)continue;
+    try{
+      const body=await buildMorningBriefingBody(env,pref,local.date);
+      await sendOne({
+        endpoint:pref.endpoint,p256dh:pref.p256dh,auth:pref.auth,
+        title:'☀️ Morning Briefing',
+        body:body||'Your Command Centre briefing is ready.',
+        url:'/#briefing',
+        id:`morning-briefing-${pref.device_id}-${local.date}`
+      },env);
+      await env.DB.prepare('UPDATE morning_briefing_preferences SET last_sent_date=? WHERE device_id=?').bind(local.date,pref.device_id).run();
+    }catch(e){console.error('morning briefing push failed',pref.device_id,e)}
+  }
+}
+
 async function sendOne(row,env){
   const sub={endpoint:row.endpoint,keys:{p256dh:row.p256dh,auth:row.auth}};
   await sendPushNotification(sub,{title:row.title,body:row.body,icon:'/icon-192.png',badge:'/icon-192.png',tag:row.id,data:{url:row.url}},{publicKey:env.VAPID_PUBLIC_KEY,privateKey:env.VAPID_PRIVATE_KEY,subject:env.VAPID_SUBJECT||'mailto:command-centre@example.com'});
@@ -202,6 +283,32 @@ export default {
         return json({ok:true});
       }
 
+
+      if(url.pathname==='/api/briefing/preferences'&&request.method==='POST'){
+        const {deviceId,enabled=true,localTime='07:30',timezone='Europe/London',city='London',bibleText=''}=await request.json();
+        if(!deviceId)return json({error:'deviceId required'},400);
+        if(!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(localTime))return json({error:'Invalid briefing time'},400);
+        await ensureBriefingTable(env);
+        await env.DB.prepare(`INSERT INTO morning_briefing_preferences(device_id,enabled,local_time,timezone,city,bible_text,last_sent_date,updated_at)
+          VALUES(?,?,?,?,?,?,NULL,?)
+          ON CONFLICT(device_id) DO UPDATE SET
+          enabled=excluded.enabled,local_time=excluded.local_time,timezone=excluded.timezone,city=excluded.city,bible_text=excluded.bible_text,updated_at=excluded.updated_at`)
+          .bind(deviceId,enabled?1:0,localTime,timezone||'Europe/London',city||'London',String(bibleText||'').slice(0,180),Date.now()).run();
+        return json({ok:true});
+      }
+      if(url.pathname==='/api/briefing/test'&&request.method==='POST'){
+        const {deviceId}=await request.json();
+        await ensureBriefingTable(env);
+        const pref=await env.DB.prepare(`SELECT p.*,d.endpoint,d.p256dh,d.auth
+          FROM morning_briefing_preferences p JOIN devices d ON d.device_id=p.device_id
+          WHERE p.device_id=?`).bind(deviceId).first();
+        if(!pref)return json({error:'Morning briefing is not registered yet. Save notification settings first.'},404);
+        const local=localPartsNow(pref.timezone||'Europe/London');
+        const body=await buildMorningBriefingBody(env,pref,local.date);
+        await sendOne({endpoint:pref.endpoint,p256dh:pref.p256dh,auth:pref.auth,title:'☀️ Morning Briefing',body:body||'Your Command Centre briefing is ready.',url:'/#briefing',id:`morning-briefing-test-${Date.now()}`},env);
+        return json({ok:true,body});
+      }
+
       if(url.pathname==='/api/push/test'&&request.method==='POST'){
         const {deviceId}=await request.json(); const row=await env.DB.prepare('SELECT d.*, d.device_id FROM devices d WHERE d.device_id=?').bind(deviceId).first();
         if(!row)return json({error:'Device not registered'},404);
@@ -228,6 +335,8 @@ export default {
         }catch(e){console.error('push send failed',row.id,e)}
       })());
     }
+    // Morning briefings are checked every minute against each device's local time.
+    ctx.waitUntil(sendMorningBriefings(env));
     // News is checked once per hour so the minute-by-minute reminder cron does not burn API quota.
     if(new Date().getUTCMinutes()===5) ctx.waitUntil(sendNewsPushes(env));
   }
