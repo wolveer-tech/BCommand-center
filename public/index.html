@@ -126,7 +126,7 @@
       <div class="stack">
         <article class="card"><div class="card-head"><div><div class="title">📈 Portfolio</div><div class="status" id="portfolioFullStatus"><span class="dot loading"></span>Loading live prices</div></div><div class="toolbar"><button class="btn" id="refreshPortfolio">↻ Refresh</button><button class="btn primary" id="addHoldingBtn">+ Holding</button></div></div><div class="metric" id="portfolioValue">—</div><div class="sub">Estimated market value in GBP</div><div class="mini-grid" style="margin-top:12px"><div class="mini"><strong id="portfolioCost">—</strong><span>Total cost</span></div><div class="mini"><strong id="portfolioPL">—</strong><span>Unrealised P/L</span></div><div class="mini"><strong id="portfolioReturn">—</strong><span>Return</span></div><div class="mini"><strong id="portfolioUpdated">—</strong><span>Last quote update</span></div></div></article>
         <article class="card"><div class="card-head"><div><div class="title">Holdings</div><div class="sub">Shares are the quantities you actually own. Prices are fetched live.</div></div></div><div class="table-head"><div>Holding</div><div class="number">Shares</div><div class="number">Live</div><div class="number">Value</div><div></div></div><div id="holdingsList" class="holdings"></div></article>
-        <article class="card"><div class="warning">This tracks the shares you enter and values them using Twelve Data, Finnhub and EODHD. Your selected provider is tried first; if it fails, Command Centre automatically tries the other configured providers. Each row shows which provider supplied the price, whether a fallback was used, or the exact errors returned by every provider. EODHD quotes may be delayed depending on your plan. With Twelve Data the app resolves each ticker against its exchange, then tries quote → price → EOD. With Finnhub, LSE tickers only ever query the qualified symbol (e.g. RR.L) — if that's not available on the free plan, the row shows an error rather than a mismatched US ticker's price. It does not place trades or connect to your broker. Your API key is kept in this browser only; for a public app, move it behind your own server.</div></article>
+        <article class="card"><div class="warning">This tracks the shares you enter and values them using Twelve Data, Finnhub and EODHD. US holdings prefer Finnhub, LSE holdings prefer Twelve Data, and EODHD is used as a fallback. If EODHD has a connection/plan failure, Command Centre pauses it for 10 minutes instead of retrying it for every holding. Successful quotes are cached for 5 minutes to reduce API usage. Each row still shows the provider used or the exact provider errors. With Twelve Data the app resolves each ticker against its exchange, then tries quote → price → EOD. With Finnhub, LSE tickers only ever query the qualified symbol (e.g. RR.L) — if that's not available on the free plan, the row shows an error rather than a mismatched US ticker's price. It does not place trades or connect to your broker. Your API key is kept in this browser only; for a public app, move it behind your own server.</div></article>
       </div>
     </section>
 
@@ -789,6 +789,56 @@ async function getQuoteTwelve(symbol,exchange){
 }
 
 
+
+const MARKET_QUOTE_CACHE_TTL=5*60*1000;
+const MARKET_PROVIDER_FAIL_TTL=10*60*1000;
+const marketProviderHealth={};
+function providerHealthKey(provider){return `marketProviderHealth:${provider}`}
+function loadProviderHealth(provider){
+  try{
+    const raw=localStorage.getItem(providerHealthKey(provider));
+    if(!raw)return null;
+    const x=JSON.parse(raw);
+    if(!x||!x.until||Date.now()>x.until){localStorage.removeItem(providerHealthKey(provider));return null}
+    return x;
+  }catch{return null}
+}
+function markProviderUnavailable(provider,message){
+  const info={until:Date.now()+MARKET_PROVIDER_FAIL_TTL,message:String(message||'Provider temporarily unavailable')};
+  marketProviderHealth[provider]=info;
+  try{localStorage.setItem(providerHealthKey(provider),JSON.stringify(info))}catch{}
+}
+function clearProviderHealth(provider){
+  delete marketProviderHealth[provider];
+  try{localStorage.removeItem(providerHealthKey(provider))}catch{}
+}
+function providerUnavailable(provider){
+  const local=marketProviderHealth[provider];
+  if(local&&Date.now()<local.until)return local;
+  const stored=loadProviderHealth(provider);
+  if(stored){marketProviderHealth[provider]=stored;return stored}
+  return null;
+}
+function quoteCacheKey(symbol,exchange){return `marketQuote:${exchange}:${symbol}`}
+function readQuoteCache(symbol,exchange){
+  try{
+    const raw=localStorage.getItem(quoteCacheKey(symbol,exchange));
+    if(!raw)return null;
+    const x=JSON.parse(raw);
+    if(!x||!x.savedAt||Date.now()-x.savedAt>MARKET_QUOTE_CACHE_TTL)return null;
+    return x.value||null;
+  }catch{return null}
+}
+function writeQuoteCache(symbol,exchange,value){
+  try{localStorage.setItem(quoteCacheKey(symbol,exchange),JSON.stringify({savedAt:Date.now(),value}))}catch{}
+}
+function shouldTemporarilyDisableProvider(provider,error){
+  const msg=String(error?.message||error||'').toLowerCase();
+  if(provider==='eodhd' && (msg.includes('load failed')||msg.includes('failed to fetch')||msg.includes('networkerror')||msg.includes('http 401')||msg.includes('http 403')))return true;
+  if(provider==='twelvedata' && msg.includes('http 429'))return true;
+  return false;
+}
+
 function marketProviderAvailable(provider){
   if(provider==='finnhub') return !!state.finnhubKey;
   if(provider==='eodhd') return !!state.eodhdKey;
@@ -799,35 +849,61 @@ function marketProviderLabel(provider){
   return provider==='finnhub'?'Finnhub':provider==='eodhd'?'EODHD':'Twelve Data';
 }
 function fallbackProviderOrder(exchange){
-  const preferred=state.marketProvider||'twelvedata';
-  // Keep the user's selected provider first, then use the most useful fallbacks
-  // for the market. Finnhub free is weak for LSE, so it is tried last there.
+  // Prefer the providers that are generally most useful for each market.
+  // EODHD is intentionally not first because a connection/plan failure can otherwise
+  // cascade into repeated fallbacks and waste API credits.
   const defaults=exchange==='LSE'
-    ? ['eodhd','twelvedata','finnhub']
+    ? ['twelvedata','eodhd','finnhub']
     : ['finnhub','twelvedata','eodhd'];
-  return [preferred,...defaults].filter((p,i,a)=>a.indexOf(p)===i);
+  const preferred=state.marketProvider||'twelvedata';
+  // Respect the user's preference only when it is not EODHD; EODHD remains a fallback.
+  const base=preferred==='eodhd'?defaults:[preferred,...defaults];
+  return base.filter((p,i,a)=>a.indexOf(p)===i);
 }
 async function getQuoteWithFallback(symbol,exchange){
+  const cached=readQuoteCache(symbol,exchange);
+  if(cached)return {...cached,fromCache:true};
   const order=fallbackProviderOrder(exchange);
   const errors=[];
   let attempted=0;
   for(const provider of order){
     if(!marketProviderAvailable(provider))continue;
+    const health=providerUnavailable(provider);
+    if(health){
+      errors.push(`${marketProviderLabel(provider)}: temporarily skipped (${health.message})`);
+      continue;
+    }
     attempted++;
     try{
       let q;
       if(provider==='finnhub')q=await getQuoteFinnhub(symbol,exchange);
       else if(provider==='eodhd')q=await getQuoteEodhd(symbol,exchange);
       else q=await getQuoteTwelve(symbol,exchange);
-      return {...q,provider,providerLabel:marketProviderLabel(provider),fallbackUsed:provider!==(state.marketProvider||'twelvedata')};
+      const out={...q,provider,providerLabel:marketProviderLabel(provider),fallbackUsed:provider!==(state.marketProvider||'twelvedata')};
+      writeQuoteCache(symbol,exchange,out);
+      clearProviderHealth(provider);
+      return out;
     }catch(e){
-      errors.push(`${marketProviderLabel(provider)}: ${e?.message||'quote failed'}`);
+      const message=e?.message||'quote failed';
+      errors.push(`${marketProviderLabel(provider)}: ${message}`);
+      if(shouldTemporarilyDisableProvider(provider,e))markProviderUnavailable(provider,message);
     }
   }
-  if(!attempted)throw new Error('No market-data API keys are configured. Add at least one provider key in Settings.');
-  const err=new Error(errors.join(' | '));
+  if(!attempted && !errors.length)throw new Error('No market-data API keys are configured. Add at least one provider key in Settings.');
+  const err=new Error(errors.join(' | ')||'All configured quote providers failed');
   err.providerErrors=errors;
   throw err;
+}
+
+
+function marketProviderStatusSummary(){
+  const parts=[];
+  for(const p of ['finnhub','twelvedata','eodhd']){
+    if(!marketProviderAvailable(p))continue;
+    const h=providerUnavailable(p);
+    if(h)parts.push(`${marketProviderLabel(p)} unavailable`);
+  }
+  return parts.join(' • ');
 }
 
 async function loadPortfolio(force=false){
@@ -865,9 +941,13 @@ async function loadPortfolio(force=false){
     renderPortfolio(results);
     const good=results.filter(x=>Number.isFinite(x.liveGbp)).length;
     const fallbackCount=results.filter(x=>x.fallbackUsed&&Number.isFinite(x.liveGbp)).length;
-    const statusSuffix=good===results.length
+    const cachedCount=results.filter(x=>x.quote?.fromCache&&Number.isFinite(x.liveGbp)).length;
+    const healthSummary=marketProviderStatusSummary();
+    let statusSuffix=good===results.length
       ? (fallbackCount?`${fallbackCount} fallback${fallbackCount===1?'':'s'} used`:'All prices loaded')
       : `${results.length-good} holding${results.length-good===1?'':'s'} failed — see row errors`;
+    if(cachedCount)statusSuffix+=` • ${cachedCount} cached`;
+    if(healthSummary)statusSuffix+=` • ${healthSummary}`;
     statusEls.forEach(el=>{el.innerHTML=`<span class="dot ${good===results.length?'live':'error'}"></span>${good}/${results.length} quotes • ${statusSuffix}`});
     if(good===0)toast('No quotes returned. Each holding now shows exactly which providers failed.');
   }catch(e){
@@ -891,7 +971,7 @@ function renderPortfolio(items){
   const pl=totalValue-totalCost;const ret=totalCost?pl/totalCost*100:NaN;
   qs('#portfolioValue').textContent=gbp(totalValue);qs('#portfolioCost').textContent=gbp(totalCost);qs('#portfolioPL').textContent=gbp(pl);qs('#portfolioPL').className=pl>=0?'positive':'negative';qs('#portfolioReturn').textContent=pct(ret);qs('#portfolioReturn').className=ret>=0?'positive':'negative';qs('#portfolioUpdated').textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
   qs('#portfolioSnapshot').innerHTML=`<div class="metric" style="font-size:22px">${gbp(totalValue)}</div><div class="sub ${pl>=0?'positive':'negative'}" style="margin-top:4px">${gbp(pl)} • ${pct(ret)}</div>`;
-  qs('#holdingsList').innerHTML=items.length?items.map(h=>{const value=Number.isFinite(h.liveGbp)?h.liveGbp*h.shares:NaN;const costPerShareGbp=(()=>{const c=String(h.currency||'GBP');const n=Number(h.buyPrice);if(c==='GBp'||c==='GBX')return n/100;if(c==='USD')return n/(Number(quoteCache.__fx?.gbpUsd)||1);if(c==='EUR')return n*(Number(quoteCache.__fx?.eurToGbp)||1);return n})();const p=Number.isFinite(h.liveGbp)&&costPerShareGbp>0?(h.liveGbp-costPerShareGbp)/costPerShareGbp*100:NaN;const providerNote=Number.isFinite(h.liveGbp)?` • ${esc(h.quoteProvider||'Provider')}${h.quoteDelayed?' (delayed)':''}${h.fallbackUsed?' • fallback':''}`:'';const errorNote=h.error?`<div class="danger" style="margin-top:6px;padding:7px 8px;font-size:9px">${esc(h.error)}</div>`:'';return `<div class="holding"><div class="holding-main"><strong>${esc(h.symbol)}</strong><span>${esc(h.name)}${providerNote}</span>${errorNote}</div><div class="number"><strong>${h.shares}</strong></div><div class="number">${Number.isFinite(h.liveGbp)?gbp(h.liveGbp):'—'}</div><div class="number"><strong>${Number.isFinite(value)?gbp(value):'—'}</strong><div class="${p>=0?'positive':'negative'}" style="font-size:9px">${pct(p)}</div></div><div class="actions"><button class="btn small" onclick="window.editHolding('${h.id}')">Edit</button></div></div>`}).join(''):'<div class="empty">No holdings yet.</div>';
+  qs('#holdingsList').innerHTML=items.length?items.map(h=>{const value=Number.isFinite(h.liveGbp)?h.liveGbp*h.shares:NaN;const costPerShareGbp=(()=>{const c=String(h.currency||'GBP');const n=Number(h.buyPrice);if(c==='GBp'||c==='GBX')return n/100;if(c==='USD')return n/(Number(quoteCache.__fx?.gbpUsd)||1);if(c==='EUR')return n*(Number(quoteCache.__fx?.eurToGbp)||1);return n})();const p=Number.isFinite(h.liveGbp)&&costPerShareGbp>0?(h.liveGbp-costPerShareGbp)/costPerShareGbp*100:NaN;const providerNote=Number.isFinite(h.liveGbp)?` • ${esc(h.quoteProvider||'Provider')}${h.quoteDelayed?' (delayed)':''}${h.fallbackUsed?' • fallback':''}${h.quote?.fromCache?' • cached':''}`:'';const errorNote=h.error?`<div class="danger" style="margin-top:6px;padding:7px 8px;font-size:9px">${esc(h.error)}</div>`:'';return `<div class="holding"><div class="holding-main"><strong>${esc(h.symbol)}</strong><span>${esc(h.name)}${providerNote}</span>${errorNote}</div><div class="number"><strong>${h.shares}</strong></div><div class="number">${Number.isFinite(h.liveGbp)?gbp(h.liveGbp):'—'}</div><div class="number"><strong>${Number.isFinite(value)?gbp(value):'—'}</strong><div class="${p>=0?'positive':'negative'}" style="font-size:9px">${pct(p)}</div></div><div class="actions"><button class="btn small" onclick="window.editHolding('${h.id}')">Edit</button></div></div>`}).join(''):'<div class="empty">No holdings yet.</div>';
 }
 function openHolding(id=null){editingHoldingId=id;const h=id?state.holdings.find(x=>x.id===id):null;qs('#holdingModalTitle').textContent=h?'Edit holding':'Add holding';qs('#holdSymbol').value=h?.symbol||'';qs('#holdName').value=h?.name||'';qs('#holdShares').value=h?.shares??'';qs('#holdBuyPrice').value=h?.buyPrice??'';qs('#holdExchange').value=h?.exchange||'LSE';qs('#holdCurrency').value=h?.currency||'GBP';qs('#holdNote').value=h?.note||'';qs('#deleteHoldingBtn').style.display=h?'block':'none';openModal('holdingModal')}
 window.editHolding=id=>openHolding(id);
