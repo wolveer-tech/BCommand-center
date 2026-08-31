@@ -279,6 +279,15 @@
 
   <section class="settings-section" data-settings-panel="notifications">
     <article class="card" style="padding:13px;background:#0b1220"><div class="card-head"><div><div class="title">🔔 Mobile notifications</div><div class="sub" id="notificationStatus">Checking notification support…</div></div><button class="btn primary" id="enableNotificationsBtn">Enable</button></div><div class="toolbar"><button class="btn" id="testNotificationBtn">Send test</button><button class="btn" id="rescheduleNotificationsBtn">Reschedule reminders</button></div><div class="setting-note" style="margin-top:8px">Command Centre uses iPhone Web Push for background reminders. Install this site to your Home Screen, enable notifications, and the Cloudflare notification service will deliver reminders even when Command Centre is closed.</div></article>
+    <article class="card" style="padding:13px;background:#0b1220">
+      <div class="card-head"><div><div class="title">☀️ Morning briefing</div><div class="sub">Receive one summary notification each morning.</div></div></div>
+      <div class="form">
+        <div class="field"><label>Morning briefing</label><select id="settingsMorningBriefing"><option value="on">On</option><option value="off">Off</option></select></div>
+        <div class="field"><label>Delivery time</label><input id="settingsMorningBriefingTime" type="time" value="07:30" /></div>
+      </div>
+      <div class="toolbar"><button class="btn" id="testMorningBriefingBtn">Send briefing test</button></div>
+      <div class="setting-note" style="margin-top:8px">The notification summarizes today's weather, how many reminders/events are scheduled, your unread Bible recommendation, and available headline count. Tapping it opens the full Daily Briefing.</div>
+    </article>
   </section>
 
   <section class="settings-section" data-settings-panel="portfolio">
@@ -362,6 +371,8 @@ const DEFAULT_STATE = {
   bibleRead:{},
   notificationsEnabled:false,
   notificationLeadMinutes:0,
+  morningBriefingEnabled:true,
+  morningBriefingTime:'07:30',
   worldNewsEnabled:true,
   financialNewsEnabled:true,
   newsPushMode:'major',
@@ -482,12 +493,49 @@ async function enableNotifications(){
       await fetch(PUSH_API+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:pushDeviceId(),subscription:subscriptionJson(sub),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone})});
       await syncPushSchedule();
       await syncNewsPreferences();
+      await syncMorningBriefingPreferences();
       toast('Background notifications enabled');
     }else if(permission==='denied') toast('Notifications are blocked in browser settings');
     else toast('Notification permission was not granted');
   }catch(e){console.error(e);toast(e.message||'Could not enable notifications')}
   updateNotificationUI();
 }
+
+function morningBriefingBibleText(){
+  const recs=todaysBibleRecommendation();
+  return recs.length ? recs.map(([book,ch])=>`${book} ${ch}`).join(' • ') : 'Bible complete';
+}
+async function syncMorningBriefingPreferences(){
+  if(!state.notificationsEnabled||Notification.permission!=='granted')return;
+  try{
+    await fetch('/api/briefing/preferences',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        deviceId:pushDeviceId(),
+        enabled:state.morningBriefingEnabled!==false,
+        localTime:state.morningBriefingTime||'07:30',
+        timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'Europe/London',
+        city:state.city||'London',
+        bibleText:morningBriefingBibleText()
+      })
+    });
+  }catch(e){console.warn('Morning briefing preference sync failed',e)}
+}
+async function testMorningBriefing(){
+  if(!notificationSupported()){toast('Web Push is not supported');return}
+  if(Notification.permission!=='granted'||!state.notificationsEnabled){
+    await enableNotifications();
+    if(Notification.permission!=='granted'||!state.notificationsEnabled)return;
+  }
+  try{
+    await syncMorningBriefingPreferences();
+    const r=await fetch('/api/briefing/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:pushDeviceId()})});
+    if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.error||'Morning briefing test failed')}
+    toast('Morning briefing test sent');
+  }catch(e){toast(e.message||'Could not send morning briefing test')}
+}
+
 function clearNotificationTimers(){for(const t of notificationTimers.values())clearTimeout(t);notificationTimers.clear()}
 function reminderDueOnDate(r,d){
   const start=dateFromKey(r.startDate||dayKey());
@@ -539,12 +587,22 @@ function scheduleAllNotifications(){
     state.events.forEach(e=>{if(e.date!==key||!e.time)return;const [hh,mm]=e.time.split(':').map(Number);const when=new Date(d.getFullYear(),d.getMonth(),d.getDate(),hh,mm);if(when>now)scheduleNotificationAt(`event-${e.id}-${key}`,'🗓️ Command Centre',e.title,when,location.href+'#event-'+e.id)});
   }
   syncPushSchedule();
+  syncMorningBriefingPreferences();
 }
 async function testNotification(){
   if(!notificationSupported()){toast('Web Push is not supported');return}
   if(Notification.permission!=='granted'||!state.notificationsEnabled){await enableNotifications();if(Notification.permission!=='granted'||!state.notificationsEnabled)return}
   try{const response=await fetch(PUSH_API+'/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:pushDeviceId()})});if(!response.ok)throw new Error('Test push failed');toast('Test notification sent')}catch(e){toast(e.message||'Could not send test notification')}
 }
+
+
+function applyLaunchRoute(){
+  if(location.hash==='#briefing'){
+    switchPage('briefing');
+    setTimeout(()=>generateBriefing(),80);
+  }
+}
+window.addEventListener('hashchange',applyLaunchRoute);
 
 function init(){
   try{
@@ -556,6 +614,7 @@ function init(){
     bind('settingsBtn','click',openSettings);
      bind('enableNotificationsBtn','click',enableNotifications);
      bind('testNotificationBtn','click',testNotification);
+     bind('testMorningBriefingBtn','click',testMorningBriefing);
      bind('rescheduleNotificationsBtn','click',()=>{scheduleAllNotifications();toast('Notifications rescheduled')});
     qsa('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
     ['settingsModal','holdingModal','reminderModal','calendarEventModal','noteModal'].forEach(id=>{const el=qs('#'+id);if(el)el.addEventListener('click',e=>{if(e.target.id===id)closeModal(id)})});
@@ -604,7 +663,7 @@ function init(){
     const embedInput=qs('#spotifyEmbedInput');if(embedInput)embedInput.addEventListener('keydown',e=>{if(e.key==='Enter')loadSpotifyEmbed()});
     handleSpotifyRedirect();
     updateSpotifyConnectedUI();
-    applySettingsUI();calendarCursor=new Date();selectedCalendarDate=dayKey();updateClock();setInterval(updateClock,1000);registerNotificationSW();updateNotificationUI();if(state.notificationsEnabled&&Notification.permission==='granted')scheduleAllNotifications();generateBriefing();
+    applySettingsUI();calendarCursor=new Date();selectedCalendarDate=dayKey();updateClock();setInterval(updateClock,1000);registerNotificationSW();updateNotificationUI();if(state.notificationsEnabled&&Notification.permission==='granted')scheduleAllNotifications();generateBriefing();setTimeout(applyLaunchRoute,60);
     renderBible();renderBibleChecklist();renderReminders();renderCalendar();renderNotes();renderMangaGrid(mangaPool.slice(0,9));renderDailyManga();loadWords();
     setInterval(()=>{const fw=qs('#featuredWord');if(fw)fw.textContent=yourWords[Math.floor(Math.random()*yourWords.length)]},30000);
     loadManga();loadPortfolio();loadWeather();loadReddit();
@@ -626,8 +685,8 @@ function updateProviderFieldsUI(){
       ?'EODHD has broad global coverage including LSE and US exchanges. Its REST stock quote feed is usually delayed unless your plan includes real-time data.'
       :'Twelve Data covers US equities well; broader market access depends on your plan.';
 }
-function applySettingsUI(){qs('#settingsWorldNews').value=state.worldNewsEnabled===false?'off':'on';qs('#settingsFinancialNewsProvider').value=state.financialNewsProvider||'hybrid';qs('#settingsFinancialNews').value=state.financialNewsEnabled===false?'off':'on';qs('#settingsNewsPush').value=state.newsPushMode||'major';qs('#settingsCity').value=state.city;qs('#settingsDeepSeek').value=state.deepSeekKey;qs('#settingsMarketProvider').value=state.marketProvider||'twelvedata';qs('#settingsMarketKey').value=state.marketKey||'';qs('#settingsFinnhubKey').value=state.finnhubKey||'';qs('#settingsEodhdKey').value=state.eodhdKey||'';qs('#settingsSpotifyClientId').value=state.spotifyClientId||'';qs('#spotifyRedirectDisplay').value=spotifyRedirectUri();qs('#settingsRedditProxy').value=state.redditProxy;updateProviderFieldsUI()}
-function saveSettings(){state.worldNewsEnabled=qs('#settingsWorldNews').value==='on';state.financialNewsProvider=qs('#settingsFinancialNewsProvider').value;state.financialNewsEnabled=qs('#settingsFinancialNews').value==='on';state.newsPushMode=qs('#settingsNewsPush').value;state.city=qs('#settingsCity').value.trim()||'London';state.deepSeekKey=qs('#settingsDeepSeek').value.trim();state.marketProvider=qs('#settingsMarketProvider').value;state.marketKey=qs('#settingsMarketKey').value.trim();state.finnhubKey=qs('#settingsFinnhubKey').value.trim();state.eodhdKey=qs('#settingsEodhdKey').value.trim();state.spotifyClientId=qs('#settingsSpotifyClientId').value.trim();state.redditProxy=qs('#settingsRedditProxy').value.trim();saveState();applySettingsUI();syncNewsPreferences();closeModal('settingsModal');qs('#weatherPlace').textContent=state.city;qs('#weatherFullPlace').textContent=state.city;loadWeather();loadPortfolio(true);toast('Settings saved')}
+function applySettingsUI(){qs('#settingsMorningBriefing').value=state.morningBriefingEnabled===false?'off':'on';qs('#settingsMorningBriefingTime').value=state.morningBriefingTime||'07:30';qs('#settingsWorldNews').value=state.worldNewsEnabled===false?'off':'on';qs('#settingsFinancialNewsProvider').value=state.financialNewsProvider||'hybrid';qs('#settingsFinancialNews').value=state.financialNewsEnabled===false?'off':'on';qs('#settingsNewsPush').value=state.newsPushMode||'major';qs('#settingsCity').value=state.city;qs('#settingsDeepSeek').value=state.deepSeekKey;qs('#settingsMarketProvider').value=state.marketProvider||'twelvedata';qs('#settingsMarketKey').value=state.marketKey||'';qs('#settingsFinnhubKey').value=state.finnhubKey||'';qs('#settingsEodhdKey').value=state.eodhdKey||'';qs('#settingsSpotifyClientId').value=state.spotifyClientId||'';qs('#spotifyRedirectDisplay').value=spotifyRedirectUri();qs('#settingsRedditProxy').value=state.redditProxy;updateProviderFieldsUI()}
+function saveSettings(){state.morningBriefingEnabled=qs('#settingsMorningBriefing').value==='on';state.morningBriefingTime=qs('#settingsMorningBriefingTime').value||'07:30';state.worldNewsEnabled=qs('#settingsWorldNews').value==='on';state.financialNewsProvider=qs('#settingsFinancialNewsProvider').value;state.financialNewsEnabled=qs('#settingsFinancialNews').value==='on';state.newsPushMode=qs('#settingsNewsPush').value;state.city=qs('#settingsCity').value.trim()||'London';state.deepSeekKey=qs('#settingsDeepSeek').value.trim();state.marketProvider=qs('#settingsMarketProvider').value;state.marketKey=qs('#settingsMarketKey').value.trim();state.finnhubKey=qs('#settingsFinnhubKey').value.trim();state.eodhdKey=qs('#settingsEodhdKey').value.trim();state.spotifyClientId=qs('#settingsSpotifyClientId').value.trim();state.redditProxy=qs('#settingsRedditProxy').value.trim();saveState();applySettingsUI();syncNewsPreferences();syncMorningBriefingPreferences();closeModal('settingsModal');qs('#weatherPlace').textContent=state.city;qs('#weatherFullPlace').textContent=state.city;loadWeather();loadPortfolio(true);toast('Settings saved')}
 
 const BIBLE_BOOKS=[
 ['Genesis',50,'Old Testament'],['Exodus',40,'Old Testament'],['Leviticus',27,'Old Testament'],['Numbers',36,'Old Testament'],['Deuteronomy',34,'Old Testament'],['Joshua',24,'Old Testament'],['Judges',21,'Old Testament'],['Ruth',4,'Old Testament'],['1 Samuel',31,'Old Testament'],['2 Samuel',24,'Old Testament'],['1 Kings',22,'Old Testament'],['2 Kings',25,'Old Testament'],['1 Chronicles',29,'Old Testament'],['2 Chronicles',36,'Old Testament'],['Ezra',10,'Old Testament'],['Nehemiah',13,'Old Testament'],['Esther',10,'Old Testament'],['Job',42,'Old Testament'],['Psalms',150,'Old Testament'],['Proverbs',31,'Old Testament'],['Ecclesiastes',12,'Old Testament'],['Song of Solomon',8,'Old Testament'],['Isaiah',66,'Old Testament'],['Jeremiah',52,'Old Testament'],['Lamentations',5,'Old Testament'],['Ezekiel',48,'Old Testament'],['Daniel',12,'Old Testament'],['Hosea',14,'Old Testament'],['Joel',3,'Old Testament'],['Amos',9,'Old Testament'],['Obadiah',1,'Old Testament'],['Jonah',4,'Old Testament'],['Micah',7,'Old Testament'],['Nahum',3,'Old Testament'],['Habakkuk',3,'Old Testament'],['Zephaniah',3,'Old Testament'],['Haggai',2,'Old Testament'],['Zechariah',14,'Old Testament'],['Malachi',4,'Old Testament'],
@@ -636,8 +695,8 @@ const BIBLE_BOOKS=[
 const BIBLE_TOTAL_CHAPTERS=BIBLE_BOOKS.reduce((s,b)=>s+b[1],0);
 function bibleKey(book,ch){return `${book}::${ch}`}
 function isBibleChapterRead(book,ch){return !!state.bibleRead?.[bibleKey(book,ch)]}
-function setBibleChapterRead(book,ch,read){state.bibleRead=state.bibleRead||{};const k=bibleKey(book,ch);if(read)state.bibleRead[k]=true;else delete state.bibleRead[k];saveState();renderBible();renderBibleChecklist()}
-function setBibleBookRead(book,read){const meta=BIBLE_BOOKS.find(b=>b[0]===book);if(!meta)return;state.bibleRead=state.bibleRead||{};for(let ch=1;ch<=meta[1];ch++){const k=bibleKey(book,ch);if(read)state.bibleRead[k]=true;else delete state.bibleRead[k]}saveState();renderBible();renderBibleChecklist()}
+function setBibleChapterRead(book,ch,read){state.bibleRead=state.bibleRead||{};const k=bibleKey(book,ch);if(read)state.bibleRead[k]=true;else delete state.bibleRead[k];saveState();renderBible();renderBibleChecklist();syncMorningBriefingPreferences()}
+function setBibleBookRead(book,read){const meta=BIBLE_BOOKS.find(b=>b[0]===book);if(!meta)return;state.bibleRead=state.bibleRead||{};for(let ch=1;ch<=meta[1];ch++){const k=bibleKey(book,ch);if(read)state.bibleRead[k]=true;else delete state.bibleRead[k]}saveState();renderBible();renderBibleChecklist();syncMorningBriefingPreferences()}
 function bibleUnreadChapters(){const out=[];for(const [book,count] of BIBLE_BOOKS)for(let ch=1;ch<=count;ch++)if(!isBibleChapterRead(book,ch))out.push([book,ch]);return out}
 function todaysBibleRecommendation(){const unread=bibleUnreadChapters();if(!unread.length)return[];const start=dayOfYear()%unread.length;const result=[];for(let i=0;i<Math.min(3,unread.length);i++)result.push(unread[(start+i)%unread.length]);return result}
 function renderBible(){const el=qs('#bible');if(!el)return;const recs=todaysBibleRecommendation();if(!recs.length){el.innerHTML='<div class="positive" style="font-weight:800">✓ Every chapter is ticked off.</div><div class="sub" style="margin-top:5px">You have completed the full Bible checklist.</div>';return}el.innerHTML=`<div class="metric" style="font-size:18px">Today's chapters</div><div class="reading-checks">${recs.map(([book,ch])=>`<label class="reading-check"><input type="checkbox" onchange="window.toggleBibleChapter('${esc(book).replace(/'/g,"\\'")}',${ch},this.checked)"> <span>${esc(book)} ${ch}</span></label>`).join('')}</div><div class="sub" style="margin-top:8px">Tick a chapter here and it is also ticked in your Bible checklist.</div>`}
