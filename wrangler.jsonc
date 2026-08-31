@@ -12,11 +12,11 @@
       "* * * * *"
     ]
   },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "command-centre-push",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID"
-    }
-  ]
+ "d1_databases": [
+  {
+    "binding": "DB",
+    "database_name": "command-centre-push",
+    "database_id": "c8104eb8-a695-41d5-896c-0986ec410805"
+  }
+]
 }
