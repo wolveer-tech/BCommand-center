@@ -293,6 +293,23 @@
           <div id="footballFavourite"><div class="empty">No favourite club selected yet.</div></div>
         </article>
 
+        <article class="card">
+          <div class="card-head">
+            <div><div class="title">🔔 Match notifications</div><div class="sub">Background alerts for your favourite club, even when Command Centre is closed.</div></div>
+            <button class="btn small" id="footballNotificationTestBtn">Send test</button>
+          </div>
+          <div class="settings-grid">
+            <div class="field"><label>Football alerts</label><select id="footballNotificationsEnabled"><option value="on">On</option><option value="off">Off</option></select></div>
+            <div class="field"><label>24 hours before</label><select id="footballNotify24h"><option value="on">On</option><option value="off">Off</option></select></div>
+            <div class="field"><label>1 hour before</label><select id="footballNotify1h"><option value="on">On</option><option value="off">Off</option></select></div>
+            <div class="field"><label>At kick-off</label><select id="footballNotifyKickoff"><option value="on">On</option><option value="off">Off</option></select></div>
+            <div class="field"><label>Full-time result</label><select id="footballNotifyFinal"><option value="on">On</option><option value="off">Off</option></select></div>
+          </div>
+          <div class="toolbar" style="margin-top:10px"><button class="btn primary" id="saveFootballNotificationsBtn">Save football alerts</button></div>
+          <div id="footballNotificationStatus" class="section-note">Choose a favourite club first, then save your alert preferences.</div>
+          <div class="setting-note">Kick-off reminders are scheduled from the fixture time. Full-time alerts are checked in the background about every 15 minutes, so they can be delayed if football-data.org updates a result slowly.</div>
+        </article>
+
         <div class="football-grid">
           <article class="card">
             <div class="card-head"><div><div class="title">🗓️ Upcoming fixtures</div><div class="sub">Next two weeks</div></div></div>
@@ -587,6 +604,11 @@ const DEFAULT_STATE = {
   footballFavouriteTeamId:null,
   footballFavouriteTeamName:'',
   footballFavouriteTeamCrest:'',
+  footballNotificationsEnabled:true,
+  footballNotify24h:true,
+  footballNotify1h:true,
+  footballNotifyKickoff:true,
+  footballNotifyFinal:true,
   entertainment:{
     likes:{},
     hidden:{},
@@ -760,6 +782,7 @@ async function enableNotifications(){
       await syncPushSchedule();
       await syncNewsPreferences();
       await syncMorningBriefingPreferences();
+      await syncFootballNotificationPreferences(false);
       toast('Background notifications enabled');
     }else if(permission==='denied') toast('Notifications are blocked in browser settings');
     else toast('Notification permission was not granted');
@@ -854,6 +877,7 @@ function scheduleAllNotifications(){
   }
   syncPushSchedule();
   syncMorningBriefingPreferences();
+  syncFootballNotificationPreferences(false);
 }
 async function testNotification(){
   if(!notificationSupported()){toast('Web Push is not supported');return}
@@ -863,10 +887,14 @@ async function testNotification(){
 
 
 function applyLaunchRoute(){
-  // Normal launch / browser refresh always starts at Home.
-  // The morning briefing notification keeps its intentional deep link.
+  // Normal launch / browser refresh starts at Home.
+  // Notification deep links can intentionally open a relevant page.
   if(location.hash==='#briefing'){
     switchPage('briefing',false);
+    return;
+  }
+  if(location.hash==='#football'){
+    switchPage('football',false);
     return;
   }
 
@@ -879,7 +907,7 @@ window.addEventListener('hashchange',applyLaunchRoute);
 function init(){
   try{
     qsa('.sidebar-item').forEach(btn=>btn.addEventListener('click',()=>{
-      if(location.hash==='#briefing')history.replaceState(null,'',location.pathname+location.search);
+      if(location.hash)history.replaceState(null,'',location.pathname+location.search);
       switchPage(btn.dataset.page);closeSidebar()
     }));
     qsa('[data-page-jump]').forEach(b=>b.addEventListener('click',()=>switchPage(b.dataset.pageJump)));
@@ -903,6 +931,8 @@ function init(){
     bind('redditRetry','click',loadReddit);
     bind('footballRefreshBtn','click',()=>loadFootball(true));
     bind('footballCompetition','change',()=>loadFootball(true));
+    bind('saveFootballNotificationsBtn','click',saveFootballNotifications);
+    bind('footballNotificationTestBtn','click',testFootballNotification);
     bind('runStatusChecksBtn','click',runStatusChecks);
     bind('weatherRefresh','click',()=>loadWeather());
     bind('weatherFullRefresh','click',()=>loadWeather());
@@ -1628,13 +1658,129 @@ function footballMatchCard(m){
     <div class="football-team away"><span>${esc(away)}</span>${m.awayTeam?.crest?`<img src="${esc(m.awayTeam.crest)}" alt="">`:''}</div>
   </div>`;
 }
+
+function applyFootballNotificationUI(){
+  const map=[
+    ['footballNotificationsEnabled',state.footballNotificationsEnabled!==false],
+    ['footballNotify24h',state.footballNotify24h!==false],
+    ['footballNotify1h',state.footballNotify1h!==false],
+    ['footballNotifyKickoff',state.footballNotifyKickoff!==false],
+    ['footballNotifyFinal',state.footballNotifyFinal!==false]
+  ];
+  map.forEach(([id,on])=>{const el=qs('#'+id);if(el)el.value=on?'on':'off'});
+  updateFootballNotificationStatus();
+}
+function updateFootballNotificationStatus(text=''){
+  const el=qs('#footballNotificationStatus');if(!el)return;
+  if(text){el.textContent=text;return}
+  if(!state.footballFavouriteTeamId){
+    el.textContent='Choose a favourite club first, then save your alert preferences.';
+    return;
+  }
+  if(state.footballNotificationsEnabled===false){
+    el.textContent=`Football alerts are off for ${state.footballFavouriteTeamName||'your favourite club'}.`;
+    return;
+  }
+  if(!state.notificationsEnabled||!('Notification'in window)||Notification.permission!=='granted'){
+    el.textContent='Football alerts are selected, but background notifications are not enabled on this device.';
+    return;
+  }
+  const parts=[];
+  if(state.footballNotify24h!==false)parts.push('24h');
+  if(state.footballNotify1h!==false)parts.push('1h');
+  if(state.footballNotifyKickoff!==false)parts.push('kick-off');
+  if(state.footballNotifyFinal!==false)parts.push('full-time');
+  el.textContent=`Alerts active for ${state.footballFavouriteTeamName||'your club'}: ${parts.length?parts.join(', '):'no alert types selected'}.`;
+}
+async function syncFootballNotificationPreferences(showToast=false){
+  try{
+    const enabled=state.footballNotificationsEnabled!==false&&!!state.footballFavouriteTeamId;
+    const body={
+      deviceId:pushDeviceId(),
+      enabled,
+      teamId:Number(state.footballFavouriteTeamId)||null,
+      teamName:state.footballFavouriteTeamName||'',
+      teamCrest:state.footballFavouriteTeamCrest||'',
+      timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'Europe/London',
+      notify24h:state.footballNotify24h!==false,
+      notify1h:state.footballNotify1h!==false,
+      notifyKickoff:state.footballNotifyKickoff!==false,
+      notifyFinal:state.footballNotifyFinal!==false
+    };
+    const r=await fetch('/api/football/notifications/preferences',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(data.error||`Football alert sync HTTP ${r.status}`);
+    updateFootballNotificationStatus(data.scheduled!=null
+      ? `${enabled?'Football alerts saved':'Football alerts disabled'} • ${Number(data.scheduled)||0} upcoming alerts scheduled.`
+      : '');
+    if(showToast)toast(enabled?'Football notifications saved':'Football notifications turned off');
+    return true;
+  }catch(e){
+    console.warn('Football notification preference sync failed',e);
+    updateFootballNotificationStatus(e.message||'Could not save football alerts.');
+    if(showToast)toast(e.message||'Could not save football alerts');
+    return false;
+  }
+}
+async function saveFootballNotifications(){
+  state.footballNotificationsEnabled=qs('#footballNotificationsEnabled')?.value!=='off';
+  state.footballNotify24h=qs('#footballNotify24h')?.value!=='off';
+  state.footballNotify1h=qs('#footballNotify1h')?.value!=='off';
+  state.footballNotifyKickoff=qs('#footballNotifyKickoff')?.value!=='off';
+  state.footballNotifyFinal=qs('#footballNotifyFinal')?.value!=='off';
+
+  if(state.footballNotificationsEnabled&&!state.footballFavouriteTeamId){
+    saveState();updateFootballNotificationStatus();toast('Choose a favourite football team first');return;
+  }
+
+  saveState();
+
+  if(state.footballNotificationsEnabled){
+    if(!notificationSupported()){toast('Web Push is not supported on this device');return}
+    if(Notification.permission!=='granted'||!state.notificationsEnabled){
+      await enableNotifications();
+      if(Notification.permission!=='granted'||!state.notificationsEnabled){
+        updateFootballNotificationStatus();
+        return;
+      }
+    }
+  }
+
+  await syncFootballNotificationPreferences(true);
+}
+async function testFootballNotification(){
+  if(!state.footballFavouriteTeamId){toast('Choose a favourite football team first');return}
+  if(!notificationSupported()){toast('Web Push is not supported');return}
+  if(Notification.permission!=='granted'||!state.notificationsEnabled){
+    await enableNotifications();
+    if(Notification.permission!=='granted'||!state.notificationsEnabled)return;
+  }
+  await syncFootballNotificationPreferences(false);
+  try{
+    const r=await fetch('/api/football/notifications/test',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({deviceId:pushDeviceId()})
+    });
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(data.error||'Football notification test failed');
+    toast('Football test notification sent');
+  }catch(e){toast(e.message||'Could not send football test notification')}
+}
+
 function setFootballFavourite(id,name,crest){
   state.footballFavouriteTeamId=Number(id)||null;
   state.footballFavouriteTeamName=decodeURIComponent(name||'');
   state.footballFavouriteTeamCrest=decodeURIComponent(crest||'');
   saveState();
   renderFootball();
-  toast(`${state.footballFavouriteTeamName||'Team'} set as favourite`);
+  applyFootballNotificationUI();
+  syncFootballNotificationPreferences(false);
+  toast(state.footballFavouriteTeamId?`${state.footballFavouriteTeamName||'Team'} set as favourite`:'Favourite team cleared');
 }
 window.setFootballFavourite=setFootballFavourite;
 
@@ -1697,7 +1843,7 @@ function renderFootball(){
 
   fixtureEl.innerHTML=upcoming.length?upcoming.map(footballMatchCard).join(''):'<div class="empty">No upcoming fixtures in the current window.</div>';
   resultEl.innerHTML=results.length?results.map(footballMatchCard).join(''):'<div class="empty">No recent results in the current window.</div>';
-  renderFootballStandings();renderFootballFavourite();
+  renderFootballStandings();renderFootballFavourite();applyFootballNotificationUI();
 
   const sub=qs('#footballStandingsSub');
   if(sub)sub.textContent=footballCache.competitionName?`${footballCache.competitionName} • current season`:'Current season';
@@ -1757,6 +1903,14 @@ async function deviceStatusData(){
     }else{pushState='Unsupported';pushKind='bad';pushDetail='PushManager is unavailable.'}
   }catch(e){pushState='Error';pushKind='bad';pushDetail=e.message||'Push subscription check failed.'}
   rows.push({name:'Push subscription',state:pushState,kind:pushKind,detail:pushDetail});
+  rows.push({
+    name:'Football alerts',
+    state:state.footballNotificationsEnabled!==false&&state.footballFavouriteTeamId?'Enabled':'Off',
+    kind:state.footballNotificationsEnabled!==false&&state.footballFavouriteTeamId?'ok':'warn',
+    detail:state.footballFavouriteTeamId
+      ? `${state.footballFavouriteTeamName||'Favourite team'} • ${state.footballNotificationsEnabled!==false?'background match alerts selected':'alerts disabled'}`
+      : 'Choose a favourite team in the Football Hub to enable match alerts.'
+  });
   return rows;
 }
 function marketStatusData(){
