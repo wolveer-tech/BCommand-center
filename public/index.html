@@ -428,7 +428,15 @@ async function fetchJson(url, options={}, timeout=10000){
   finally{clearTimeout(timer)}
 }
 
-function bind(id,event,fn){const el=qs('#'+id);if(el)el.addEventListener(event,fn)}
+function bind(id,event,fn){
+  const el=qs('#'+id);
+  if(!el)return;
+  if(typeof fn!=='function'){
+    console.warn(`Skipped binding #${id}: callback is not a function`);
+    return;
+  }
+  el.addEventListener(event,fn);
+}
 // --- Mobile notifications -------------------------------------------------
 let notificationTimers = new Map();
 let notificationSWRegistration = null;
@@ -906,6 +914,15 @@ function completeBibleReadingBlock(index){
   renderBibleChecklist();
   syncMorningBriefingPreferences();
 }
+function newBibleRecommendations(){
+  state.bibleRecommendations={date:dayKey(),items:makeBibleRecommendations()};
+  saveState();
+  renderBible();
+  syncMorningBriefingPreferences();
+  toast('New meaningful Bible reading recommendations chosen');
+}
+window.completeBibleReadingBlock=completeBibleReadingBlock;
+
 function renderBible(){
   const el=qs('#bible');if(!el)return;
   const recs=todaysBibleRecommendation();
