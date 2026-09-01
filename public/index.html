@@ -644,10 +644,11 @@ async function testNotification(){
 
 
 function applyLaunchRoute(){
-  if(location.hash==='#briefing'){
-    switchPage('briefing');
-    setTimeout(()=>generateBriefing(),80);
-  }
+  const hashPage=location.hash?.replace(/^#/,'');
+  const knownPages=new Set(qsa('.page').map(p=>p.id.replace(/Page$/,'')));
+  const saved=localStorage.getItem('cc_last_page');
+  const page=knownPages.has(hashPage)?hashPage:(knownPages.has(saved)?saved:'home');
+  if(page!=='home')switchPage(page,false);
 }
 window.addEventListener('hashchange',applyLaunchRoute);
 
@@ -713,28 +714,65 @@ function init(){
     handleSpotifyRedirect();
     updateSpotifyConnectedUI();
     applySettingsUI();calendarCursor=new Date();selectedCalendarDate=dayKey();updateClock();setInterval(updateClock,1000);registerNotificationSW();updateNotificationUI();if(state.notificationsEnabled&&Notification.permission==='granted')scheduleAllNotifications();generateBriefing();setTimeout(applyLaunchRoute,60);
-    renderBible();renderBibleChecklist();renderReminders();renderCalendar();renderNotes();renderMangaGrid(mangaPool.slice(0,9));renderDailyManga();loadWords();
+    const startupJobs=[
+      ()=>renderBible(),
+      ()=>renderBibleChecklist(),
+      ()=>renderReminders(),
+      ()=>renderCalendar(),
+      ()=>renderNotes(),
+      ()=>renderMangaGrid(mangaPool.slice(0,9)),
+      ()=>renderDailyManga(),
+      ()=>loadWords(),
+      ()=>loadManga(),
+      ()=>loadPortfolio(),
+      ()=>loadWeather(),
+      ()=>loadReddit()
+    ];
+    startupJobs.forEach(job=>{try{job()}catch(e){console.error('Startup component failed',e)}});
     setInterval(()=>{const fw=qs('#featuredWord');if(fw)fw.textContent=yourWords[Math.floor(Math.random()*yourWords.length)]},30000);
-    loadManga();loadPortfolio();loadWeather();loadReddit();
   }catch(err){console.error('Command Center init error',err);toast('App started with limited features — reload if needed');}
 }
 function updateClock(){const d=new Date();qs('#clock').textContent=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' • '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
-function switchPage(page){qsa('.page').forEach(p=>p.classList.remove('active'));qsa('.sidebar-item').forEach(t=>t.classList.toggle('active',t.dataset.page===page));qs('#'+page+'Page').classList.add('active');if(page==='portfolio')loadPortfolio();if(page==='manga')loadManga();if(page==='reddit')loadReddit();if(page==='weather')loadWeather();if(page==='calendar'){calendarView='year';calendarYearCursor=new Date().getFullYear();renderCalendar()}if(page==='notes')renderNotes();if(page==='news')loadNews(false);if(page==='bible')renderBibleChecklist();if(page==='briefing')generateBriefing();if(page==='music')refreshMusicPage()}
-function toggleSidebar(){const sb=qs('#sidebar'),ov=qs('#sidebarOverlay');const open=sb.classList.toggle('open');ov.classList.toggle('open',open)}
-function closeSidebar(){qs('#sidebar')?.classList.remove('open');qs('#sidebarOverlay')?.classList.remove('open')}
-function openSettings(){applySettingsUI();showSettingsSection('general');openModal('settingsModal')}
-function updateProviderFieldsUI(){
-  const provider=qs('#settingsMarketProvider').value;
-  qs('#twelveDataKeyField').style.display=provider==='twelvedata'?'block':'none';
-  qs('#finnhubKeyField').style.display=provider==='finnhub'?'block':'none';
-  qs('#eodhdKeyField').style.display=provider==='eodhd'?'block':'none';
-  qs('#providerNote').textContent=provider==='finnhub'
-    ?'Finnhub is good for US tickers, but its free plan is limited for LSE symbols.'
-    :provider==='eodhd'
-      ?'EODHD has broad global coverage including LSE and US exchanges. Its REST stock quote feed is usually delayed unless your plan includes real-time data.'
-      :'Twelve Data covers US equities well; broader market access depends on your plan.';
+function switchPage(page,persist=true){
+  qsa('.page').forEach(p=>p.classList.remove('active'));
+  qsa('.sidebar-item').forEach(t=>t.classList.toggle('active',t.dataset.page===page));
+  const target=qs('#'+page+'Page');
+  if(!target){console.warn('Unknown page',page);return}
+  target.classList.add('active');
+  if(persist){
+    try{localStorage.setItem('cc_last_page',page)}catch{}
+    if(location.hash!==`#${page}`)history.replaceState(null,'',`#${page}`);
+  }
+  try{
+    if(page==='portfolio')loadPortfolio();
+    if(page==='manga')loadManga();
+    if(page==='reddit')loadReddit();
+    if(page==='weather')loadWeather();
+    if(page==='calendar'){calendarView='year';calendarYearCursor=new Date().getFullYear();renderCalendar()}
+    if(page==='notes')renderNotes();
+    if(page==='news')loadNews(false);
+    if(page==='bible'){renderBible();renderBibleChecklist()}
+    if(page==='briefing')generateBriefing();
+    if(page==='music')refreshMusicPage();
+  }catch(e){
+    console.error(`Page ${page} failed to render`,e);
+    toast(`${page} page could not fully load`);
+  }
 }
 function applySettingsUI(){qs('#settingsMorningBriefing').value=state.morningBriefingEnabled===false?'off':'on';qs('#settingsMorningBriefingTime').value=state.morningBriefingTime||'07:30';qs('#settingsWorldNews').value=state.worldNewsEnabled===false?'off':'on';qs('#settingsFinancialNewsProvider').value=state.financialNewsProvider||'hybrid';qs('#settingsFinancialNews').value=state.financialNewsEnabled===false?'off':'on';qs('#settingsNewsPush').value=state.newsPushMode||'major';qs('#settingsCity').value=state.city;qs('#settingsDeepSeek').value=state.deepSeekKey;qs('#settingsMarketProvider').value=state.marketProvider||'twelvedata';qs('#settingsMarketKey').value=state.marketKey||'';qs('#settingsFinnhubKey').value=state.finnhubKey||'';qs('#settingsEodhdKey').value=state.eodhdKey||'';qs('#settingsSpotifyClientId').value=state.spotifyClientId||'';qs('#spotifyRedirectDisplay').value=spotifyRedirectUri();qs('#settingsRedditProxy').value=state.redditProxy;updateProviderFieldsUI()}
+function openSettings(){
+  try{
+    applySettingsUI();
+    showSettingsSection('general');
+    openModal('settingsModal');
+  }catch(e){
+    console.error('Could not open Settings',e);
+    const modal=qs('#settingsModal');
+    if(modal)modal.classList.add('open');
+    toast('Settings opened with limited initialization');
+  }
+}
+
 function saveSettings(){state.morningBriefingEnabled=qs('#settingsMorningBriefing').value==='on';state.morningBriefingTime=qs('#settingsMorningBriefingTime').value||'07:30';state.worldNewsEnabled=qs('#settingsWorldNews').value==='on';state.financialNewsProvider=qs('#settingsFinancialNewsProvider').value;state.financialNewsEnabled=qs('#settingsFinancialNews').value==='on';state.newsPushMode=qs('#settingsNewsPush').value;state.city=qs('#settingsCity').value.trim()||'London';state.deepSeekKey=qs('#settingsDeepSeek').value.trim();state.marketProvider=qs('#settingsMarketProvider').value;state.marketKey=qs('#settingsMarketKey').value.trim();state.finnhubKey=qs('#settingsFinnhubKey').value.trim();state.eodhdKey=qs('#settingsEodhdKey').value.trim();state.spotifyClientId=qs('#settingsSpotifyClientId').value.trim();state.redditProxy=qs('#settingsRedditProxy').value.trim();saveState();applySettingsUI();syncNewsPreferences();syncMorningBriefingPreferences();closeModal('settingsModal');qs('#weatherPlace').textContent=state.city;qs('#weatherFullPlace').textContent=state.city;loadWeather();loadPortfolio(true);toast('Settings saved')}
 
 const BIBLE_BOOKS=[
@@ -914,6 +952,61 @@ function completeBibleReadingBlock(index){
   renderBibleChecklist();
   syncMorningBriefingPreferences();
 }
+
+function renderBibleChecklist(){
+  const target=qs('#bibleChecklist'),prog=qs('#bibleProgress');
+  if(!target||!prog)return;
+
+  const readCount=Object.keys(state.bibleRead||{}).filter(k=>state.bibleRead[k]).length;
+  const pctDone=Math.round(readCount/BIBLE_TOTAL_CHAPTERS*100);
+  const booksDone=BIBLE_BOOKS.filter(([book,count])=>
+    Array.from({length:count},(_,i)=>i+1).every(ch=>isBibleChapterRead(book,ch))
+  ).length;
+
+  prog.innerHTML=`<div>
+      <strong>${readCount.toLocaleString()} / ${BIBLE_TOTAL_CHAPTERS.toLocaleString()} chapters</strong>
+      <div class="sub">${booksDone} / ${BIBLE_BOOKS.length} books complete • ${pctDone}%</div>
+    </div>
+    <div class="bible-progress">
+      <div class="bible-progress-bar"><div class="bible-progress-fill" style="width:${pctDone}%"></div></div>
+      <span class="sub">${pctDone}%</span>
+    </div>`;
+
+  let current='';
+  target.innerHTML=BIBLE_BOOKS.map(([book,count,testament])=>{
+    const done=Array.from({length:count},(_,i)=>i+1).filter(ch=>isBibleChapterRead(book,ch)).length;
+    const heading=testament!==current
+      ?(current=testament,`<div class="bible-testament">${testament}</div>`)
+      :'';
+    const allDone=done===count;
+    const slug=book.replace(/\s+/g,'-').replace(/[^A-Za-z0-9-]/g,'');
+
+    return `${heading}
+      <div class="bible-book">
+        <div class="bible-book-head" onclick="this.parentElement.classList.toggle('open')">
+          <div>
+            <div class="bible-book-title">${esc(book)}</div>
+            <div class="bible-book-meta">${done}/${count} chapters read</div>
+          </div>
+          <button class="btn small ${allDone?'green':''}"
+            onclick="event.stopPropagation();window.toggleBibleBook('${esc(book).replace(/'/g,"\\'")}',${!allDone})">
+            ${allDone?'✓ Book read':'Mark book read'}
+          </button>
+        </div>
+        <div class="bible-book-chapters">
+          ${Array.from({length:count},(_,i)=>i+1).map(ch=>`
+            <span class="chapter-check">
+              <input id="bc-${slug}-${ch}" type="checkbox" ${isBibleChapterRead(book,ch)?'checked':''}
+                onchange="window.toggleBibleChapter('${esc(book).replace(/'/g,"\\'")}',${ch},this.checked)">
+              <label for="bc-${slug}-${ch}">${ch}</label>
+            </span>`).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  applyBibleSearch();
+}
+
 function newBibleRecommendations(){
   state.bibleRecommendations={date:dayKey(),items:makeBibleRecommendations()};
   saveState();
