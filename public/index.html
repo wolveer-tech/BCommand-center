@@ -155,10 +155,10 @@
           </div>
 
           <div class="ent-tabs">
-            <button class="ent-tab active" data-ent-tab="foryou">✨ For You</button>
-            <button class="ent-tab" data-ent-tab="games">🎮 Games</button>
-            <button class="ent-tab" data-ent-tab="community">💬 Community</button>
-            <button class="ent-tab" data-ent-tab="watch">▶️ Watch</button>
+            <button class="ent-tab active" data-ent-tab="foryou" onclick="showEntertainmentPanel('foryou')">✨ For You</button>
+            <button class="ent-tab" data-ent-tab="games" onclick="showEntertainmentPanel('games')">🎮 Games</button>
+            <button class="ent-tab" data-ent-tab="community" onclick="showEntertainmentPanel('community')">💬 Community</button>
+            <button class="ent-tab" data-ent-tab="watch" onclick="showEntertainmentPanel('watch')">▶️ Watch</button>
           </div>
 
           <div class="ent-panel active" data-ent-panel="foryou">
@@ -170,7 +170,7 @@
           <div class="ent-panel" data-ent-panel="games">
             <div class="game-grid">
               <article class="game-card">
-                <div class="card-head"><div><h3>🔢 2048</h3><div class="sub">Merge tiles and beat your best score.</div></div><button class="btn small" id="new2048Btn">New</button></div>
+                <div class="card-head"><div><h3>🔢 2048</h3><div class="sub">Merge tiles and beat your best score.</div></div><button class="btn small" id="new2048Btn" onclick="new2048()">New</button></div>
                 <div class="ent-stat-row"><div class="ent-stat"><strong id="score2048">0</strong><span>Score</span></div><div class="ent-stat"><strong id="best2048">0</strong><span>Best</span></div></div>
                 <div class="game-stage"><div class="g2048" id="game2048"></div></div>
                 <div class="game-pad">
@@ -180,7 +180,7 @@
               </article>
 
               <article class="game-card">
-                <div class="card-head"><div><h3>🐍 Snake</h3><div class="sub">Keyboard arrows or the mobile controls.</div></div><button class="btn small" id="snakeStartBtn">Start</button></div>
+                <div class="card-head"><div><h3>🐍 Snake</h3><div class="sub">Keyboard arrows or the mobile controls.</div></div><button class="btn small" id="snakeStartBtn" onclick="toggleSnake()">Start</button></div>
                 <div class="ent-stat-row"><div class="ent-stat"><strong id="snakeScore">0</strong><span>Score</span></div><div class="ent-stat"><strong id="snakeBest">0</strong><span>Best</span></div></div>
                 <div class="game-stage"><canvas id="snakeCanvas" class="snake-canvas" width="300" height="300"></canvas></div>
                 <div class="game-pad">
@@ -196,9 +196,9 @@
               </article>
 
               <article class="game-card">
-                <div class="card-head"><div><h3>⚡ Reaction Test</h3><div class="sub">Wait for green, then tap as quickly as possible.</div></div><button class="btn small" id="reactionResetBtn">Reset</button></div>
+                <div class="card-head"><div><h3>⚡ Reaction Test</h3><div class="sub">Wait for green, then tap as quickly as possible.</div></div><button class="btn small" id="reactionResetBtn" onclick="reactionReset()">Reset</button></div>
                 <div class="ent-stat-row"><div class="ent-stat"><strong id="reactionLast">—</strong><span>Last</span></div><div class="ent-stat"><strong id="reactionBest">—</strong><span>Best</span></div></div>
-                <div class="game-stage"><div class="reaction-box" id="reactionBox"><div><strong>Tap to start</strong><div class="sub" style="margin-top:5px">Don't tap early.</div></div></div></div>
+                <div class="game-stage"><div class="reaction-box" id="reactionBox" onclick="reactionTap()"><div><strong>Tap to start</strong><div class="sub" style="margin-top:5px">Don't tap early.</div></div></div></div>
               </article>
             </div>
           </div>
@@ -213,7 +213,7 @@
               <article class="game-card">
                 <div><h3>▶️ YouTube player</h3><div class="sub">Paste a YouTube link or video ID and watch it here.</div></div>
                 <div class="field" style="margin-top:10px"><input id="youtubeWatchInput" placeholder="https://youtube.com/watch?v=… or video ID" /></div>
-                <div class="toolbar" style="margin:8px 0"><button class="btn primary" id="loadYoutubeBtn">Play</button></div>
+                <div class="toolbar" style="margin:8px 0"><button class="btn primary" id="loadYoutubeBtn" onclick="loadYoutubeVideo()">Play</button></div>
                 <iframe id="youtubeWatchFrame" class="watch-frame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
                 <div class="section-note">Recent videos</div><div class="watch-recent" id="youtubeRecents"></div>
               </article>
@@ -221,7 +221,7 @@
               <article class="game-card">
                 <div><h3>🟣 Twitch player</h3><div class="sub">Enter a Twitch channel and watch the stream inside Command Centre.</div></div>
                 <div class="field" style="margin-top:10px"><input id="twitchChannelInput" placeholder="Channel name" /></div>
-                <div class="toolbar" style="margin:8px 0"><button class="btn primary" id="loadTwitchBtn">Watch</button></div>
+                <div class="toolbar" style="margin:8px 0"><button class="btn primary" id="loadTwitchBtn" onclick="loadTwitchChannel()">Watch</button></div>
                 <iframe id="twitchWatchFrame" class="watch-frame" allowfullscreen></iframe>
                 <div class="section-note">Recent channels</div><div class="watch-recent" id="twitchRecents"></div>
               </article>
@@ -758,6 +758,7 @@ function init(){
   try{
     qsa('.sidebar-item').forEach(btn=>btn.addEventListener('click',()=>{switchPage(btn.dataset.page);closeSidebar()}));
     qsa('[data-page-jump]').forEach(b=>b.addEventListener('click',()=>switchPage(b.dataset.pageJump)));
+    bindEntertainmentControls();
     bind('sidebarToggle','click',toggleSidebar);
     bind('sidebarOverlay','click',closeSidebar);
     document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSidebar()});
@@ -1495,6 +1496,59 @@ const TRIVIA_QUESTIONS=[
   {q:'What does GDP stand for?',a:['Gross Domestic Product','Global Development Price','General Debt Position','Gross Dividend Percentage'],c:0}
 ];
 
+
+function bindEntertainmentControls(){
+  const page=qs('#entertainmentPage');
+  if(!page||page.dataset.bound==='1')return;
+  page.dataset.bound='1';
+
+  page.addEventListener('click',e=>{
+    if(e.target.closest('[onclick]'))return;
+    const tab=e.target.closest('[data-ent-tab]');
+    if(tab){showEntertainmentPanel(tab.dataset.entTab);return}
+
+    if(e.target.closest('#refreshEntertainmentBtn')){refreshEntertainmentFeed(true);return}
+    if(e.target.closest('#new2048Btn')){new2048();return}
+
+    const d2048=e.target.closest('[data-2048-dir]');
+    if(d2048){move2048(d2048.getAttribute('data-2048-dir'));return}
+
+    if(e.target.closest('#snakeStartBtn')){toggleSnake();return}
+    const snakeDir=e.target.closest('[data-snake-dir]');
+    if(snakeDir){setSnakeDir(snakeDir.dataset.snakeDir);return}
+
+    if(e.target.closest('#reactionResetBtn')){reactionReset();return}
+    if(e.target.closest('#reactionBox')){reactionTap();return}
+
+    if(e.target.closest('#loadYoutubeBtn')){loadYoutubeVideo();return}
+    if(e.target.closest('#loadTwitchBtn')){loadTwitchChannel();return}
+  });
+
+  page.addEventListener('keydown',e=>{
+    if(e.target?.id==='youtubeWatchInput'&&e.key==='Enter'){
+      e.preventDefault();loadYoutubeVideo();return;
+    }
+    if(e.target?.id==='twitchChannelInput'&&e.key==='Enter'){
+      e.preventDefault();loadTwitchChannel();return;
+    }
+  });
+
+  // Swipe gestures for Snake on mobile.
+  const canvas=qs('#snakeCanvas');
+  if(canvas){
+    let sx=0,sy=0;
+    canvas.addEventListener('touchstart',e=>{
+      const t=e.touches?.[0];if(!t)return;sx=t.clientX;sy=t.clientY;
+    },{passive:true});
+    canvas.addEventListener('touchend',e=>{
+      const t=e.changedTouches?.[0];if(!t)return;
+      const dx=t.clientX-sx,dy=t.clientY-sy;
+      if(Math.max(Math.abs(dx),Math.abs(dy))<20)return;
+      setSnakeDir(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'));
+    },{passive:true});
+  }
+}
+
 function entertainmentActive(){return qs('#entertainmentPage')?.classList.contains('active')}
 function showEntertainmentPanel(name){
   qsa('.ent-panel').forEach(p=>p.classList.toggle('active',p.dataset.entPanel===name));
@@ -1770,7 +1824,15 @@ function renderWatchRecents(){
   if(yt)yt.innerHTML=(state.entertainment.watchHistory||[]).length?state.entertainment.watchHistory.map(id=>`<button class="btn small" onclick="window.loadYoutubeVideo('${esc(id)}')">${esc(id)}</button>`).join(''):'<span class="sub">No recent videos</span>';
   if(tw)tw.innerHTML=(state.entertainment.twitchHistory||[]).length?state.entertainment.twitchHistory.map(ch=>`<button class="btn small" onclick="window.loadTwitchChannel('${esc(ch)}')">${esc(ch)}</button>`).join(''):'<span class="sub">No recent channels</span>';
 }
-function renderEntertainmentHub(){updateEntertainmentVisit();renderEntertainmentStats();renderForYouFeed();renderEntertainmentCommunity();renderWatchRecents()}
+function renderEntertainmentHub(){updateEntertainmentVisit();renderEntertainmentStats();renderForYouFeed();renderEntertainmentCommunity();renderWatchRecents();bindEntertainmentControls()}
+window.showEntertainmentPanel=showEntertainmentPanel;
+window.new2048=new2048;
+window.move2048=move2048;
+window.toggleSnake=toggleSnake;
+window.setSnakeDir=setSnakeDir;
+window.reactionTap=reactionTap;
+window.reactionReset=reactionReset;
+
 
 const fallbackPopular=[['r/AskReddit','Questions and discussion','https://www.reddit.com/r/AskReddit/'],['r/worldnews','Global news','https://www.reddit.com/r/worldnews/'],['r/investing','Investing discussion','https://www.reddit.com/r/investing/'],['r/stocks','Stock market discussion','https://www.reddit.com/r/stocks/'],['r/personalfinance','Personal finance','https://www.reddit.com/r/personalfinance/'],['r/manga','Manga community','https://www.reddit.com/r/manga/']];
 const fallbackRecent=[['r/TradingView','Charts and trading ideas','https://www.reddit.com/r/TradingView/'],['r/UKInvesting','UK investing','https://www.reddit.com/r/UKInvesting/'],['r/ValueInvesting','Value investing','https://www.reddit.com/r/ValueInvesting/'],['r/ETFs','ETF discussion','https://www.reddit.com/r/ETFs/'],['r/StockMarket','Market discussion','https://www.reddit.com/r/StockMarket/']];
