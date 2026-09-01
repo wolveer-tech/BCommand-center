@@ -72,6 +72,11 @@
 
 .ent-tabs{display:flex;gap:7px;overflow-x:auto;padding:4px;margin-bottom:13px;border:1px solid var(--line);border-radius:16px;background:#0b1220;scrollbar-width:none;-webkit-overflow-scrolling:touch}.ent-tabs::-webkit-scrollbar{display:none}.ent-tab{flex:0 0 auto;border:0;background:transparent;color:var(--muted);padding:9px 12px;border-radius:11px;font:inherit;font-size:11px;font-weight:750;cursor:pointer;white-space:nowrap}.ent-tab.active{color:#fff;background:linear-gradient(135deg,#3568e8,#7658db)}.ent-panel{display:none}.ent-panel.active{display:block}.ent-feed{display:grid;gap:10px}.feed-card{border:1px solid var(--line);border-radius:16px;background:var(--panel2);padding:13px}.feed-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.feed-source{font-size:9px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.5px}.feed-title{font-size:13px;font-weight:800;line-height:1.35;margin-top:4px}.feed-body{font-size:10px;line-height:1.5;color:#bcc8da;margin-top:7px}.feed-actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}.feed-action{border:1px solid var(--line);background:#ffffff08;color:var(--muted);border-radius:999px;padding:6px 9px;font:inherit;font-size:9px;font-weight:750;cursor:pointer}.feed-action.liked{color:#ff8da0;border-color:rgba(255,104,118,.38);background:rgba(255,104,118,.09)}.game-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.game-card{border:1px solid var(--line);border-radius:18px;background:var(--panel2);padding:13px}.game-card h3{font-size:13px;margin:0 0 4px}.game-stage{margin-top:10px}.g2048{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:#080d16;padding:7px;border-radius:13px;max-width:330px;margin:auto}.g2048-cell{aspect-ratio:1;border-radius:9px;background:#ffffff09;display:grid;place-items:center;font-size:15px;font-weight:850;min-width:0}.g2048-cell[data-v="2"],.g2048-cell[data-v="4"]{background:#ffffff10}.g2048-cell[data-v="8"],.g2048-cell[data-v="16"]{background:rgba(242,201,76,.14)}.g2048-cell[data-v="32"],.g2048-cell[data-v="64"]{background:rgba(255,123,57,.16)}.g2048-cell[data-v="128"],.g2048-cell[data-v="256"]{background:rgba(167,139,250,.17)}.g2048-cell[data-v="512"],.g2048-cell[data-v="1024"],.g2048-cell[data-v="2048"]{background:rgba(39,211,155,.18)}.game-controls{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:9px}.game-pad{display:grid;grid-template-columns:repeat(3,44px);gap:5px;justify-content:center;margin-top:9px}.game-pad .btn{min-height:40px}.snake-canvas{display:block;width:min(100%,300px);height:auto;aspect-ratio:1;margin:auto;background:#070c14;border:1px solid var(--line);border-radius:13px;touch-action:none}.reaction-box{min-height:155px;border:1px solid var(--line);border-radius:14px;display:grid;place-items:center;text-align:center;padding:16px;background:#0a111d;cursor:pointer;user-select:none}.reaction-box.waiting{background:rgba(255,104,118,.08)}.reaction-box.ready{background:rgba(39,211,155,.18)}.trivia-options{display:grid;gap:7px;margin-top:10px}.trivia-option{width:100%;text-align:left}.trivia-option.correct{border-color:rgba(39,211,155,.55);color:var(--green);background:rgba(39,211,155,.08)}.trivia-option.wrong{border-color:rgba(255,104,118,.5);color:var(--red);background:rgba(255,104,118,.08)}.watch-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.watch-frame{width:100%;aspect-ratio:16/9;border:0;border-radius:14px;background:#05080e}.ent-stat-row{display:flex;gap:8px;flex-wrap:wrap}.ent-stat{flex:1 1 110px;padding:10px;border:1px solid var(--line);border-radius:13px;background:#ffffff06}.ent-stat strong{display:block;font-size:17px}.ent-stat span{font-size:9px;color:var(--muted)}.community-card{border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:12px}.community-card h4{margin:0;font-size:12px;line-height:1.35}.community-meta{font-size:9px;color:var(--muted);margin-top:5px}.watch-recent{display:flex;gap:6px;overflow-x:auto;padding-bottom:3px}.watch-recent .btn{white-space:nowrap;flex:0 0 auto}@media(max-width:760px){.game-grid,.watch-grid{grid-template-columns:1fr}.game-card{padding:11px}.feed-card{padding:11px}.ent-tabs{position:sticky;top:72px;z-index:8}}
 
+
+.game-status{margin-top:8px;min-height:18px;text-align:center;font-size:10px;color:var(--muted)}.game-status.over{color:var(--red);font-weight:800}.game-status.win{color:var(--green);font-weight:800}
+.wordle-board{display:grid;grid-template-rows:repeat(6,1fr);gap:5px;max-width:285px;margin:12px auto}.wordle-row{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.wordle-cell{aspect-ratio:1;display:grid;place-items:center;border:1px solid var(--line);border-radius:7px;background:#0a111d;font-size:18px;font-weight:900;text-transform:uppercase}.wordle-cell.filled{border-color:#ffffff55}.wordle-cell.correct{background:rgba(39,211,155,.34);border-color:rgba(39,211,155,.72)}.wordle-cell.present{background:rgba(242,201,76,.28);border-color:rgba(242,201,76,.68)}.wordle-cell.absent{background:#ffffff10;color:#8190a5}.wordle-keyboard{display:grid;gap:5px;margin-top:10px}.wordle-key-row{display:flex;gap:4px;justify-content:center}.wordle-key{min-width:26px;height:38px;padding:0 6px;border:1px solid var(--line);border-radius:7px;background:#ffffff0c;color:#e8eef8;font:inherit;font-size:10px;font-weight:850;cursor:pointer}.wordle-key.wide{min-width:48px}.wordle-key.correct{background:rgba(39,211,155,.3)}.wordle-key.present{background:rgba(242,201,76,.25)}.wordle-key.absent{background:#ffffff0a;color:#5d6a7d}
+.youtube-search-results{display:grid;gap:8px;margin-top:10px}.youtube-result{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:9px;border:1px solid var(--line);border-radius:12px;background:#0a111d;cursor:pointer}.youtube-result:hover{border-color:#ffffff40}.youtube-result img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px}.youtube-result-title{font-size:11px;font-weight:800;line-height:1.35}.youtube-result-meta{font-size:9px;color:var(--muted);margin-top:5px}.youtube-search-note{font-size:9px;color:var(--muted);margin-top:6px}.snake-canvas.running{outline:1px solid rgba(39,211,155,.45)}@media(max-width:520px){.youtube-result{grid-template-columns:95px minmax(0,1fr)}.wordle-key{min-width:22px;height:36px;padding:0 4px}}
+
 .footer-note{margin-top:13px;text-align:center;font-size:9px;color:#65748a}.skeleton{height:65px;border-radius:12px;background:linear-gradient(90deg,#121c2b,#1b273b,#121c2b);background-size:200% 100%;animation:skeleton 1.3s infinite}.mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.mini{padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2)}.mini strong{display:block;font-size:12px}.mini span{font-size:9px;color:var(--muted)}.warning{padding:10px 11px;border-radius:11px;background:rgba(242,201,76,.08);border:1px solid rgba(242,201,76,.2);color:#e8d68a;font-size:10px;line-height:1.5}.danger{padding:10px 11px;border-radius:11px;background:rgba(255,104,118,.08);border:1px solid rgba(255,104,118,.22);color:#ffadb6;font-size:10px;line-height:1.5}@keyframes fade{from{opacity:.3;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes pulse{50%{opacity:.4}}
 
 @media(max-width:860px){.sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 20px 60px rgba(0,0,0,.5)}.sidebar.open{transform:translateX(0)}.sidebar-toggle{display:flex;align-items:center;justify-content:center}.sidebar-overlay.open{display:block;position:fixed;inset:0;background:rgba(2,5,10,.6);z-index:24}}
@@ -172,7 +177,7 @@
               <article class="game-card">
                 <div class="card-head"><div><h3>🔢 2048</h3><div class="sub">Merge tiles and beat your best score.</div></div><button class="btn small" id="new2048Btn" onclick="new2048()">New</button></div>
                 <div class="ent-stat-row"><div class="ent-stat"><strong id="score2048">0</strong><span>Score</span></div><div class="ent-stat"><strong id="best2048">0</strong><span>Best</span></div></div>
-                <div class="game-stage"><div class="g2048" id="game2048"></div></div>
+                <div class="game-stage"><div class="g2048" id="game2048"></div><div class="game-status" id="status2048"></div></div>
                 <div class="game-pad">
                   <span></span><button class="btn" data-2048-dir="up">↑</button><span></span>
                   <button class="btn" data-2048-dir="left">←</button><button class="btn" data-2048-dir="down">↓</button><button class="btn" data-2048-dir="right">→</button>
@@ -182,10 +187,10 @@
               <article class="game-card">
                 <div class="card-head"><div><h3>🐍 Snake</h3><div class="sub">Keyboard arrows or the mobile controls.</div></div><button class="btn small" id="snakeStartBtn" onclick="toggleSnake()">Start</button></div>
                 <div class="ent-stat-row"><div class="ent-stat"><strong id="snakeScore">0</strong><span>Score</span></div><div class="ent-stat"><strong id="snakeBest">0</strong><span>Best</span></div></div>
-                <div class="game-stage"><canvas id="snakeCanvas" class="snake-canvas" width="300" height="300"></canvas></div>
+                <div class="game-stage"><canvas id="snakeCanvas" class="snake-canvas" width="300" height="300"></canvas><div class="game-status" id="snakeStatus">Press Start to play.</div></div>
                 <div class="game-pad">
-                  <span></span><button class="btn" data-snake-dir="up">↑</button><span></span>
-                  <button class="btn" data-snake-dir="left">←</button><button class="btn" data-snake-dir="down">↓</button><button class="btn" data-snake-dir="right">→</button>
+                  <span></span><button class="btn" data-snake-dir="up" onclick="setSnakeDir('up')">↑</button><span></span>
+                  <button class="btn" data-snake-dir="left" onclick="setSnakeDir('left')">←</button><button class="btn" data-snake-dir="down" onclick="setSnakeDir('down')">↓</button><button class="btn" data-snake-dir="right" onclick="setSnakeDir('right')">→</button>
                 </div>
               </article>
 
@@ -193,6 +198,16 @@
                 <div class="card-head"><div><h3>🧠 Daily Trivia</h3><div class="sub">One question per day. Keep your streak going.</div></div></div>
                 <div class="ent-stat-row"><div class="ent-stat"><strong id="triviaStreak">0</strong><span>Correct streak</span></div><div class="ent-stat"><strong id="triviaRecord">0</strong><span>Best streak</span></div></div>
                 <div class="game-stage" id="triviaGame"></div>
+              </article>
+
+              <article class="game-card">
+                <div class="card-head"><div><h3>🟩 Wordle</h3><div class="sub">Guess the five-letter daily word in six attempts.</div></div><button class="btn small" id="wordleResetBtn">Reset today</button></div>
+                <div class="ent-stat-row"><div class="ent-stat"><strong id="wordleStreak">0</strong><span>Win streak</span></div><div class="ent-stat"><strong id="wordleBest">0</strong><span>Best streak</span></div></div>
+                <div class="game-stage">
+                  <div class="wordle-board" id="wordleBoard"></div>
+                  <div class="game-status" id="wordleStatus"></div>
+                  <div class="wordle-keyboard" id="wordleKeyboard"></div>
+                </div>
               </article>
 
               <article class="game-card">
@@ -211,10 +226,18 @@
           <div class="ent-panel" data-ent-panel="watch">
             <div class="watch-grid">
               <article class="game-card">
-                <div><h3>▶️ YouTube player</h3><div class="sub">Paste a YouTube link or video ID and watch it here.</div></div>
-                <div class="field" style="margin-top:10px"><input id="youtubeWatchInput" placeholder="https://youtube.com/watch?v=… or video ID" /></div>
-                <div class="toolbar" style="margin:8px 0"><button class="btn primary" id="loadYoutubeBtn" onclick="loadYoutubeVideo()">Play</button></div>
+                <div><h3>▶️ YouTube</h3><div class="sub">Search YouTube and play embeddable videos without leaving Command Centre.</div></div>
+                <div class="field" style="margin-top:10px"><label>Search YouTube</label><input id="youtubeSearchInput" placeholder="Search videos…" autocomplete="off" /></div>
+                <div class="toolbar" style="margin:8px 0"><button class="btn primary" id="youtubeSearchBtn">Search</button></div>
+                <div class="youtube-search-note">Search uses the YouTube Data API through your Cloudflare Worker.</div>
+                <div id="youtubeSearchStatus" class="sub" style="margin-top:7px"></div>
+                <div id="youtubeSearchResults" class="youtube-search-results"></div>
+                <div class="section-note">Player</div>
                 <iframe id="youtubeWatchFrame" class="watch-frame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                <details style="margin-top:9px"><summary class="sub" style="cursor:pointer">Or paste a YouTube link / video ID</summary>
+                  <div class="field" style="margin-top:8px"><input id="youtubeWatchInput" placeholder="https://youtube.com/watch?v=… or video ID" /></div>
+                  <div class="toolbar" style="margin:8px 0"><button class="btn" id="loadYoutubeBtn" onclick="loadYoutubeVideo()">Play link</button></div>
+                </details>
                 <div class="section-note">Recent videos</div><div class="watch-recent" id="youtubeRecents"></div>
               </article>
 
@@ -472,7 +495,7 @@ const DEFAULT_STATE = {
     hidden:{},
     watchHistory:[],
     twitchHistory:[],
-    gameStats:{best2048:0,bestSnake:0,bestReaction:null,triviaStreak:0,triviaBest:0,triviaLastDate:'',triviaLastCorrect:null,triviaLastAnswer:null},
+    gameStats:{best2048:0,bestSnake:0,bestReaction:null,triviaStreak:0,triviaBest:0,triviaLastDate:'',triviaLastCorrect:null,triviaLastAnswer:null,wordleStreak:0,wordleBest:0,wordleDate:'',wordleGuesses:[],wordleCurrent:'',wordleFinished:false,wordleWon:false},
     visit:{lastDate:'',streak:0}
   },
   holdings:[
@@ -1470,7 +1493,7 @@ function deleteEditingHolding(){if(!editingHoldingId)return;if(confirm('Remove t
 
 let entertainmentRedditCache={trading212:[],wallstreetbets:[]};
 let game2048State={grid:Array(16).fill(0),score:0};
-let snakeGame={snake:[],dir:{x:1,y:0},nextDir:{x:1,y:0},food:{x:10,y:10},score:0,timer:null,running:false};
+let snakeGame={snake:[],dir:{x:1,y:0},nextDir:{x:1,y:0},food:{x:10,y:10},score:0,running:false,over:false,raf:null,lastStep:0,speed:135};
 let reactionGame={state:'idle',startedAt:0,timer:null};
 
 const TRIVIA_QUESTIONS=[
@@ -1520,11 +1543,16 @@ function bindEntertainmentControls(){
     if(e.target.closest('#reactionResetBtn')){reactionReset();return}
     if(e.target.closest('#reactionBox')){reactionTap();return}
 
+    if(e.target.closest('#youtubeSearchBtn')){searchYoutubeVideos();return}
+    if(e.target.closest('#wordleResetBtn')){resetWordleToday();return}
     if(e.target.closest('#loadYoutubeBtn')){loadYoutubeVideo();return}
     if(e.target.closest('#loadTwitchBtn')){loadTwitchChannel();return}
   });
 
   page.addEventListener('keydown',e=>{
+    if(e.target?.id==='youtubeSearchInput'&&e.key==='Enter'){
+      e.preventDefault();searchYoutubeVideos();return;
+    }
     if(e.target?.id==='youtubeWatchInput'&&e.key==='Enter'){
       e.preventDefault();loadYoutubeVideo();return;
     }
@@ -1662,11 +1690,34 @@ function renderEntertainmentCommunity(){
 
 function addRandom2048Tile(){
   const empty=game2048State.grid.map((v,i)=>v===0?i:-1).filter(i=>i>=0);
-  if(!empty.length)return;
+  if(!empty.length)return false;
   const idx=empty[Math.floor(Math.random()*empty.length)];
   game2048State.grid[idx]=Math.random()<0.9?2:4;
+  return true;
 }
-function new2048(){game2048State={grid:Array(16).fill(0),score:0};addRandom2048Tile();addRandom2048Tile();render2048()}
+function has2048Moves(){
+  const g=game2048State.grid;
+  if(g.some(v=>v===0))return true;
+  for(let r=0;r<4;r++)for(let c=0;c<4;c++){
+    const v=g[r*4+c];
+    if(c<3&&v===g[r*4+c+1])return true;
+    if(r<3&&v===g[(r+1)*4+c])return true;
+  }
+  return false;
+}
+function set2048Status(text='',kind=''){
+  const el=qs('#status2048');if(!el)return;
+  el.className=`game-status${kind?' '+kind:''}`;
+  el.innerHTML=text;
+}
+function finish2048(){
+  game2048State.over=true;
+  set2048Status(`Game over — final score ${game2048State.score}. <button class="btn small" onclick="new2048()">Play again</button>`,'over');
+}
+function new2048(){
+  game2048State={grid:Array(16).fill(0),score:0,over:false,reached2048:false};
+  addRandom2048Tile();addRandom2048Tile();set2048Status('');render2048();
+}
 function compress2048Line(line){
   const vals=line.filter(Boolean),out=[];let gained=0;
   for(let i=0;i<vals.length;i++){
@@ -1676,6 +1727,7 @@ function compress2048Line(line){
   return {line:out,gained};
 }
 function move2048(dir){
+  if(game2048State.over){finish2048();return}
   const old=game2048State.grid.slice(),g=game2048State.grid.slice();let totalGain=0;
   const get=(r,c)=>g[r*4+c],set=(r,c,v)=>{g[r*4+c]=v};
   for(let i=0;i<4;i++){
@@ -1686,10 +1738,20 @@ function move2048(dir){
     if(dir==='right'||dir==='down')line.reverse();
     for(let j=0;j<4;j++){if(dir==='left'||dir==='right')set(i,j,line[j]);else set(j,i,line[j])}
   }
-  const moved=g.some((v,i)=>v!==old[i]);if(!moved)return;
+  const moved=g.some((v,i)=>v!==old[i]);
+  if(!moved){
+    if(!has2048Moves())finish2048();
+    return;
+  }
   game2048State.grid=g;game2048State.score+=totalGain;addRandom2048Tile();
   const stats=state.entertainment.gameStats;
   if(game2048State.score>(stats.best2048||0)){stats.best2048=game2048State.score;saveState()}
+  if(!game2048State.reached2048&&game2048State.grid.some(v=>v>=2048)){
+    game2048State.reached2048=true;
+    set2048Status('You reached 2048! You can keep playing.','win');
+  }else if(!has2048Moves()){
+    render2048();finish2048();renderEntertainmentStats();return;
+  }
   render2048();renderEntertainmentStats();
 }
 function render2048(){
@@ -1697,50 +1759,205 @@ function render2048(){
   el.innerHTML=game2048State.grid.map(v=>`<div class="g2048-cell" data-v="${v||0}">${v||''}</div>`).join('');
   if(qs('#score2048'))qs('#score2048').textContent=game2048State.score;
   if(qs('#best2048'))qs('#best2048').textContent=state.entertainment.gameStats.best2048||0;
+  if(game2048State.over)finish2048();
 }
-
 function randomSnakeFood(){
-  const occupied=new Set(snakeGame.snake.map(p=>`${p.x},${p.y}`));let p;
-  do{p={x:Math.floor(Math.random()*15),y:Math.floor(Math.random()*15)}}while(occupied.has(`${p.x},${p.y}`));
+  const occupied=new Set(snakeGame.snake.map(p=>`${p.x},${p.y}`));let p,guard=0;
+  do{
+    p={x:Math.floor(Math.random()*15),y:Math.floor(Math.random()*15)};
+    guard++;
+  }while(occupied.has(`${p.x},${p.y}`)&&guard<500);
   return p;
+}
+function setSnakeStatus(text='',kind=''){
+  const el=qs('#snakeStatus');if(!el)return;
+  el.className=`game-status${kind?' '+kind:''}`;
+  el.textContent=text;
 }
 function drawSnake(){
   const canvas=qs('#snakeCanvas');if(!canvas)return;
   const ctx=canvas.getContext('2d'),cell=20;
-  ctx.clearRect(0,0,300,300);ctx.fillStyle='#0a111d';ctx.fillRect(0,0,300,300);
-  ctx.fillStyle='#ff6876';ctx.fillRect(snakeGame.food.x*cell+2,snakeGame.food.y*cell+2,cell-4,cell-4);
-  ctx.fillStyle='#27d39b';snakeGame.snake.forEach(p=>ctx.fillRect(p.x*cell+1,p.y*cell+1,cell-2,cell-2));
+  ctx.clearRect(0,0,300,300);
+  ctx.fillStyle='#0a111d';ctx.fillRect(0,0,300,300);
+
+  // subtle board grid
+  ctx.strokeStyle='rgba(255,255,255,.035)';ctx.lineWidth=1;
+  for(let i=0;i<=15;i++){ctx.beginPath();ctx.moveTo(i*cell,0);ctx.lineTo(i*cell,300);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*cell);ctx.lineTo(300,i*cell);ctx.stroke()}
+
+  ctx.fillStyle='#ff6876';ctx.beginPath();ctx.arc(snakeGame.food.x*cell+10,snakeGame.food.y*cell+10,7,0,Math.PI*2);ctx.fill();
+
+  snakeGame.snake.forEach((pos,i)=>{
+    ctx.fillStyle=i===0?'#5ff0bd':'#27d39b';
+    ctx.fillRect(pos.x*cell+2,pos.y*cell+2,cell-4,cell-4);
+  });
+  canvas.classList.toggle('running',!!snakeGame.running);
 }
 function newSnake(){
-  clearInterval(snakeGame.timer);
-  snakeGame={snake:[{x:7,y:7},{x:6,y:7},{x:5,y:7}],dir:{x:1,y:0},nextDir:{x:1,y:0},food:{x:10,y:7},score:0,timer:null,running:false};
+  if(snakeGame.raf)cancelAnimationFrame(snakeGame.raf);
+  snakeGame={
+    snake:[{x:7,y:7},{x:6,y:7},{x:5,y:7}],
+    dir:{x:1,y:0},nextDir:{x:1,y:0},
+    food:{x:11,y:7},score:0,running:false,over:false,
+    raf:null,lastStep:0,speed:135
+  };
   if(qs('#snakeScore'))qs('#snakeScore').textContent='0';
   if(qs('#snakeBest'))qs('#snakeBest').textContent=state.entertainment.gameStats.bestSnake||0;
-  if(qs('#snakeStartBtn'))qs('#snakeStartBtn').textContent='Start';drawSnake();
+  if(qs('#snakeStartBtn'))qs('#snakeStartBtn').textContent='Start';
+  setSnakeStatus('Press Start to play.');drawSnake();
 }
 function setSnakeDir(dir){
-  const map={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}},n=map[dir];if(!n)return;
-  if(n.x===-snakeGame.dir.x&&n.y===-snakeGame.dir.y)return;snakeGame.nextDir=n;
+  const map={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}},n=map[dir];
+  if(!n)return;
+  if(n.x===-snakeGame.dir.x&&n.y===-snakeGame.dir.y)return;
+  snakeGame.nextDir=n;
 }
-function snakeTick(){
-  snakeGame.dir=snakeGame.nextDir;
+function snakeStep(){
+  snakeGame.dir={...snakeGame.nextDir};
   const head=snakeGame.snake[0],next={x:head.x+snakeGame.dir.x,y:head.y+snakeGame.dir.y};
-  if(next.x<0||next.y<0||next.x>=15||next.y>=15||snakeGame.snake.some(p=>p.x===next.x&&p.y===next.y)){
-    clearInterval(snakeGame.timer);snakeGame.running=false;if(qs('#snakeStartBtn'))qs('#snakeStartBtn').textContent='Restart';toast(`Snake over — score ${snakeGame.score}`);return;
+  const eating=next.x===snakeGame.food.x&&next.y===snakeGame.food.y;
+  const bodyToCheck=eating?snakeGame.snake:snakeGame.snake.slice(0,-1);
+  const hitWall=next.x<0||next.y<0||next.x>=15||next.y>=15;
+  const hitSelf=bodyToCheck.some(p=>p.x===next.x&&p.y===next.y);
+  if(hitWall||hitSelf){
+    snakeGame.running=false;snakeGame.over=true;
+    if(snakeGame.raf)cancelAnimationFrame(snakeGame.raf);
+    snakeGame.raf=null;
+    if(qs('#snakeStartBtn'))qs('#snakeStartBtn').textContent='Restart';
+    setSnakeStatus(`Game over — score ${snakeGame.score}.`,'over');drawSnake();return false;
   }
+
   snakeGame.snake.unshift(next);
-  if(next.x===snakeGame.food.x&&next.y===snakeGame.food.y){
+  if(eating){
     snakeGame.score++;snakeGame.food=randomSnakeFood();
-    const stats=state.entertainment.gameStats;if(snakeGame.score>(stats.bestSnake||0)){stats.bestSnake=snakeGame.score;saveState()}
+    snakeGame.speed=Math.max(70,135-snakeGame.score*4);
+    const stats=state.entertainment.gameStats;
+    if(snakeGame.score>(stats.bestSnake||0)){stats.bestSnake=snakeGame.score;saveState()}
   }else snakeGame.snake.pop();
+
   if(qs('#snakeScore'))qs('#snakeScore').textContent=snakeGame.score;
   if(qs('#snakeBest'))qs('#snakeBest').textContent=state.entertainment.gameStats.bestSnake||0;
-  drawSnake();renderEntertainmentStats();
+  drawSnake();renderEntertainmentStats();return true;
+}
+function snakeLoop(ts){
+  if(!snakeGame.running)return;
+  if(!snakeGame.lastStep)snakeGame.lastStep=ts;
+  if(ts-snakeGame.lastStep>=snakeGame.speed){
+    snakeGame.lastStep=ts;
+    if(!snakeStep())return;
+  }
+  snakeGame.raf=requestAnimationFrame(snakeLoop);
 }
 function toggleSnake(){
-  if(!snakeGame.snake.length||(!snakeGame.running&&qs('#snakeStartBtn')?.textContent==='Restart'))newSnake();
-  if(snakeGame.running){clearInterval(snakeGame.timer);snakeGame.running=false;if(qs('#snakeStartBtn'))qs('#snakeStartBtn').textContent='Resume';return}
-  snakeGame.running=true;if(qs('#snakeStartBtn'))qs('#snakeStartBtn').textContent='Pause';snakeGame.timer=setInterval(snakeTick,130);
+  if(!snakeGame.snake?.length||snakeGame.over)newSnake();
+
+  if(snakeGame.running){
+    snakeGame.running=false;
+    if(snakeGame.raf)cancelAnimationFrame(snakeGame.raf);
+    snakeGame.raf=null;
+    if(qs('#snakeStartBtn'))qs('#snakeStartBtn').textContent='Resume';
+    setSnakeStatus('Paused.');drawSnake();return;
+  }
+
+  snakeGame.running=true;snakeGame.over=false;snakeGame.lastStep=0;
+  if(qs('#snakeStartBtn'))qs('#snakeStartBtn').textContent='Pause';
+  setSnakeStatus('Playing — use arrows, buttons or swipe.');
+  drawSnake();
+  snakeGame.raf=requestAnimationFrame(snakeLoop);
+}
+
+
+const WORDLE_ANSWERS=[
+  'apple','beach','brain','bread','brick','bring','chair','charm','chess','cloud',
+  'crane','dream','earth','faith','flame','fresh','giant','grace','green','heart',
+  'house','light','money','music','ocean','peace','plant','pride','river','sharp',
+  'smile','space','sport','stone','storm','table','tiger','train','trust','water',
+  'world','youth','focus','value','crown','quiet','power','share','story','truth',
+  'watch','learn','build','clear','field','glory','guide','happy','human','ideal',
+  'judge','known','laugh','march','night','offer','point','quick','right','sound',
+  'teach','under','voice','write','young','zebra'
+];
+function wordleAnswer(){
+  return WORDLE_ANSWERS[dayOfYear()%WORDLE_ANSWERS.length].toUpperCase();
+}
+function ensureWordleState(){
+  const g=state.entertainment.gameStats;
+  if(g.wordleDate!==dayKey()){
+    g.wordleDate=dayKey();g.wordleGuesses=[];g.wordleCurrent='';g.wordleFinished=false;g.wordleWon=false;saveState();
+  }
+  if(!Array.isArray(g.wordleGuesses))g.wordleGuesses=[];
+  g.wordleCurrent=String(g.wordleCurrent||'').slice(0,5).toUpperCase();
+  return g;
+}
+function scoreWordleGuess(guess,answer){
+  const out=Array(5).fill('absent'),remain={};
+  for(let i=0;i<5;i++){
+    if(guess[i]===answer[i])out[i]='correct';
+    else remain[answer[i]]=(remain[answer[i]]||0)+1;
+  }
+  for(let i=0;i<5;i++){
+    if(out[i]==='correct')continue;
+    if((remain[guess[i]]||0)>0){out[i]='present';remain[guess[i]]--}
+  }
+  return out;
+}
+function submitWordleGuess(){
+  const g=ensureWordleState();
+  if(g.wordleFinished)return;
+  const guess=g.wordleCurrent.toUpperCase();
+  if(guess.length!==5){toast('Enter five letters first');return}
+  const answer=wordleAnswer();
+  g.wordleGuesses.push(guess);g.wordleCurrent='';
+  if(guess===answer){
+    g.wordleFinished=true;g.wordleWon=true;g.wordleStreak=(g.wordleStreak||0)+1;g.wordleBest=Math.max(g.wordleBest||0,g.wordleStreak);saveState();renderWordle();renderEntertainmentStats();return;
+  }
+  if(g.wordleGuesses.length>=6){
+    g.wordleFinished=true;g.wordleWon=false;g.wordleStreak=0;saveState();
+  }else saveState();
+  renderWordle();renderEntertainmentStats();
+}
+function wordleInput(key){
+  const g=ensureWordleState();if(g.wordleFinished)return;
+  if(key==='ENTER'){submitWordleGuess();return}
+  if(key==='BACKSPACE'){g.wordleCurrent=g.wordleCurrent.slice(0,-1);saveState();renderWordle();return}
+  if(/^[A-Z]$/.test(key)&&g.wordleCurrent.length<5){g.wordleCurrent+=key;saveState();renderWordle()}
+}
+function resetWordleToday(){
+  const g=ensureWordleState();
+  g.wordleGuesses=[];g.wordleCurrent='';g.wordleFinished=false;g.wordleWon=false;saveState();renderWordle();
+}
+function renderWordle(){
+  const board=qs('#wordleBoard'),keyboard=qs('#wordleKeyboard'),status=qs('#wordleStatus');
+  if(!board||!keyboard||!status)return;
+  const g=ensureWordleState(),answer=wordleAnswer(),rows=[];
+  for(let r=0;r<6;r++){
+    const submitted=g.wordleGuesses[r],current=!submitted&&r===g.wordleGuesses.length?g.wordleCurrent:'';
+    const letters=(submitted||current||'').padEnd(5,' ').split('');
+    const marks=submitted?scoreWordleGuess(submitted,answer):Array(5).fill('');
+    rows.push(`<div class="wordle-row">${letters.map((ch,i)=>`<div class="wordle-cell ${submitted?marks[i]:(ch.trim()?'filled':'')}">${esc(ch.trim())}</div>`).join('')}</div>`);
+  }
+  board.innerHTML=rows.join('');
+
+  const keyState={};
+  for(const guess of g.wordleGuesses){
+    const marks=scoreWordleGuess(guess,answer);
+    guess.split('').forEach((ch,i)=>{
+      const rank={absent:1,present:2,correct:3};
+      if(!keyState[ch]||rank[marks[i]]>rank[keyState[ch]])keyState[ch]=marks[i];
+    });
+  }
+  const rowsKeys=['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'];
+  keyboard.innerHTML=rowsKeys.map((row,i)=>`<div class="wordle-key-row">${i===2?'<button class="wordle-key wide" data-wordle-key="ENTER">Enter</button>':''}${row.split('').map(k=>`<button class="wordle-key ${keyState[k]||''}" data-wordle-key="${k}">${k}</button>`).join('')}${i===2?'<button class="wordle-key wide" data-wordle-key="BACKSPACE">⌫</button>':''}</div>`).join('');
+  qsa('[data-wordle-key]').forEach(b=>b.addEventListener('click',()=>wordleInput(b.dataset.wordleKey)));
+
+  if(g.wordleFinished){
+    status.className=`game-status ${g.wordleWon?'win':'over'}`;
+    status.textContent=g.wordleWon?`Solved in ${g.wordleGuesses.length}/6 — ${answer}`:`Finished — the word was ${answer}.`;
+  }else{
+    status.className='game-status';
+    status.textContent=`Attempt ${g.wordleGuesses.length+1} of 6`;
+  }
+  if(qs('#wordleStreak'))qs('#wordleStreak').textContent=g.wordleStreak||0;
+  if(qs('#wordleBest'))qs('#wordleBest').textContent=g.wordleBest||0;
 }
 
 function dailyTrivia(){return TRIVIA_QUESTIONS[dayOfYear()%TRIVIA_QUESTIONS.length]}
@@ -1787,8 +2004,38 @@ function reactionTap(){
 function renderEntertainmentGames(){
   if(!game2048State.grid.some(Boolean))new2048();else render2048();
   if(!snakeGame.snake.length)newSnake();else drawSnake();
-  renderTrivia();reactionReset();
+  renderTrivia();renderWordle();reactionReset();
 }
+
+function decodeHtmlText(value){
+  const t=document.createElement('textarea');t.innerHTML=String(value||'');return t.value;
+}
+async function searchYoutubeVideos(){
+  const input=qs('#youtubeSearchInput'),results=qs('#youtubeSearchResults'),status=qs('#youtubeSearchStatus');
+  const q=input?.value.trim();
+  if(!q){toast('Enter something to search YouTube for');return}
+  if(status)status.textContent='Searching YouTube…';
+  if(results)results.innerHTML='<div class="empty">Searching…</div>';
+  try{
+    const data=await fetchJson(`/api/youtube/search?q=${encodeURIComponent(q)}`,{},15000);
+    const items=Array.isArray(data.items)?data.items:[];
+    if(!items.length){
+      if(results)results.innerHTML='<div class="empty">No embeddable videos found.</div>';
+      if(status)status.textContent='No results';return;
+    }
+    if(results)results.innerHTML=items.map(v=>`<article class="youtube-result" data-youtube-video="${esc(v.videoId)}">
+      <img src="${esc(v.thumbnail||'')}" alt="">
+      <div><div class="youtube-result-title">${esc(decodeHtmlText(v.title||'Video'))}</div><div class="youtube-result-meta">${esc(decodeHtmlText(v.channelTitle||'YouTube'))}${v.publishedAt?' • '+new Date(v.publishedAt).toLocaleDateString('en-GB'):''}</div></div>
+    </article>`).join('');
+    qsa('[data-youtube-video]').forEach(card=>card.addEventListener('click',()=>loadYoutubeVideo(card.dataset.youtubeVideo)));
+    if(status)status.textContent=`${items.length} results — tap one to play`;
+  }catch(e){
+    if(results)results.innerHTML='';
+    if(status)status.textContent=e.message||'YouTube search failed';
+    toast(e.message||'YouTube search failed');
+  }
+}
+
 function extractYoutubeId(value){
   const s=String(value||'').trim();if(/^[A-Za-z0-9_-]{11}$/.test(s))return s;
   try{
@@ -1832,6 +2079,9 @@ window.toggleSnake=toggleSnake;
 window.setSnakeDir=setSnakeDir;
 window.reactionTap=reactionTap;
 window.reactionReset=reactionReset;
+window.searchYoutubeVideos=searchYoutubeVideos;
+window.resetWordleToday=resetWordleToday;
+window.wordleInput=wordleInput;
 
 
 const fallbackPopular=[['r/AskReddit','Questions and discussion','https://www.reddit.com/r/AskReddit/'],['r/worldnews','Global news','https://www.reddit.com/r/worldnews/'],['r/investing','Investing discussion','https://www.reddit.com/r/investing/'],['r/stocks','Stock market discussion','https://www.reddit.com/r/stocks/'],['r/personalfinance','Personal finance','https://www.reddit.com/r/personalfinance/'],['r/manga','Manga community','https://www.reddit.com/r/manga/']];
