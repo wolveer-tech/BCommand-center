@@ -3,6 +3,7 @@
   "name": "bcommand-center",
   "main": "worker.js",
   "compatibility_date": "2026-08-31",
+  "keep_vars": true,
   "assets": {
     "directory": "./public",
     "not_found_handling": "single-page-application"
@@ -12,11 +13,11 @@
       "* * * * *"
     ]
   },
- "d1_databases": [
-  {
-    "binding": "DB",
-    "database_name": "command-centre-push",
-    "database_id": "c8104eb8-a695-41d5-896c-0986ec410805"
-  }
-]
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "command-centre-push",
+      "database_id": "c8104eb8-a695-41d5-896c-0986ec410805"
+    }
+  ]
 }
