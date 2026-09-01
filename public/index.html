@@ -75,7 +75,7 @@
 
 .game-status{margin-top:8px;min-height:18px;text-align:center;font-size:10px;color:var(--muted)}.game-status.over{color:var(--red);font-weight:800}.game-status.win{color:var(--green);font-weight:800}
 .wordle-board{display:grid;grid-template-rows:repeat(6,1fr);gap:5px;max-width:285px;margin:12px auto}.wordle-row{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.wordle-cell{aspect-ratio:1;display:grid;place-items:center;border:1px solid var(--line);border-radius:7px;background:#0a111d;font-size:18px;font-weight:900;text-transform:uppercase}.wordle-cell.filled{border-color:#ffffff55}.wordle-cell.correct{background:rgba(39,211,155,.34);border-color:rgba(39,211,155,.72)}.wordle-cell.present{background:rgba(242,201,76,.28);border-color:rgba(242,201,76,.68)}.wordle-cell.absent{background:#ffffff10;color:#8190a5}.wordle-keyboard{display:grid;gap:5px;margin-top:10px}.wordle-key-row{display:flex;gap:4px;justify-content:center}.wordle-key{min-width:26px;height:38px;padding:0 6px;border:1px solid var(--line);border-radius:7px;background:#ffffff0c;color:#e8eef8;font:inherit;font-size:10px;font-weight:850;cursor:pointer}.wordle-key.wide{min-width:48px}.wordle-key.correct{background:rgba(39,211,155,.3)}.wordle-key.present{background:rgba(242,201,76,.25)}.wordle-key.absent{background:#ffffff0a;color:#5d6a7d}
-.youtube-search-results{display:grid;gap:8px;margin-top:10px}.youtube-result{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:9px;border:1px solid var(--line);border-radius:12px;background:#0a111d;cursor:pointer}.youtube-result:hover{border-color:#ffffff40}.youtube-result img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px}.youtube-result-title{font-size:11px;font-weight:800;line-height:1.35}.youtube-result-meta{font-size:9px;color:var(--muted);margin-top:5px}.youtube-search-note{font-size:9px;color:var(--muted);margin-top:6px}.snake-canvas.running{outline:1px solid rgba(39,211,155,.45)}@media(max-width:520px){.youtube-result{grid-template-columns:95px minmax(0,1fr)}.wordle-key{min-width:22px;height:36px;padding:0 4px}}
+.youtube-search-results{display:grid;gap:8px;margin-top:10px}.youtube-result{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:9px;border:1px solid var(--line);border-radius:12px;background:#0a111d;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:rgba(255,255,255,.08)}.youtube-result:hover{border-color:#ffffff40}.youtube-result img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px}.youtube-result-title{font-size:11px;font-weight:800;line-height:1.35}.youtube-result-meta{font-size:9px;color:var(--muted);margin-top:5px}.youtube-search-note{font-size:9px;color:var(--muted);margin-top:6px}.snake-canvas.running{outline:1px solid rgba(39,211,155,.45)}@media(max-width:520px){.youtube-result{grid-template-columns:95px minmax(0,1fr)}.wordle-key{min-width:22px;height:36px;padding:0 4px}}
 
 .footer-note{margin-top:13px;text-align:center;font-size:9px;color:#65748a}.skeleton{height:65px;border-radius:12px;background:linear-gradient(90deg,#121c2b,#1b273b,#121c2b);background-size:200% 100%;animation:skeleton 1.3s infinite}.mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.mini{padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2)}.mini strong{display:block;font-size:12px}.mini span{font-size:9px;color:var(--muted)}.warning{padding:10px 11px;border-radius:11px;background:rgba(242,201,76,.08);border:1px solid rgba(242,201,76,.2);color:#e8d68a;font-size:10px;line-height:1.5}.danger{padding:10px 11px;border-radius:11px;background:rgba(255,104,118,.08);border:1px solid rgba(255,104,118,.22);color:#ffadb6;font-size:10px;line-height:1.5}@keyframes fade{from{opacity:.3;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes pulse{50%{opacity:.4}}
 
@@ -767,20 +767,25 @@ async function testNotification(){
 
 
 function applyLaunchRoute(){
-  const hashPage=(location.hash||'').replace(/^#/,'');
-  const knownPages=new Set(qsa('.page').map(p=>p.id.replace(/Page$/,'')));
-  const saved=localStorage.getItem('cc_last_page');
-  const page=knownPages.has(hashPage)
-    ? hashPage
-    : (knownPages.has(saved)?saved:'home');
+  // Normal launch / browser refresh always starts at Home.
+  // The morning briefing notification keeps its intentional deep link.
+  if(location.hash==='#briefing'){
+    switchPage('briefing',false);
+    return;
+  }
 
-  if(page!=='home')switchPage(page,false);
+  try{localStorage.removeItem('cc_last_page')}catch{}
+  if(location.hash)history.replaceState(null,'',location.pathname+location.search);
+  switchPage('home',false);
 }
 window.addEventListener('hashchange',applyLaunchRoute);
 
 function init(){
   try{
-    qsa('.sidebar-item').forEach(btn=>btn.addEventListener('click',()=>{switchPage(btn.dataset.page);closeSidebar()}));
+    qsa('.sidebar-item').forEach(btn=>btn.addEventListener('click',()=>{
+      if(location.hash==='#briefing')history.replaceState(null,'',location.pathname+location.search);
+      switchPage(btn.dataset.page);closeSidebar()
+    }));
     qsa('[data-page-jump]').forEach(b=>b.addEventListener('click',()=>switchPage(b.dataset.pageJump)));
     bindEntertainmentControls();
     bind('sidebarToggle','click',toggleSidebar);
@@ -873,10 +878,8 @@ function switchPage(page,persist=true){
 
   target.classList.add('active');
 
-  if(persist){
-    try{localStorage.setItem('cc_last_page',page)}catch{}
-    if(location.hash!==`#${page}`)history.replaceState(null,'',`#${page}`);
-  }
+  // Page changes are intentionally not persisted.
+  // This guarantees a normal refresh/reopen begins on Home.
 
   if(page==='portfolio')loadPortfolio();
   if(page==='manga')loadManga();
@@ -2075,15 +2078,31 @@ async function searchYoutubeVideos(){
       return;
     }
 
-    if(results)results.innerHTML=items.map(v=>`<article class="youtube-result" data-youtube-video="${esc(v.videoId)}">
+    if(results)results.innerHTML=items.map(v=>`<article class="youtube-result" data-youtube-video="${esc(v.videoId)}" role="button" tabindex="0">
       <img src="${esc(v.thumbnail||'')}" alt="">
       <div>
         <div class="youtube-result-title">${esc(decodeHtmlText(v.title||'Video'))}</div>
         <div class="youtube-result-meta">${esc(decodeHtmlText(v.channelTitle||'YouTube'))}${v.publishedAt?' • '+new Date(v.publishedAt).toLocaleDateString('en-GB'):''}</div>
+        <div class="feed-actions"><button class="btn small youtube-watch-result" data-video-id="${esc(v.videoId)}">▶ Watch</button></div>
       </div>
     </article>`).join('');
 
-    qsa('[data-youtube-video]').forEach(card=>card.addEventListener('click',()=>loadYoutubeVideo(card.dataset.youtubeVideo)));
+    // A single delegated handler is more reliable for dynamically-created
+    // search results in iOS Home Screen PWAs than binding every card separately.
+    if(!results.dataset.youtubeBound){
+      results.dataset.youtubeBound='1';
+      results.addEventListener('click',e=>{
+        const button=e.target.closest('[data-video-id]');
+        const card=e.target.closest('[data-youtube-video]');
+        const id=button?.dataset.videoId||card?.dataset.youtubeVideo;
+        if(id){e.preventDefault();e.stopPropagation();loadYoutubeVideo(id)}
+      });
+      results.addEventListener('keydown',e=>{
+        if(e.key!=='Enter'&&e.key!==' ')return;
+        const card=e.target.closest('[data-youtube-video]');
+        if(card){e.preventDefault();loadYoutubeVideo(card.dataset.youtubeVideo)}
+      });
+    }
     if(status)status.textContent=`${items.length} results — tap one to play`;
   }catch(e){
     const message=e?.name==='AbortError'
@@ -2112,7 +2131,12 @@ function loadYoutubeVideo(value=null){
   const input=qs('#youtubeWatchInput'),id=extractYoutubeId(value??input?.value);
   if(!id){toast('Paste a valid YouTube link or 11-character video ID');return}
   if(input)input.value=value??input.value;
-  const frame=qs('#youtubeWatchFrame');if(frame)frame.src=`https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1`;
+  const frame=qs('#youtubeWatchFrame');
+  if(frame){
+    frame.src=`https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1`;
+    setTimeout(()=>frame.scrollIntoView({behavior:'smooth',block:'center'}),80);
+  }
+  const status=qs('#youtubeSearchStatus');if(status)status.textContent='Video loaded — playing below.';
   const history=state.entertainment.watchHistory||[];state.entertainment.watchHistory=[id,...history.filter(x=>x!==id)].slice(0,8);saveState();renderWatchRecents();
 }
 function loadTwitchChannel(value=null){
