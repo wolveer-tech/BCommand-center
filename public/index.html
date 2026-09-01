@@ -77,6 +77,10 @@
 .wordle-board{display:grid;grid-template-rows:repeat(6,1fr);gap:5px;max-width:285px;margin:12px auto}.wordle-row{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.wordle-cell{aspect-ratio:1;display:grid;place-items:center;border:1px solid var(--line);border-radius:7px;background:#0a111d;font-size:18px;font-weight:900;text-transform:uppercase}.wordle-cell.filled{border-color:#ffffff55}.wordle-cell.correct{background:rgba(39,211,155,.34);border-color:rgba(39,211,155,.72)}.wordle-cell.present{background:rgba(242,201,76,.28);border-color:rgba(242,201,76,.68)}.wordle-cell.absent{background:#ffffff10;color:#8190a5}.wordle-keyboard{display:grid;gap:5px;margin-top:10px}.wordle-key-row{display:flex;gap:4px;justify-content:center}.wordle-key{min-width:26px;height:38px;padding:0 6px;border:1px solid var(--line);border-radius:7px;background:#ffffff0c;color:#e8eef8;font:inherit;font-size:10px;font-weight:850;cursor:pointer}.wordle-key.wide{min-width:48px}.wordle-key.correct{background:rgba(39,211,155,.3)}.wordle-key.present{background:rgba(242,201,76,.25)}.wordle-key.absent{background:#ffffff0a;color:#5d6a7d}
 .youtube-search-results{display:grid;gap:8px;margin-top:10px}.youtube-result{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:9px;border:1px solid var(--line);border-radius:12px;background:#0a111d;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:rgba(255,255,255,.08)}.youtube-result:hover{border-color:#ffffff40}.youtube-result img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px}.youtube-result-title{font-size:11px;font-weight:800;line-height:1.35}.youtube-result-meta{font-size:9px;color:var(--muted);margin-top:5px}.youtube-search-note{font-size:9px;color:var(--muted);margin-top:6px}.snake-canvas.running{outline:1px solid rgba(39,211,155,.45)}@media(max-width:520px){.youtube-result{grid-template-columns:95px minmax(0,1fr)}.wordle-key{min-width:22px;height:36px;padding:0 4px}}
 
+
+.football-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.football-toolbar .field{min-width:180px;flex:1}.football-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.football-match{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:9px;padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2)}.football-team{display:flex;align-items:center;gap:7px;min-width:0;font-size:11px;font-weight:750}.football-team.away{justify-content:flex-end;text-align:right}.football-team img,.standing-team img{width:22px;height:22px;object-fit:contain;flex:0 0 auto}.football-score{text-align:center;font-size:13px;font-weight:850;min-width:58px}.football-score small{display:block;font-size:8px;font-weight:650;color:var(--muted);margin-top:3px}.football-competition{font-size:9px;color:var(--muted);margin-top:3px}.standing-table{display:grid;gap:3px}.standing-row{display:grid;grid-template-columns:28px minmax(0,1fr) 35px 35px 42px 30px;gap:6px;align-items:center;padding:8px;border-radius:10px;font-size:10px}.standing-row:nth-child(even){background:#ffffff05}.standing-row.favorite{background:rgba(242,201,76,.10);border:1px solid rgba(242,201,76,.2)}.standing-head{color:var(--muted);font-size:8px;font-weight:800;text-transform:uppercase}.standing-team{display:flex;gap:7px;align-items:center;min-width:0;font-weight:750}.standing-team span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.star-btn{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:15px;padding:2px}.star-btn.active{color:var(--gold)}.football-favourite{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;border:1px solid rgba(242,201,76,.22);background:rgba(242,201,76,.06);border-radius:15px}.football-favourite-main{display:flex;align-items:center;gap:10px;min-width:0}.football-favourite-main img{width:36px;height:36px;object-fit:contain}.football-favourite strong{font-size:13px}.service-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.service-card{border:1px solid var(--line);border-radius:15px;background:var(--panel2);padding:12px}.service-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.service-name{font-size:11px;font-weight:800}.service-state{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:800;padding:5px 8px;border-radius:999px;background:#ffffff08}.service-state.ok{color:var(--green);background:rgba(39,211,155,.10)}.service-state.warn{color:var(--gold);background:rgba(242,201,76,.10)}.service-state.bad{color:var(--red);background:rgba(255,104,118,.10)}.service-state.info{color:var(--cyan);background:rgba(71,214,232,.10)}.service-detail{font-size:9px;color:var(--muted);line-height:1.45;margin-top:7px;word-break:break-word}.status-summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.status-summary .mini{flex:1 1 100px}.status-section-title{font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.45px;color:var(--muted);margin:14px 0 8px}
+@media(max-width:760px){.football-grid,.service-grid{grid-template-columns:1fr}.football-match{grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr)}.standing-row{grid-template-columns:24px minmax(0,1fr) 29px 29px 36px 27px;padding:7px 5px}.football-toolbar .field{min-width:100%}}
+
 .footer-note{margin-top:13px;text-align:center;font-size:9px;color:#65748a}.skeleton{height:65px;border-radius:12px;background:linear-gradient(90deg,#121c2b,#1b273b,#121c2b);background-size:200% 100%;animation:skeleton 1.3s infinite}.mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.mini{padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2)}.mini strong{display:block;font-size:12px}.mini span{font-size:9px;color:var(--muted)}.warning{padding:10px 11px;border-radius:11px;background:rgba(242,201,76,.08);border:1px solid rgba(242,201,76,.2);color:#e8d68a;font-size:10px;line-height:1.5}.danger{padding:10px 11px;border-radius:11px;background:rgba(255,104,118,.08);border:1px solid rgba(255,104,118,.22);color:#ffadb6;font-size:10px;line-height:1.5}@keyframes fade{from{opacity:.3;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes pulse{50%{opacity:.4}}
 
 @media(max-width:860px){.sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 20px 60px rgba(0,0,0,.5)}.sidebar.open{transform:translateX(0)}.sidebar-toggle{display:flex;align-items:center;justify-content:center}.sidebar-overlay.open{display:block;position:fixed;inset:0;background:rgba(2,5,10,.6);z-index:24}}
@@ -95,6 +99,7 @@
       <button class="sidebar-item" data-page="manga"><span class="sidebar-emoji">📚</span> Manga</button>
       <button class="sidebar-item" data-page="reddit"><span class="sidebar-emoji">📱</span> Reddit</button>
       <button class="sidebar-item" data-page="entertainment"><span class="sidebar-emoji">🎮</span> Entertainment</button>
+      <button class="sidebar-item" data-page="football"><span class="sidebar-emoji">⚽</span> Football</button>
       <button class="sidebar-item" data-page="weather"><span class="sidebar-emoji">🌤️</span> Weather</button>
       <button class="sidebar-item" data-page="calendar"><span class="sidebar-emoji">🗓️</span> Calendar</button>
       <button class="sidebar-item" data-page="notes"><span class="sidebar-emoji">📝</span> Notes</button>
@@ -102,6 +107,7 @@
       <button class="sidebar-item" data-page="news"><span class="sidebar-emoji">📰</span> News</button>
       <button class="sidebar-item" data-page="bible"><span class="sidebar-emoji">📖</span> Bible</button>
       <button class="sidebar-item" data-page="briefing"><span class="sidebar-emoji">📋</span> Briefing</button>
+      <button class="sidebar-item" data-page="status"><span class="sidebar-emoji">🩺</span> Status</button>
     </nav>
   </aside>
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -251,6 +257,92 @@
               </article>
             </div>
           </div>
+        </article>
+      </div>
+    </section>
+
+
+    <section class="page" id="footballPage">
+      <div class="stack">
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <div class="title">⚽ Football Hub</div>
+              <div class="sub">Fixtures, recent results, league tables and your favourite club.</div>
+            </div>
+            <button class="btn" id="footballRefreshBtn">↻ Refresh</button>
+          </div>
+          <div class="football-toolbar">
+            <div class="field">
+              <label>Competition</label>
+              <select id="footballCompetition">
+                <option value="PL">Premier League</option>
+                <option value="CL">Champions League</option>
+                <option value="PD">La Liga</option>
+                <option value="BL1">Bundesliga</option>
+                <option value="SA">Serie A</option>
+                <option value="FL1">Ligue 1</option>
+              </select>
+            </div>
+          </div>
+          <div id="footballStatus" class="section-note">Open the Football Hub to load data.</div>
+        </article>
+
+        <article class="card">
+          <div class="card-head"><div><div class="title">⭐ Favourite team</div><div class="sub">Tap the star beside a club in the table below.</div></div></div>
+          <div id="footballFavourite"><div class="empty">No favourite club selected yet.</div></div>
+        </article>
+
+        <div class="football-grid">
+          <article class="card">
+            <div class="card-head"><div><div class="title">🗓️ Upcoming fixtures</div><div class="sub">Next two weeks</div></div></div>
+            <div id="footballFixtures" class="list"><div class="empty">Loading…</div></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><div><div class="title">🏁 Recent results</div><div class="sub">Previous week</div></div></div>
+            <div id="footballResults" class="list"><div class="empty">Loading…</div></div>
+          </article>
+        </div>
+
+        <article class="card">
+          <div class="card-head"><div><div class="title">🏆 Standings</div><div class="sub" id="footballStandingsSub">Current season</div></div></div>
+          <div id="footballStandings"><div class="empty">Loading…</div></div>
+        </article>
+
+        <article class="card">
+          <div class="warning">Football data is loaded through your Cloudflare Worker using football-data.org. Its free plan includes fixtures and league tables, but scores and schedules can be delayed. Champions League standings can have group-based layouts.</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="page" id="statusPage">
+      <div class="stack">
+        <article class="card">
+          <div class="card-head">
+            <div><div class="title">🩺 System Status</div><div class="sub">See what is working, configured or needs attention.</div></div>
+            <button class="btn primary" id="runStatusChecksBtn">Run checks</button>
+          </div>
+          <div class="status-summary" id="statusSummary">
+            <div class="mini"><strong>—</strong><span>Healthy</span></div>
+            <div class="mini"><strong>—</strong><span>Needs attention</span></div>
+            <div class="mini"><strong>—</strong><span>Checked</span></div>
+          </div>
+          <div id="statusCheckedAt" class="sub"></div>
+        </article>
+
+        <article class="card">
+          <div class="status-section-title">Cloud & integrations</div>
+          <div id="serverStatusGrid" class="service-grid"><div class="empty">Press Run checks.</div></div>
+        </article>
+
+        <article class="card">
+          <div class="status-section-title">This device</div>
+          <div id="deviceStatusGrid" class="service-grid"></div>
+        </article>
+
+        <article class="card">
+          <div class="status-section-title">Portfolio providers</div>
+          <div id="marketStatusGrid" class="service-grid"></div>
         </article>
       </div>
     </section>
@@ -491,6 +583,10 @@ const DEFAULT_STATE = {
   financialNewsEnabled:true,
   newsPushMode:'major',
   financialNewsProvider:'hybrid',
+  footballCompetition:'PL',
+  footballFavouriteTeamId:null,
+  footballFavouriteTeamName:'',
+  footballFavouriteTeamCrest:'',
   entertainment:{
     likes:{},
     hidden:{},
@@ -805,6 +901,9 @@ function init(){
     bind('refreshPortfolio','click',()=>loadPortfolio(true));
     bind('moreManga','click',()=>loadManga(true));
     bind('redditRetry','click',loadReddit);
+    bind('footballRefreshBtn','click',()=>loadFootball(true));
+    bind('footballCompetition','change',()=>loadFootball(true));
+    bind('runStatusChecksBtn','click',runStatusChecks);
     bind('weatherRefresh','click',()=>loadWeather());
     bind('weatherFullRefresh','click',()=>loadWeather());
     bind('generateBriefing','click',generateBriefing);
@@ -845,7 +944,7 @@ function init(){
     const embedInput=qs('#spotifyEmbedInput');if(embedInput)embedInput.addEventListener('keydown',e=>{if(e.key==='Enter')loadSpotifyEmbed()});
     handleSpotifyRedirect();
     updateSpotifyConnectedUI();
-    applySettingsUI();calendarCursor=new Date();selectedCalendarDate=dayKey();updateClock();setInterval(updateClock,1000);registerNotificationSW();updateNotificationUI();if(state.notificationsEnabled&&Notification.permission==='granted')scheduleAllNotifications();generateBriefing();setTimeout(applyLaunchRoute,60);
+    applySettingsUI();const footballSel=qs('#footballCompetition');if(footballSel)footballSel.value=state.footballCompetition||'PL';calendarCursor=new Date();selectedCalendarDate=dayKey();updateClock();setInterval(updateClock,1000);registerNotificationSW();updateNotificationUI();if(state.notificationsEnabled&&Notification.permission==='granted')scheduleAllNotifications();generateBriefing();setTimeout(applyLaunchRoute,60);
     const startupJobs=[
       ()=>renderBible(),
       ()=>renderBibleChecklist(),
@@ -885,6 +984,8 @@ function switchPage(page,persist=true){
   if(page==='manga')loadManga();
   if(page==='reddit')loadReddit();
   if(page==='entertainment'){renderEntertainmentHub();refreshEntertainmentFeed(false)}
+  if(page==='football')loadFootball(false);
+  if(page==='status')runStatusChecks();
   if(page==='weather')loadWeather();
   if(page==='calendar'){calendarView='year';calendarYearCursor=new Date().getFullYear();renderCalendar()}
   if(page==='notes')renderNotes();
@@ -1494,6 +1595,208 @@ window.editHolding=id=>openHolding(id);
 function saveHolding(){const symbol=qs('#holdSymbol').value.trim().toUpperCase();const name=qs('#holdName').value.trim();const shares=Number(qs('#holdShares').value);const buyPrice=Number(qs('#holdBuyPrice').value);const exchange=qs('#holdExchange').value;const currency=qs('#holdCurrency').value;if(!symbol||!name||!(shares>0)||!(buyPrice>=0)){toast('Enter a ticker, name, shares and buy price');return}const item={id:editingHoldingId||makeId('holding'),symbol,exchange,name,shares,buyPrice,currency,note:qs('#holdNote').value.trim()};if(editingHoldingId){state.holdings=state.holdings.map(h=>h.id===editingHoldingId?item:h)}else state.holdings.push(item);saveState();closeModal('holdingModal');loadPortfolio(true);toast('Holding saved')}
 function deleteEditingHolding(){if(!editingHoldingId)return;if(confirm('Remove this holding from your tracker?')){state.holdings=state.holdings.filter(h=>h.id!==editingHoldingId);saveState();closeModal('holdingModal');loadPortfolio(true);toast('Holding removed')}}
 
+
+
+const FOOTBALL_COMPETITIONS={
+  PL:'Premier League',
+  CL:'Champions League',
+  PD:'La Liga',
+  BL1:'Bundesliga',
+  SA:'Serie A',
+  FL1:'Ligue 1'
+};
+let footballCache={competition:'',matches:[],standings:[],competitionName:'',updatedAt:''};
+
+function footballDateTime(iso){
+  if(!iso)return 'TBC';
+  const d=new Date(iso);
+  return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' • '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+function footballTeamName(team){return team?.shortName||team?.name||team?.tla||'Team'}
+function footballScoreText(m){
+  const h=m?.score?.fullTime?.home,a=m?.score?.fullTime?.away;
+  if(Number.isFinite(h)&&Number.isFinite(a))return `${h} – ${a}`;
+  if(['IN_PLAY','PAUSED','LIVE'].includes(m?.status))return 'LIVE';
+  return footballDateTime(m?.utcDate).split(' • ').pop();
+}
+function footballMatchCard(m){
+  const home=footballTeamName(m.homeTeam),away=footballTeamName(m.awayTeam);
+  const statusLabel=m.status==='FINISHED'?'FT':(['IN_PLAY','PAUSED','LIVE'].includes(m.status)?m.status.replace('_',' '):footballDateTime(m.utcDate).split(' • ')[0]);
+  return `<div class="football-match">
+    <div class="football-team">${m.homeTeam?.crest?`<img src="${esc(m.homeTeam.crest)}" alt="">`:''}<span>${esc(home)}</span></div>
+    <div class="football-score">${esc(footballScoreText(m))}<small>${esc(statusLabel)}</small></div>
+    <div class="football-team away"><span>${esc(away)}</span>${m.awayTeam?.crest?`<img src="${esc(m.awayTeam.crest)}" alt="">`:''}</div>
+  </div>`;
+}
+function setFootballFavourite(id,name,crest){
+  state.footballFavouriteTeamId=Number(id)||null;
+  state.footballFavouriteTeamName=decodeURIComponent(name||'');
+  state.footballFavouriteTeamCrest=decodeURIComponent(crest||'');
+  saveState();
+  renderFootball();
+  toast(`${state.footballFavouriteTeamName||'Team'} set as favourite`);
+}
+window.setFootballFavourite=setFootballFavourite;
+
+function renderFootballFavourite(){
+  const el=qs('#footballFavourite');if(!el)return;
+  const id=Number(state.footballFavouriteTeamId||0);
+  if(!id){
+    el.innerHTML='<div class="empty">No favourite club selected yet. Tap ☆ beside a club in Standings.</div>';
+    return;
+  }
+  const matches=(footballCache.matches||[]).filter(m=>Number(m.homeTeam?.id)===id||Number(m.awayTeam?.id)===id);
+  const next=matches.filter(m=>!['FINISHED','CANCELLED'].includes(m.status)&&new Date(m.utcDate)>=new Date()).sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate))[0];
+  const last=matches.filter(m=>m.status==='FINISHED').sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate))[0];
+  el.innerHTML=`<div class="football-favourite">
+    <div class="football-favourite-main">
+      ${state.footballFavouriteTeamCrest?`<img src="${esc(state.footballFavouriteTeamCrest)}" alt="">`:''}
+      <div><strong>${esc(state.footballFavouriteTeamName||'Favourite team')}</strong>
+        <div class="sub">${next?`Next: ${esc(footballTeamName(next.homeTeam))} vs ${esc(footballTeamName(next.awayTeam))} • ${esc(footballDateTime(next.utcDate))}`:'No upcoming match in this window.'}</div>
+        ${last?`<div class="sub" style="margin-top:3px">Last: ${esc(footballTeamName(last.homeTeam))} ${esc(footballScoreText(last))} ${esc(footballTeamName(last.awayTeam))}</div>`:''}
+      </div>
+    </div>
+    <button class="btn small" onclick="setFootballFavourite(0,'','')">Clear</button>
+  </div>`;
+}
+function renderFootballStandings(){
+  const el=qs('#footballStandings');if(!el)return;
+  const tables=footballCache.standings||[];
+  if(!tables.length){
+    el.innerHTML='<div class="empty">No league table is available for this competition right now.</div>';
+    return;
+  }
+  el.innerHTML=tables.map((standing,si)=>{
+    const rows=standing.table||[];
+    const label=standing.group?String(standing.group).replaceAll('_',' '):(standing.type&&standing.type!=='TOTAL'?standing.type:'');
+    return `${label?`<div class="section-note" style="font-weight:800">${esc(label)}</div>`:''}
+      <div class="standing-table">
+        <div class="standing-row standing-head"><span>#</span><span>Club</span><span>P</span><span>GD</span><span>Pts</span><span>Fav</span></div>
+        ${rows.map(r=>{
+          const t=r.team||{},fav=Number(state.footballFavouriteTeamId)===Number(t.id);
+          return `<div class="standing-row ${fav?'favorite':''}">
+            <span>${r.position??'—'}</span>
+            <div class="standing-team">${t.crest?`<img src="${esc(t.crest)}" alt="">`:''}<span>${esc(footballTeamName(t))}</span></div>
+            <span>${r.playedGames??'—'}</span>
+            <span>${r.goalDifference??'—'}</span>
+            <strong>${r.points??'—'}</strong>
+            <button class="star-btn ${fav?'active':''}" title="Set favourite" onclick="setFootballFavourite(${Number(t.id)||0},'${encodeURIComponent(footballTeamName(t))}','${encodeURIComponent(t.crest||'')}')">${fav?'★':'☆'}</button>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }).join('');
+}
+function renderFootball(){
+  const fixtureEl=qs('#footballFixtures'),resultEl=qs('#footballResults');
+  if(!fixtureEl||!resultEl)return;
+  const now=Date.now(),matches=footballCache.matches||[];
+  const upcoming=matches.filter(m=>!['FINISHED','CANCELLED'].includes(m.status)&&new Date(m.utcDate).getTime()>=now-3*60*60*1000)
+    .sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate)).slice(0,12);
+  const results=matches.filter(m=>m.status==='FINISHED')
+    .sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate)).slice(0,12);
+
+  fixtureEl.innerHTML=upcoming.length?upcoming.map(footballMatchCard).join(''):'<div class="empty">No upcoming fixtures in the current window.</div>';
+  resultEl.innerHTML=results.length?results.map(footballMatchCard).join(''):'<div class="empty">No recent results in the current window.</div>';
+  renderFootballStandings();renderFootballFavourite();
+
+  const sub=qs('#footballStandingsSub');
+  if(sub)sub.textContent=footballCache.competitionName?`${footballCache.competitionName} • current season`:'Current season';
+}
+async function loadFootball(force=false){
+  const status=qs('#footballStatus'),sel=qs('#footballCompetition');
+  const competition=(sel?.value||state.footballCompetition||'PL').toUpperCase();
+  state.footballCompetition=competition;saveState();
+  if(status)status.innerHTML='<span class="status"><span class="dot loading"></span>Loading football data…</span>';
+  try{
+    const params=new URLSearchParams({competition});if(force)params.set('refresh','1');
+    const data=await fetchJson(`/api/football?${params.toString()}`,{},16000);
+    footballCache={
+      competition,
+      matches:Array.isArray(data.matches)?data.matches:[],
+      standings:Array.isArray(data.standings)?data.standings:[],
+      competitionName:data.competition?.name||FOOTBALL_COMPETITIONS[competition]||competition,
+      updatedAt:data.updatedAt||new Date().toISOString()
+    };
+    renderFootball();
+    if(status)status.innerHTML=`<span class="status"><span class="dot live"></span>${esc(footballCache.competitionName)} • updated ${new Date(footballCache.updatedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span>`;
+  }catch(e){
+    if(status)status.innerHTML=`<span class="status"><span class="dot error"></span>${esc(e.message||'Football data unavailable')}</span>`;
+    if(qs('#footballFixtures'))qs('#footballFixtures').innerHTML='<div class="empty">Could not load fixtures.</div>';
+    if(qs('#footballResults'))qs('#footballResults').innerHTML='<div class="empty">Could not load results.</div>';
+    if(qs('#footballStandings'))qs('#footballStandings').innerHTML='<div class="empty">Could not load standings.</div>';
+  }
+}
+
+function serviceCard(name,stateText,detail,kind='info'){
+  return `<div class="service-card"><div class="service-head"><div class="service-name">${esc(name)}</div><span class="service-state ${kind}">${esc(stateText)}</span></div><div class="service-detail">${esc(detail||'')}</div></div>`;
+}
+async function deviceStatusData(){
+  const rows=[];
+  rows.push({name:'Browser app',state:'Healthy',kind:'ok',detail:`Running ${navigator.onLine?'online':'offline'} • ${navigator.userAgent.includes('iPhone')?'iPhone/PWA capable':'browser'}`});
+
+  let swState='Not registered',swKind='warn',swDetail='Service worker is not currently controlling this page.';
+  try{
+    if('serviceWorker'in navigator){
+      const reg=await navigator.serviceWorker.getRegistration();
+      if(reg){swState='Registered';swKind='ok';swDetail='Service worker is installed.'}
+    }else{swState='Unsupported';swKind='bad';swDetail='This browser does not support service workers.'}
+  }catch(e){swState='Error';swKind='bad';swDetail=e.message||'Service worker check failed.'}
+  rows.push({name:'Service Worker',state:swState,kind:swKind,detail:swDetail});
+
+  if('Notification'in window){
+    const perm=Notification.permission;
+    rows.push({name:'Notification permission',state:perm==='granted'?'Granted':perm==='denied'?'Denied':'Not granted',kind:perm==='granted'?'ok':perm==='denied'?'bad':'warn',detail:perm==='granted'?'This device allows Command Centre notifications.':'Enable notifications from Settings if you want push alerts.'});
+  }else rows.push({name:'Notification permission',state:'Unsupported',kind:'bad',detail:'Notifications are not supported by this browser.'});
+
+  let pushState='Not subscribed',pushKind='warn',pushDetail='No active push subscription found.';
+  try{
+    if('serviceWorker'in navigator&&'PushManager'in window){
+      const reg=await navigator.serviceWorker.getRegistration();
+      const sub=reg?await reg.pushManager.getSubscription():null;
+      if(sub){pushState='Subscribed';pushKind='ok';pushDetail='This device has an active Web Push subscription.'}
+    }else{pushState='Unsupported';pushKind='bad';pushDetail='PushManager is unavailable.'}
+  }catch(e){pushState='Error';pushKind='bad';pushDetail=e.message||'Push subscription check failed.'}
+  rows.push({name:'Push subscription',state:pushState,kind:pushKind,detail:pushDetail});
+  return rows;
+}
+function marketStatusData(){
+  return [
+    {name:'Twelve Data',configured:!!state.marketKey,detail:state.marketKey?'API key stored on this device.':'No API key stored.'},
+    {name:'Finnhub',configured:!!state.finnhubKey,detail:state.finnhubKey?'API key stored on this device.':'No API key stored.'},
+    {name:'EODHD',configured:!!state.eodhdKey,detail:state.eodhdKey?'API key stored on this device.':'No API key stored.'}
+  ];
+}
+function renderStatusCards(target,rows){
+  const el=qs(target);if(!el)return;
+  el.innerHTML=rows.map(r=>serviceCard(r.name,r.state|| (r.configured?'Configured':'Not configured'),r.detail,r.kind||(r.configured?'info':'warn'))).join('');
+}
+async function runStatusChecks(){
+  const btn=qs('#runStatusChecksBtn');if(btn)btn.disabled=true;
+  qs('#serverStatusGrid').innerHTML='<div class="empty">Checking integrations…</div>';
+  try{
+    const [server,device]=await Promise.all([
+      fetchJson('/api/status?live=1',{},18000),
+      deviceStatusData()
+    ]);
+
+    const services=Array.isArray(server.services)?server.services:[];
+    renderStatusCards('#serverStatusGrid',services);
+    renderStatusCards('#deviceStatusGrid',device);
+    renderStatusCards('#marketStatusGrid',marketStatusData());
+
+    const all=[...services,...device];
+    const healthy=all.filter(x=>x.kind==='ok').length;
+    const attention=all.filter(x=>x.kind==='bad').length;
+    const info=all.filter(x=>x.kind==='warn'||x.kind==='info').length;
+    const summary=qs('#statusSummary');
+    if(summary)summary.innerHTML=`<div class="mini"><strong>${healthy}</strong><span>Healthy</span></div><div class="mini"><strong>${attention}</strong><span>Problems</span></div><div class="mini"><strong>${info}</strong><span>Setup / info</span></div>`;
+    if(qs('#statusCheckedAt'))qs('#statusCheckedAt').textContent=`Checked ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+  }catch(e){
+    qs('#serverStatusGrid').innerHTML=serviceCard('Cloudflare Worker','Unreachable',e.message||'Could not run status checks.','bad');
+    renderStatusCards('#deviceStatusGrid',await deviceStatusData());
+    renderStatusCards('#marketStatusGrid',marketStatusData());
+  }finally{if(btn)btn.disabled=false}
+}
 
 let entertainmentRedditCache={trading212:[],wallstreetbets:[]};
 let game2048State={grid:Array(16).fill(0),score:0};
