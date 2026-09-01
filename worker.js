@@ -239,18 +239,35 @@ async function sendMorningBriefings(env){
 
 
 async function searchYouTube(env,query,requestUrl){
-  if(!env.YOUTUBE_API_KEY)throw new Error('YouTube search is not configured. Add YOUTUBE_API_KEY as a Cloudflare Worker secret.');
-  const q=String(query||'').trim();
-  if(q.length<2)throw new Error('Enter at least 2 characters to search YouTube.');
+  if(!env.YOUTUBE_API_KEY){
+    const err=new Error('YOUTUBE_API_KEY is missing. Add it in Cloudflare → Workers & Pages → bcommand-center → Settings → Variables and Secrets.');
+    err.status=503;
+    throw err;
+  }
 
-  // Cache identical searches for 15 minutes to reduce YouTube API quota use.
-  const cache=caches.default;
-  const cacheUrl=new URL(requestUrl);
-  cacheUrl.pathname='/__cache/youtube-search';
-  cacheUrl.search=new URLSearchParams({q:q.toLowerCase()}).toString();
-  const cacheKey=new Request(cacheUrl.toString(),{method:'GET'});
-  const cached=await cache.match(cacheKey);
-  if(cached)return cached.json();
+  const q=String(query||'').trim();
+  if(q.length<2){
+    const err=new Error('Enter at least 2 characters to search YouTube.');
+    err.status=400;
+    throw err;
+  }
+
+  // Cache identical searches for 15 minutes when Cache API is available.
+  let cache=null,cacheKey=null;
+  try{
+    cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
+    if(cache){
+      const cacheUrl=new URL(requestUrl);
+      cacheUrl.pathname='/__cache/youtube-search';
+      cacheUrl.search=new URLSearchParams({q:q.toLowerCase()}).toString();
+      cacheKey=new Request(cacheUrl.toString(),{method:'GET'});
+      const cached=await cache.match(cacheKey);
+      if(cached)return cached.json();
+    }
+  }catch(e){
+    console.warn('YouTube cache read skipped',e);
+    cache=null;cacheKey=null;
+  }
 
   const u=new URL('https://www.googleapis.com/youtube/v3/search');
   u.searchParams.set('part','snippet');
@@ -259,14 +276,40 @@ async function searchYouTube(env,query,requestUrl){
   u.searchParams.set('q',q);
   u.searchParams.set('safeSearch','moderate');
   u.searchParams.set('videoEmbeddable','true');
-  u.searchParams.set('videoSyndicated','true');
   u.searchParams.set('relevanceLanguage','en');
   u.searchParams.set('regionCode','GB');
   u.searchParams.set('key',env.YOUTUBE_API_KEY);
 
-  const r=await fetch(u.toString(),{headers:{accept:'application/json'}});
+  let r;
+  try{
+    r=await fetch(u.toString(),{headers:{accept:'application/json'}});
+  }catch(e){
+    const err=new Error(`Could not reach Google YouTube API: ${e?.message||e}`);
+    err.status=502;
+    throw err;
+  }
+
   const data=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error(data?.error?.message||`YouTube API HTTP ${r.status}`);
+
+  if(!r.ok){
+    const googleMessage=data?.error?.message||`YouTube API HTTP ${r.status}`;
+    let help='';
+    const reason=data?.error?.errors?.[0]?.reason||'';
+
+    if(reason==='keyInvalid'||/API key not valid/i.test(googleMessage)){
+      help=' Check that the Cloudflare secret contains only the API key value.';
+    }else if(reason==='accessNotConfigured'||/has not been used|disabled/i.test(googleMessage)){
+      help=' Enable YouTube Data API v3 in the same Google Cloud project as this API key.';
+    }else if(reason==='dailyLimitExceeded'||reason==='quotaExceeded'||/quota/i.test(googleMessage)){
+      help=' The YouTube API quota has been reached.';
+    }else if(/referer|referrer|restriction/i.test(googleMessage)){
+      help=' Remove HTTP referrer restrictions from this server-side key, and restrict it to YouTube Data API v3 instead.';
+    }
+
+    const err=new Error(`${googleMessage}${help}`);
+    err.status=(r.status>=400&&r.status<500)?r.status:502;
+    throw err;
+  }
 
   const items=(data.items||[]).map(x=>({
     videoId:x.id?.videoId||'',
@@ -278,9 +321,49 @@ async function searchYouTube(env,query,requestUrl){
   })).filter(x=>x.videoId);
 
   const payload={items};
-  const response=new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public, max-age=900'}});
-  await cache.put(cacheKey,response.clone());
+
+  if(cache&&cacheKey){
+    try{
+      const response=new Response(JSON.stringify(payload),{
+        headers:{'content-type':'application/json','cache-control':'public, max-age=900'}
+      });
+      await cache.put(cacheKey,response.clone());
+    }catch(e){
+      console.warn('YouTube cache write skipped',e);
+    }
+  }
+
   return payload;
+}
+
+
+async function youtubeStatus(env){
+  if(!env.YOUTUBE_API_KEY){
+    return {configured:false,ok:false,error:'YOUTUBE_API_KEY is missing from the deployed Worker.'};
+  }
+
+  const u=new URL('https://www.googleapis.com/youtube/v3/search');
+  u.searchParams.set('part','snippet');
+  u.searchParams.set('type','video');
+  u.searchParams.set('maxResults','1');
+  u.searchParams.set('q','test');
+  u.searchParams.set('key',env.YOUTUBE_API_KEY);
+
+  try{
+    const r=await fetch(u.toString(),{headers:{accept:'application/json'}});
+    const data=await r.json().catch(()=>({}));
+    if(r.ok)return {configured:true,ok:true};
+
+    return {
+      configured:true,
+      ok:false,
+      status:r.status,
+      reason:data?.error?.errors?.[0]?.reason||'',
+      error:data?.error?.message||`YouTube API HTTP ${r.status}`
+    };
+  }catch(e){
+    return {configured:true,ok:false,error:`Could not reach Google: ${e?.message||e}`};
+  }
 }
 
 async function sendOne(row,env){
@@ -309,6 +392,11 @@ export default {
           await env.DB.prepare('INSERT OR IGNORE INTO notifications(id,device_id,item_id,kind,due_at,title,body,url,frequency,local_date,local_time,timezone,sent) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,0)').bind(x.id,deviceId,x.itemId,x.kind,x.dueAt,x.title,x.body,x.url,x.frequency||'none',x.localDate,x.localTime,x.timezone||timezone||'Europe/London').run();
         }
         return json({ok:true,count:items.length});
+      }
+
+      if(url.pathname==='/api/youtube/status'&&request.method==='GET'){
+        const result=await youtubeStatus(env);
+        return json(result,result.configured?200:503);
       }
 
       if(url.pathname==='/api/youtube/search'&&request.method==='GET'){
@@ -367,7 +455,7 @@ export default {
         return json({ok:true});
       }
       return json({error:'Not found'},404);
-    }catch(e){console.error(e);return json({error:e?.message||String(e)},500)}
+    }catch(e){console.error(e);return json({error:e?.message||String(e)},Number(e?.status)||500)}
   },
   async scheduled(_controller,env,ctx){
     const now=new Date().toISOString();
