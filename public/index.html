@@ -111,7 +111,7 @@
         <article class="card"><div class="card-head"><div><div class="title">💭 My Words</div><div class="sub">A word to hold onto today</div></div></div><div class="word-of-moment"><div class="featured-word" id="featuredWord">Comfortable</div></div><div class="words-container" id="wordsContainer"></div></article>
         <div class="grid">
           <article class="card"><div class="card-head"><div><div class="title">📚 Daily Manga Pick</div><div class="sub">One popular pick, refreshed daily</div></div></div><div id="dailyManga"></div></article>
-          <article class="card"><div class="card-head"><div><div class="title">📖 Today’s Reading</div><div class="sub">Recommended from chapters you have not ticked off</div></div><button class="btn small" data-page-jump="bible">Checklist</button></div><div id="bible"></div></article>
+          <article class="card"><div class="card-head"><div><div class="title">📖 Today’s Reading</div><div class="sub">Three meaningful reading sections, fixed for the day</div></div><div class="toolbar"><button class="btn small" id="newBibleRecommendationsBtn">New 3</button><button class="btn small" data-page-jump="bible">Checklist</button></div></div><div id="bible"></div></article>
         </div>
         <div class="grid">
           <article class="card"><div class="card-head"><div><div class="title">📈 Portfolio Snapshot</div><div class="status" id="portfolioStatus"><span class="dot loading"></span>Loading</div></div><button class="btn small" data-page-jump="portfolio">Open</button></div><div id="portfolioSnapshot"><div class="skeleton"></div></div></article>
@@ -369,6 +369,7 @@ const DEFAULT_STATE = {
   events:[],
   notes:[],
   bibleRead:{},
+  bibleRecommendations:{date:'',items:[]},
   notificationsEnabled:false,
   notificationLeadMinutes:0,
   morningBriefingEnabled:true,
@@ -541,7 +542,7 @@ async function enableNotifications(){
 
 function morningBriefingBibleText(){
   const recs=todaysBibleRecommendation();
-  return recs.length ? recs.map(([book,ch])=>`${book} ${ch}`).join(' • ') : 'Bible complete';
+  return recs.length ? recs.map(formatReadingRange).join(' • ') : 'Bible complete';
 }
 async function syncMorningBriefingPreferences(){
   if(!state.notificationsEnabled||Notification.permission!=='granted')return;
@@ -687,6 +688,7 @@ function init(){
      bind('notesSearch','input',renderNotes);
      bind('refreshNewsBtn','click',()=>loadNews(true));
      bind('bibleSearch','input',applyBibleSearch);
+     bind('newBibleRecommendationsBtn','click',newBibleRecommendations);
      qsa('.settings-tab').forEach(b=>b.addEventListener('click',()=>showSettingsSection(b.dataset.settingsSection)));
      bind('bibleExpandAll','click',()=>qsa('.bible-book').forEach(x=>x.classList.add('open')));
      bind('bibleCollapseAll','click',()=>qsa('.bible-book').forEach(x=>x.classList.remove('open')));
@@ -736,39 +738,205 @@ function bibleKey(book,ch){return `${book}::${ch}`}
 function isBibleChapterRead(book,ch){return !!state.bibleRead?.[bibleKey(book,ch)]}
 function setBibleChapterRead(book,ch,read){state.bibleRead=state.bibleRead||{};const k=bibleKey(book,ch);if(read)state.bibleRead[k]=true;else delete state.bibleRead[k];saveState();renderBible();renderBibleChecklist();syncMorningBriefingPreferences()}
 function setBibleBookRead(book,read){const meta=BIBLE_BOOKS.find(b=>b[0]===book);if(!meta)return;state.bibleRead=state.bibleRead||{};for(let ch=1;ch<=meta[1];ch++){const k=bibleKey(book,ch);if(read)state.bibleRead[k]=true;else delete state.bibleRead[k]}saveState();renderBible();renderBibleChecklist();syncMorningBriefingPreferences()}
-function bibleUnreadChapters(){const out=[];for(const [book,count] of BIBLE_BOOKS)for(let ch=1;ch<=count;ch++)if(!isBibleChapterRead(book,ch))out.push([book,ch]);return out}
-function todaysBibleRecommendation(){const unread=bibleUnreadChapters();if(!unread.length)return[];const start=dayOfYear()%unread.length;const result=[];for(let i=0;i<Math.min(3,unread.length);i++)result.push(unread[(start+i)%unread.length]);return result}
-function renderBible(){const el=qs('#bible');if(!el)return;const recs=todaysBibleRecommendation();if(!recs.length){el.innerHTML='<div class="positive" style="font-weight:800">✓ Every chapter is ticked off.</div><div class="sub" style="margin-top:5px">You have completed the full Bible checklist.</div>';return}el.innerHTML=`<div class="metric" style="font-size:18px">Today's chapters</div><div class="reading-checks">${recs.map(([book,ch])=>`<label class="reading-check"><input type="checkbox" onchange="window.toggleBibleChapter('${esc(book).replace(/'/g,"\\'")}',${ch},this.checked)"> <span>${esc(book)} ${ch}</span></label>`).join('')}</div><div class="sub" style="margin-top:8px">Tick a chapter here and it is also ticked in your Bible checklist.</div>`}
-
-function parseBibleSearch(raw){const q=String(raw||'').trim();if(!q)return{book:'',chapter:null};const m=q.match(/^(.*?)(?:\s+(\d+))?$/);return{book:(m?.[1]||q).trim().toLowerCase(),chapter:m?.[2]?Number(m[2]):null}}
-function applyBibleSearch(){const input=qs('#bibleSearch');if(!input)return;const {book,chapter}=parseBibleSearch(input.value);qsa('.bible-book').forEach(card=>{const title=card.querySelector('.bible-book-title')?.textContent?.trim().toLowerCase()||'';const match=!book||title.includes(book);card.classList.toggle('search-hidden',!match);card.classList.toggle('search-match',!!book&&match);card.querySelectorAll('.chapter-check').forEach((ch,i)=>ch.classList.toggle('search-hit',match&&chapter===i+1));if(match&&chapter)card.classList.add('open')})}
-function showSettingsSection(name){qsa('.settings-section').forEach(x=>x.classList.toggle('active',x.dataset.settingsPanel===name));qsa('.settings-tab').forEach(x=>x.classList.toggle('active',x.dataset.settingsSection===name));const s=qs('#settingsSectionSelect');if(s)s.value=name}
-
-function renderBibleChecklist(){const target=qs('#bibleChecklist'),prog=qs('#bibleProgress');if(!target||!prog)return;const readCount=Object.keys(state.bibleRead||{}).filter(k=>state.bibleRead[k]).length;const pctDone=Math.round(readCount/BIBLE_TOTAL_CHAPTERS*100);const booksDone=BIBLE_BOOKS.filter(([book,count])=>Array.from({length:count},(_,i)=>i+1).every(ch=>isBibleChapterRead(book,ch))).length;prog.innerHTML=`<div><strong>${readCount.toLocaleString()} / ${BIBLE_TOTAL_CHAPTERS.toLocaleString()} chapters</strong><div class="sub">${booksDone} / ${BIBLE_BOOKS.length} books complete • ${pctDone}%</div></div><div class="bible-progress"><div class="bible-progress-bar"><div class="bible-progress-fill" style="width:${pctDone}%"></div></div><span class="sub">${pctDone}%</span></div>`;let current='';target.innerHTML=BIBLE_BOOKS.map(([book,count,testament])=>{const done=Array.from({length:count},(_,i)=>i+1).filter(ch=>isBibleChapterRead(book,ch)).length;const heading=testament!==current?(current=testament,`<div class="bible-testament">${testament}</div>`):'';const allDone=done===count;const slug=book.replace(/\s+/g,'-').replace(/[^A-Za-z0-9-]/g,'');return `${heading}<div class="bible-book"><div class="bible-book-head" onclick="this.parentElement.classList.toggle('open')"><div><div class="bible-book-title">${esc(book)}</div><div class="bible-book-meta">${done}/${count} chapters read</div></div><button class="btn small ${allDone?'green':''}" onclick="event.stopPropagation();window.toggleBibleBook('${esc(book).replace(/'/g,"\\'")}',${!allDone})">${allDone?'✓ Book read':'Mark book read'}</button></div><div class="bible-book-chapters">${Array.from({length:count},(_,i)=>i+1).map(ch=>`<span class="chapter-check"><input id="bc-${slug}-${ch}" type="checkbox" ${isBibleChapterRead(book,ch)?'checked':''} onchange="window.toggleBibleChapter('${esc(book).replace(/'/g,"\\'")}',${ch},this.checked)"><label for="bc-${slug}-${ch}">${ch}</label></span>`).join('')}</div></div>`}).join('');applyBibleSearch()}
-window.toggleBibleChapter=(book,ch,read)=>setBibleChapterRead(book,ch,read);
-window.toggleBibleBook=(book,read)=>setBibleBookRead(book,read);
-
-function loadWords(){const el=qs('#wordsContainer');if(!el)return;el.innerHTML=yourWords.map(w=>`<button class="word-tag" onclick="window.featureWord('${esc(w).replace(/'/g,"\\'")}')">${esc(w)}</button>`).join('');const fw=qs('#featuredWord');if(fw)fw.textContent=yourWords[Math.floor(Math.random()*yourWords.length)]}
-window.featureWord=w=>{const fw=qs('#featuredWord');if(fw)fw.textContent=w};
-
-function getDailyMangaLocal(){let cached={};try{cached=JSON.parse(localStorage.getItem('dailyMangaV3')||'{}')}catch{};if(cached.date===dayKey()&&cached.item)return cached.item;const pool=mangaPool.length?mangaPool:FALLBACK_MANGA;const item=pool[Math.floor(Math.random()*pool.length)];try{localStorage.setItem('dailyMangaV3',JSON.stringify({date:dayKey(),item}))}catch{}return item}
-function renderDailyManga(){const item=getDailyMangaLocal();const el=qs('#dailyManga');if(!item){el.innerHTML='<div class="empty">Manga data is still loading.</div>';return}el.innerHTML=`<div class="daily"><img class="cover-mini" src="${esc(item.images?.jpg?.image_url||'')}" alt="${esc(item.title)} cover" onerror="this.style.visibility='hidden'"><div><h3>${esc(item.title)}</h3><div class="meta">⭐ ${item.score??'—'} • ${esc((item.type||'Manga'))}<br>${esc((item.genres||[]).slice(0,3).map(g=>g.name).join(' • '))}<br><span class="positive">Open MyAnimeList ↗</span></div></div></div>`;el.querySelector('.daily').onclick=()=>window.open(item.url||`https://myanimelist.net/manga/${item.mal_id}`,'_blank','noopener')}
-async function loadManga(force=false){
-  if(!force&&mangaPool.length){renderMangaGrid([...mangaPool].sort(()=>Math.random()-0.5).slice(0,9));renderDailyManga();}
-  const status=qs('#mangaStatus');if(status)status.textContent='Loading popular manga…';
-  try{
-    const page=1+Math.floor(Math.random()*4);
-    const data=await fetchJson(`https://api.jikan.moe/v4/top/manga?page=${page}&limit=25&type=manga`,{},12000);
-    const live=(data.data||[]).filter(x=>x.mal_id&&x.url);
-    if(!live.length)throw new Error('No manga returned');
-    mangaPool=live;
-    if(status)status.textContent=`Live popular manga • ${live.length} titles`;
-    renderMangaGrid([...live].sort(()=>Math.random()-0.5).slice(0,9));renderDailyManga();
-  }catch(e){
-    if(!mangaPool.length)mangaPool=FALLBACK_MANGA.slice();
-    if(status)status.textContent='Popular manga loaded from the built-in list (live service unavailable).';
-    renderMangaGrid([...mangaPool].sort(()=>Math.random()-0.5).slice(0,9));renderDailyManga();
+function bibleUnreadChapters(){
+  const out=[];
+  for(const [book,count] of BIBLE_BOOKS){
+    for(let ch=1;ch<=count;ch++){
+      if(!isBibleChapterRead(book,ch))out.push([book,ch]);
+    }
   }
+  return out;
+}
+function shuffleArray(items){
+  const a=[...items];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+/*
+  Curated reading blocks.
+  Each block groups chapters that form a coherent story, argument, teaching,
+  prophecy or theme instead of selecting unrelated chapter numbers.
+*/
+const BIBLE_READING_BLOCKS=[
+  {book:'Genesis',start:1,end:3,title:'Creation and the fall'},
+  {book:'Genesis',start:12,end:17,title:'God’s covenant with Abraham'},
+  {book:'Genesis',start:37,end:45,title:'Joseph’s story'},
+  {book:'Exodus',start:1,end:6,title:'Israel in Egypt and Moses’ call'},
+  {book:'Exodus',start:12,end:15,title:'Passover and the Exodus'},
+  {book:'Exodus',start:19,end:24,title:'Sinai and the covenant'},
+  {book:'Joshua',start:1,end:6,title:'Entering the promised land'},
+  {book:'Judges',start:6,end:8,title:'Gideon'},
+  {book:'Ruth',start:1,end:4,title:'Ruth and redemption'},
+  {book:'1 Samuel',start:8,end:12,title:'Israel asks for a king'},
+  {book:'1 Samuel',start:16,end:18,title:'David is chosen'},
+  {book:'2 Samuel',start:5,end:7,title:'David’s kingdom and covenant'},
+  {book:'1 Kings',start:17,end:19,title:'Elijah and Mount Carmel'},
+  {book:'2 Kings',start:4,end:6,title:'Elisha’s ministry'},
+  {book:'Nehemiah',start:1,end:6,title:'Rebuilding Jerusalem’s walls'},
+  {book:'Esther',start:3,end:8,title:'Esther’s courage and deliverance'},
+  {book:'Job',start:1,end:3,title:'Job’s suffering begins'},
+  {book:'Job',start:38,end:42,title:'God answers Job'},
+  {book:'Psalms',start:22,end:24,title:'Suffering, shepherding and glory'},
+  {book:'Psalms',start:42,end:46,title:'Hope in God'},
+  {book:'Psalms',start:90,end:91,title:'God our dwelling place'},
+  {book:'Proverbs',start:1,end:4,title:'The call to wisdom'},
+  {book:'Ecclesiastes',start:1,end:4,title:'Meaning, toil and time'},
+  {book:'Isaiah',start:6,end:9,title:'Isaiah’s call and promised king'},
+  {book:'Isaiah',start:40,end:43,title:'Comfort and restoration'},
+  {book:'Isaiah',start:52,end:55,title:'The suffering servant and invitation'},
+  {book:'Jeremiah',start:29,end:33,title:'Hope and the new covenant'},
+  {book:'Daniel',start:1,end:3,title:'Faithfulness in Babylon'},
+  {book:'Daniel',start:6,end:7,title:'The lions’ den and kingdom vision'},
+  {book:'Jonah',start:1,end:4,title:'Jonah and God’s mercy'},
+  {book:'Micah',start:4,end:7,title:'Justice, mercy and future hope'},
+
+  {book:'Matthew',start:5,end:7,title:'The Sermon on the Mount'},
+  {book:'Matthew',start:13,end:13,title:'Parables of the kingdom'},
+  {book:'Matthew',start:26,end:28,title:'Jesus’ death and resurrection'},
+  {book:'Mark',start:1,end:3,title:'The beginning of Jesus’ ministry'},
+  {book:'Mark',start:14,end:16,title:'The cross and resurrection'},
+  {book:'Luke',start:1,end:2,title:'The birth of Jesus'},
+  {book:'Luke',start:10,end:15,title:'Discipleship, mercy and lost things'},
+  {book:'Luke',start:22,end:24,title:'The final supper, cross and resurrection'},
+  {book:'John',start:1,end:4,title:'Who Jesus is'},
+  {book:'John',start:13,end:17,title:'Jesus’ final teaching and prayer'},
+  {book:'John',start:18,end:21,title:'The cross, resurrection and restoration'},
+  {book:'Acts',start:1,end:4,title:'Pentecost and the early church'},
+  {book:'Acts',start:9,end:11,title:'Saul’s conversion and the gospel expands'},
+  {book:'Acts',start:16,end:20,title:'Paul’s missionary work'},
+  {book:'Romans',start:1,end:4,title:'Sin, faith and justification'},
+  {book:'Romans',start:5,end:8,title:'Grace, new life and life in the Spirit'},
+  {book:'Romans',start:9,end:11,title:'Israel and God’s purposes'},
+  {book:'Romans',start:12,end:15,title:'Living out the gospel'},
+  {book:'1 Corinthians',start:12,end:14,title:'Spiritual gifts and love'},
+  {book:'1 Corinthians',start:15,end:15,title:'The resurrection'},
+  {book:'2 Corinthians',start:4,end:6,title:'Strength in weakness'},
+  {book:'Galatians',start:2,end:5,title:'Freedom through faith'},
+  {book:'Ephesians',start:1,end:3,title:'Identity in Christ'},
+  {book:'Ephesians',start:4,end:6,title:'Living the new life'},
+  {book:'Philippians',start:1,end:4,title:'Joy, humility and perseverance'},
+  {book:'Colossians',start:1,end:3,title:'The supremacy of Christ and new life'},
+  {book:'1 Thessalonians',start:4,end:5,title:'Holy living and future hope'},
+  {book:'1 Timothy',start:3,end:6,title:'Church life and godly leadership'},
+  {book:'2 Timothy',start:1,end:4,title:'Faithfulness and endurance'},
+  {book:'Hebrews',start:8,end:12,title:'The better covenant and enduring faith'},
+  {book:'James',start:1,end:5,title:'Practical faith'},
+  {book:'1 Peter',start:1,end:5,title:'Hope and holiness in suffering'},
+  {book:'1 John',start:1,end:5,title:'Light, love and assurance'},
+  {book:'Revelation',start:1,end:3,title:'Jesus and the seven churches'},
+  {book:'Revelation',start:19,end:22,title:'Victory, judgment and new creation'}
+];
+
+function blockUnreadChapters(block){
+  const out=[];
+  for(let ch=block.start;ch<=block.end;ch++){
+    if(!isBibleChapterRead(block.book,ch))out.push(ch);
+  }
+  return out;
+}
+function blockIsAvailable(block){
+  return blockUnreadChapters(block).length>0;
+}
+function formatReadingRange(item){
+  if(item.start===item.end)return `${item.book} ${item.start}`;
+  return `${item.book} ${item.start}-${item.end}`;
+}
+function makeBibleRecommendations(){
+  const available=BIBLE_READING_BLOCKS.filter(blockIsAvailable);
+  if(!available.length)return [];
+
+  // Prefer three different books, while keeping each recommendation as a coherent range.
+  const picked=[];
+  const usedBooks=new Set();
+  for(const block of shuffleArray(available)){
+    if(usedBooks.has(block.book))continue;
+    picked.push({...block});
+    usedBooks.add(block.book);
+    if(picked.length===3)break;
+  }
+
+  // If fewer than three different books remain, allow another block from a used book.
+  if(picked.length<3){
+    const used=new Set(picked.map(x=>`${x.book}:${x.start}-${x.end}`));
+    for(const block of shuffleArray(available)){
+      const key=`${block.book}:${block.start}-${block.end}`;
+      if(used.has(key))continue;
+      picked.push({...block});
+      used.add(key);
+      if(picked.length===3)break;
+    }
+  }
+  return picked;
+}
+function ensureTodayBibleRecommendations(){
+  const today=dayKey();
+  state.bibleRecommendations=state.bibleRecommendations||{date:'',items:[]};
+
+  if(state.bibleRecommendations.date!==today){
+    state.bibleRecommendations={date:today,items:makeBibleRecommendations()};
+    saveState();
+  }
+
+  // Remove a recommendation only when every chapter in that reading block is complete.
+  const filtered=(state.bibleRecommendations.items||[]).filter(block=>blockUnreadChapters(block).length>0);
+  if(filtered.length!==(state.bibleRecommendations.items||[]).length){
+    state.bibleRecommendations.items=filtered;
+    saveState();
+  }
+  return state.bibleRecommendations.items||[];
+}
+function todaysBibleRecommendation(){
+  return ensureTodayBibleRecommendations();
+}
+function completeBibleReadingBlock(index){
+  const recs=todaysBibleRecommendation();
+  const block=recs[index];
+  if(!block)return;
+  for(let ch=block.start;ch<=block.end;ch++){
+    const k=bibleKey(block.book,ch);
+    state.bibleRead[k]=true;
+  }
+  state.bibleRecommendations.items=(state.bibleRecommendations.items||[]).filter((_,i)=>i!==index);
+  saveState();
+  renderBible();
+  renderBibleChecklist();
+  syncMorningBriefingPreferences();
+}
+function renderBible(){
+  const el=qs('#bible');if(!el)return;
+  const recs=todaysBibleRecommendation();
+
+  if(!recs.length){
+    const allDone=bibleUnreadChapters().length===0;
+    el.innerHTML=allDone
+      ?'<div class="positive" style="font-weight:800">✓ Every chapter is ticked off.</div><div class="sub" style="margin-top:5px">You have completed the full Bible checklist.</div>'
+      :'<div class="positive" style="font-weight:800">✓ Today’s three reading recommendations are complete.</div><div class="sub" style="margin-top:5px">A fresh set of meaningful reading blocks will appear tomorrow.</div>';
+    return;
+  }
+
+  el.innerHTML=`<div class="metric" style="font-size:18px">Today's reading guide</div>
+    <div class="reading-checks">
+      ${recs.map((block,index)=>{
+        const unread=blockUnreadChapters(block);
+        const progress=(block.end-block.start+1)-unread.length;
+        const total=block.end-block.start+1;
+        return `<div class="reading-check" style="display:block">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div>
+              <strong>${esc(formatReadingRange(block))}</strong>
+              <div class="sub" style="margin-top:3px">${esc(block.title)}</div>
+              <div class="sub" style="margin-top:3px">${progress}/${total} chapters complete</div>
+            </div>
+            <button class="btn small green" onclick="window.completeBibleReadingBlock(${index})">Mark range read</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="sub" style="margin-top:8px">Each recommendation is a connected section of Scripture, not a random chapter. Finish the whole range when you can; once the range is complete it disappears and is not replaced until tomorrow.</div>`;
 }
 function renderMangaGrid(items){qs('#mangaContent').innerHTML=`<div class="manga-grid">${items.map(item=>`<article class="manga" data-url="${esc(item.url||`https://myanimelist.net/manga/${item.mal_id}`)}"><img src="${esc(item.images?.jpg?.large_image_url||item.images?.jpg?.image_url||'')}" alt="${esc(item.title)} cover" loading="lazy" onerror="this.style.visibility='hidden'"><div class="manga-body"><div class="manga-title">${esc(item.title)}</div><div class="manga-meta">⭐ ${item.score??'—'} • ${esc(item.type||'Manga')}</div></div></article>`).join('')}</div>`;qsa('.manga').forEach(card=>card.onclick=()=>window.open(card.dataset.url,'_blank','noopener'))}
 
@@ -1314,7 +1482,7 @@ async function generateBriefing(){
   const manga=getDailyMangaLocal();let weather='Unavailable';
   try{const geo=await fetchJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(state.city)}&count=1&language=en&format=json`);if(geo.results?.[0]){const l=geo.results[0],w=await fetchJson(`https://api.open-meteo.com/v1/forecast?latitude=${l.latitude}&longitude=${l.longitude}&current=temperature_2m,weather_code&timezone=auto`);const wi=weatherInfo(w.current.weather_code);weather=`${Math.round(w.current.temperature_2m)}°C ${wi[1]}`}}catch{}
   await loadNews(false);
-  const bible=todaysBibleRecommendation(),bibleText=bible.length?bible.map(([book,ch])=>`${book} ${ch}`).join(' • '):'All chapters complete';
+  const bible=todaysBibleRecommendation(),bibleText=bible.length?bible.map(formatReadingRange).join(' • '):'All recommendations complete';
   const due=getBriefingItems(requestedDate),schedule=[...due.events,...due.reminders];
   const scheduleHtml=schedule.length?schedule.map(x=>x.itemType==='event'?`<div class="row"><div class="row-left"><div class="row-title">📅 ${esc(x.title)}</div><div class="row-sub">${x.time?'🕒 '+esc(x.time)+' • ':''}${x.notes?esc(x.notes):'Calendar event'}</div></div></div>`:`<div class="row"><div class="row-left"><div class="row-title">🔔 ${esc(x.text)}</div><div class="row-sub">[${esc(x.category)}] • ${formatFrequency(x.frequency)}${x.time?' • 🕒 '+esc(x.time):''}</div></div></div>`).join(''):'<div class="empty">Nothing scheduled for this day.</div>';
   const worldHtml=state.worldNewsEnabled===false?'<div class="empty">World news is switched off.</div>':briefingNewsHtml(newsCache.world,'world');
