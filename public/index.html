@@ -84,10 +84,12 @@
     <nav class="sidebar-nav" aria-label="Main navigation">
       <button class="sidebar-item active" data-page="home"><span class="sidebar-emoji">🏠</span> Home</button>
       <button class="sidebar-item" data-page="portfolio"><span class="sidebar-emoji">📈</span> Portfolio</button>
+      <button class="sidebar-item" data-page="manga"><span class="sidebar-emoji">📚</span> Manga</button>
       <button class="sidebar-item" data-page="reddit"><span class="sidebar-emoji">📱</span> Reddit</button>
       <button class="sidebar-item" data-page="weather"><span class="sidebar-emoji">🌤️</span> Weather</button>
       <button class="sidebar-item" data-page="calendar"><span class="sidebar-emoji">🗓️</span> Calendar</button>
       <button class="sidebar-item" data-page="notes"><span class="sidebar-emoji">📝</span> Notes</button>
+      <button class="sidebar-item" data-page="music"><span class="sidebar-emoji">🎵</span> Music</button>
       <button class="sidebar-item" data-page="news"><span class="sidebar-emoji">📰</span> News</button>
       <button class="sidebar-item" data-page="bible"><span class="sidebar-emoji">📖</span> Bible</button>
       <button class="sidebar-item" data-page="briefing"><span class="sidebar-emoji">📋</span> Briefing</button>
@@ -108,7 +110,7 @@
         <div class="hero"><span class="pill">TODAY</span><h2 id="welcome">Your command center.</h2><p id="todayLine">Live information, your portfolio and things worth checking.</p></div>
         <article class="card"><div class="card-head"><div><div class="title">💭 My Words</div><div class="sub">A word to hold onto today</div></div></div><div class="word-of-moment"><div class="featured-word" id="featuredWord">Comfortable</div></div><div class="words-container" id="wordsContainer"></div></article>
         <div class="grid">
-          <article class="card"><div class="card-head"><div><div class="title">📚 Daily Manga Pick</div><div class="sub">One popular pick, refreshed daily on Home</div></div></div><div id="dailyManga"></div></article>
+          <article class="card"><div class="card-head"><div><div class="title">📚 Daily Manga Pick</div><div class="sub">One popular pick, refreshed daily</div></div></div><div id="dailyManga"></div></article>
           <article class="card"><div class="card-head"><div><div class="title">📖 Today’s Reading</div><div class="sub">Three connected reading sections, fixed for the day</div></div><div class="toolbar"><button class="btn small" id="newBibleRecommendationsBtn">New 3</button><button class="btn small" data-page-jump="bible">Checklist</button></div></div><div id="bible"></div></article>
         </div>
         <div class="grid">
@@ -126,6 +128,10 @@
         <article class="card"><div class="card-head"><div><div class="title">Holdings</div><div class="sub">Shares are the quantities you actually own. Prices are fetched live.</div></div></div><div class="table-head"><div>Holding</div><div class="number">Shares</div><div class="number">Live</div><div class="number">Value</div><div></div></div><div id="holdingsList" class="holdings"></div></article>
         <article class="card"><div class="warning">This tracks the shares you enter and values them using Twelve Data, Finnhub and EODHD. US holdings prefer Finnhub, LSE holdings prefer Twelve Data, and EODHD is used as a fallback. If EODHD has a connection/plan failure, Command Centre pauses it for 10 minutes instead of retrying it for every holding. Successful quotes are cached for 5 minutes to reduce API usage. Each row still shows the provider used or the exact provider errors. With Twelve Data the app resolves each ticker against its exchange, then tries quote → price → EOD. With Finnhub, LSE tickers only ever query the qualified symbol (e.g. RR.L) — if that's not available on the free plan, the row shows an error rather than a mismatched US ticker's price. It does not place trades or connect to your broker. Your API key is kept in this browser only; for a public app, move it behind your own server.</div></article>
       </div>
+    </section>
+
+    <section class="page" id="mangaPage">
+      <article class="card"><div class="card-head"><div><div class="title">📚 Manga Recommendations</div><div class="sub">Random picks from current popular manga</div></div><button class="btn primary" id="moreManga">🎲 More</button></div><div id="mangaStatus" class="section-note"></div><div id="mangaContent"></div></article>
     </section>
 
     <section class="page" id="redditPage">
@@ -180,6 +186,40 @@
             <input id="notesSearch" class="notes-search" placeholder="Search notes..." />
           </div>
           <div id="notesList"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="page" id="musicPage">
+      <div class="stack">
+        <article class="card music-hero-card">
+          <div class="card-head">
+            <div><div class="title">🎵 Spotify</div><div class="sub" id="spotifyStatusSub">Connect your account for now-playing and playlists.</div></div>
+            <div class="toolbar">
+              <a class="btn" href="https://open.spotify.com" target="_blank" rel="noopener">Open Spotify ↗</a>
+              <button class="btn primary" id="spotifyConnectBtn">Connect Spotify</button>
+              <button class="btn red" id="spotifyDisconnectBtn" style="display:none">Disconnect</button>
+            </div>
+          </div>
+          <div id="nowPlayingCard"><div class="empty">Not connected. Connect Spotify to see what you're playing.</div></div>
+        </article>
+
+        <article class="card" id="spotifyPlaylistsCard" style="display:none">
+          <div class="card-head"><div><div class="title">Your Playlists</div><div class="sub">Tap a playlist to open it in Spotify.</div></div></div>
+          <div id="spotifyPlaylists" class="playlist-grid"></div>
+        </article>
+
+        <article class="card">
+          <div class="card-head"><div><div class="title">Quick Embed</div><div class="sub">Paste any Spotify track, album, playlist or artist link.</div></div></div>
+          <div style="display:flex;gap:8px">
+            <input id="spotifyEmbedInput" placeholder="https://open.spotify.com/playlist/..." style="flex:1;background:#0b1220;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px;font:inherit;font-size:12px" />
+            <button class="btn primary" id="loadSpotifyEmbedBtn">Load</button>
+          </div>
+          <div id="spotifyEmbedWrap" style="margin-top:12px"></div>
+        </article>
+
+        <article class="card">
+          <div class="setting-note">Now-playing and playlists need a free Spotify Developer app (client ID) added in Settings, plus this page hosted at an HTTPS address that's registered as its redirect URI — Spotify won't authorize plain local files. The quick embed above works immediately with no login.</div>
         </article>
       </div>
     </section>
@@ -661,6 +701,8 @@ function init(){
     bind('deleteHoldingBtn','click',deleteEditingHolding);
     bind('sendChat','click',sendChat);
     const chat=qs('#chatInput');if(chat)chat.addEventListener('keydown',e=>{if(e.key==='Enter')sendChat()});
+    bind('spotifyConnectBtn','click',spotifyConnect);
+    bind('spotifyDisconnectBtn','click',spotifyDisconnect);
     bind('copyRedirectUriBtn','click',()=>{const el=qs('#spotifyRedirectDisplay');el.select();navigator.clipboard?.writeText(el.value).then(()=>toast('Redirect URI copied')).catch(()=>document.execCommand('copy'))});
     bind('loadSpotifyEmbedBtn','click',loadSpotifyEmbed);
     const embedInput=qs('#spotifyEmbedInput');if(embedInput)embedInput.addEventListener('keydown',e=>{if(e.key==='Enter')loadSpotifyEmbed()});
@@ -673,6 +715,7 @@ function init(){
       ()=>renderReminders(),
       ()=>renderCalendar(),
       ()=>renderNotes(),
+      ()=>renderMangaGrid(mangaPool.slice(0,9)),
       ()=>renderDailyManga(),
       ()=>loadWords(),
       ()=>loadManga(),
@@ -703,6 +746,7 @@ function switchPage(page,persist=true){
   }
 
   if(page==='portfolio')loadPortfolio();
+  if(page==='manga')loadManga();
   if(page==='reddit')loadReddit();
   if(page==='weather')loadWeather();
   if(page==='calendar'){calendarView='year';calendarYearCursor=new Date().getFullYear();renderCalendar()}
@@ -710,6 +754,7 @@ function switchPage(page,persist=true){
   if(page==='news')loadNews(false);
   if(page==='bible'){renderBible();renderBibleChecklist()}
   if(page==='briefing')generateBriefing();
+  if(page==='music')refreshMusicPage();
 }
 function toggleSidebar(){const sb=qs('#sidebar'),ov=qs('#sidebarOverlay');const open=sb.classList.toggle('open');ov.classList.toggle('open',open)}
 function closeSidebar(){qs('#sidebar')?.classList.remove('open');qs('#sidebarOverlay')?.classList.remove('open')}
