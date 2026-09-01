@@ -278,7 +278,7 @@
   </section>
 
   <section class="settings-section" data-settings-panel="notifications">
-    <article class="card" style="padding:13px;background:#0b1220"><div class="card-head"><div><div class="title">🔔 Mobile notifications</div><div class="sub" id="notificationStatus">Checking notification support…</div></div><button class="btn primary" id="enableNotificationsBtn">Enable</button></div><div class="toolbar"><button class="btn" id="testNotificationBtn">Send test</button><button class="btn" id="rescheduleNotificationsBtn">Reschedule reminders</button></div><div class="setting-note" style="margin-top:8px">Command Centre uses iPhone Web Push for background reminders. Install this site to your Home Screen, enable notifications, and the Cloudflare notification service will deliver reminders even when Command Centre is closed.</div></article>
+    <article class="card" style="padding:13px;background:#0b1220"><div class="card-head"><div><div class="title">🔔 Mobile notifications</div><div class="sub" id="notificationStatus">Checking notification support…</div></div><button class="btn primary" id="enableNotificationsBtn">Enable</button></div><div class="toolbar"><button class="btn" id="testNotificationBtn">Send test</button><button class="btn" id="repairNotificationsBtn">Repair push subscription</button><button class="btn" id="rescheduleNotificationsBtn">Reschedule reminders</button></div><div class="setting-note" style="margin-top:8px">Command Centre uses iPhone Web Push for background reminders. Install this site to your Home Screen, enable notifications, and the Cloudflare notification service will deliver reminders even when Command Centre is closed.</div></article>
     <article class="card" style="padding:13px;background:#0b1220">
       <div class="card-head"><div><div class="title">☀️ Morning briefing</div><div class="sub">Receive one summary notification each morning.</div></div></div>
       <div class="form">
@@ -466,15 +466,39 @@ function pushDeviceId(){
   if(!id){id=makeId('device');localStorage.setItem('cc_push_device_id',id)}
   return id;
 }
+function sameApplicationServerKey(subscription,publicKey){
+  try{
+    const expected=urlBase64ToUint8Array(publicKey);
+    const current=subscription?.options?.applicationServerKey;
+    if(!current)return false;
+    const actual=new Uint8Array(current);
+    if(actual.length!==expected.length)return false;
+    for(let i=0;i<actual.length;i++)if(actual[i]!==expected[i])return false;
+    return true;
+  }catch{return false}
+}
 async function getPushSubscription(){
   const reg=notificationSWRegistration||await registerNotificationSW();
   if(!reg) throw new Error('Could not start the notification service worker.');
-  const keyRes=await fetch(PUSH_API+'/public-key',{headers:{Accept:'application/json'}});
+  const keyRes=await fetch(PUSH_API+'/public-key',{headers:{Accept:'application/json'},cache:'no-store'});
   if(!keyRes.ok) throw new Error('Notification service is not configured yet.');
   const {publicKey}=await keyRes.json();
+  if(!publicKey)throw new Error('VAPID public key is missing in Cloudflare.');
+  const applicationServerKey=urlBase64ToUint8Array(publicKey);
+  if(applicationServerKey.length!==65||applicationServerKey[0]!==4){
+    throw new Error(`VAPID public key has the wrong format (${applicationServerKey.length} bytes). Generate a standard Web Push VAPID key pair.`);
+  }
   let sub=await reg.pushManager.getSubscription();
+
+  // A push subscription is tied to the VAPID public key that created it.
+  // If the Cloudflare VAPID key changes, the old iPhone subscription must be replaced.
+  if(sub&&!sameApplicationServerKey(sub,publicKey)){
+    try{await sub.unsubscribe()}catch(e){console.warn('Could not remove old push subscription',e)}
+    sub=null;
+  }
+
   if(!sub){
-    sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(publicKey)});
+    sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey});
   }
   return sub;
 }
@@ -482,6 +506,19 @@ function subscriptionJson(sub){
   const j=sub.toJSON();
   return {endpoint:j.endpoint,keys:{p256dh:j.keys?.p256dh,auth:j.keys?.auth}};
 }
+async function repairNotifications(){
+  if(!notificationSupported()){toast('This browser does not support Web Push notifications');return}
+  try{
+    const reg=notificationSWRegistration||await registerNotificationSW();
+    if(!reg)throw new Error('Could not start the notification service worker.');
+    const oldSub=await reg.pushManager.getSubscription();
+    if(oldSub){try{await oldSub.unsubscribe()}catch{}}
+    state.notificationsEnabled=false;saveState();updateNotificationUI();
+    await enableNotifications();
+    if(Notification.permission==='granted'&&state.notificationsEnabled)toast('Push subscription repaired');
+  }catch(e){console.error(e);toast(e.message||'Could not repair notifications')}
+}
+
 async function enableNotifications(){
   if(!notificationSupported()){toast('This browser does not support Web Push notifications');return}
   try{
@@ -490,7 +527,8 @@ async function enableNotifications(){
       await registerNotificationSW();
       const sub=await getPushSubscription();
       state.notificationsEnabled=true;saveState();
-      await fetch(PUSH_API+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:pushDeviceId(),subscription:subscriptionJson(sub),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone})});
+      const registerRes=await fetch(PUSH_API+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:pushDeviceId(),subscription:subscriptionJson(sub),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone})});
+      if(!registerRes.ok){const d=await registerRes.json().catch(()=>({}));throw new Error(d.error||'Could not register this device for notifications')}
       await syncPushSchedule();
       await syncNewsPreferences();
       await syncMorningBriefingPreferences();
@@ -614,6 +652,7 @@ function init(){
     bind('settingsBtn','click',openSettings);
      bind('enableNotificationsBtn','click',enableNotifications);
      bind('testNotificationBtn','click',testNotification);
+     bind('repairNotificationsBtn','click',repairNotifications);
      bind('testMorningBriefingBtn','click',testMorningBriefing);
      bind('rescheduleNotificationsBtn','click',()=>{scheduleAllNotifications();toast('Notifications rescheduled')});
     qsa('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
