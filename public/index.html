@@ -111,7 +111,7 @@
         <article class="card"><div class="card-head"><div><div class="title">💭 My Words</div><div class="sub">A word to hold onto today</div></div></div><div class="word-of-moment"><div class="featured-word" id="featuredWord">Comfortable</div></div><div class="words-container" id="wordsContainer"></div></article>
         <div class="grid">
           <article class="card"><div class="card-head"><div><div class="title">📚 Daily Manga Pick</div><div class="sub">One popular pick, refreshed daily</div></div></div><div id="dailyManga"></div></article>
-          <article class="card"><div class="card-head"><div><div class="title">📖 Today’s Reading</div><div class="sub">Three meaningful reading sections, fixed for the day</div></div><div class="toolbar"><button class="btn small" id="newBibleRecommendationsBtn">New 3</button><button class="btn small" data-page-jump="bible">Checklist</button></div></div><div id="bible"></div></article>
+          <article class="card"><div class="card-head"><div><div class="title">📖 Today’s Reading</div><div class="sub">Three connected reading sections, fixed for the day</div></div><div class="toolbar"><button class="btn small" id="newBibleRecommendationsBtn">New 3</button><button class="btn small" data-page-jump="bible">Checklist</button></div></div><div id="bible"></div></article>
         </div>
         <div class="grid">
           <article class="card"><div class="card-head"><div><div class="title">📈 Portfolio Snapshot</div><div class="status" id="portfolioStatus"><span class="dot loading"></span>Loading</div></div><button class="btn small" data-page-jump="portfolio">Open</button></div><div id="portfolioSnapshot"><div class="skeleton"></div></div></article>
@@ -428,15 +428,7 @@ async function fetchJson(url, options={}, timeout=10000){
   finally{clearTimeout(timer)}
 }
 
-function bind(id,event,fn){
-  const el=qs('#'+id);
-  if(!el)return;
-  if(typeof fn!=='function'){
-    console.warn(`Skipped binding #${id}: callback is not a function`);
-    return;
-  }
-  el.addEventListener(event,fn);
-}
+function bind(id,event,fn){const el=qs('#'+id);if(el)el.addEventListener(event,fn)}
 // --- Mobile notifications -------------------------------------------------
 let notificationTimers = new Map();
 let notificationSWRegistration = null;
@@ -644,10 +636,13 @@ async function testNotification(){
 
 
 function applyLaunchRoute(){
-  const hashPage=location.hash?.replace(/^#/,'');
+  const hashPage=(location.hash||'').replace(/^#/,'');
   const knownPages=new Set(qsa('.page').map(p=>p.id.replace(/Page$/,'')));
   const saved=localStorage.getItem('cc_last_page');
-  const page=knownPages.has(hashPage)?hashPage:(knownPages.has(saved)?saved:'home');
+  const page=knownPages.has(hashPage)
+    ? hashPage
+    : (knownPages.has(saved)?saved:'home');
+
   if(page!=='home')switchPage(page,false);
 }
 window.addEventListener('hashchange',applyLaunchRoute);
@@ -728,7 +723,10 @@ function init(){
       ()=>loadWeather(),
       ()=>loadReddit()
     ];
-    startupJobs.forEach(job=>{try{job()}catch(e){console.error('Startup component failed',e)}});
+    startupJobs.forEach(job=>{
+      try{job()}
+      catch(e){console.error('Startup component failed',e)}
+    });
     setInterval(()=>{const fw=qs('#featuredWord');if(fw)fw.textContent=yourWords[Math.floor(Math.random()*yourWords.length)]},30000);
   }catch(err){console.error('Command Center init error',err);toast('App started with limited features — reload if needed');}
 }
@@ -736,43 +734,49 @@ function updateClock(){const d=new Date();qs('#clock').textContent=d.toLocaleDat
 function switchPage(page,persist=true){
   qsa('.page').forEach(p=>p.classList.remove('active'));
   qsa('.sidebar-item').forEach(t=>t.classList.toggle('active',t.dataset.page===page));
+
   const target=qs('#'+page+'Page');
   if(!target){console.warn('Unknown page',page);return}
+
   target.classList.add('active');
+
   if(persist){
     try{localStorage.setItem('cc_last_page',page)}catch{}
     if(location.hash!==`#${page}`)history.replaceState(null,'',`#${page}`);
   }
-  try{
-    if(page==='portfolio')loadPortfolio();
-    if(page==='manga')loadManga();
-    if(page==='reddit')loadReddit();
-    if(page==='weather')loadWeather();
-    if(page==='calendar'){calendarView='year';calendarYearCursor=new Date().getFullYear();renderCalendar()}
-    if(page==='notes')renderNotes();
-    if(page==='news')loadNews(false);
-    if(page==='bible'){renderBible();renderBibleChecklist()}
-    if(page==='briefing')generateBriefing();
-    if(page==='music')refreshMusicPage();
-  }catch(e){
-    console.error(`Page ${page} failed to render`,e);
-    toast(`${page} page could not fully load`);
-  }
+
+  if(page==='portfolio')loadPortfolio();
+  if(page==='manga')loadManga();
+  if(page==='reddit')loadReddit();
+  if(page==='weather')loadWeather();
+  if(page==='calendar'){calendarView='year';calendarYearCursor=new Date().getFullYear();renderCalendar()}
+  if(page==='notes')renderNotes();
+  if(page==='news')loadNews(false);
+  if(page==='bible'){renderBible();renderBibleChecklist()}
+  if(page==='briefing')generateBriefing();
+  if(page==='music')refreshMusicPage();
+}
+function toggleSidebar(){const sb=qs('#sidebar'),ov=qs('#sidebarOverlay');const open=sb.classList.toggle('open');ov.classList.toggle('open',open)}
+function closeSidebar(){qs('#sidebar')?.classList.remove('open');qs('#sidebarOverlay')?.classList.remove('open')}
+function openSettings(){
+  const modal=qs('#settingsModal');
+  if(!modal)return;
+  try{applySettingsUI()}catch(e){console.error('Settings values failed to load',e)}
+  try{showSettingsSection('general')}catch(e){console.error('Settings tabs failed to initialize',e)}
+  modal.classList.add('open');
+}
+function updateProviderFieldsUI(){
+  const provider=qs('#settingsMarketProvider').value;
+  qs('#twelveDataKeyField').style.display=provider==='twelvedata'?'block':'none';
+  qs('#finnhubKeyField').style.display=provider==='finnhub'?'block':'none';
+  qs('#eodhdKeyField').style.display=provider==='eodhd'?'block':'none';
+  qs('#providerNote').textContent=provider==='finnhub'
+    ?'Finnhub is good for US tickers, but its free plan is limited for LSE symbols.'
+    :provider==='eodhd'
+      ?'EODHD has broad global coverage including LSE and US exchanges. Its REST stock quote feed is usually delayed unless your plan includes real-time data.'
+      :'Twelve Data covers US equities well; broader market access depends on your plan.';
 }
 function applySettingsUI(){qs('#settingsMorningBriefing').value=state.morningBriefingEnabled===false?'off':'on';qs('#settingsMorningBriefingTime').value=state.morningBriefingTime||'07:30';qs('#settingsWorldNews').value=state.worldNewsEnabled===false?'off':'on';qs('#settingsFinancialNewsProvider').value=state.financialNewsProvider||'hybrid';qs('#settingsFinancialNews').value=state.financialNewsEnabled===false?'off':'on';qs('#settingsNewsPush').value=state.newsPushMode||'major';qs('#settingsCity').value=state.city;qs('#settingsDeepSeek').value=state.deepSeekKey;qs('#settingsMarketProvider').value=state.marketProvider||'twelvedata';qs('#settingsMarketKey').value=state.marketKey||'';qs('#settingsFinnhubKey').value=state.finnhubKey||'';qs('#settingsEodhdKey').value=state.eodhdKey||'';qs('#settingsSpotifyClientId').value=state.spotifyClientId||'';qs('#spotifyRedirectDisplay').value=spotifyRedirectUri();qs('#settingsRedditProxy').value=state.redditProxy;updateProviderFieldsUI()}
-function openSettings(){
-  try{
-    applySettingsUI();
-    showSettingsSection('general');
-    openModal('settingsModal');
-  }catch(e){
-    console.error('Could not open Settings',e);
-    const modal=qs('#settingsModal');
-    if(modal)modal.classList.add('open');
-    toast('Settings opened with limited initialization');
-  }
-}
-
 function saveSettings(){state.morningBriefingEnabled=qs('#settingsMorningBriefing').value==='on';state.morningBriefingTime=qs('#settingsMorningBriefingTime').value||'07:30';state.worldNewsEnabled=qs('#settingsWorldNews').value==='on';state.financialNewsProvider=qs('#settingsFinancialNewsProvider').value;state.financialNewsEnabled=qs('#settingsFinancialNews').value==='on';state.newsPushMode=qs('#settingsNewsPush').value;state.city=qs('#settingsCity').value.trim()||'London';state.deepSeekKey=qs('#settingsDeepSeek').value.trim();state.marketProvider=qs('#settingsMarketProvider').value;state.marketKey=qs('#settingsMarketKey').value.trim();state.finnhubKey=qs('#settingsFinnhubKey').value.trim();state.eodhdKey=qs('#settingsEodhdKey').value.trim();state.spotifyClientId=qs('#settingsSpotifyClientId').value.trim();state.redditProxy=qs('#settingsRedditProxy').value.trim();saveState();applySettingsUI();syncNewsPreferences();syncMorningBriefingPreferences();closeModal('settingsModal');qs('#weatherPlace').textContent=state.city;qs('#weatherFullPlace').textContent=state.city;loadWeather();loadPortfolio(true);toast('Settings saved')}
 
 const BIBLE_BOOKS=[
@@ -793,6 +797,7 @@ function bibleUnreadChapters(){
   }
   return out;
 }
+
 function shuffleArray(items){
   const a=[...items];
   for(let i=a.length-1;i>0;i--){
@@ -803,9 +808,9 @@ function shuffleArray(items){
 }
 
 /*
-  Curated reading blocks.
-  Each block groups chapters that form a coherent story, argument, teaching,
-  prophecy or theme instead of selecting unrelated chapter numbers.
+  Curated connected reading blocks.
+  Each recommendation keeps chapters together because they form one story,
+  teaching, argument or theme.
 */
 const BIBLE_READING_BLOCKS=[
   {book:'Genesis',start:1,end:3,title:'Creation and the fall'},
@@ -884,20 +889,25 @@ function blockUnreadChapters(block){
   }
   return out;
 }
+
 function blockIsAvailable(block){
   return blockUnreadChapters(block).length>0;
 }
-function formatReadingRange(item){
-  if(item.start===item.end)return `${item.book} ${item.start}`;
-  return `${item.book} ${item.start}-${item.end}`;
+
+function formatReadingRange(block){
+  return block.start===block.end
+    ? `${block.book} ${block.start}`
+    : `${block.book} ${block.start}-${block.end}`;
 }
+
 function makeBibleRecommendations(){
   const available=BIBLE_READING_BLOCKS.filter(blockIsAvailable);
   if(!available.length)return [];
 
-  // Prefer three different books, while keeping each recommendation as a coherent range.
   const picked=[];
   const usedBooks=new Set();
+
+  // Prefer three different books.
   for(const block of shuffleArray(available)){
     if(usedBooks.has(block.book))continue;
     picked.push({...block});
@@ -905,7 +915,7 @@ function makeBibleRecommendations(){
     if(picked.length===3)break;
   }
 
-  // If fewer than three different books remain, allow another block from a used book.
+  // If fewer than three different books are available, fill from another block.
   if(picked.length<3){
     const used=new Set(picked.map(x=>`${x.book}:${x.start}-${x.end}`));
     for(const block of shuffleArray(available)){
@@ -916,8 +926,10 @@ function makeBibleRecommendations(){
       if(picked.length===3)break;
     }
   }
+
   return picked;
 }
+
 function ensureTodayBibleRecommendations(){
   const today=dayKey();
   state.bibleRecommendations=state.bibleRecommendations||{date:'',items:[]};
@@ -927,84 +939,41 @@ function ensureTodayBibleRecommendations(){
     saveState();
   }
 
-  // Remove a recommendation only when every chapter in that reading block is complete.
-  const filtered=(state.bibleRecommendations.items||[]).filter(block=>blockUnreadChapters(block).length>0);
-  if(filtered.length!==(state.bibleRecommendations.items||[]).length){
+  // Remove a recommendation only when its whole connected range is complete.
+  const current=Array.isArray(state.bibleRecommendations.items)
+    ? state.bibleRecommendations.items
+    : [];
+  const filtered=current.filter(block=>blockUnreadChapters(block).length>0);
+
+  if(filtered.length!==current.length){
     state.bibleRecommendations.items=filtered;
     saveState();
   }
-  return state.bibleRecommendations.items||[];
+
+  return state.bibleRecommendations.items;
 }
+
 function todaysBibleRecommendation(){
   return ensureTodayBibleRecommendations();
 }
+
 function completeBibleReadingBlock(index){
   const recs=todaysBibleRecommendation();
   const block=recs[index];
   if(!block)return;
+
+  state.bibleRead=state.bibleRead||{};
   for(let ch=block.start;ch<=block.end;ch++){
-    const k=bibleKey(block.book,ch);
-    state.bibleRead[k]=true;
+    state.bibleRead[bibleKey(block.book,ch)]=true;
   }
-  state.bibleRecommendations.items=(state.bibleRecommendations.items||[]).filter((_,i)=>i!==index);
+
+  state.bibleRecommendations.items=(state.bibleRecommendations.items||[])
+    .filter((_,i)=>i!==index);
+
   saveState();
   renderBible();
   renderBibleChecklist();
   syncMorningBriefingPreferences();
-}
-
-function renderBibleChecklist(){
-  const target=qs('#bibleChecklist'),prog=qs('#bibleProgress');
-  if(!target||!prog)return;
-
-  const readCount=Object.keys(state.bibleRead||{}).filter(k=>state.bibleRead[k]).length;
-  const pctDone=Math.round(readCount/BIBLE_TOTAL_CHAPTERS*100);
-  const booksDone=BIBLE_BOOKS.filter(([book,count])=>
-    Array.from({length:count},(_,i)=>i+1).every(ch=>isBibleChapterRead(book,ch))
-  ).length;
-
-  prog.innerHTML=`<div>
-      <strong>${readCount.toLocaleString()} / ${BIBLE_TOTAL_CHAPTERS.toLocaleString()} chapters</strong>
-      <div class="sub">${booksDone} / ${BIBLE_BOOKS.length} books complete • ${pctDone}%</div>
-    </div>
-    <div class="bible-progress">
-      <div class="bible-progress-bar"><div class="bible-progress-fill" style="width:${pctDone}%"></div></div>
-      <span class="sub">${pctDone}%</span>
-    </div>`;
-
-  let current='';
-  target.innerHTML=BIBLE_BOOKS.map(([book,count,testament])=>{
-    const done=Array.from({length:count},(_,i)=>i+1).filter(ch=>isBibleChapterRead(book,ch)).length;
-    const heading=testament!==current
-      ?(current=testament,`<div class="bible-testament">${testament}</div>`)
-      :'';
-    const allDone=done===count;
-    const slug=book.replace(/\s+/g,'-').replace(/[^A-Za-z0-9-]/g,'');
-
-    return `${heading}
-      <div class="bible-book">
-        <div class="bible-book-head" onclick="this.parentElement.classList.toggle('open')">
-          <div>
-            <div class="bible-book-title">${esc(book)}</div>
-            <div class="bible-book-meta">${done}/${count} chapters read</div>
-          </div>
-          <button class="btn small ${allDone?'green':''}"
-            onclick="event.stopPropagation();window.toggleBibleBook('${esc(book).replace(/'/g,"\\'")}',${!allDone})">
-            ${allDone?'✓ Book read':'Mark book read'}
-          </button>
-        </div>
-        <div class="bible-book-chapters">
-          ${Array.from({length:count},(_,i)=>i+1).map(ch=>`
-            <span class="chapter-check">
-              <input id="bc-${slug}-${ch}" type="checkbox" ${isBibleChapterRead(book,ch)?'checked':''}
-                onchange="window.toggleBibleChapter('${esc(book).replace(/'/g,"\\'")}',${ch},this.checked)">
-              <label for="bc-${slug}-${ch}">${ch}</label>
-            </span>`).join('')}
-        </div>
-      </div>`;
-  }).join('');
-
-  applyBibleSearch();
 }
 
 function newBibleRecommendations(){
@@ -1012,19 +981,20 @@ function newBibleRecommendations(){
   saveState();
   renderBible();
   syncMorningBriefingPreferences();
-  toast('New meaningful Bible reading recommendations chosen');
+  toast('New meaningful Bible recommendations chosen');
 }
-window.completeBibleReadingBlock=completeBibleReadingBlock;
 
 function renderBible(){
-  const el=qs('#bible');if(!el)return;
+  const el=qs('#bible');
+  if(!el)return;
+
   const recs=todaysBibleRecommendation();
 
   if(!recs.length){
     const allDone=bibleUnreadChapters().length===0;
     el.innerHTML=allDone
-      ?'<div class="positive" style="font-weight:800">✓ Every chapter is ticked off.</div><div class="sub" style="margin-top:5px">You have completed the full Bible checklist.</div>'
-      :'<div class="positive" style="font-weight:800">✓ Today’s three reading recommendations are complete.</div><div class="sub" style="margin-top:5px">A fresh set of meaningful reading blocks will appear tomorrow.</div>';
+      ? '<div class="positive" style="font-weight:800">✓ Every chapter is ticked off.</div><div class="sub" style="margin-top:5px">You have completed the full Bible checklist.</div>'
+      : '<div class="positive" style="font-weight:800">✓ Today’s three reading recommendations are complete.</div><div class="sub" style="margin-top:5px">A fresh set will appear tomorrow.</div>';
     return;
   }
 
@@ -1032,21 +1002,54 @@ function renderBible(){
     <div class="reading-checks">
       ${recs.map((block,index)=>{
         const unread=blockUnreadChapters(block);
-        const progress=(block.end-block.start+1)-unread.length;
         const total=block.end-block.start+1;
+        const done=total-unread.length;
         return `<div class="reading-check" style="display:block">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
             <div>
               <strong>${esc(formatReadingRange(block))}</strong>
               <div class="sub" style="margin-top:3px">${esc(block.title)}</div>
-              <div class="sub" style="margin-top:3px">${progress}/${total} chapters complete</div>
+              <div class="sub" style="margin-top:3px">${done}/${total} chapters complete</div>
             </div>
             <button class="btn small green" onclick="window.completeBibleReadingBlock(${index})">Mark range read</button>
           </div>
         </div>`;
       }).join('')}
     </div>
-    <div class="sub" style="margin-top:8px">Each recommendation is a connected section of Scripture, not a random chapter. Finish the whole range when you can; once the range is complete it disappears and is not replaced until tomorrow.</div>`;
+    <div class="sub" style="margin-top:8px">Each recommendation is a connected section. Completing one removes it for today; it is not replaced until tomorrow.</div>`;
+}
+
+window.completeBibleReadingBlock=completeBibleReadingBlock;
+
+function parseBibleSearch(raw){const q=String(raw||'').trim();if(!q)return{book:'',chapter:null};const m=q.match(/^(.*?)(?:\s+(\d+))?$/);return{book:(m?.[1]||q).trim().toLowerCase(),chapter:m?.[2]?Number(m[2]):null}}
+function applyBibleSearch(){const input=qs('#bibleSearch');if(!input)return;const {book,chapter}=parseBibleSearch(input.value);qsa('.bible-book').forEach(card=>{const title=card.querySelector('.bible-book-title')?.textContent?.trim().toLowerCase()||'';const match=!book||title.includes(book);card.classList.toggle('search-hidden',!match);card.classList.toggle('search-match',!!book&&match);card.querySelectorAll('.chapter-check').forEach((ch,i)=>ch.classList.toggle('search-hit',match&&chapter===i+1));if(match&&chapter)card.classList.add('open')})}
+function showSettingsSection(name){qsa('.settings-section').forEach(x=>x.classList.toggle('active',x.dataset.settingsPanel===name));qsa('.settings-tab').forEach(x=>x.classList.toggle('active',x.dataset.settingsSection===name));const s=qs('#settingsSectionSelect');if(s)s.value=name}
+
+function renderBibleChecklist(){const target=qs('#bibleChecklist'),prog=qs('#bibleProgress');if(!target||!prog)return;const readCount=Object.keys(state.bibleRead||{}).filter(k=>state.bibleRead[k]).length;const pctDone=Math.round(readCount/BIBLE_TOTAL_CHAPTERS*100);const booksDone=BIBLE_BOOKS.filter(([book,count])=>Array.from({length:count},(_,i)=>i+1).every(ch=>isBibleChapterRead(book,ch))).length;prog.innerHTML=`<div><strong>${readCount.toLocaleString()} / ${BIBLE_TOTAL_CHAPTERS.toLocaleString()} chapters</strong><div class="sub">${booksDone} / ${BIBLE_BOOKS.length} books complete • ${pctDone}%</div></div><div class="bible-progress"><div class="bible-progress-bar"><div class="bible-progress-fill" style="width:${pctDone}%"></div></div><span class="sub">${pctDone}%</span></div>`;let current='';target.innerHTML=BIBLE_BOOKS.map(([book,count,testament])=>{const done=Array.from({length:count},(_,i)=>i+1).filter(ch=>isBibleChapterRead(book,ch)).length;const heading=testament!==current?(current=testament,`<div class="bible-testament">${testament}</div>`):'';const allDone=done===count;const slug=book.replace(/\s+/g,'-').replace(/[^A-Za-z0-9-]/g,'');return `${heading}<div class="bible-book"><div class="bible-book-head" onclick="this.parentElement.classList.toggle('open')"><div><div class="bible-book-title">${esc(book)}</div><div class="bible-book-meta">${done}/${count} chapters read</div></div><button class="btn small ${allDone?'green':''}" onclick="event.stopPropagation();window.toggleBibleBook('${esc(book).replace(/'/g,"\\'")}',${!allDone})">${allDone?'✓ Book read':'Mark book read'}</button></div><div class="bible-book-chapters">${Array.from({length:count},(_,i)=>i+1).map(ch=>`<span class="chapter-check"><input id="bc-${slug}-${ch}" type="checkbox" ${isBibleChapterRead(book,ch)?'checked':''} onchange="window.toggleBibleChapter('${esc(book).replace(/'/g,"\\'")}',${ch},this.checked)"><label for="bc-${slug}-${ch}">${ch}</label></span>`).join('')}</div></div>`}).join('');applyBibleSearch()}
+window.toggleBibleChapter=(book,ch,read)=>setBibleChapterRead(book,ch,read);
+window.toggleBibleBook=(book,read)=>setBibleBookRead(book,read);
+
+function loadWords(){const el=qs('#wordsContainer');if(!el)return;el.innerHTML=yourWords.map(w=>`<button class="word-tag" onclick="window.featureWord('${esc(w).replace(/'/g,"\\'")}')">${esc(w)}</button>`).join('');const fw=qs('#featuredWord');if(fw)fw.textContent=yourWords[Math.floor(Math.random()*yourWords.length)]}
+window.featureWord=w=>{const fw=qs('#featuredWord');if(fw)fw.textContent=w};
+
+function getDailyMangaLocal(){let cached={};try{cached=JSON.parse(localStorage.getItem('dailyMangaV3')||'{}')}catch{};if(cached.date===dayKey()&&cached.item)return cached.item;const pool=mangaPool.length?mangaPool:FALLBACK_MANGA;const item=pool[Math.floor(Math.random()*pool.length)];try{localStorage.setItem('dailyMangaV3',JSON.stringify({date:dayKey(),item}))}catch{}return item}
+function renderDailyManga(){const item=getDailyMangaLocal();const el=qs('#dailyManga');if(!item){el.innerHTML='<div class="empty">Manga data is still loading.</div>';return}el.innerHTML=`<div class="daily"><img class="cover-mini" src="${esc(item.images?.jpg?.image_url||'')}" alt="${esc(item.title)} cover" onerror="this.style.visibility='hidden'"><div><h3>${esc(item.title)}</h3><div class="meta">⭐ ${item.score??'—'} • ${esc((item.type||'Manga'))}<br>${esc((item.genres||[]).slice(0,3).map(g=>g.name).join(' • '))}<br><span class="positive">Open MyAnimeList ↗</span></div></div></div>`;el.querySelector('.daily').onclick=()=>window.open(item.url||`https://myanimelist.net/manga/${item.mal_id}`,'_blank','noopener')}
+async function loadManga(force=false){
+  if(!force&&mangaPool.length){renderMangaGrid([...mangaPool].sort(()=>Math.random()-0.5).slice(0,9));renderDailyManga();}
+  const status=qs('#mangaStatus');if(status)status.textContent='Loading popular manga…';
+  try{
+    const page=1+Math.floor(Math.random()*4);
+    const data=await fetchJson(`https://api.jikan.moe/v4/top/manga?page=${page}&limit=25&type=manga`,{},12000);
+    const live=(data.data||[]).filter(x=>x.mal_id&&x.url);
+    if(!live.length)throw new Error('No manga returned');
+    mangaPool=live;
+    if(status)status.textContent=`Live popular manga • ${live.length} titles`;
+    renderMangaGrid([...live].sort(()=>Math.random()-0.5).slice(0,9));renderDailyManga();
+  }catch(e){
+    if(!mangaPool.length)mangaPool=FALLBACK_MANGA.slice();
+    if(status)status.textContent='Popular manga loaded from the built-in list (live service unavailable).';
+    renderMangaGrid([...mangaPool].sort(()=>Math.random()-0.5).slice(0,9));renderDailyManga();
+  }
 }
 function renderMangaGrid(items){qs('#mangaContent').innerHTML=`<div class="manga-grid">${items.map(item=>`<article class="manga" data-url="${esc(item.url||`https://myanimelist.net/manga/${item.mal_id}`)}"><img src="${esc(item.images?.jpg?.large_image_url||item.images?.jpg?.image_url||'')}" alt="${esc(item.title)} cover" loading="lazy" onerror="this.style.visibility='hidden'"><div class="manga-body"><div class="manga-title">${esc(item.title)}</div><div class="manga-meta">⭐ ${item.score??'—'} • ${esc(item.type||'Manga')}</div></div></article>`).join('')}</div>`;qsa('.manga').forEach(card=>card.onclick=()=>window.open(card.dataset.url,'_blank','noopener'))}
 
