@@ -237,6 +237,52 @@ async function sendMorningBriefings(env){
   }
 }
 
+
+async function searchYouTube(env,query,requestUrl){
+  if(!env.YOUTUBE_API_KEY)throw new Error('YouTube search is not configured. Add YOUTUBE_API_KEY as a Cloudflare Worker secret.');
+  const q=String(query||'').trim();
+  if(q.length<2)throw new Error('Enter at least 2 characters to search YouTube.');
+
+  // Cache identical searches for 15 minutes to reduce YouTube API quota use.
+  const cache=caches.default;
+  const cacheUrl=new URL(requestUrl);
+  cacheUrl.pathname='/__cache/youtube-search';
+  cacheUrl.search=new URLSearchParams({q:q.toLowerCase()}).toString();
+  const cacheKey=new Request(cacheUrl.toString(),{method:'GET'});
+  const cached=await cache.match(cacheKey);
+  if(cached)return cached.json();
+
+  const u=new URL('https://www.googleapis.com/youtube/v3/search');
+  u.searchParams.set('part','snippet');
+  u.searchParams.set('type','video');
+  u.searchParams.set('maxResults','10');
+  u.searchParams.set('q',q);
+  u.searchParams.set('safeSearch','moderate');
+  u.searchParams.set('videoEmbeddable','true');
+  u.searchParams.set('videoSyndicated','true');
+  u.searchParams.set('relevanceLanguage','en');
+  u.searchParams.set('regionCode','GB');
+  u.searchParams.set('key',env.YOUTUBE_API_KEY);
+
+  const r=await fetch(u.toString(),{headers:{accept:'application/json'}});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(data?.error?.message||`YouTube API HTTP ${r.status}`);
+
+  const items=(data.items||[]).map(x=>({
+    videoId:x.id?.videoId||'',
+    title:x.snippet?.title||'',
+    description:x.snippet?.description||'',
+    channelTitle:x.snippet?.channelTitle||'',
+    publishedAt:x.snippet?.publishedAt||'',
+    thumbnail:x.snippet?.thumbnails?.medium?.url||x.snippet?.thumbnails?.default?.url||''
+  })).filter(x=>x.videoId);
+
+  const payload={items};
+  const response=new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public, max-age=900'}});
+  await cache.put(cacheKey,response.clone());
+  return payload;
+}
+
 async function sendOne(row,env){
   const sub={endpoint:row.endpoint,keys:{p256dh:row.p256dh,auth:row.auth}};
   await sendPushNotification(sub,{title:row.title,body:row.body,icon:'/icon-192.png',badge:'/icon-192.png',tag:row.id,data:{url:row.url}},{publicKey:env.VAPID_PUBLIC_KEY,privateKey:env.VAPID_PRIVATE_KEY,subject:env.VAPID_SUBJECT||'mailto:command-centre@example.com'});
@@ -263,6 +309,11 @@ export default {
           await env.DB.prepare('INSERT OR IGNORE INTO notifications(id,device_id,item_id,kind,due_at,title,body,url,frequency,local_date,local_time,timezone,sent) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,0)').bind(x.id,deviceId,x.itemId,x.kind,x.dueAt,x.title,x.body,x.url,x.frequency||'none',x.localDate,x.localTime,x.timezone||timezone||'Europe/London').run();
         }
         return json({ok:true,count:items.length});
+      }
+
+      if(url.pathname==='/api/youtube/search'&&request.method==='GET'){
+        const q=url.searchParams.get('q')||'';
+        return json(await searchYouTube(env,q,request.url));
       }
 
       if(url.pathname==='/api/news'&&request.method==='GET'){
