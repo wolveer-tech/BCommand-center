@@ -230,6 +230,7 @@
                 <div class="field" style="margin-top:10px"><label>Search YouTube</label><input id="youtubeSearchInput" placeholder="Search videos…" autocomplete="off" /></div>
                 <div class="toolbar" style="margin:8px 0"><button class="btn primary" id="youtubeSearchBtn">Search</button></div>
                 <div class="youtube-search-note">Search uses the YouTube Data API through your Cloudflare Worker.</div>
+                <div class="toolbar" style="margin-top:7px"><button class="btn small" id="youtubeApiCheckBtn">Check YouTube API setup</button></div>
                 <div id="youtubeSearchStatus" class="sub" style="margin-top:7px"></div>
                 <div id="youtubeSearchResults" class="youtube-search-results"></div>
                 <div class="section-note">Player</div>
@@ -1543,6 +1544,7 @@ function bindEntertainmentControls(){
     if(e.target.closest('#reactionResetBtn')){reactionReset();return}
     if(e.target.closest('#reactionBox')){reactionTap();return}
 
+    if(e.target.closest('#youtubeApiCheckBtn')){checkYoutubeApiSetup();return}
     if(e.target.closest('#youtubeSearchBtn')){searchYoutubeVideos();return}
     if(e.target.closest('#wordleResetBtn')){resetWordleToday();return}
     if(e.target.closest('#loadYoutubeBtn')){loadYoutubeVideo();return}
@@ -2010,29 +2012,86 @@ function renderEntertainmentGames(){
 function decodeHtmlText(value){
   const t=document.createElement('textarea');t.innerHTML=String(value||'');return t.value;
 }
+async function checkYoutubeApiSetup(){
+  const status=qs('#youtubeSearchStatus');
+  if(status)status.textContent='Checking YouTube API setup…';
+  try{
+    const r=await fetch('/api/youtube/status',{headers:{Accept:'application/json'}});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(data?.error||`HTTP ${r.status}`);
+
+    if(!data.configured){
+      const msg='YOUTUBE_API_KEY is not configured in this Cloudflare Worker.';
+      if(status)status.textContent=msg;toast(msg);return;
+    }
+
+    if(data.ok){
+      const msg='YouTube API is configured and responding.';
+      if(status)status.textContent=msg;toast(msg);return;
+    }
+
+    const msg=data.error||'The API key exists, but Google rejected the test request.';
+    if(status)status.textContent=msg;toast(msg);
+  }catch(e){
+    const msg=e?.message||'Could not check YouTube API setup.';
+    if(status)status.textContent=msg;toast(msg);
+  }
+}
+
 async function searchYoutubeVideos(){
   const input=qs('#youtubeSearchInput'),results=qs('#youtubeSearchResults'),status=qs('#youtubeSearchStatus');
   const q=input?.value.trim();
   if(!q){toast('Enter something to search YouTube for');return}
+
   if(status)status.textContent='Searching YouTube…';
   if(results)results.innerHTML='<div class="empty">Searching…</div>';
+
   try{
-    const data=await fetchJson(`/api/youtube/search?q=${encodeURIComponent(q)}`,{},15000);
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),15000);
+    let response;
+    try{
+      response=await fetch(`/api/youtube/search?q=${encodeURIComponent(q)}`,{
+        signal:controller.signal,
+        headers:{Accept:'application/json'}
+      });
+    }finally{
+      clearTimeout(timer);
+    }
+
+    const raw=await response.text();
+    let data={};
+    try{data=raw?JSON.parse(raw):{}}catch{data={error:raw||`HTTP ${response.status}`}}
+
+    if(!response.ok){
+      const message=data?.error||data?.message||`YouTube search HTTP ${response.status}`;
+      throw new Error(message);
+    }
+
     const items=Array.isArray(data.items)?data.items:[];
     if(!items.length){
       if(results)results.innerHTML='<div class="empty">No embeddable videos found.</div>';
-      if(status)status.textContent='No results';return;
+      if(status)status.textContent='No results';
+      return;
     }
+
     if(results)results.innerHTML=items.map(v=>`<article class="youtube-result" data-youtube-video="${esc(v.videoId)}">
       <img src="${esc(v.thumbnail||'')}" alt="">
-      <div><div class="youtube-result-title">${esc(decodeHtmlText(v.title||'Video'))}</div><div class="youtube-result-meta">${esc(decodeHtmlText(v.channelTitle||'YouTube'))}${v.publishedAt?' • '+new Date(v.publishedAt).toLocaleDateString('en-GB'):''}</div></div>
+      <div>
+        <div class="youtube-result-title">${esc(decodeHtmlText(v.title||'Video'))}</div>
+        <div class="youtube-result-meta">${esc(decodeHtmlText(v.channelTitle||'YouTube'))}${v.publishedAt?' • '+new Date(v.publishedAt).toLocaleDateString('en-GB'):''}</div>
+      </div>
     </article>`).join('');
+
     qsa('[data-youtube-video]').forEach(card=>card.addEventListener('click',()=>loadYoutubeVideo(card.dataset.youtubeVideo)));
     if(status)status.textContent=`${items.length} results — tap one to play`;
   }catch(e){
-    if(results)results.innerHTML='';
-    if(status)status.textContent=e.message||'YouTube search failed';
-    toast(e.message||'YouTube search failed');
+    const message=e?.name==='AbortError'
+      ? 'YouTube search timed out. Try again.'
+      : (e?.message||'YouTube search failed');
+    if(results)results.innerHTML=`<div class="danger">${esc(message)}</div>`;
+    if(status)status.textContent=message;
+    toast(message);
   }
 }
 
@@ -2080,6 +2139,7 @@ window.setSnakeDir=setSnakeDir;
 window.reactionTap=reactionTap;
 window.reactionReset=reactionReset;
 window.searchYoutubeVideos=searchYoutubeVideos;
+window.checkYoutubeApiSetup=checkYoutubeApiSetup;
 window.resetWordleToday=resetWordleToday;
 window.wordleInput=wordleInput;
 
