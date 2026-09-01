@@ -366,6 +366,147 @@ async function youtubeStatus(env){
   }
 }
 
+
+const FOOTBALL_COMPETITIONS=new Set(['PL','CL','PD','BL1','SA','FL1']);
+
+function isoDayOffset(n){
+  const d=new Date();d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);
+}
+async function footballFetch(path,env){
+  if(!env.FOOTBALL_DATA_API_KEY){
+    const err=new Error('Football is not configured. Add FOOTBALL_DATA_API_KEY as a Cloudflare Worker secret.');
+    err.status=503;throw err;
+  }
+  const r=await fetch(`https://api.football-data.org/v4${path}`,{
+    headers:{'X-Auth-Token':env.FOOTBALL_DATA_API_KEY,accept:'application/json'}
+  });
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok){
+    const err=new Error(data?.message||data?.error||`football-data.org HTTP ${r.status}`);
+    err.status=r.status===429?429:(r.status>=400&&r.status<500?r.status:502);
+    throw err;
+  }
+  return data;
+}
+async function getFootballBundle(env,competition='PL',force=false,requestUrl='https://local/api/football'){
+  const code=String(competition||'PL').toUpperCase();
+  if(!FOOTBALL_COMPETITIONS.has(code)){
+    const err=new Error('Unsupported football competition.');
+    err.status=400;throw err;
+  }
+
+  let cache=null,cacheKey=null;
+  try{
+    cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
+    if(cache&&!force){
+      const u=new URL(requestUrl);
+      u.pathname='/__cache/football';
+      u.search=new URLSearchParams({competition:code}).toString();
+      cacheKey=new Request(u.toString(),{method:'GET'});
+      const hit=await cache.match(cacheKey);
+      if(hit)return hit.json();
+    }
+  }catch(e){console.warn('Football cache read skipped',e);cache=null;cacheKey=null}
+
+  const dateFrom=isoDayOffset(-7),dateTo=isoDayOffset(14);
+  const [standingsData,matchesData]=await Promise.all([
+    footballFetch(`/competitions/${encodeURIComponent(code)}/standings`,env).catch(e=>{
+      // Cup competitions may not expose a single standings resource.
+      if(code==='CL'&&e.status===404)return {competition:{name:'UEFA Champions League',code},standings:[]};
+      throw e;
+    }),
+    footballFetch(`/competitions/${encodeURIComponent(code)}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`,env)
+  ]);
+
+  const payload={
+    competition:standingsData.competition||matchesData.competition||{code,name:code},
+    standings:Array.isArray(standingsData.standings)?standingsData.standings:[],
+    matches:Array.isArray(matchesData.matches)?matchesData.matches:[],
+    updatedAt:new Date().toISOString()
+  };
+
+  if(cache){
+    try{
+      if(!cacheKey){
+        const u=new URL(requestUrl);
+        u.pathname='/__cache/football';
+        u.search=new URLSearchParams({competition:code}).toString();
+        cacheKey=new Request(u.toString(),{method:'GET'});
+      }
+      await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=900'}}));
+    }catch(e){console.warn('Football cache write skipped',e)}
+  }
+  return payload;
+}
+async function footballStatus(env){
+  if(!env.FOOTBALL_DATA_API_KEY)return {configured:false,ok:false,error:'FOOTBALL_DATA_API_KEY is missing.'};
+  try{
+    const data=await footballFetch('/competitions/PL',env);
+    return {configured:true,ok:!!data?.id,detail:data?.name||'Premier League API responded.'};
+  }catch(e){
+    return {configured:true,ok:false,error:e?.message||String(e)};
+  }
+}
+async function commandCentreStatus(env,live=false){
+  const services=[
+    {name:'Cloudflare Worker',state:'Healthy',kind:'ok',detail:'Worker is responding.'}
+  ];
+
+  // D1
+  try{
+    if(!env.DB)throw new Error('DB binding missing');
+    await env.DB.prepare('SELECT 1 AS ok').first();
+    services.push({name:'D1 database',state:'Healthy',kind:'ok',detail:'Database binding and query are working.'});
+  }catch(e){
+    services.push({name:'D1 database',state:'Error',kind:'bad',detail:e?.message||'Database check failed.'});
+  }
+
+  // Push config — configuration check, not a test notification.
+  const vapidOk=!!(env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY);
+  services.push({
+    name:'Web Push / VAPID',
+    state:vapidOk?'Configured':'Needs setup',
+    kind:vapidOk?'ok':'bad',
+    detail:vapidOk?'Public and private VAPID keys are present.':'VAPID_PUBLIC_KEY or VAPID_PRIVATE_KEY is missing.'
+  });
+
+  // YouTube live check.
+  if(!env.YOUTUBE_API_KEY){
+    services.push({name:'YouTube Data API',state:'Not configured',kind:'warn',detail:'YOUTUBE_API_KEY is missing.'});
+  }else if(live){
+    const yt=await youtubeStatus(env);
+    services.push({name:'YouTube Data API',state:yt.ok?'Healthy':'Error',kind:yt.ok?'ok':'bad',detail:yt.ok?'Google accepted the API key.':(yt.error||'YouTube check failed.')});
+  }else{
+    services.push({name:'YouTube Data API',state:'Configured',kind:'info',detail:'YOUTUBE_API_KEY is present.'});
+  }
+
+  // Football live check.
+  if(!env.FOOTBALL_DATA_API_KEY){
+    services.push({name:'Football Data API',state:'Not configured',kind:'warn',detail:'Add FOOTBALL_DATA_API_KEY to enable the Football Hub.'});
+  }else if(live){
+    const fb=await footballStatus(env);
+    services.push({name:'Football Data API',state:fb.ok?'Healthy':'Error',kind:fb.ok?'ok':'bad',detail:fb.ok?(fb.detail||'football-data.org responded.'):(fb.error||'Football API check failed.')});
+  }else{
+    services.push({name:'Football Data API',state:'Configured',kind:'info',detail:'FOOTBALL_DATA_API_KEY is present.'});
+  }
+
+  services.push({
+    name:'NewsData',
+    state:env.NEWSDATA_API_KEY?'Configured':'Not configured',
+    kind:env.NEWSDATA_API_KEY?'info':'warn',
+    detail:env.NEWSDATA_API_KEY?'Secret is present. Live calls are skipped here to preserve quota.':'NEWSDATA_API_KEY is missing.'
+  });
+  services.push({
+    name:'Alpha Vantage',
+    state:env.ALPHA_VANTAGE_API_KEY?'Configured':'Not configured',
+    kind:env.ALPHA_VANTAGE_API_KEY?'info':'warn',
+    detail:env.ALPHA_VANTAGE_API_KEY?'Secret is present. Live calls are skipped here to preserve quota.':'ALPHA_VANTAGE_API_KEY is missing.'
+  });
+
+  return {ok:true,services,checkedAt:new Date().toISOString()};
+}
+
+
 async function sendOne(row,env){
   const sub={endpoint:row.endpoint,keys:{p256dh:row.p256dh,auth:row.auth}};
   await sendPushNotification(sub,{title:row.title,body:row.body,icon:'/icon-192.png',badge:'/icon-192.png',tag:row.id,data:{url:row.url}},{publicKey:env.VAPID_PUBLIC_KEY,privateKey:env.VAPID_PRIVATE_KEY,subject:env.VAPID_SUBJECT||'mailto:command-centre@example.com'});
@@ -392,6 +533,16 @@ export default {
           await env.DB.prepare('INSERT OR IGNORE INTO notifications(id,device_id,item_id,kind,due_at,title,body,url,frequency,local_date,local_time,timezone,sent) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,0)').bind(x.id,deviceId,x.itemId,x.kind,x.dueAt,x.title,x.body,x.url,x.frequency||'none',x.localDate,x.localTime,x.timezone||timezone||'Europe/London').run();
         }
         return json({ok:true,count:items.length});
+      }
+
+      if(url.pathname==='/api/status'&&request.method==='GET'){
+        return json(await commandCentreStatus(env,url.searchParams.get('live')==='1'));
+      }
+
+      if(url.pathname==='/api/football'&&request.method==='GET'){
+        const competition=url.searchParams.get('competition')||'PL';
+        const force=url.searchParams.get('refresh')==='1';
+        return json(await getFootballBundle(env,competition,force,request.url));
       }
 
       if(url.pathname==='/api/youtube/status'&&request.method==='GET'){
