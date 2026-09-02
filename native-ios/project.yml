@@ -23,6 +23,10 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: tech.wolveer.commandcentre.native
         PRODUCT_NAME: Command Centre
+        MARKETING_VERSION: 1.1.0
+        CURRENT_PROJECT_VERSION: 2
+        INFOPLIST_KEY_CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        INFOPLIST_KEY_CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         SWIFT_VERSION: 5.0
         TARGETED_DEVICE_FAMILY: "1,2"
         GENERATE_INFOPLIST_FILE: YES
@@ -44,6 +48,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: tech.wolveer.commandcentre.native.broadcast
         PRODUCT_NAME: Command Centre Mirror
+        MARKETING_VERSION: 1.1.0
+        CURRENT_PROJECT_VERSION: 2
         SWIFT_VERSION: 5.0
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: BroadcastUploadExtension/Info.plist
