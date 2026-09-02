@@ -279,6 +279,110 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
   return payload;
 }
 
+
+function mediaBaseUrl(env){
+  const raw=String(env.MEDIA_EMBED_BASE_URL||'').trim().replace(/\/$/,'');
+  if(!raw){const e=new Error('MEDIA_EMBED_BASE_URL is not configured.');e.status=503;throw e}
+  const u=new URL(raw);
+  if(u.protocol!=='https:'){const e=new Error('MEDIA_EMBED_BASE_URL must use HTTPS.');e.status=500;throw e}
+  return u;
+}
+function mediaAllowedHosts(env,base){
+  const configured=String(env.MEDIA_EMBED_ALLOWED_HOSTS||'')
+    .split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+  return configured.length?configured:[base.hostname.toLowerCase()];
+}
+function mediaPathForMode(env,mode){
+  if(mode==='torrent')return String(env.MEDIA_EMBED_PATH_TORRENT||'/embed/torrent').trim()||'/embed/torrent';
+  if(mode==='agg')return String(env.MEDIA_EMBED_PATH_AGG||'/embed/agg').trim()||'/embed/agg';
+  return String(env.MEDIA_EMBED_PATH_STANDARD||'/embed').trim()||'/embed';
+}
+function buildMediaEmbedUrl(env,{type,id,season,episode,mode='standard'}){
+  if(!['movie','tv'].includes(type)){const e=new Error('type must be movie or tv.');e.status=400;throw e}
+  if(!/^\d+$/.test(String(id||''))){const e=new Error('A numeric TMDB id is required.');e.status=400;throw e}
+  if(!['standard','torrent','agg'].includes(mode)){const e=new Error('Unsupported provider mode.');e.status=400;throw e}
+  if(type==='tv'){
+    if(!Number.isInteger(Number(season))||Number(season)<1){const e=new Error('A valid season is required for TV.');e.status=400;throw e}
+    if(!Number.isInteger(Number(episode))||Number(episode)<1){const e=new Error('A valid episode is required for TV.');e.status=400;throw e}
+  }
+  const base=mediaBaseUrl(env);
+  const u=new URL(base.toString());
+  const path=mediaPathForMode(env,mode);
+  u.pathname=(base.pathname.replace(/\/$/,'')+'/'+path.replace(/^\//,'')).replace(/\/+/g,'/');
+  u.search='';
+  u.searchParams.set('type',type);
+  u.searchParams.set('id',String(id));
+  if(type==='tv'){
+    u.searchParams.set('season',String(Number(season)));
+    u.searchParams.set('episode',String(Number(episode)));
+  }
+  const hosts=mediaAllowedHosts(env,base);
+  if(!hosts.includes(u.hostname.toLowerCase())){const e=new Error('Generated provider host is not in MEDIA_EMBED_ALLOWED_HOSTS.');e.status=500;throw e}
+  return u.toString();
+}
+async function tmdbFetch(env,path,params={}){
+  if(!env.TMDB_API_KEY){const e=new Error('TMDB_API_KEY is not configured.');e.status=503;throw e}
+  const u=new URL(`https://api.themoviedb.org/3${path}`);
+  u.searchParams.set('api_key',env.TMDB_API_KEY);
+  u.searchParams.set('language','en-GB');
+  for(const [k,v] of Object.entries(params))if(v!==undefined&&v!==null&&v!=='')u.searchParams.set(k,String(v));
+  const r=await fetch(u.toString(),{headers:{accept:'application/json'}});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok){const e=new Error(data?.status_message||`TMDB HTTP ${r.status}`);e.status=r.status>=400&&r.status<500?r.status:502;throw e}
+  return data;
+}
+function tmdbPoster(path){
+  return path?`https://image.tmdb.org/t/p/w342${path}`:'';
+}
+async function mediaSearch(env,q,type='multi'){
+  const query=String(q||'').trim();
+  if(query.length<2){const e=new Error('Search query must be at least 2 characters.');e.status=400;throw e}
+  const safeType=['movie','tv','multi'].includes(type)?type:'multi';
+  const data=await tmdbFetch(env,`/search/${safeType}`,{query,include_adult:'false',page:'1'});
+  const results=(Array.isArray(data.results)?data.results:[])
+    .map(x=>{
+      const detected=safeType==='multi'?x.media_type:safeType;
+      if(!['movie','tv'].includes(detected))return null;
+      const title=detected==='movie'?(x.title||x.original_title):(x.name||x.original_name);
+      const date=detected==='movie'?x.release_date:x.first_air_date;
+      return {
+        id:Number(x.id),
+        type:detected,
+        title:String(title||'Untitled').slice(0,180),
+        year:String(date||'').slice(0,4),
+        overview:String(x.overview||'').slice(0,600),
+        posterUrl:tmdbPoster(x.poster_path),
+        popularity:Number(x.popularity)||0
+      };
+    })
+    .filter(Boolean)
+    .slice(0,20);
+  return {results,count:results.length};
+}
+async function mediaTvDetails(env,id){
+  if(!/^\d+$/.test(String(id||''))){const e=new Error('A numeric TMDB id is required.');e.status=400;throw e}
+  const data=await tmdbFetch(env,`/tv/${encodeURIComponent(id)}`);
+  const seasons=(Array.isArray(data.seasons)?data.seasons:[]).map(s=>({
+    seasonNumber:Number(s.season_number),
+    name:String(s.name||`Season ${s.season_number}`).slice(0,120),
+    episodeCount:Number(s.episode_count)||0,
+    airDate:String(s.air_date||'')
+  })).filter(s=>Number.isFinite(s.seasonNumber));
+  return {id:Number(id),title:String(data.name||''),numberOfSeasons:Number(data.number_of_seasons)||0,seasons};
+}
+async function mediaSeason(env,id,season){
+  if(!/^\d+$/.test(String(id||''))){const e=new Error('A numeric TMDB id is required.');e.status=400;throw e}
+  const s=Number(season);
+  if(!Number.isInteger(s)||s<1){const e=new Error('A valid season is required.');e.status=400;throw e}
+  const data=await tmdbFetch(env,`/tv/${encodeURIComponent(id)}/season/${encodeURIComponent(s)}`);
+  const episodes=(Array.isArray(data.episodes)?data.episodes:[]).map(ep=>({
+    episodeNumber:Number(ep.episode_number),
+    name:String(ep.name||`Episode ${ep.episode_number}`).slice(0,160),
+    airDate:String(ep.air_date||'')
+  })).filter(ep=>Number.isInteger(ep.episodeNumber)&&ep.episodeNumber>=1);
+  return {id:Number(id),season:s,episodes};
+}
+
 async function youtubeExplore(env,section='trending',requestUrl='https://local/api/youtube/explore',force=false){
   if(!env.YOUTUBE_API_KEY){const err=new Error('YOUTUBE_API_KEY is missing.');err.status=503;throw err}
   const allowed=new Set(['trending','gaming','music','sports','live']),mode=allowed.has(section)?section:'trending';let cache=null,cacheKey=null;
@@ -563,6 +667,19 @@ async function commandCentreStatus(env,live=false){
     kind:env.LIVE_CONTENT_API_BASE_URL?'info':'warn',
     detail:env.LIVE_CONTENT_API_BASE_URL?'Provider base URL is present.':'Add LIVE_CONTENT_API_BASE_URL to enable the live football player.'
   });
+  services.push({
+    name:'Movies & TV metadata',
+    state:env.TMDB_API_KEY?'Configured':'Not configured',
+    kind:env.TMDB_API_KEY?'info':'warn',
+    detail:env.TMDB_API_KEY?'TMDB_API_KEY is present.':'Add TMDB_API_KEY to enable movie/TV search.'
+  });
+  services.push({
+    name:'Movies & TV embed provider',
+    state:env.MEDIA_EMBED_BASE_URL?'Configured':'Not configured',
+    kind:env.MEDIA_EMBED_BASE_URL?'info':'warn',
+    detail:env.MEDIA_EMBED_BASE_URL?'Authorised media provider base URL is present.':'Add MEDIA_EMBED_BASE_URL to enable the Movies & TV player.'
+  });
+
   services.push({
     name:'NewsData',
     state:env.NEWSDATA_API_KEY?'Configured':'Not configured',
@@ -942,6 +1059,53 @@ export default {
           id:`football-test-${Date.now()}`
         },env);
         return json({ok:true});
+      }
+
+      if(url.pathname==='/api/media/status'&&request.method==='GET'){
+        const providerConfigured=!!env.MEDIA_EMBED_BASE_URL;
+        const tmdbConfigured=!!env.TMDB_API_KEY;
+        return json({
+          ready:providerConfigured&&tmdbConfigured,
+          providerConfigured,
+          tmdbConfigured,
+          routes:{
+            standard:env.MEDIA_EMBED_PATH_STANDARD||'/embed',
+            alternate:env.MEDIA_EMBED_PATH_TORRENT||'/embed/torrent',
+            aggregator:env.MEDIA_EMBED_PATH_AGG||'/embed/agg'
+          }
+        },providerConfigured&&tmdbConfigured?200:503);
+      }
+
+      if(url.pathname==='/api/media/search'&&request.method==='GET'){
+        return json(await mediaSearch(
+          env,
+          url.searchParams.get('q')||'',
+          url.searchParams.get('type')||'multi'
+        ));
+      }
+
+      if(url.pathname==='/api/media/tv'&&request.method==='GET'){
+        return json(await mediaTvDetails(env,url.searchParams.get('id')||''));
+      }
+
+      if(url.pathname==='/api/media/season'&&request.method==='GET'){
+        return json(await mediaSeason(
+          env,
+          url.searchParams.get('id')||'',
+          url.searchParams.get('season')||''
+        ));
+      }
+
+      if(url.pathname==='/api/media/embed-url'&&request.method==='GET'){
+        return json({
+          embedUrl:buildMediaEmbedUrl(env,{
+            type:url.searchParams.get('type')||'',
+            id:url.searchParams.get('id')||'',
+            season:url.searchParams.get('season')||'',
+            episode:url.searchParams.get('episode')||'',
+            mode:url.searchParams.get('mode')||'standard'
+          })
+        });
       }
 
       if(url.pathname==='/api/youtube/explore'&&request.method==='GET'){
