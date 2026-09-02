@@ -1,6 +1,6 @@
 workflows:
   ios-26-signulous-ipa:
-    name: iOS 26 Mirror - Signulous IPA v2
+    name: iOS 26 Mirror - Audio Fullscreen v4
     max_build_duration: 60
     instance_type: mac_mini_m2
 
@@ -115,6 +115,24 @@ workflows:
           echo "=== Package types ==="
           /usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$APP_PATH/Info.plist"
           /usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$APPEX_PATH/Info.plist"
+          echo "=== Version consistency ==="
+          APP_SHORT=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Info.plist")
+          APP_BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/Info.plist")
+          EXT_SHORT=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APPEX_PATH/Info.plist")
+          EXT_BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APPEX_PATH/Info.plist")
+          EXT_EXEC=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APPEX_PATH/Info.plist")
+          echo "App version: $APP_SHORT ($APP_BUILD)"
+          echo "Extension version: $EXT_SHORT ($EXT_BUILD)"
+          echo "Extension executable: $EXT_EXEC"
+          if [ "$APP_SHORT" != "$EXT_SHORT" ] || [ "$APP_BUILD" != "$EXT_BUILD" ]; then
+            echo "ERROR: App and extension versions do not match."
+            exit 1
+          fi
+          if [ -z "$EXT_EXEC" ]; then
+            echo "ERROR: Extension CFBundleExecutable is missing."
+            exit 1
+          fi
+
 
           echo "=== Extension point ==="
           /usr/libexec/PlistBuddy \
@@ -154,7 +172,7 @@ workflows:
           set -euo pipefail
           cd "$CM_BUILD_DIR/build"
 
-          rm -f CommandCentre-iOS26-SIGNULOUS.ipa
+          rm -f CommandCentre-iOS26-MIRROR-v4.ipa
 
           # ditto preserves bundle metadata and executable permissions.
           /usr/bin/ditto \
@@ -163,19 +181,19 @@ workflows:
             --sequesterRsrc \
             --keepParent \
             Payload \
-            CommandCentre-iOS26-SIGNULOUS.ipa
+            CommandCentre-iOS26-MIRROR-v4.ipa
 
           echo "=== IPA contents ==="
-          /usr/bin/unzip -l CommandCentre-iOS26-SIGNULOUS.ipa | head -n 80
+          /usr/bin/unzip -l CommandCentre-iOS26-MIRROR-v4.ipa | head -n 80
 
           # Basic integrity test.
-          /usr/bin/unzip -t CommandCentre-iOS26-SIGNULOUS.ipa
+          /usr/bin/unzip -t CommandCentre-iOS26-MIRROR-v4.ipa
 
           echo
           echo "Created IPA:"
-          ls -lh CommandCentre-iOS26-SIGNULOUS.ipa
+          ls -lh CommandCentre-iOS26-MIRROR-v4.ipa
 
     artifacts:
-      - build/CommandCentre-iOS26-SIGNULOUS.ipa
+      - build/CommandCentre-iOS26-MIRROR-v4.ipa
       - build/ipa-structure-report.txt
       - build/xcodebuild-device.log
