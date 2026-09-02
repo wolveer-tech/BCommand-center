@@ -1,12 +1,13 @@
 workflows:
   ios-26-signulous-ipa:
-    name: iOS 26 Mirror - Unsigned IPA for Signulous
+    name: iOS 26 Mirror - Signulous IPA v2
     max_build_duration: 60
     instance_type: mac_mini_m2
 
     scripts:
       - name: Install XcodeGen
         script: |
+          set -e
           brew install xcodegen
 
       - name: Generate Xcode project
@@ -24,7 +25,7 @@ workflows:
             -project CommandCentreNative.xcodeproj \
             -scheme CommandCentreNative
 
-      - name: Build unsigned iPhone app
+      - name: Build unsigned device app
         script: |
           set -o pipefail
           mkdir -p "$CM_BUILD_DIR/build"
@@ -49,18 +50,20 @@ workflows:
 
           if [ "$BUILD_STATUS" -ne 0 ]; then
             echo "=== Compiler diagnostics ==="
-            grep -n -E 'error:|warning:' "$CM_BUILD_DIR/build/xcodebuild-device.log" | tail -n 150 || true
+            grep -n -E 'error:|warning:' "$CM_BUILD_DIR/build/xcodebuild-device.log" | tail -n 180 || true
             exit "$BUILD_STATUS"
           fi
 
-      - name: Package unsigned IPA
+      - name: Prepare and ad-hoc sign IPA structure
         script: |
-          set -e
-          PRODUCTS="$CM_BUILD_DIR/build/DerivedData/Build/Products/Release-iphoneos"
+          set -euo pipefail
+
+          BUILD_ROOT="$CM_BUILD_DIR/build"
+          PRODUCTS="$BUILD_ROOT/DerivedData/Build/Products/Release-iphoneos"
           APP_PATH="$(find "$PRODUCTS" -maxdepth 1 -type d -name '*.app' | head -n 1)"
 
           if [ -z "$APP_PATH" ]; then
-            echo "No iPhone .app bundle was produced."
+            echo "ERROR: No .app bundle was produced."
             exit 1
           fi
 
@@ -68,24 +71,111 @@ workflows:
 
           APPEX_PATH="$(find "$APP_PATH/PlugIns" -maxdepth 1 -type d -name '*.appex' 2>/dev/null | head -n 1)"
           if [ -z "$APPEX_PATH" ]; then
-            echo "ReplayKit Broadcast Upload Extension was not embedded."
+            echo "ERROR: ReplayKit Broadcast Upload Extension was not embedded."
             exit 1
           fi
 
-          echo "Embedded extension: $APPEX_PATH"
+          echo "ReplayKit extension: $APPEX_PATH"
 
-          rm -rf "$CM_BUILD_DIR/build/Payload"
-          mkdir -p "$CM_BUILD_DIR/build/Payload"
-          cp -R "$APP_PATH" "$CM_BUILD_DIR/build/Payload/"
+          # Remove anything left over from an earlier signing/export attempt.
+          find "$APP_PATH" -name '_CodeSignature' -type d -prune -exec rm -rf {} + 2>/dev/null || true
+          find "$APP_PATH" -name 'embedded.mobileprovision' -type f -delete 2>/dev/null || true
 
+          # Ad-hoc sign nested Mach-O code first. This produces a structurally
+          # coherent IPA for a re-signing service; it is NOT an installable
+          # Apple signature by itself.
+          while IFS= read -r -d '' framework; do
+            echo "Ad-hoc signing framework: $framework"
+            /usr/bin/codesign --force --sign - --timestamp=none "$framework"
+          done < <(find "$APP_PATH" -type d -name '*.framework' -print0)
+
+          while IFS= read -r -d '' dylib; do
+            echo "Ad-hoc signing dylib: $dylib"
+            /usr/bin/codesign --force --sign - --timestamp=none "$dylib"
+          done < <(find "$APP_PATH" -type f -name '*.dylib' -print0)
+
+          # Sign the ReplayKit extension before the containing app.
+          /usr/bin/codesign \
+            --force \
+            --sign - \
+            --timestamp=none \
+            "$APPEX_PATH"
+
+          # Sign the containing app last.
+          /usr/bin/codesign \
+            --force \
+            --sign - \
+            --timestamp=none \
+            "$APP_PATH"
+
+          echo "=== Bundle identifiers ==="
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APPEX_PATH/Info.plist"
+
+          echo "=== Package types ==="
+          /usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$APP_PATH/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$APPEX_PATH/Info.plist"
+
+          echo "=== Extension point ==="
+          /usr/libexec/PlistBuddy \
+            -c 'Print :NSExtension:NSExtensionPointIdentifier' \
+            "$APPEX_PATH/Info.plist"
+
+          echo "=== Verify ad-hoc code structure ==="
+          /usr/bin/codesign --verify --deep --strict --verbose=4 "$APP_PATH"
+
+          # Copy into a clean Payload directory after verification.
+          rm -rf "$BUILD_ROOT/Payload"
+          mkdir -p "$BUILD_ROOT/Payload"
+          /usr/bin/ditto "$APP_PATH" "$BUILD_ROOT/Payload/$(basename "$APP_PATH")"
+
+          # Produce a useful report to inspect if a signing service rejects it.
+          {
+            echo "Command Centre Signulous IPA structure report"
+            echo "Generated: $(date -u)"
+            echo
+            echo "APP=$(basename "$APP_PATH")"
+            echo "APP_BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")"
+            echo "APP_PACKAGE_TYPE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$APP_PATH/Info.plist")"
+            echo "APPEX=$(basename "$APPEX_PATH")"
+            echo "APPEX_BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APPEX_PATH/Info.plist")"
+            echo "APPEX_PACKAGE_TYPE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$APPEX_PATH/Info.plist")"
+            echo "APPEX_EXTENSION_POINT=$(/usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionPointIdentifier' "$APPEX_PATH/Info.plist")"
+            echo
+            echo "Nested bundles:"
+            find "$APP_PATH" -type d \( -name '*.framework' -o -name '*.appex' \) -print
+            echo
+            echo "Code signature verification:"
+            /usr/bin/codesign --verify --deep --strict --verbose=4 "$APP_PATH" 2>&1
+          } > "$BUILD_ROOT/ipa-structure-report.txt"
+
+      - name: Package IPA
+        script: |
+          set -euo pipefail
           cd "$CM_BUILD_DIR/build"
-          rm -f CommandCentre-iOS26-UNSIGNED.ipa
-          /usr/bin/zip -qry CommandCentre-iOS26-UNSIGNED.ipa Payload
 
-          echo "Created:"
-          ls -lh CommandCentre-iOS26-UNSIGNED.ipa
+          rm -f CommandCentre-iOS26-SIGNULOUS.ipa
 
+          # ditto preserves bundle metadata and executable permissions.
+          /usr/bin/ditto \
+            -c \
+            -k \
+            --sequesterRsrc \
+            --keepParent \
+            Payload \
+            CommandCentre-iOS26-SIGNULOUS.ipa
+
+          echo "=== IPA contents ==="
+          /usr/bin/unzip -l CommandCentre-iOS26-SIGNULOUS.ipa | head -n 80
+
+          # Basic integrity test.
+          /usr/bin/unzip -t CommandCentre-iOS26-SIGNULOUS.ipa
+
+          echo
+          echo "Created IPA:"
+          ls -lh CommandCentre-iOS26-SIGNULOUS.ipa
 
     artifacts:
-      - build/CommandCentre-iOS26-UNSIGNED.ipa
+      - build/CommandCentre-iOS26-SIGNULOUS.ipa
+      - build/ipa-structure-report.txt
       - build/xcodebuild-device.log
