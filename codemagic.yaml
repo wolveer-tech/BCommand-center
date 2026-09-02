@@ -1,6 +1,6 @@
 workflows:
   ios-26-signulous-ipa:
-    name: iOS 26 Mirror - Audio Fullscreen v4.2
+    name: iOS 26 Mirror - Audio Fix v4.3
     max_build_duration: 60
     instance_type: mac_mini_m2
 
@@ -172,7 +172,7 @@ workflows:
           set -euo pipefail
           cd "$CM_BUILD_DIR/build"
 
-          rm -f CommandCentre-iOS26-MIRROR-v4.ipa
+          rm -f CommandCentre-iOS26-MIRROR-v4.3.ipa
 
           # ditto preserves bundle metadata and executable permissions.
           /usr/bin/ditto \
@@ -181,19 +181,19 @@ workflows:
             --sequesterRsrc \
             --keepParent \
             Payload \
-            CommandCentre-iOS26-MIRROR-v4.ipa
+            CommandCentre-iOS26-MIRROR-v4.3.ipa
 
           echo "=== IPA contents ==="
-          /usr/bin/unzip -l CommandCentre-iOS26-MIRROR-v4.ipa | head -n 80
+          /usr/bin/unzip -l CommandCentre-iOS26-MIRROR-v4.3.ipa | head -n 80
 
           # Basic integrity test.
-          /usr/bin/unzip -t CommandCentre-iOS26-MIRROR-v4.ipa
+          /usr/bin/unzip -t CommandCentre-iOS26-MIRROR-v4.3.ipa
 
           echo
           echo "Created IPA:"
-          ls -lh CommandCentre-iOS26-MIRROR-v4.ipa
+          ls -lh CommandCentre-iOS26-MIRROR-v4.3.ipa
 
     artifacts:
-      - build/CommandCentre-iOS26-MIRROR-v4.ipa
+      - build/CommandCentre-iOS26-MIRROR-v4.3.ipa
       - build/ipa-structure-report.txt
       - build/xcodebuild-device.log
