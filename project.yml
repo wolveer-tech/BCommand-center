@@ -1,0 +1,54 @@
+name: CommandCentreNative
+options:
+  bundleIdPrefix: tech.wolveer
+  deploymentTarget:
+    iOS: "26.0"
+
+packages:
+  WebRTC:
+    url: https://github.com/stasel/WebRTC.git
+    branch: latest
+
+targets:
+  CommandCentreNative:
+    type: application
+    platform: iOS
+    sources:
+      - path: CommandCentreNative
+      - path: Shared
+    dependencies:
+      - package: WebRTC
+      - target: BroadcastUploadExtension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: tech.wolveer.commandcentre.native
+        PRODUCT_NAME: Command Centre
+        SWIFT_VERSION: 6.0
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Command Centre
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        CODE_SIGN_ENTITLEMENTS: CommandCentreNative/CommandCentreNative.entitlements
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
+        SUPPORTS_MACCATALYST: NO
+
+  BroadcastUploadExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: BroadcastUploadExtension
+      - path: Shared
+    dependencies:
+      - package: WebRTC
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: tech.wolveer.commandcentre.native.broadcast
+        PRODUCT_NAME: Command Centre Mirror
+        SWIFT_VERSION: 6.0
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: BroadcastUploadExtension/Info.plist
+        CODE_SIGN_ENTITLEMENTS: BroadcastUploadExtension/BroadcastUploadExtension.entitlements
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
+        SKIP_INSTALL: YES
