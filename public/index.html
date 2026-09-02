@@ -410,7 +410,7 @@
             <div class="mirror-panel">
               <div class="title" style="font-size:13px">Watch on this device</div><div class="sub">On your laptop, enter the code shown on the sending device.</div>
               <div class="field" style="margin-top:10px"><label>Mirror code</label><input id="mirrorJoinCode" inputmode="numeric" maxlength="6" placeholder="123456"></div>
-              <div class="mirror-actions"><button class="btn primary" id="mirrorJoinBtn">Join mirror</button><button class="btn" id="mirrorFullscreenBtn">⛶ Full screen</button><button class="btn" id="mirrorLeaveBtn">Leave</button></div>
+              <div class="mirror-actions"><button class="btn primary" id="mirrorJoinBtn">Join mirror</button><button class="btn" id="mirrorEnableAudioBtn">🔊 Enable audio</button><button class="btn" id="mirrorFullscreenBtn">⛶ Full screen</button><button class="btn" id="mirrorLeaveBtn">Leave</button></div>
               <video id="mirrorRemoteVideo" class="mirror-video" autoplay playsinline controls></video>
               <div id="mirrorReceiverStatus" class="mirror-state">Waiting for a mirror code.</div>
               <div id="mirrorAudioStatus" class="mirror-audio-state">🔇 Audio waits for the iPhone broadcast.</div>
@@ -1813,6 +1813,18 @@ function attachMirrorDataChannel(channel){
   channel.onclose=()=>mirrorAudioStatus('🔇 Audio channel closed.');
   channel.onerror=()=>mirrorAudioStatus('Audio channel error — retrying with the mirror.','bad');
   channel.onmessage=e=>{
+    if(typeof e.data==='string'){
+      if(e.data==='cc-audio:source-received'){
+        mirrorAudioStatus('🔊 iPhone audio source detected — preparing PCM…','ok');
+      }else if(e.data.startsWith('cc-audio:pcm-flowing-')){
+        const detail=e.data.slice('cc-audio:pcm-flowing-'.length).replaceAll('-',' ');
+        mirrorAudioStatus(`🔊 iPhone audio packets are flowing (${detail}).`,'ok');
+      }else if(e.data.startsWith('cc-audio:error-')){
+        const reason=e.data.slice('cc-audio:error-'.length);
+        mirrorAudioStatus(`Audio capture error: ${reason}`,'bad');
+      }
+      return;
+    }
     if(e.data instanceof ArrayBuffer)playMirrorAudioPacket(e.data);
     else if(e.data instanceof Blob)e.data.arrayBuffer().then(playMirrorAudioPacket).catch(()=>{});
   };
@@ -2045,6 +2057,21 @@ function bindMirrorControls(){
   bind('mirrorStartBtn','click',startMirrorSharing);
   bind('mirrorStopBtn','click',()=>stopMirror(true));
   bind('mirrorJoinBtn','click',joinMirrorRoom);
+  bind('mirrorEnableAudioBtn','click',async()=>{
+    const ctx=ensureMirrorAudioContext();
+    if(!ctx)return;
+    try{
+      await ctx.resume();
+      mirrorAudioStatus(
+        ctx.state==='running'
+          ? '🔊 Laptop audio output enabled — waiting for iPhone sound.'
+          : `Audio context: ${ctx.state}`,
+        ctx.state==='running'?'ok':'bad'
+      );
+    }catch(e){
+      mirrorAudioStatus('Could not enable laptop audio output.','bad');
+    }
+  });
   bind('mirrorFullscreenBtn','click',toggleMirrorFullscreen);
   bind('mirrorLeaveBtn','click',()=>stopMirror(true));
   bind('nativeMirrorStartBtn','click',startNativeIPhoneMirror);
