@@ -425,7 +425,7 @@
               <button class="btn" id="nativeMirrorStopBtn">Stop native mirror</button>
             </div>
             <div id="nativeMirrorCode" class="mirror-code">------</div>
-            <div id="nativeMirrorStatus" class="mirror-state">The PWA can receive streams. Full iPhone display capture requires the native wrapper and iOS 27+.</div>
+            <div id="nativeMirrorStatus" class="mirror-state">The PWA can receive streams. On iOS 26, full iPhone display capture uses the native ReplayKit broadcast extension.</div>
           </div>
           <div class="mirror-native-note"><strong>How it works:</strong> the native wrapper loads this same Command Centre interface, asks iOS to show Apple's system content-sharing picker, captures the selected full display with ScreenCaptureKit, and publishes the frames to the existing laptop WebRTC receiver. The Worker is still used only for pairing/signalling.</div>
         </article>
@@ -1707,11 +1707,11 @@ function updateNativeMirrorAvailability(){
   const el=qs('#nativeMirrorAvailability');if(!el)return;
   const ok=nativeMirrorBridgeAvailable();el.textContent=ok?'Native ready':'PWA mode';el.className=`native-pill${ok?' ok':''}`;
   const start=qs('#nativeMirrorStartBtn');if(start)start.disabled=!ok;
-  if(!ok&&qs('#nativeMirrorStatus'))qs('#nativeMirrorStatus').textContent='Full iPhone display capture needs the native iOS wrapper (iOS 27+). This browser/PWA can still receive a mirror.';
+  if(!ok&&qs('#nativeMirrorStatus'))qs('#nativeMirrorStatus').textContent='Full iPhone display capture needs the native iOS wrapper. On iOS 26 it uses ReplayKit; this browser/PWA can still receive a mirror.';
 }
 function startNativeIPhoneMirror(){
-  if(!nativeMirrorBridgeAvailable()){toast('Native ScreenCaptureKit is not available in the PWA');return}
-  qs('#nativeMirrorStatus').textContent='Starting native ScreenCaptureKit…';
+  if(!nativeMirrorBridgeAvailable()){toast('Native iPhone screen capture is not available in the PWA');return}
+  qs('#nativeMirrorStatus').textContent="Creating mirror room and opening Apple\'s screen broadcast picker…";
   window.webkit.messageHandlers.nativeMirror.postMessage({action:'start',baseURL:location.origin});
 }
 function stopNativeIPhoneMirror(){
