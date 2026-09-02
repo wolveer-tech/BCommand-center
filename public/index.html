@@ -75,7 +75,7 @@
 
 .game-status{margin-top:8px;min-height:18px;text-align:center;font-size:10px;color:var(--muted)}.game-status.over{color:var(--red);font-weight:800}.game-status.win{color:var(--green);font-weight:800}
 .wordle-board{display:grid;grid-template-rows:repeat(6,1fr);gap:5px;max-width:285px;margin:12px auto}.wordle-row{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.wordle-cell{aspect-ratio:1;display:grid;place-items:center;border:1px solid var(--line);border-radius:7px;background:#0a111d;font-size:18px;font-weight:900;text-transform:uppercase}.wordle-cell.filled{border-color:#ffffff55}.wordle-cell.correct{background:rgba(39,211,155,.34);border-color:rgba(39,211,155,.72)}.wordle-cell.present{background:rgba(242,201,76,.28);border-color:rgba(242,201,76,.68)}.wordle-cell.absent{background:#ffffff10;color:#8190a5}.wordle-keyboard{display:grid;gap:5px;margin-top:10px}.wordle-key-row{display:flex;gap:4px;justify-content:center}.wordle-key{min-width:26px;height:38px;padding:0 6px;border:1px solid var(--line);border-radius:7px;background:#ffffff0c;color:#e8eef8;font:inherit;font-size:10px;font-weight:850;cursor:pointer}.wordle-key.wide{min-width:48px}.wordle-key.correct{background:rgba(39,211,155,.3)}.wordle-key.present{background:rgba(242,201,76,.25)}.wordle-key.absent{background:#ffffff0a;color:#5d6a7d}
-.youtube-search-results{display:grid;gap:8px;margin-top:10px}.youtube-result{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:9px;border:1px solid var(--line);border-radius:12px;background:#0a111d;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:rgba(255,255,255,.08)}.youtube-result:hover{border-color:#ffffff40}.youtube-result img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px}.youtube-result-title{font-size:11px;font-weight:800;line-height:1.35}.youtube-result-meta{font-size:9px;color:var(--muted);margin-top:5px}.youtube-search-note{font-size:9px;color:var(--muted);margin-top:6px}.snake-canvas.running{outline:1px solid rgba(39,211,155,.45)}@media(max-width:520px){.youtube-result{grid-template-columns:95px minmax(0,1fr)}.wordle-key{min-width:22px;height:36px;padding:0 4px}}
+.media-shell{display:grid;gap:10px}.media-toolbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.media-mode{padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:#0b1422;color:var(--text);font-size:10px;font-weight:800;cursor:pointer}.media-mode.active{background:linear-gradient(135deg,#4f6df5,#7a5ce5);border-color:transparent}.media-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px}.media-result{border:1px solid var(--line);border-radius:13px;background:#0a111d;overflow:hidden;cursor:pointer;transition:.15s}.media-result:hover{border-color:#ffffff3a;transform:translateY(-1px)}.media-result img{width:100%;aspect-ratio:2/3;object-fit:cover;background:#111827}.media-result-body{padding:8px}.media-result-title{font-size:10px;font-weight:800;line-height:1.25}.media-result-meta{font-size:8px;color:var(--muted);margin-top:4px}.media-player{width:100%;aspect-ratio:16/9;border:1px solid var(--line);border-radius:14px;background:#03060b}.media-selection{display:grid;gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#0a111d}.media-selection-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.media-selection .field{margin:0}.media-provider-note{font-size:9px;color:var(--muted);line-height:1.45}.media-empty-poster{display:grid;place-items:center;aspect-ratio:2/3;background:#111827;color:var(--muted);font-size:24px}@media(max-width:620px){.media-results{grid-template-columns:repeat(2,minmax(0,1fr))}.media-selection-grid{grid-template-columns:1fr}}.youtube-search-results{display:grid;gap:8px;margin-top:10px}.youtube-result{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:9px;border:1px solid var(--line);border-radius:12px;background:#0a111d;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:rgba(255,255,255,.08)}.youtube-result:hover{border-color:#ffffff40}.youtube-result img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px}.youtube-result-title{font-size:11px;font-weight:800;line-height:1.35}.youtube-result-meta{font-size:9px;color:var(--muted);margin-top:5px}.youtube-search-note{font-size:9px;color:var(--muted);margin-top:6px}.snake-canvas.running{outline:1px solid rgba(39,211,155,.45)}@media(max-width:520px){.youtube-result{grid-template-columns:95px minmax(0,1fr)}.wordle-key{min-width:22px;height:36px;padding:0 4px}}
 
 
 .football-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.football-toolbar .field{min-width:180px;flex:1}.football-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.football-match{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:9px;padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2)}.football-team{display:flex;align-items:center;gap:7px;min-width:0;font-size:11px;font-weight:750}.football-team.away{justify-content:flex-end;text-align:right}.football-team img,.standing-team img{width:22px;height:22px;object-fit:contain;flex:0 0 auto}.football-score{text-align:center;font-size:13px;font-weight:850;min-width:58px}.football-score small{display:block;font-size:8px;font-weight:650;color:var(--muted);margin-top:3px}.football-competition{font-size:9px;color:var(--muted);margin-top:3px}.standing-table{display:grid;gap:3px}.standing-row{display:grid;grid-template-columns:28px minmax(0,1fr) 35px 35px 42px 30px;gap:6px;align-items:center;padding:8px;border-radius:10px;font-size:10px}.standing-row:nth-child(even){background:#ffffff05}.standing-row.favorite{background:rgba(242,201,76,.10);border:1px solid rgba(242,201,76,.2)}.standing-head{color:var(--muted);font-size:8px;font-weight:800;text-transform:uppercase}.standing-team{display:flex;gap:7px;align-items:center;min-width:0;font-weight:750}.standing-team span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.star-btn{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:15px;padding:2px}.star-btn.active{color:var(--gold)}.football-favourite{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;border:1px solid rgba(242,201,76,.22);background:rgba(242,201,76,.06);border-radius:15px}.football-favourite-main{display:flex;align-items:center;gap:10px;min-width:0}.football-favourite-main img{width:36px;height:36px;object-fit:contain}.football-favourite strong{font-size:13px}.service-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.service-card{border:1px solid var(--line);border-radius:15px;background:var(--panel2);padding:12px}.service-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.service-name{font-size:11px;font-weight:800}.service-state{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:800;padding:5px 8px;border-radius:999px;background:#ffffff08}.service-state.ok{color:var(--green);background:rgba(39,211,155,.10)}.service-state.warn{color:var(--gold);background:rgba(242,201,76,.10)}.service-state.bad{color:var(--red);background:rgba(255,104,118,.10)}.service-state.info{color:var(--cyan);background:rgba(71,214,232,.10)}.service-detail{font-size:9px;color:var(--muted);line-height:1.45;margin-top:7px;word-break:break-word}.status-summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.status-summary .mini{flex:1 1 100px}.status-section-title{font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.45px;color:var(--muted);margin:14px 0 8px}
@@ -262,6 +262,76 @@
                   <div class="toolbar" style="margin:8px 0"><button class="btn" id="loadYoutubeBtn" onclick="loadYoutubeVideo()">Play link</button></div>
                 </details>
                 <div class="section-note">Recent videos</div><div class="watch-recent" id="youtubeRecents"></div>
+              </article>
+
+              <article class="game-card">
+                <div class="card-head">
+                  <div>
+                    <h3>🎬 Movies & TV</h3>
+                    <div class="sub">Search TMDB metadata and play content from your configured authorised media provider.</div>
+                  </div>
+                  <button class="btn small" id="mediaSetupCheckBtn">Check setup</button>
+                </div>
+
+                <div class="media-shell">
+                  <div class="media-toolbar">
+                    <button class="media-mode active" data-media-mode="standard">Primary</button>
+                    <button class="media-mode" data-media-mode="torrent">Alternate</button>
+                    <button class="media-mode" data-media-mode="agg">Aggregator</button>
+                  </div>
+
+                  <div class="media-provider-note">
+                    Provider route framework: <code>/embed</code>, <code>/embed/torrent</code>, and <code>/embed/agg</code>.
+                    The actual provider hostname is configured privately in Cloudflare.
+                  </div>
+
+                  <div class="field">
+                    <input id="mediaSearchInput" placeholder="Search a movie or TV show…" autocomplete="off" />
+                  </div>
+
+                  <div class="toolbar">
+                    <button class="btn primary" id="mediaSearchBtn">Search</button>
+                    <select id="mediaSearchType" class="btn" style="appearance:auto">
+                      <option value="multi">Movies + TV</option>
+                      <option value="movie">Movies</option>
+                      <option value="tv">TV shows</option>
+                    </select>
+                  </div>
+
+                  <div id="mediaStatus" class="sub">Configure TMDB and your authorised provider in Cloudflare, then search.</div>
+                  <div id="mediaSearchResults" class="media-results"></div>
+
+                  <div id="mediaSelection" class="media-selection" style="display:none">
+                    <div class="card-head">
+                      <div>
+                        <div class="title" id="mediaSelectedTitle">Selected title</div>
+                        <div class="sub" id="mediaSelectedMeta"></div>
+                      </div>
+                      <button class="btn small" id="mediaClearBtn">Clear</button>
+                    </div>
+
+                    <div id="mediaTvControls" class="media-selection-grid" style="display:none">
+                      <div class="field">
+                        <label>Season</label>
+                        <select id="mediaSeasonSelect"></select>
+                      </div>
+                      <div class="field">
+                        <label>Episode</label>
+                        <select id="mediaEpisodeSelect"></select>
+                      </div>
+                    </div>
+
+                    <div class="toolbar">
+                      <button class="btn primary" id="mediaPlayBtn">▶ Play</button>
+                      <button class="btn" id="mediaOpenExternalBtn">↗ Open provider</button>
+                    </div>
+                  </div>
+
+                  <iframe id="mediaWatchFrame" class="media-player"
+                    allow="autoplay; fullscreen; picture-in-picture"
+                    allowfullscreen
+                    referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                </div>
               </article>
 
               <article class="game-card">
@@ -2088,6 +2158,201 @@ function bindMirrorControls(){
 }
 
 
+let mediaEmbedState={
+  mode:'standard',
+  results:[],
+  selected:null,
+  seasons:[],
+  episodes:[],
+  currentEmbedUrl:''
+};
+
+function mediaStatus(text,kind=''){
+  const el=qs('#mediaStatus');
+  if(!el)return;
+  el.className=`sub${kind?' '+kind:''}`;
+  el.textContent=text;
+}
+
+function initMediaEmbedUi(){
+  qsa('[data-media-mode]').forEach(btn=>{
+    btn.classList.toggle('active',btn.dataset.mediaMode===mediaEmbedState.mode);
+  });
+  const season=qs('#mediaSeasonSelect');
+  if(season && !season.dataset.bound){
+    season.dataset.bound='1';
+    season.addEventListener('change',()=>loadMediaEpisodes());
+  }
+}
+
+function setMediaMode(mode){
+  if(!['standard','torrent','agg'].includes(mode))mode='standard';
+  mediaEmbedState.mode=mode;
+  qsa('[data-media-mode]').forEach(btn=>btn.classList.toggle('active',btn.dataset.mediaMode===mode));
+  const labels={standard:'Primary provider route',torrent:'Alternate provider route',agg:'Aggregator provider route'};
+  mediaStatus(`${labels[mode]}. Select a title to play.`);
+}
+
+async function checkMediaSetup(){
+  mediaStatus('Checking media setup…');
+  try{
+    const r=await fetch('/api/media/status',{cache:'no-store'});
+    const data=await r.json().catch(()=>({}));
+    const parts=[
+      data.tmdbConfigured?'TMDB ✓':'TMDB missing',
+      data.providerConfigured?'provider ✓':'provider missing'
+    ];
+    mediaStatus(parts.join(' • '),data.ready?'ok':'bad');
+  }catch(e){
+    mediaStatus(e.message||'Could not check media setup.','bad');
+  }
+}
+
+function mediaPoster(item){
+  if(item.posterUrl)return `<img src="${esc(item.posterUrl)}" alt="" loading="lazy">`;
+  return `<div class="media-empty-poster">🎬</div>`;
+}
+
+async function searchMediaCatalogue(){
+  const q=String(qs('#mediaSearchInput')?.value||'').trim();
+  const type=String(qs('#mediaSearchType')?.value||'multi');
+  if(q.length<2){mediaStatus('Type at least 2 characters.','bad');return}
+  mediaStatus('Searching TMDB…');
+  const grid=qs('#mediaSearchResults');
+  if(grid)grid.innerHTML='<div class="empty">Searching…</div>';
+  try{
+    const r=await fetch(`/api/media/search?q=${encodeURIComponent(q)}&type=${encodeURIComponent(type)}`,{cache:'no-store'});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);
+    mediaEmbedState.results=Array.isArray(data.results)?data.results:[];
+    if(!mediaEmbedState.results.length){
+      if(grid)grid.innerHTML='<div class="empty">No matching movies or TV shows.</div>';
+      mediaStatus('No results.');
+      return;
+    }
+    if(grid){
+      grid.innerHTML=mediaEmbedState.results.map((item,i)=>`<article class="media-result" data-media-result="${i}" tabindex="0" role="button">
+        ${mediaPoster(item)}
+        <div class="media-result-body">
+          <div class="media-result-title">${esc(item.title||'Untitled')}</div>
+          <div class="media-result-meta">${esc(item.type==='tv'?'TV':'Movie')}${item.year?` • ${esc(item.year)}`:''} • TMDB ${esc(String(item.id))}</div>
+        </div>
+      </article>`).join('');
+    }
+    mediaStatus(`${mediaEmbedState.results.length} result${mediaEmbedState.results.length===1?'':'s'}. Select one.`);
+  }catch(e){
+    if(grid)grid.innerHTML='';
+    mediaStatus(e.message||'Media search failed.','bad');
+  }
+}
+
+async function selectMediaResult(index){
+  const item=mediaEmbedState.results[index];
+  if(!item)return;
+  mediaEmbedState.selected=item;
+  mediaEmbedState.currentEmbedUrl='';
+  const selection=qs('#mediaSelection');
+  if(selection)selection.style.display='grid';
+  if(qs('#mediaSelectedTitle'))qs('#mediaSelectedTitle').textContent=item.title||'Selected title';
+  if(qs('#mediaSelectedMeta'))qs('#mediaSelectedMeta').textContent=`${item.type==='tv'?'TV show':'Movie'} • TMDB ${item.id}${item.year?' • '+item.year:''}`;
+  const tvControls=qs('#mediaTvControls');
+  if(tvControls)tvControls.style.display=item.type==='tv'?'grid':'none';
+  if(item.type==='tv')await loadMediaSeasons();
+  mediaStatus(`Selected ${item.title}. Choose a provider route and press Play.`,'ok');
+}
+
+function clearSelectedMedia(){
+  mediaEmbedState.selected=null;
+  mediaEmbedState.seasons=[];
+  mediaEmbedState.episodes=[];
+  mediaEmbedState.currentEmbedUrl='';
+  const selection=qs('#mediaSelection');if(selection)selection.style.display='none';
+  const frame=qs('#mediaWatchFrame');if(frame)frame.src='about:blank';
+  mediaStatus('Selection cleared.');
+}
+
+async function loadMediaSeasons(){
+  const item=mediaEmbedState.selected;
+  const seasonSelect=qs('#mediaSeasonSelect');
+  const episodeSelect=qs('#mediaEpisodeSelect');
+  if(!item||item.type!=='tv'||!seasonSelect||!episodeSelect)return;
+  seasonSelect.innerHTML='<option>Loading…</option>';
+  episodeSelect.innerHTML='<option>—</option>';
+  try{
+    const r=await fetch(`/api/media/tv?id=${encodeURIComponent(item.id)}`,{cache:'no-store'});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);
+    mediaEmbedState.seasons=Array.isArray(data.seasons)?data.seasons:[];
+    const usable=mediaEmbedState.seasons.filter(s=>Number(s.seasonNumber)>=1);
+    seasonSelect.innerHTML=usable.length
+      ?usable.map(s=>`<option value="${Number(s.seasonNumber)}">${esc(s.name||`Season ${s.seasonNumber}`)}${s.episodeCount?` (${Number(s.episodeCount)} eps)`:''}</option>`).join('')
+      :'<option value="1">Season 1</option>';
+    await loadMediaEpisodes();
+  }catch(e){
+    seasonSelect.innerHTML='<option value="1">Season 1</option>';
+    episodeSelect.innerHTML='<option value="1">Episode 1</option>';
+    mediaStatus(`TV metadata warning: ${e.message}. You can still try season 1 episode 1.`,'bad');
+  }
+}
+
+async function loadMediaEpisodes(){
+  const item=mediaEmbedState.selected;
+  const season=Number(qs('#mediaSeasonSelect')?.value||1);
+  const episodeSelect=qs('#mediaEpisodeSelect');
+  if(!item||item.type!=='tv'||!episodeSelect)return;
+  episodeSelect.innerHTML='<option>Loading…</option>';
+  try{
+    const r=await fetch(`/api/media/season?id=${encodeURIComponent(item.id)}&season=${encodeURIComponent(season)}`,{cache:'no-store'});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);
+    mediaEmbedState.episodes=Array.isArray(data.episodes)?data.episodes:[];
+    episodeSelect.innerHTML=mediaEmbedState.episodes.length
+      ?mediaEmbedState.episodes.map(ep=>`<option value="${Number(ep.episodeNumber)}">E${Number(ep.episodeNumber)} — ${esc(ep.name||'Episode')}</option>`).join('')
+      :'<option value="1">Episode 1</option>';
+  }catch(e){
+    episodeSelect.innerHTML='<option value="1">Episode 1</option>';
+    mediaStatus(`Episode metadata warning: ${e.message}`,'bad');
+  }
+}
+
+async function resolveSelectedMediaUrl(){
+  const item=mediaEmbedState.selected;
+  if(!item)throw new Error('Select a movie or TV show first.');
+  const p=new URLSearchParams({
+    type:item.type,
+    id:String(item.id),
+    mode:mediaEmbedState.mode
+  });
+  if(item.type==='tv'){
+    p.set('season',String(Number(qs('#mediaSeasonSelect')?.value||1)));
+    p.set('episode',String(Number(qs('#mediaEpisodeSelect')?.value||1)));
+  }
+  const r=await fetch(`/api/media/embed-url?${p.toString()}`,{cache:'no-store'});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);
+  if(!data.embedUrl)throw new Error('Provider did not return an embed URL.');
+  mediaEmbedState.currentEmbedUrl=data.embedUrl;
+  return data.embedUrl;
+}
+
+async function playSelectedMedia(openExternal=false){
+  mediaStatus(openExternal?'Opening authorised provider…':'Loading player…');
+  try{
+    const url=await resolveSelectedMediaUrl();
+    if(openExternal){
+      window.open(url,'_blank','noopener,noreferrer');
+      mediaStatus('Opened provider in a new window.','ok');
+      return;
+    }
+    const frame=qs('#mediaWatchFrame');
+    if(frame)frame.src=url;
+    mediaStatus('Player loaded from your configured provider.','ok');
+  }catch(e){
+    mediaStatus(e.message||'Could not load the provider.','bad');
+  }
+}
+
+
 let liveFootballStreams=[];
 function liveStreamDate(ts){
   if(!ts)return 'Live';
@@ -2506,6 +2771,15 @@ function bindEntertainmentControls(){
 
     if(e.target.closest('#youtubeApiCheckBtn')){checkYoutubeApiSetup();return}
     if(e.target.closest('#youtubeSearchBtn')){searchYoutubeVideos();return}
+    if(e.target.closest('#mediaSetupCheckBtn')){checkMediaSetup();return}
+    if(e.target.closest('#mediaSearchBtn')){searchMediaCatalogue();return}
+    if(e.target.closest('#mediaPlayBtn')){playSelectedMedia(false);return}
+    if(e.target.closest('#mediaOpenExternalBtn')){playSelectedMedia(true);return}
+    if(e.target.closest('#mediaClearBtn')){clearSelectedMedia();return}
+    const mediaMode=e.target.closest('[data-media-mode]');
+    if(mediaMode){setMediaMode(mediaMode.dataset.mediaMode);return}
+    const mediaResult=e.target.closest('[data-media-result]');
+    if(mediaResult){selectMediaResult(Number(mediaResult.dataset.mediaResult));return}
     if(e.target.closest('#wordleResetBtn')){resetWordleToday();return}
     if(e.target.closest('#loadYoutubeBtn')){loadYoutubeVideo();return}
     if(e.target.closest('#loadTwitchBtn')){loadTwitchChannel();return}
@@ -2514,6 +2788,9 @@ function bindEntertainmentControls(){
   page.addEventListener('keydown',e=>{
     if(e.target?.id==='youtubeSearchInput'&&e.key==='Enter'){
       e.preventDefault();searchYoutubeVideos();return;
+    }
+    if(e.target?.id==='mediaSearchInput'&&e.key==='Enter'){
+      e.preventDefault();searchMediaCatalogue();return;
     }
     if(e.target?.id==='youtubeWatchInput'&&e.key==='Enter'){
       e.preventDefault();loadYoutubeVideo();return;
@@ -2545,7 +2822,12 @@ function showEntertainmentPanel(name){
   qsa('.ent-tab').forEach(t=>t.classList.toggle('active',t.dataset.entTab===name));
   if(name==='games')renderEntertainmentGames();
   if(name==='community')renderEntertainmentCommunity();
-  if(name==='watch'){renderWatchRecents();bindYoutubeExploreControls();loadYoutubeExplore(youtubeExploreSection,false)}
+  if(name==='watch'){
+    renderWatchRecents();
+    bindYoutubeExploreControls();
+    loadYoutubeExplore(youtubeExploreSection,false);
+    initMediaEmbedUi();
+  }
 }
 function updateEntertainmentVisit(){
   const today=dayKey(),v=state.entertainment.visit||{lastDate:'',streak:0};
