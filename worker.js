@@ -238,6 +238,64 @@ async function sendMorningBriefings(env){
 }
 
 
+
+
+function normaliseBaseUrl(value){
+  const raw=String(value||'').trim().replace(/\/$/,'');
+  if(!raw)return null;
+  const u=new URL(raw);if(u.protocol!=='https:')throw new Error('LIVE_CONTENT_API_BASE_URL must use HTTPS.');return u;
+}
+function allowedEmbedUrl(embedUrl,base,env){
+  try{
+    const u=new URL(embedUrl);if(u.protocol!=='https:')return false;
+    const configured=String(env.LIVE_CONTENT_ALLOWED_EMBED_HOSTS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+    const hosts=configured.length?configured:[base.hostname.toLowerCase()];
+    return hosts.includes(u.hostname.toLowerCase());
+  }catch{return false}
+}
+async function liveContentStreams(env,category='soccer',requestUrl='https://local/api/live-content',force=false){
+  if(!env.LIVE_CONTENT_API_BASE_URL){const err=new Error('LIVE_CONTENT_API_BASE_URL is not configured.');err.status=503;throw err}
+  const base=normaliseBaseUrl(env.LIVE_CONTENT_API_BASE_URL);
+  const safeCategory=String(category||'soccer').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40)||'soccer';
+  let cache=null,key=null;
+  try{cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;if(cache&&!force){const u=new URL(requestUrl);u.pathname='/__cache/live-content';u.search=new URLSearchParams({category:safeCategory}).toString();key=new Request(u.toString());const hit=await cache.match(key);if(hit)return hit.json()}}catch{cache=null;key=null}
+  const endpoint=new URL(base.toString());endpoint.pathname=endpoint.pathname.replace(/\/$/,'')+'/api/v1/streams';endpoint.searchParams.set('category',safeCategory);
+  const headers={accept:'application/json'};
+  if(env.LIVE_CONTENT_API_KEY)headers.authorization=`Bearer ${env.LIVE_CONTENT_API_KEY}`;
+  const r=await fetch(endpoint.toString(),{headers});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok){const err=new Error(data?.message||data?.error||`Live content provider HTTP ${r.status}`);err.status=r.status>=400&&r.status<500?r.status:502;throw err}
+  const streams=(Array.isArray(data.streams)?data.streams:[]).map(s=>({
+    name:String(s.name||'Live stream').slice(0,180),
+    category:String(s.category||safeCategory).slice(0,80),
+    league:String(s.league||'').slice(0,120),
+    stream_key:String(s.stream_key||'').slice(0,200),
+    match_timestamp:Number(s.match_timestamp)||null,
+    embed_url:allowedEmbedUrl(s.embed_url,base,env)?String(s.embed_url):'',
+    thumbnail_url:(()=>{try{const u=new URL(s.thumbnail_url||'');return u.protocol==='https:'?u.toString():''}catch{return ''}})()
+  })).filter(s=>s.embed_url);
+  const payload={count:streams.length,streams,category:safeCategory,updatedAt:new Date().toISOString()};
+  if(cache){try{if(!key){const u=new URL(requestUrl);u.pathname='/__cache/live-content';u.search=new URLSearchParams({category:safeCategory}).toString();key=new Request(u.toString())}await cache.put(key,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=120'}}))}catch{}}
+  return payload;
+}
+
+async function youtubeExplore(env,section='trending',requestUrl='https://local/api/youtube/explore',force=false){
+  if(!env.YOUTUBE_API_KEY){const err=new Error('YOUTUBE_API_KEY is missing.');err.status=503;throw err}
+  const allowed=new Set(['trending','gaming','music','sports','live']),mode=allowed.has(section)?section:'trending';let cache=null,cacheKey=null;
+  try{cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;if(cache&&!force){const u=new URL(requestUrl);u.pathname='/__cache/youtube-explore';u.search=new URLSearchParams({section:mode}).toString();cacheKey=new Request(u.toString(),{method:'GET'});const hit=await cache.match(cacheKey);if(hit)return hit.json()}}catch(e){cache=null;cacheKey=null}
+  let url;
+  if(mode==='live'){
+    url=new URL('https://www.googleapis.com/youtube/v3/search');url.searchParams.set('part','snippet');url.searchParams.set('type','video');url.searchParams.set('eventType','live');url.searchParams.set('videoEmbeddable','true');url.searchParams.set('maxResults','12');url.searchParams.set('q','live');url.searchParams.set('regionCode','GB');url.searchParams.set('relevanceLanguage','en');url.searchParams.set('key',env.YOUTUBE_API_KEY);
+  }else{
+    const category={gaming:'20',music:'10',sports:'17'}[mode]||'0';url=new URL('https://www.googleapis.com/youtube/v3/videos');url.searchParams.set('part','snippet,status');url.searchParams.set('chart','mostPopular');url.searchParams.set('maxResults','12');url.searchParams.set('regionCode','GB');if(category!=='0')url.searchParams.set('videoCategoryId',category);url.searchParams.set('key',env.YOUTUBE_API_KEY);
+  }
+  const r=await fetch(url.toString(),{headers:{accept:'application/json'}}),data=await r.json().catch(()=>({}));if(!r.ok){const err=new Error(data?.error?.message||`YouTube API HTTP ${r.status}`);err.status=r.status>=400&&r.status<500?r.status:502;throw err}
+  const items=(data.items||[]).map(x=>{const searchStyle=!!x.id?.videoId;return{videoId:searchStyle?(x.id?.videoId||''):(x.id||''),title:x.snippet?.title||'',channelTitle:x.snippet?.channelTitle||'',publishedAt:x.snippet?.publishedAt||'',thumbnail:x.snippet?.thumbnails?.medium?.url||x.snippet?.thumbnails?.high?.url||x.snippet?.thumbnails?.default?.url||'',live:mode==='live'||x.snippet?.liveBroadcastContent==='live'}}).filter(x=>x.videoId);
+  const payload={section:mode,items,updatedAt:new Date().toISOString()};
+  if(cache){try{if(!cacheKey){const u=new URL(requestUrl);u.pathname='/__cache/youtube-explore';u.search=new URLSearchParams({section:mode}).toString();cacheKey=new Request(u.toString(),{method:'GET'})}await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=900'}}))}catch(e){}}
+  return payload;
+}
+
 async function searchYouTube(env,query,requestUrl){
   if(!env.YOUTUBE_API_KEY){
     const err=new Error('YOUTUBE_API_KEY is missing. Add it in Cloudflare → Workers & Pages → bcommand-center → Settings → Variables and Secrets.');
@@ -500,6 +558,12 @@ async function commandCentreStatus(env,live=false){
   });
 
   services.push({
+    name:'Live content provider',
+    state:env.LIVE_CONTENT_API_BASE_URL?'Configured':'Not configured',
+    kind:env.LIVE_CONTENT_API_BASE_URL?'info':'warn',
+    detail:env.LIVE_CONTENT_API_BASE_URL?'Provider base URL is present.':'Add LIVE_CONTENT_API_BASE_URL to enable the live football player.'
+  });
+  services.push({
     name:'NewsData',
     state:env.NEWSDATA_API_KEY?'Configured':'Not configured',
     kind:env.NEWSDATA_API_KEY?'info':'warn',
@@ -516,6 +580,14 @@ async function commandCentreStatus(env,live=false){
 }
 
 
+
+
+async function ensureMirrorTables(env){
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS mirror_rooms (code TEXT PRIMARY KEY,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS mirror_signals (id INTEGER PRIMARY KEY AUTOINCREMENT,code TEXT NOT NULL,sender TEXT NOT NULL,recipient TEXT NOT NULL,type TEXT NOT NULL,data TEXT NOT NULL,created_at INTEGER NOT NULL)`).run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_mirror_signals_room ON mirror_signals(code,id)').run();
+}
+async function cleanMirrorRooms(env){await ensureMirrorTables(env);const cutoff=Date.now()-30*60*1000;await env.DB.prepare('DELETE FROM mirror_signals WHERE created_at<?').bind(cutoff).run();await env.DB.prepare('DELETE FROM mirror_rooms WHERE updated_at<?').bind(cutoff).run()}
 
 async function ensureFootballNotificationTables(env){
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS football_notification_preferences (
@@ -731,6 +803,23 @@ export default {
         return json({ok:true,count:items.length});
       }
 
+      if(url.pathname==='/api/mirror/room'&&request.method==='POST'){
+        await ensureMirrorTables(env);const {code}=await request.json();if(!/^\d{6}$/.test(String(code||'')))return json({error:'A 6-digit mirror code is required.'},400);const now=Date.now();await env.DB.prepare(`INSERT INTO mirror_rooms(code,created_at,updated_at) VALUES(?,?,?) ON CONFLICT(code) DO UPDATE SET updated_at=excluded.updated_at`).bind(String(code),now,now).run();await env.DB.prepare('DELETE FROM mirror_signals WHERE code=?').bind(String(code)).run();return json({ok:true,code:String(code)});
+      }
+      if(url.pathname==='/api/mirror/room'&&request.method==='GET'){
+        await ensureMirrorTables(env);const code=String(url.searchParams.get('code')||'');const row=await env.DB.prepare('SELECT code,updated_at FROM mirror_rooms WHERE code=?').bind(code).first();const exists=!!row&&(Date.now()-Number(row.updated_at||0)<30*60*1000);return json({exists});
+      }
+      if(url.pathname==='/api/mirror/signal'&&request.method==='POST'){
+        await ensureMirrorTables(env);const {code,from,to,type,data}=await request.json();if(!/^\d{6}$/.test(String(code||'')))return json({error:'Invalid mirror code.'},400);if(!['sender','receiver'].includes(from)||!['sender','receiver'].includes(to))return json({error:'Invalid mirror role.'},400);if(!['offer','answer','ice','bye'].includes(type))return json({error:'Invalid mirror signal.'},400);const room=await env.DB.prepare('SELECT code FROM mirror_rooms WHERE code=?').bind(String(code)).first();if(!room)return json({error:'Mirror room not found.'},404);await env.DB.prepare('INSERT INTO mirror_signals(code,sender,recipient,type,data,created_at) VALUES(?,?,?,?,?,?)').bind(String(code),from,to,type,JSON.stringify(data??{}),Date.now()).run();await env.DB.prepare('UPDATE mirror_rooms SET updated_at=? WHERE code=?').bind(Date.now(),String(code)).run();return json({ok:true});
+      }
+      if(url.pathname==='/api/mirror/signals'&&request.method==='GET'){
+        await ensureMirrorTables(env);const code=String(url.searchParams.get('code')||''),recipient=String(url.searchParams.get('for')||''),after=Math.max(0,Number(url.searchParams.get('after')||0));if(!/^\d{6}$/.test(code)||!['sender','receiver'].includes(recipient))return json({error:'Invalid mirror request.'},400);const rows=await env.DB.prepare(`SELECT id,type,data,sender,recipient FROM mirror_signals WHERE code=? AND recipient=? AND id>? ORDER BY id ASC LIMIT 100`).bind(code,recipient,after).all();const signals=(rows.results||[]).map(r=>({id:r.id,type:r.type,sender:r.sender,recipient:r.recipient,data:(()=>{try{return JSON.parse(r.data)}catch{return {}}})()}));return json({signals});
+      }
+
+      if(url.pathname==='/api/live-content'&&request.method==='GET'){
+        return json(await liveContentStreams(env,url.searchParams.get('category')||'soccer',request.url,url.searchParams.get('refresh')==='1'));
+      }
+
       if(url.pathname==='/api/status'&&request.method==='GET'){
         return json(await commandCentreStatus(env,url.searchParams.get('live')==='1'));
       }
@@ -791,6 +880,11 @@ export default {
           id:`football-test-${Date.now()}`
         },env);
         return json({ok:true});
+      }
+
+      if(url.pathname==='/api/youtube/explore'&&request.method==='GET'){
+        const section=url.searchParams.get('section')||'trending';
+        return json(await youtubeExplore(env,section,request.url,url.searchParams.get('refresh')==='1'));
       }
 
       if(url.pathname==='/api/youtube/status'&&request.method==='GET'){
@@ -879,5 +973,6 @@ export default {
     if(new Date().getUTCMinutes()===5) ctx.waitUntil(sendNewsPushes(env));
     // Refresh favourite-team fixtures and full-time football alerts every 15 minutes.
     if(new Date().getUTCMinutes()%15===10) ctx.waitUntil(refreshFootballNotifications(env));
+    if(new Date().getUTCMinutes()%15===12) ctx.waitUntil(cleanMirrorRooms(env));
   }
 };
