@@ -78,13 +78,20 @@ final class SampleHandler: RPBroadcastSampleHandler {
 
         switch sampleBufferType {
         case .video:
-            sender?.push(
+            sender?.pushVideo(
                 sampleBuffer: sampleBuffer,
                 rotation: videoRotation(for: sampleBuffer)
             )
 
-        case .audioApp, .audioMic:
-            // Video-only in this first Signulous-friendly build.
+        case .audioApp:
+            // System/app audio from the mirrored iPhone.
+            sender?.pushAppAudio(
+                sampleBuffer: sampleBuffer
+            )
+
+        case .audioMic:
+            // Keep microphone capture separate for now so it doesn't get
+            // double-mixed with the app audio.
             break
 
         @unknown default:
@@ -110,13 +117,16 @@ final class SampleHandler: RPBroadcastSampleHandler {
             return ._0
         }
 
+        // ReplayKit's EXIF-style orientation and WebRTC's rotation are in
+        // opposite directions. The previous mapping made landscape appear
+        // upside down on the receiver.
         switch orientation {
         case .right:
-            return ._90
+            return ._270
         case .down:
             return ._180
         case .left:
-            return ._270
+            return ._90
         default:
             return ._0
         }
