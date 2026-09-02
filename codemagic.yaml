@@ -1,8 +1,9 @@
 workflows:
-  ios-26-native-check:
-    name: iOS 26 Native Mirror - Compile Check
+  ios-26-signulous-ipa:
+    name: iOS 26 Mirror - Unsigned IPA for Signulous
     max_build_duration: 60
     instance_type: mac_mini_m2
+
     scripts:
       - name: Install XcodeGen
         script: |
@@ -10,18 +11,81 @@ workflows:
 
       - name: Generate Xcode project
         script: |
+          set -e
           cd "$CM_BUILD_DIR/native-ios"
           xcodegen generate
 
       - name: Resolve Swift packages
         script: |
+          set -e
           cd "$CM_BUILD_DIR/native-ios"
-          xcodebuild             -resolvePackageDependencies             -project CommandCentreNative.xcodeproj             -scheme CommandCentreNative
+          xcodebuild \
+            -resolvePackageDependencies \
+            -project CommandCentreNative.xcodeproj \
+            -scheme CommandCentreNative
 
-      - name: Compile app and ReplayKit extension
+      - name: Build unsigned iPhone app
         script: |
+          set -o pipefail
+          mkdir -p "$CM_BUILD_DIR/build"
           cd "$CM_BUILD_DIR/native-ios"
-          xcodebuild build             -project CommandCentreNative.xcodeproj             -scheme CommandCentreNative             -configuration Debug             -sdk iphonesimulator             -destination 'generic/platform=iOS Simulator'             CODE_SIGNING_ALLOWED=NO             CODE_SIGNING_REQUIRED=NO
+
+          set +e
+          xcodebuild build \
+            -project CommandCentreNative.xcodeproj \
+            -scheme CommandCentreNative \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$CM_BUILD_DIR/build/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            2>&1 | tee "$CM_BUILD_DIR/build/xcodebuild-device.log"
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$BUILD_STATUS" -ne 0 ]; then
+            echo "=== Compiler diagnostics ==="
+            grep -n -E 'error:|warning:' "$CM_BUILD_DIR/build/xcodebuild-device.log" | tail -n 150 || true
+            exit "$BUILD_STATUS"
+          fi
+
+      - name: Package unsigned IPA
+        script: |
+          set -e
+          PRODUCTS="$CM_BUILD_DIR/build/DerivedData/Build/Products/Release-iphoneos"
+          APP_PATH="$(find "$PRODUCTS" -maxdepth 1 -type d -name '*.app' | head -n 1)"
+
+          if [ -z "$APP_PATH" ]; then
+            echo "No iPhone .app bundle was produced."
+            exit 1
+          fi
+
+          echo "App bundle: $APP_PATH"
+
+          APPEX_PATH="$(find "$APP_PATH/PlugIns" -maxdepth 1 -type d -name '*.appex' 2>/dev/null | head -n 1)"
+          if [ -z "$APPEX_PATH" ]; then
+            echo "ReplayKit Broadcast Upload Extension was not embedded."
+            exit 1
+          fi
+
+          echo "Embedded extension: $APPEX_PATH"
+
+          rm -rf "$CM_BUILD_DIR/build/Payload"
+          mkdir -p "$CM_BUILD_DIR/build/Payload"
+          cp -R "$APP_PATH" "$CM_BUILD_DIR/build/Payload/"
+
+          cd "$CM_BUILD_DIR/build"
+          rm -f CommandCentre-iOS26-UNSIGNED.ipa
+          /usr/bin/zip -qry CommandCentre-iOS26-UNSIGNED.ipa Payload
+
+          echo "Created:"
+          ls -lh CommandCentre-iOS26-UNSIGNED.ipa
+
+
     artifacts:
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/Products/**/*.app
-      - /tmp/xcodebuild_logs/*.log
+      - build/CommandCentre-iOS26-UNSIGNED.ipa
+      - build/xcodebuild-device.log
