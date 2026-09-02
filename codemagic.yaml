@@ -1,0 +1,27 @@
+workflows:
+  ios-26-native-check:
+    name: iOS 26 Native Mirror - Compile Check
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    scripts:
+      - name: Install XcodeGen
+        script: |
+          brew install xcodegen
+
+      - name: Generate Xcode project
+        script: |
+          cd "$CM_BUILD_DIR/native-ios"
+          xcodegen generate
+
+      - name: Resolve Swift packages
+        script: |
+          cd "$CM_BUILD_DIR/native-ios"
+          xcodebuild             -resolvePackageDependencies             -project CommandCentreNative.xcodeproj             -scheme CommandCentreNative
+
+      - name: Compile app and ReplayKit extension
+        script: |
+          cd "$CM_BUILD_DIR/native-ios"
+          xcodebuild build             -project CommandCentreNative.xcodeproj             -scheme CommandCentreNative             -configuration Debug             -sdk iphonesimulator             -destination 'generic/platform=iOS Simulator'             CODE_SIGNING_ALLOWED=NO             CODE_SIGNING_REQUIRED=NO
+    artifacts:
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/Products/**/*.app
+      - /tmp/xcodebuild_logs/*.log
