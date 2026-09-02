@@ -1,6 +1,6 @@
 workflows:
   ios-26-signulous-ipa:
-    name: iOS 26 Mirror - Audio Fullscreen v4.1
+    name: iOS 26 Mirror - Audio Fullscreen v4.2
     max_build_duration: 60
     instance_type: mac_mini_m2
 
@@ -9,33 +9,6 @@ workflows:
         script: |
           set -e
           brew install xcodegen
-
-      - name: Fix extension version metadata
-        script: |
-          set -e
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("$CM_BUILD_DIR/native-ios/BroadcastUploadExtension/Info.plist")
-          s = p.read_text()
-          # Always use Xcode build-setting placeholders so the extension
-          # automatically matches the containing app on every build.
-          import re
-          s = re.sub(
-              r'(<key>CFBundleShortVersionString</key>\s*<string>).*?(</string>)',
-              r'\1$(MARKETING_VERSION)\2',
-              s,
-              count=1,
-              flags=re.S
-          )
-          s = re.sub(
-              r'(<key>CFBundleVersion</key>\s*<string>).*?(</string>)',
-              r'\1$(CURRENT_PROJECT_VERSION)\2',
-              s,
-              count=1,
-              flags=re.S
-          )
-          p.write_text(s)
-          PY
 
       - name: Generate Xcode project
         script: |
