@@ -12,6 +12,9 @@ final class WebRTCScreenSender: NSObject, RTCPeerConnectionDelegate {
     private var peer: RTCPeerConnection?
     private var pollTask: Task<Void, Never>?
     private var audioDataChannel: RTCDataChannel?
+    private var audioSourceReported = false
+    private var audioFailureReported = false
+    private var audioPacketsSent = 0
 
     var onState: ((String) -> Void)?
 
@@ -120,143 +123,297 @@ final class WebRTCScreenSender: NSObject, RTCPeerConnectionDelegate {
         guard CMSampleBufferIsValid(sampleBuffer),
               let channel = audioDataChannel,
               channel.readyState == .open,
-              channel.bufferedAmount < 512_000,
-              let formatDescription = CMSampleBufferGetFormatDescription(
-                sampleBuffer
-              ) else {
+              channel.bufferedAmount < 512_000 else {
             return
         }
 
-        let format = AVAudioFormat(
-            cmAudioFormatDescription: formatDescription
-        )
+        if !audioSourceReported {
+            audioSourceReported = true
+            sendAudioStatus("source-received")
+        }
+
+        guard let formatDescription =
+                CMSampleBufferGetFormatDescription(sampleBuffer),
+              let asbdPointer =
+                CMAudioFormatDescriptionGetStreamBasicDescription(
+                    formatDescription
+                ) else {
+            reportAudioFailureOnce("missing-format")
+            return
+        }
+
+        let asbd = asbdPointer.pointee
+
+        guard asbd.mFormatID == kAudioFormatLinearPCM else {
+            reportAudioFailureOnce(
+                "unsupported-format-\(asbd.mFormatID)"
+            )
+            return
+        }
+
         let frameCount = CMSampleBufferGetNumSamples(sampleBuffer)
-
         guard frameCount > 0,
-              format.channelCount > 0,
-              format.sampleRate > 0,
-              let pcm = AVAudioPCMBuffer(
-                pcmFormat: format,
-                frameCapacity: AVAudioFrameCount(frameCount)
-              ) else {
+              asbd.mChannelsPerFrame > 0,
+              asbd.mSampleRate > 0 else {
+            reportAudioFailureOnce("empty-audio-buffer")
             return
         }
 
-        pcm.frameLength = AVAudioFrameCount(frameCount)
-
-        let copyStatus = CMSampleBufferCopyPCMDataIntoAudioBufferList(
-            sampleBuffer,
-            at: 0,
-            frameCount: Int32(frameCount),
-            into: pcm.mutableAudioBufferList
+        var requiredSize = 0
+        let flags = UInt32(
+            kCMSampleBufferFlag_AudioBufferList_Assure16ByteAlignment
         )
 
-        guard copyStatus == noErr else { return }
+        let sizeStatus =
+            CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(
+                sampleBuffer,
+                bufferListSizeNeededOut: &requiredSize,
+                bufferListOut: nil,
+                bufferListSize: 0,
+                blockBufferAllocator: kCFAllocatorDefault,
+                blockBufferMemoryAllocator: kCFAllocatorDefault,
+                flags: flags,
+                blockBufferOut: nil
+            )
 
-        let count = Int(frameCount)
-        let channelCount = Int(format.channelCount)
-        let stride = pcm.stride
-        var mono = [Float](repeating: 0, count: count)
+        guard requiredSize >= MemoryLayout<AudioBufferList>.size,
+              sizeStatus == noErr ||
+                sizeStatus == kCMSampleBufferError_ArrayTooSmall else {
+            reportAudioFailureOnce(
+                "audio-list-size-\(sizeStatus)"
+            )
+            return
+        }
 
-        switch format.commonFormat {
-        case .pcmFormatFloat32:
-            guard let data = pcm.floatChannelData else { return }
+        let rawList = UnsafeMutableRawPointer.allocate(
+            byteCount: requiredSize,
+            alignment: MemoryLayout<AudioBufferList>.alignment
+        )
+        defer { rawList.deallocate() }
 
-            if format.isInterleaved {
-                let base = data[0]
-                for frame in 0..<count {
-                    var sum: Float = 0
-                    let start = frame * stride
-                    for c in 0..<channelCount {
-                        sum += base[start + c]
+        let audioBufferList = rawList.bindMemory(
+            to: AudioBufferList.self,
+            capacity: 1
+        )
+
+        var retainedBlockBuffer: CMBlockBuffer?
+        let listStatus =
+            CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(
+                sampleBuffer,
+                bufferListSizeNeededOut: nil,
+                bufferListOut: audioBufferList,
+                bufferListSize: requiredSize,
+                blockBufferAllocator: kCFAllocatorDefault,
+                blockBufferMemoryAllocator: kCFAllocatorDefault,
+                flags: flags,
+                blockBufferOut: &retainedBlockBuffer
+            )
+
+        guard listStatus == noErr else {
+            reportAudioFailureOnce(
+                "audio-list-\(listStatus)"
+            )
+            return
+        }
+
+        let buffers = UnsafeMutableAudioBufferListPointer(
+            audioBufferList
+        )
+
+        let bitsPerChannel = Int(asbd.mBitsPerChannel)
+        let bytesPerSample = max(1, bitsPerChannel / 8)
+        let bytesPerFrame = max(
+            bytesPerSample,
+            Int(asbd.mBytesPerFrame)
+        )
+        let formatFlags = asbd.mFormatFlags
+        let isFloat =
+            (formatFlags & kAudioFormatFlagIsFloat) != 0
+        let isSignedInteger =
+            (formatFlags & kAudioFormatFlagIsSignedInteger) != 0
+        let isBigEndian =
+            (formatFlags & kAudioFormatFlagIsBigEndian) != 0
+
+        // ReplayKit commonly supplies 44.1/48 kHz interleaved signed Int16
+        // stereo. The previous AVAudioPCMBuffer approach could expose no
+        // typed channel pointer for interleaved buffers, so every packet was
+        // silently dropped. Read the original AudioBufferList directly.
+        guard !isBigEndian else {
+            reportAudioFailureOnce("big-endian-pcm")
+            return
+        }
+
+        guard (isFloat && bitsPerChannel == 32) ||
+              (isSignedInteger &&
+                (bitsPerChannel == 16 ||
+                 bitsPerChannel == 32)) else {
+            reportAudioFailureOnce(
+                "pcm-\(bitsPerChannel)-flags-\(formatFlags)"
+            )
+            return
+        }
+
+        var mono = [Float](
+            repeating: 0,
+            count: Int(frameCount)
+        )
+        var contributors = [Int](
+            repeating: 0,
+            count: Int(frameCount)
+        )
+
+        for audioBuffer in buffers {
+            guard let data = audioBuffer.mData else { continue }
+
+            let channelsInBuffer = max(
+                1,
+                Int(audioBuffer.mNumberChannels)
+            )
+
+            // In an interleaved ABL, mBytesPerFrame contains all channels.
+            // In a planar ABL, each buffer usually contains one channel and
+            // mBytesPerFrame is one sample wide.
+            let frameStride =
+                buffers.count == 1
+                    ? bytesPerFrame
+                    : max(
+                        bytesPerSample,
+                        bytesPerFrame /
+                            max(
+                                1,
+                                Int(asbd.mChannelsPerFrame) /
+                                    channelsInBuffer
+                            )
+                      )
+
+            for frame in 0..<Int(frameCount) {
+                let frameBase = data.advanced(
+                    by: frame * frameStride
+                )
+
+                for channelIndex in 0..<channelsInBuffer {
+                    let samplePointer = frameBase.advanced(
+                        by: channelIndex * bytesPerSample
+                    )
+
+                    let sample: Float
+
+                    if isFloat {
+                        sample =
+                            samplePointer
+                                .assumingMemoryBound(to: Float.self)
+                                .pointee
+                    } else if bitsPerChannel == 16 {
+                        sample =
+                            Float(
+                                samplePointer
+                                    .assumingMemoryBound(to: Int16.self)
+                                    .pointee
+                            ) / 32768.0
+                    } else {
+                        sample =
+                            Float(
+                                samplePointer
+                                    .assumingMemoryBound(to: Int32.self)
+                                    .pointee
+                            ) / 2_147_483_648.0
                     }
-                    mono[frame] = sum / Float(channelCount)
-                }
-            } else {
-                for frame in 0..<count {
-                    var sum: Float = 0
-                    for c in 0..<channelCount {
-                        sum += data[c][frame]
-                    }
-                    mono[frame] = sum / Float(channelCount)
+
+                    mono[frame] += max(-1.0, min(1.0, sample))
+                    contributors[frame] += 1
                 }
             }
+        }
 
-        case .pcmFormatInt16:
-            guard let data = pcm.int16ChannelData else { return }
-
-            if format.isInterleaved {
-                let base = data[0]
-                for frame in 0..<count {
-                    var sum: Float = 0
-                    let start = frame * stride
-                    for c in 0..<channelCount {
-                        sum += Float(base[start + c]) / 32768.0
-                    }
-                    mono[frame] = sum / Float(channelCount)
-                }
-            } else {
-                for frame in 0..<count {
-                    var sum: Float = 0
-                    for c in 0..<channelCount {
-                        sum += Float(data[c][frame]) / 32768.0
-                    }
-                    mono[frame] = sum / Float(channelCount)
-                }
+        var peak: Float = 0
+        for frame in 0..<mono.count {
+            let count = contributors[frame]
+            if count > 0 {
+                mono[frame] /= Float(count)
+                peak = max(peak, abs(mono[frame]))
             }
+        }
 
-        case .pcmFormatInt32:
-            guard let data = pcm.int32ChannelData else { return }
-
-            if format.isInterleaved {
-                let base = data[0]
-                for frame in 0..<count {
-                    var sum: Float = 0
-                    let start = frame * stride
-                    for c in 0..<channelCount {
-                        sum += Float(base[start + c]) / 2_147_483_648.0
-                    }
-                    mono[frame] = sum / Float(channelCount)
-                }
-            } else {
-                for frame in 0..<count {
-                    var sum: Float = 0
-                    for c in 0..<channelCount {
-                        sum += Float(data[c][frame]) / 2_147_483_648.0
-                    }
-                    mono[frame] = sum / Float(channelCount)
-                }
-            }
-
-        default:
-            // ReplayKit normally supplies linear PCM. If Apple changes the
-            // source format, video continues even if this packet is skipped.
+        guard contributors.contains(where: { $0 > 0 }) else {
+            reportAudioFailureOnce("no-pcm-data")
             return
         }
 
         var packet = Data()
-        packet.reserveCapacity(16 + mono.count * MemoryLayout<Float>.size)
+        packet.reserveCapacity(
+            16 + mono.count * MemoryLayout<Float>.size
+        )
 
-        // CCA1
-        packet.append(contentsOf: [0x43, 0x43, 0x41, 0x31])
+        // CCA1 packet:
+        // magic(4) + sampleRate(4) + frames(4) + channels(4) + Float32 PCM.
+        packet.append(
+            contentsOf: [0x43, 0x43, 0x41, 0x31]
+        )
 
         var sampleRate = UInt32(
-            min(max(Int(format.sampleRate.rounded()), 8_000), 192_000)
+            min(
+                max(Int(asbd.mSampleRate.rounded()), 8_000),
+                192_000
+            )
         ).littleEndian
         var frames = UInt32(mono.count).littleEndian
         var channels = UInt32(1).littleEndian
 
-        withUnsafeBytes(of: &sampleRate) { packet.append(contentsOf: $0) }
-        withUnsafeBytes(of: &frames) { packet.append(contentsOf: $0) }
-        withUnsafeBytes(of: &channels) { packet.append(contentsOf: $0) }
-
+        withUnsafeBytes(of: &sampleRate) {
+            packet.append(contentsOf: $0)
+        }
+        withUnsafeBytes(of: &frames) {
+            packet.append(contentsOf: $0)
+        }
+        withUnsafeBytes(of: &channels) {
+            packet.append(contentsOf: $0)
+        }
         mono.withUnsafeBytes { raw in
             packet.append(contentsOf: raw)
         }
 
-        _ = channel.sendData(
-            RTCDataBuffer(data: packet, isBinary: true)
+        let didSend = channel.sendData(
+            RTCDataBuffer(
+                data: packet,
+                isBinary: true
+            )
         )
+
+        if didSend {
+            audioPacketsSent += 1
+            if audioPacketsSent == 1 {
+                sendAudioStatus(
+                    "pcm-flowing-\(Int(asbd.mSampleRate.rounded()))hz-\(bitsPerChannel)bit-peak-\(String(format: "%.3f", peak))"
+                )
+            }
+        } else {
+            reportAudioFailureOnce("data-channel-send-failed")
+        }
+    }
+
+    private func sendAudioStatus(_ message: String) {
+        guard let channel = audioDataChannel,
+              channel.readyState == .open else {
+            return
+        }
+
+        let text = "cc-audio:\(message)"
+        guard let data = text.data(using: .utf8) else {
+            return
+        }
+
+        _ = channel.sendData(
+            RTCDataBuffer(
+                data: data,
+                isBinary: false
+            )
+        )
+    }
+
+    private func reportAudioFailureOnce(_ reason: String) {
+        guard !audioFailureReported else { return }
+        audioFailureReported = true
+        sendAudioStatus("error-\(reason)")
     }
 
     func stop() async {
