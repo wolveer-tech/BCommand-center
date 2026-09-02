@@ -783,7 +783,26 @@ async function refreshFootballNotifications(env){
 
 async function sendOne(row,env){
   const sub={endpoint:row.endpoint,keys:{p256dh:row.p256dh,auth:row.auth}};
-  await sendPushNotification(sub,{title:row.title,body:row.body,icon:'/icon-192.png',badge:'/icon-192.png',tag:row.id,data:{url:row.url}},{publicKey:env.VAPID_PUBLIC_KEY,privateKey:env.VAPID_PRIVATE_KEY,subject:env.VAPID_SUBJECT||'mailto:command-centre@example.com'});
+  const target=String(row.url||'/');
+  // Keep the URL both at the top level and inside data. The service worker
+  // accepts either shape, which also keeps older subscriptions compatible.
+  await sendPushNotification(
+    sub,
+    {
+      title:row.title,
+      body:row.body,
+      icon:'/icon-192.png',
+      badge:'/icon-192.png',
+      tag:row.id,
+      url:target,
+      data:{url:target}
+    },
+    {
+      publicKey:env.VAPID_PUBLIC_KEY,
+      privateKey:env.VAPID_PRIVATE_KEY,
+      subject:env.VAPID_SUBJECT||'mailto:command-centre@example.com'
+    }
+  );
 }
 
 export default {
