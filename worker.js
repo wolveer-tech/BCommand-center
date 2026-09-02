@@ -586,8 +586,14 @@ async function ensureMirrorTables(env){
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS mirror_rooms (code TEXT PRIMARY KEY,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS mirror_signals (id INTEGER PRIMARY KEY AUTOINCREMENT,code TEXT NOT NULL,sender TEXT NOT NULL,recipient TEXT NOT NULL,type TEXT NOT NULL,data TEXT NOT NULL,created_at INTEGER NOT NULL)`).run();
   await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_mirror_signals_room ON mirror_signals(code,id)').run();
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS native_mirror_sessions (
+    channel TEXT PRIMARY KEY,
+    code TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`).run();
 }
-async function cleanMirrorRooms(env){await ensureMirrorTables(env);const cutoff=Date.now()-30*60*1000;await env.DB.prepare('DELETE FROM mirror_signals WHERE created_at<?').bind(cutoff).run();await env.DB.prepare('DELETE FROM mirror_rooms WHERE updated_at<?').bind(cutoff).run()}
+async function cleanMirrorRooms(env){await ensureMirrorTables(env);const cutoff=Date.now()-30*60*1000;await env.DB.prepare('DELETE FROM mirror_signals WHERE created_at<?').bind(cutoff).run();await env.DB.prepare('DELETE FROM mirror_rooms WHERE updated_at<?').bind(cutoff).run();await env.DB.prepare('DELETE FROM native_mirror_sessions WHERE updated_at<?').bind(Date.now()-10*60*1000).run()}
 
 async function ensureFootballNotificationTables(env){
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS football_notification_preferences (
@@ -809,6 +815,43 @@ export default {
       if(url.pathname==='/api/mirror/room'&&request.method==='GET'){
         await ensureMirrorTables(env);const code=String(url.searchParams.get('code')||'');const row=await env.DB.prepare('SELECT code,updated_at FROM mirror_rooms WHERE code=?').bind(code).first();const exists=!!row&&(Date.now()-Number(row.updated_at||0)<30*60*1000);return json({exists});
       }
+      if(url.pathname==='/api/mirror/native-session'&&request.method==='POST'){
+        await ensureMirrorTables(env);
+        const body=await request.json();
+        const channel=String(body?.channel||'').trim();
+        const code=String(body?.code||'').trim();
+        if(!/^[a-f0-9]{24,64}$/i.test(channel))return json({error:'Invalid native mirror channel.'},400);
+        if(!/^\d{6}$/.test(code))return json({error:'Invalid mirror code.'},400);
+        const room=await env.DB.prepare('SELECT code FROM mirror_rooms WHERE code=?').bind(code).first();
+        if(!room)return json({error:'Mirror room does not exist.'},404);
+        const now=Date.now();
+        await env.DB.prepare(`INSERT INTO native_mirror_sessions(channel,code,created_at,updated_at)
+          VALUES(?,?,?,?)
+          ON CONFLICT(channel) DO UPDATE SET code=excluded.code,updated_at=excluded.updated_at`)
+          .bind(channel,code,now,now).run();
+        return json({ok:true,expiresInSeconds:600});
+      }
+
+      if(url.pathname==='/api/mirror/native-session'&&request.method==='GET'){
+        await ensureMirrorTables(env);
+        const channel=String(url.searchParams.get('channel')||'').trim();
+        if(!/^[a-f0-9]{24,64}$/i.test(channel))return json({error:'Invalid native mirror channel.'},400);
+        const row=await env.DB.prepare('SELECT code,updated_at FROM native_mirror_sessions WHERE channel=?')
+          .bind(channel).first();
+        if(!row||Date.now()-Number(row.updated_at||0)>10*60*1000){
+          return json({error:'No active native mirror session.'},404);
+        }
+        return json({code:String(row.code),expiresInSeconds:Math.max(0,Math.floor((10*60*1000-(Date.now()-Number(row.updated_at||0)))/1000))});
+      }
+
+      if(url.pathname==='/api/mirror/native-session'&&request.method==='DELETE'){
+        await ensureMirrorTables(env);
+        const channel=String(url.searchParams.get('channel')||'').trim();
+        if(!/^[a-f0-9]{24,64}$/i.test(channel))return json({error:'Invalid native mirror channel.'},400);
+        await env.DB.prepare('DELETE FROM native_mirror_sessions WHERE channel=?').bind(channel).run();
+        return json({ok:true});
+      }
+
       if(url.pathname==='/api/mirror/signal'&&request.method==='POST'){
         await ensureMirrorTables(env);const {code,from,to,type,data}=await request.json();if(!/^\d{6}$/.test(String(code||'')))return json({error:'Invalid mirror code.'},400);if(!['sender','receiver'].includes(from)||!['sender','receiver'].includes(to))return json({error:'Invalid mirror role.'},400);if(!['offer','answer','ice','bye'].includes(type))return json({error:'Invalid mirror signal.'},400);const room=await env.DB.prepare('SELECT code FROM mirror_rooms WHERE code=?').bind(String(code)).first();if(!room)return json({error:'Mirror room not found.'},404);await env.DB.prepare('INSERT INTO mirror_signals(code,sender,recipient,type,data,created_at) VALUES(?,?,?,?,?,?)').bind(String(code),from,to,type,JSON.stringify(data??{}),Date.now()).run();await env.DB.prepare('UPDATE mirror_rooms SET updated_at=? WHERE code=?').bind(Date.now(),String(code)).run();return json({ok:true});
       }
