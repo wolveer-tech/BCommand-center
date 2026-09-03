@@ -359,6 +359,68 @@ async function mediaSearch(env,q,type='multi'){
     .slice(0,20);
   return {results,count:results.length};
 }
+
+function normaliseTmdbMedia(x,forcedType=''){
+  const detected=forcedType||x.media_type;
+  if(!['movie','tv'].includes(detected))return null;
+  const title=detected==='movie'?(x.title||x.original_title):(x.name||x.original_name);
+  const date=detected==='movie'?x.release_date:x.first_air_date;
+  return {
+    id:Number(x.id),
+    type:detected,
+    title:String(title||'Untitled').slice(0,180),
+    year:String(date||'').slice(0,4),
+    overview:String(x.overview||'').slice(0,700),
+    posterUrl:x.poster_path?`https://image.tmdb.org/t/p/w342${x.poster_path}`:'',
+    backdropUrl:x.backdrop_path?`https://image.tmdb.org/t/p/w780${x.backdrop_path}`:'',
+    popularity:Number(x.popularity)||0,
+    rating:Number(x.vote_average)||0
+  };
+}
+async function mediaExplore(env,section='trending'){
+  const allowed=new Set(['trending','movies','tv','new','top']);
+  const mode=allowed.has(section)?section:'trending';
+  let rows=[];
+
+  if(mode==='trending'){
+    const data=await tmdbFetch(env,'/trending/all/day',{page:'1'});
+    rows=(data.results||[]).map(x=>normaliseTmdbMedia(x)).filter(Boolean);
+  }else if(mode==='movies'){
+    const data=await tmdbFetch(env,'/movie/popular',{page:'1',region:'GB'});
+    rows=(data.results||[]).map(x=>normaliseTmdbMedia(x,'movie')).filter(Boolean);
+  }else if(mode==='tv'){
+    const data=await tmdbFetch(env,'/tv/popular',{page:'1'});
+    rows=(data.results||[]).map(x=>normaliseTmdbMedia(x,'tv')).filter(Boolean);
+  }else if(mode==='new'){
+    const [movies,tv]=await Promise.all([
+      tmdbFetch(env,'/movie/now_playing',{page:'1',region:'GB'}),
+      tmdbFetch(env,'/tv/on_the_air',{page:'1'})
+    ]);
+    rows=[
+      ...(movies.results||[]).map(x=>normaliseTmdbMedia(x,'movie')),
+      ...(tv.results||[]).map(x=>normaliseTmdbMedia(x,'tv'))
+    ].filter(Boolean).sort((a,b)=>b.popularity-a.popularity);
+  }else if(mode==='top'){
+    const [movies,tv]=await Promise.all([
+      tmdbFetch(env,'/movie/top_rated',{page:'1'}),
+      tmdbFetch(env,'/tv/top_rated',{page:'1'})
+    ]);
+    rows=[
+      ...(movies.results||[]).map(x=>normaliseTmdbMedia(x,'movie')),
+      ...(tv.results||[]).map(x=>normaliseTmdbMedia(x,'tv'))
+    ].filter(Boolean).sort((a,b)=>b.rating-a.rating);
+  }
+
+  const seen=new Set();
+  const results=rows.filter(x=>{
+    const k=`${x.type}:${x.id}`;
+    if(seen.has(k))return false;
+    seen.add(k);return true;
+  }).slice(0,24);
+
+  return {section:mode,count:results.length,results,updatedAt:new Date().toISOString()};
+}
+
 async function mediaTvDetails(env,id){
   if(!/^\d+$/.test(String(id||''))){const e=new Error('A numeric TMDB id is required.');e.status=400;throw e}
   const data=await tmdbFetch(env,`/tv/${encodeURIComponent(id)}`);
@@ -1074,6 +1136,10 @@ export default {
             aggregator:env.MEDIA_EMBED_PATH_AGG||'/embed/agg'
           }
         },providerConfigured&&tmdbConfigured?200:503);
+      }
+
+      if(url.pathname==='/api/media/explore'&&request.method==='GET'){
+        return json(await mediaExplore(env,url.searchParams.get('section')||'trending'));
       }
 
       if(url.pathname==='/api/media/search'&&request.method==='GET'){
