@@ -421,6 +421,14 @@ async function mediaExplore(env,section='trending'){
   return {section:mode,count:results.length,results,updatedAt:new Date().toISOString()};
 }
 
+async function mediaRecommendations(env,type,id){
+  if(!['movie','tv'].includes(type)){const e=new Error('type must be movie or tv.');e.status=400;throw e}
+  if(!/^\d+$/.test(String(id||''))){const e=new Error('A numeric TMDB id is required.');e.status=400;throw e}
+  const data=await tmdbFetch(env,`/${type}/${encodeURIComponent(id)}/recommendations`,{page:'1'});
+  const results=(Array.isArray(data.results)?data.results:[]).map(x=>normaliseTmdbMedia(x,type)).filter(Boolean).slice(0,16);
+  return {type,id:Number(id),count:results.length,results};
+}
+
 async function mediaTvDetails(env,id){
   if(!/^\d+$/.test(String(id||''))){const e=new Error('A numeric TMDB id is required.');e.status=400;throw e}
   const data=await tmdbFetch(env,`/tv/${encodeURIComponent(id)}`);
@@ -1140,6 +1148,10 @@ export default {
 
       if(url.pathname==='/api/media/explore'&&request.method==='GET'){
         return json(await mediaExplore(env,url.searchParams.get('section')||'trending'));
+      }
+
+      if(url.pathname==='/api/media/recommendations'&&request.method==='GET'){
+        return json(await mediaRecommendations(env,url.searchParams.get('type')||'',url.searchParams.get('id')||''));
       }
 
       if(url.pathname==='/api/media/search'&&request.method==='GET'){
