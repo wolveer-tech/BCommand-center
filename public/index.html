@@ -493,6 +493,225 @@ html,body{
   .media-explore-hero-copy{width:88%}
 }
 
+
+/* ==========================================================
+   v7.1 — seamless phone layout: no sideways page scrolling
+   ========================================================== */
+html,body{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+}
+img,video,iframe{
+  max-width:100%;
+}
+.layout,.main-area,.app,.page,.card,.ent-panel,.watch-subpanel,
+.game-card,.media-view,.media-search-card,.media-player-shell,
+.yt-explore-grid,.youtube-search-results,.media-results{
+  min-width:0;
+  max-width:100%;
+}
+.watch-subpanel>.game-card{
+  box-sizing:border-box;
+  max-width:100%;
+}
+.youtube-result>*,.yt-explore-card>*,.media-result>*,
+.media-rail-card>*,.card-head>*{
+  min-width:0;
+}
+
+@media(max-width:760px){
+  /* Give the content the real viewport width and remove accidental overflow. */
+  .main-area{
+    width:100%;
+    max-width:100vw;
+    padding-left:8px!important;
+    padding-right:8px!important;
+    overflow-x:hidden;
+  }
+  .app,.page.active,.ent-panel.active,.watch-subpanel.active{
+    width:100%;
+    max-width:100%;
+    overflow-x:hidden;
+  }
+  .card,.game-card{
+    width:100%;
+    max-width:100%;
+    overflow:hidden;
+  }
+
+  /* Service selectors fit the phone instead of becoming horizontal strips. */
+  .watch-subtabs{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    overflow:visible;
+    width:100%;
+  }
+  .watch-subtab{
+    width:100%;
+    min-width:0;
+    white-space:normal;
+  }
+  .yt-explore-tabs,.media-explore-tabs{
+    display:flex;
+    flex-wrap:wrap;
+    overflow:visible;
+    width:100%;
+    gap:6px;
+  }
+  .yt-explore-tab,.media-explore-chip{
+    flex:1 1 auto;
+    min-width:0;
+    text-align:center;
+  }
+  .media-view-tabs{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    overflow:visible;
+    width:100%;
+  }
+  .media-view-tab{
+    width:100%;
+    min-width:0;
+    padding-left:6px;
+    padding-right:6px;
+    text-align:center;
+  }
+
+  /* YouTube: every thumbnail fits entirely on screen. */
+  .yt-explore-grid{
+    display:grid;
+    grid-template-columns:1fr!important;
+    width:100%;
+    gap:10px;
+  }
+  .yt-explore-card{
+    width:100%;
+    max-width:100%;
+    overflow:hidden;
+  }
+  .yt-explore-card img{
+    display:block;
+    width:100%;
+    max-width:100%;
+    height:auto;
+    aspect-ratio:16/9;
+    object-fit:cover;
+  }
+
+  /* Search results become stacked cards rather than side-by-side rows. */
+  .youtube-result{
+    display:block!important;
+    width:100%;
+    max-width:100%;
+    padding:8px;
+    overflow:hidden;
+  }
+  .youtube-result img{
+    display:block;
+    width:100%;
+    max-width:100%;
+    height:auto;
+    aspect-ratio:16/9;
+    object-fit:cover;
+    margin:0 0 9px;
+    border-radius:10px;
+  }
+  .youtube-result-title,
+  .youtube-result-meta{
+    overflow-wrap:anywhere;
+  }
+  .youtube-search-results{
+    width:100%;
+    max-width:100%;
+  }
+  #youtubeWatchFrame,.watch-frame{
+    display:block;
+    width:100%;
+    max-width:100%;
+  }
+
+  /* Movies & TV: replace the horizontal poster rail with a phone grid. */
+  .media-rail{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:9px;
+    width:100%;
+    max-width:100%;
+    overflow:visible;
+    padding:1px 0 8px;
+    scroll-snap-type:none;
+  }
+  .media-rail-card{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    flex:none;
+  }
+  .media-rail-card img,.media-rail-placeholder{
+    width:100%;
+    max-width:100%;
+    height:auto;
+    aspect-ratio:2/3;
+    object-fit:cover;
+  }
+  .media-rail-title{
+    white-space:normal;
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    overflow:hidden;
+  }
+  .media-explore-hero{
+    width:100%;
+    max-width:100%;
+    min-height:195px;
+  }
+  .media-explore-hero-copy{
+    width:88%;
+    max-width:100%;
+  }
+  .media-results{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    width:100%;
+  }
+  .media-result{
+    min-width:0;
+    width:100%;
+  }
+  .media-result img{
+    width:100%;
+    max-width:100%;
+    height:auto;
+  }
+
+  /* Inputs/buttons must never widen the page. */
+  .toolbar,.media-toolbar,.media-selection-grid{
+    width:100%;
+    max-width:100%;
+  }
+  .field,input,select,textarea,button{
+    max-width:100%;
+  }
+  .media-player{
+    display:block;
+    width:100%;
+    max-width:100%;
+  }
+}
+
+@media(max-width:380px){
+  /* Very narrow phones get one poster per row for maximum readability. */
+  .media-rail,
+  .media-results{
+    grid-template-columns:1fr!important;
+  }
+  .media-rail-card{
+    max-width:210px;
+    margin:0 auto;
+  }
+}
+
 .footer-note{margin-top:13px;text-align:center;font-size:9px;color:#65748a}.skeleton{height:65px;border-radius:12px;background:linear-gradient(90deg,#121c2b,#1b273b,#121c2b);background-size:200% 100%;animation:skeleton 1.3s infinite}.mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.mini{padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2)}.mini strong{display:block;font-size:12px}.mini span{font-size:9px;color:var(--muted)}.warning{padding:10px 11px;border-radius:11px;background:rgba(242,201,76,.08);border:1px solid rgba(242,201,76,.2);color:#e8d68a;font-size:10px;line-height:1.5}.danger{padding:10px 11px;border-radius:11px;background:rgba(255,104,118,.08);border:1px solid rgba(255,104,118,.22);color:#ffadb6;font-size:10px;line-height:1.5}@keyframes fade{from{opacity:.3;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes pulse{50%{opacity:.4}}
 
 @media(max-width:860px){.sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 20px 60px rgba(0,0,0,.5)}.sidebar.open{transform:translateX(0)}.sidebar-toggle{display:flex;align-items:center;justify-content:center}.sidebar-overlay.open{display:block;position:fixed;inset:0;background:rgba(2,5,10,.6);z-index:24}}
