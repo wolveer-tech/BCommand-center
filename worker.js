@@ -599,7 +599,7 @@ async function youtubeStatus(env){
 }
 
 
-const FOOTBALL_COMPETITIONS=new Set(['PL','CL','PD','BL1','SA','FL1']);
+const FOOTBALL_COMPETITIONS=new Set(['PL','PD','BL1','SA','FL1','DED','PPL','ELC','EL1','EL2','ENL','CL','EL','UCL','FAC','FLC']);
 
 function isoDayOffset(n){
   const d=new Date();d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);
@@ -614,7 +614,10 @@ async function footballFetch(path,env){
   });
   const data=await r.json().catch(()=>({}));
   if(!r.ok){
-    const err=new Error(data?.message||data?.error||`football-data.org HTTP ${r.status}`);
+    const baseMessage=data?.message||data?.error||`football-data.org HTTP ${r.status}`;
+    const err=new Error(r.status===403
+      ? `${baseMessage} This competition may require a higher football-data.org access tier for your API key.`
+      : baseMessage);
     err.status=r.status===429?429:(r.status>=400&&r.status<500?r.status:502);
     throw err;
   }
@@ -802,6 +805,20 @@ async function ensureFootballNotificationTables(env){
     sent_at INTEGER NOT NULL,
     PRIMARY KEY(device_id,event_key)
   )`).run();
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS football_notification_teams (
+    device_id TEXT NOT NULL,
+    team_id INTEGER NOT NULL,
+    team_name TEXT NOT NULL DEFAULT '',
+    team_crest TEXT NOT NULL DEFAULT '',
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY(device_id,team_id)
+  )`).run();
+  // One-time/backward-compatible migration from the old single favourite columns.
+  await env.DB.prepare(`INSERT OR IGNORE INTO football_notification_teams
+    (device_id,team_id,team_name,team_crest,updated_at)
+    SELECT device_id,team_id,team_name,team_crest,updated_at
+    FROM football_notification_preferences
+    WHERE team_id IS NOT NULL`).run();
 }
 function localPartsAt(timezone,date){
   const parts=new Intl.DateTimeFormat('en-GB',{
@@ -847,7 +864,6 @@ async function insertFootballScheduledNotification(env,pref,match,type,dueAt,tit
   return 1;
 }
 async function scheduleFootballAlertsForPreference(env,pref,matches){
-  await env.DB.prepare("DELETE FROM notifications WHERE device_id=? AND kind='football' AND sent=0").bind(pref.device_id).run();
   if(!pref.enabled||!pref.team_id)return 0;
 
   let scheduled=0;
@@ -916,6 +932,13 @@ async function sendFootballFinalScores(env,pref,matches){
   }
   return sent;
 }
+async function footballTeamsForDevice(env,deviceId){
+  await ensureFootballNotificationTables(env);
+  const rows=await env.DB.prepare(`SELECT team_id,team_name,team_crest
+    FROM football_notification_teams WHERE device_id=? ORDER BY team_name`)
+    .bind(deviceId).all();
+  return rows.results||[];
+}
 async function syncFootballPreferenceNow(env,deviceId){
   await ensureFootballNotificationTables(env);
   const pref=await env.DB.prepare(`SELECT p.*,d.endpoint,d.p256dh,d.auth
@@ -923,29 +946,49 @@ async function syncFootballPreferenceNow(env,deviceId){
     LEFT JOIN devices d ON d.device_id=p.device_id
     WHERE p.device_id=?`).bind(deviceId).first();
 
-  if(!pref)return {scheduled:0};
-  if(!pref.enabled||!pref.team_id){
-    await env.DB.prepare("DELETE FROM notifications WHERE device_id=? AND kind='football' AND sent=0").bind(deviceId).run();
-    return {scheduled:0};
-  }
-  if(!pref.endpoint)return {scheduled:0,warning:'This device is not registered for Web Push yet.'};
+  await env.DB.prepare("DELETE FROM notifications WHERE device_id=? AND kind='football' AND sent=0")
+    .bind(deviceId).run();
 
-  const matches=await footballTeamMatches(env,pref.team_id,2,21);
-  const scheduled=await scheduleFootballAlertsForPreference(env,pref,matches);
-  await sendFootballFinalScores(env,pref,matches);
-  return {scheduled};
+  if(!pref||!pref.enabled)return {scheduled:0,teams:0};
+  const teams=await footballTeamsForDevice(env,deviceId);
+  if(!teams.length)return {scheduled:0,teams:0};
+  if(!pref.endpoint)return {scheduled:0,teams:teams.length,warning:'This device is not registered for Web Push yet.'};
+
+  let scheduled=0;
+  const teamCache=new Map();
+  for(const team of teams){
+    const teamId=Number(team.team_id);
+    let matches=teamCache.get(teamId);
+    if(!matches){
+      matches=await footballTeamMatches(env,teamId,2,21);
+      teamCache.set(teamId,matches);
+    }
+    const teamPref={...pref,team_id:teamId,team_name:team.team_name,team_crest:team.team_crest};
+    scheduled+=await scheduleFootballAlertsForPreference(env,teamPref,matches);
+    await sendFootballFinalScores(env,teamPref,matches);
+  }
+  return {scheduled,teams:teams.length};
 }
 async function refreshFootballNotifications(env){
   if(!env.FOOTBALL_DATA_API_KEY)return;
   await ensureFootballNotificationTables(env);
-  const rows=await env.DB.prepare(`SELECT p.*,d.endpoint,d.p256dh,d.auth
+  const rows=await env.DB.prepare(`SELECT
+      p.device_id,p.enabled,p.timezone,p.notify_24h,p.notify_1h,p.notify_kickoff,p.notify_final,
+      d.endpoint,d.p256dh,d.auth,
+      t.team_id,t.team_name,t.team_crest
     FROM football_notification_preferences p
     JOIN devices d ON d.device_id=p.device_id
-    WHERE p.enabled=1 AND p.team_id IS NOT NULL`).all();
+    JOIN football_notification_teams t ON t.device_id=p.device_id
+    WHERE p.enabled=1`).all();
   const prefs=rows.results||[];
   if(!prefs.length)return;
 
-  // Fetch once per unique team and reuse the result for every subscribed device.
+  const devices=[...new Set(prefs.map(p=>p.device_id))];
+  for(const deviceId of devices){
+    await env.DB.prepare("DELETE FROM notifications WHERE device_id=? AND kind='football' AND sent=0")
+      .bind(deviceId).run();
+  }
+
   const teamCache=new Map();
   for(const pref of prefs){
     const key=String(pref.team_id);
@@ -962,12 +1005,11 @@ async function refreshFootballNotifications(env){
     try{
       await scheduleFootballAlertsForPreference(env,pref,matches);
       await sendFootballFinalScores(env,pref,matches);
-    }catch(e){console.error('football notification schedule failed',pref.device_id,e)}
+    }catch(e){console.error('football notification schedule failed',pref.device_id,pref.team_id,e)}
   }
   await env.DB.prepare('DELETE FROM football_notification_sent WHERE sent_at<?')
     .bind(Date.now()-60*86400000).run();
 }
-
 async function sendOne(row,env){
   const sub={endpoint:row.endpoint,keys:{p256dh:row.p256dh,auth:row.auth}};
   const target=String(row.url||'/');
@@ -1082,12 +1124,26 @@ export default {
       if(url.pathname==='/api/football/notifications/preferences'&&request.method==='POST'){
         const body=await request.json();
         const {
-          deviceId,enabled=true,teamId=null,teamName='',teamCrest='',timezone='Europe/London',
+          deviceId,enabled=true,teams=[],timezone='Europe/London',
           notify24h=true,notify1h=true,notifyKickoff=true,notifyFinal=true
         }=body||{};
         if(!deviceId)return json({error:'deviceId required'},400);
 
+        const cleanTeams=(Array.isArray(teams)?teams:[])
+          .map(t=>({
+            id:Number(t?.id)||0,
+            name:String(t?.name||'').slice(0,120),
+            crest:String(t?.crest||'').slice(0,500)
+          }))
+          .filter(t=>t.id>0)
+          .filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i)
+          .slice(0,20);
+
         await ensureFootballNotificationTables(env);
+        const primary=cleanTeams[0]||null;
+
+        // Keep the original single-team columns populated for backward
+        // compatibility while the new child table stores every favourite.
         await env.DB.prepare(`INSERT INTO football_notification_preferences
           (device_id,enabled,team_id,team_name,team_crest,timezone,notify_24h,notify_1h,notify_kickoff,notify_final,updated_at)
           VALUES(?,?,?,?,?,?,?,?,?,?,?)
@@ -1103,10 +1159,18 @@ export default {
             notify_final=excluded.notify_final,
             updated_at=excluded.updated_at`)
           .bind(
-            deviceId,enabled?1:0,teamId?Number(teamId):null,String(teamName||'').slice(0,120),
-            String(teamCrest||'').slice(0,500),timezone||'Europe/London',
+            deviceId,enabled?1:0,primary?.id||null,primary?.name||'',primary?.crest||'',
+            timezone||'Europe/London',
             notify24h?1:0,notify1h?1:0,notifyKickoff?1:0,notifyFinal?1:0,Date.now()
           ).run();
+
+        await env.DB.prepare('DELETE FROM football_notification_teams WHERE device_id=?')
+          .bind(deviceId).run();
+        for(const team of cleanTeams){
+          await env.DB.prepare(`INSERT INTO football_notification_teams
+            (device_id,team_id,team_name,team_crest,updated_at) VALUES(?,?,?,?,?)`)
+            .bind(deviceId,team.id,team.name,team.crest,Date.now()).run();
+        }
 
         const result=await syncFootballPreferenceNow(env,deviceId);
         return json({ok:true,...result});
@@ -1121,14 +1185,17 @@ export default {
           JOIN devices d ON d.device_id=p.device_id
           WHERE p.device_id=?`).bind(deviceId).first();
         if(!pref)return json({error:'Football notifications are not registered for this device yet.'},404);
+        const teams=await footballTeamsForDevice(env,deviceId);
+        const names=teams.map(t=>t.team_name).filter(Boolean);
+        const label=names.length<=3?names.join(', '):`${names.slice(0,3).join(', ')} +${names.length-3} more`;
         await sendOne({
           endpoint:pref.endpoint,p256dh:pref.p256dh,auth:pref.auth,
           title:'⚽ Football alerts are working',
-          body:pref.team_name?`You will receive match alerts for ${pref.team_name}.`:'Your football notifications are ready.',
+          body:names.length?`You will receive match alerts for ${label}.`:'Your football notifications are ready.',
           url:'/#football',
           id:`football-test-${Date.now()}`
         },env);
-        return json({ok:true});
+        return json({ok:true,teams:names.length});
       }
 
       if(url.pathname==='/api/media/status'&&request.method==='GET'){
