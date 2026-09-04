@@ -241,6 +241,7 @@ async function sendMorningBriefings(env){
 
 
 
+
 function normaliseBaseUrl(value){
   const raw=String(value||'').trim().replace(/\/$/,'');
   if(!raw)return null;
@@ -248,30 +249,90 @@ function normaliseBaseUrl(value){
   if(u.protocol!=='https:')throw new Error('Live content provider base URL must use HTTPS.');
   return u;
 }
-function liveContentMode(env){
-  const mode=String(env.LIVE_CONTENT_PROVIDER_MODE||'api').trim().toLowerCase();
-  return mode==='scrape'?'scrape':'api';
-}
-function liveContentBaseUrl(env){
-  return normaliseBaseUrl(env.LIVE_CONTENT_BASE_URL||env.LIVE_CONTENT_API_BASE_URL||'');
-}
 function csvHosts(value){
-  return String(value||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+  return String(value||'').split(',').map(x=>x.trim().replace(/\/+$/,'').toLowerCase()).filter(Boolean);
 }
-function allowedEmbedUrl(embedUrl,base,env){
+function cleanProviderId(value){
+  return String(value||'1')==='2'?'2':'1';
+}
+function liveProviderConfig(env,providerId='1'){
+  const id=cleanProviderId(providerId);
+
+  if(id==='1'){
+    return {
+      id:'1',
+      name:String(env.LIVE_PROVIDER_1_NAME||'Provider 1').trim().slice(0,60)||'Provider 1',
+      mode:String(env.LIVE_PROVIDER_1_MODE||'api').trim().toLowerCase()==='scrape'?'scrape':'api',
+
+      // Provider 1 intentionally falls back to the ORIGINAL API variables so
+      // an existing API provider can come back without being overwritten by
+      // the newer scrape-provider settings.
+      baseUrl:String(
+        env.LIVE_PROVIDER_1_BASE_URL||
+        env.LIVE_CONTENT_API_BASE_URL||
+        ''
+      ).trim(),
+
+      apiPath:String(env.LIVE_PROVIDER_1_API_PATH||env.LIVE_CONTENT_API_PATH||'/api/v1/streams').trim()||'/api/v1/streams',
+      scrapePath:String(env.LIVE_PROVIDER_1_SCRAPE_PATH||'/').trim()||'/',
+      pageHosts:String(env.LIVE_PROVIDER_1_ALLOWED_PAGE_HOSTS||'').trim(),
+      embedHosts:String(env.LIVE_PROVIDER_1_ALLOWED_EMBED_HOSTS||env.LIVE_CONTENT_ALLOWED_EMBED_HOSTS||'').trim(),
+      linkHints:String(env.LIVE_PROVIDER_1_LINK_HINTS||'').trim(),
+      maxScrapePages:Number(env.LIVE_PROVIDER_1_MAX_SCRAPE_PAGES)||12,
+      apiKey:String(env.LIVE_PROVIDER_1_API_KEY||env.LIVE_CONTENT_API_KEY||'').trim()
+    };
+  }
+
+  return {
+    id:'2',
+    name:String(env.LIVE_PROVIDER_2_NAME||'Provider 2').trim().slice(0,60)||'Provider 2',
+    mode:String(env.LIVE_PROVIDER_2_MODE||env.LIVE_CONTENT_PROVIDER_MODE||'scrape').trim().toLowerCase()==='api'?'api':'scrape',
+
+    // Provider 2 falls back to the v8.6 generic/scrape variables.
+    baseUrl:String(
+      env.LIVE_PROVIDER_2_BASE_URL||
+      env.LIVE_CONTENT_BASE_URL||
+      ''
+    ).trim(),
+
+    apiPath:String(env.LIVE_PROVIDER_2_API_PATH||env.LIVE_CONTENT_API_PATH||'/api/v1/streams').trim()||'/api/v1/streams',
+    scrapePath:String(env.LIVE_PROVIDER_2_SCRAPE_PATH||env.LIVE_CONTENT_SCRAPE_PATH||'/').trim()||'/',
+    pageHosts:String(env.LIVE_PROVIDER_2_ALLOWED_PAGE_HOSTS||env.LIVE_CONTENT_ALLOWED_PAGE_HOSTS||'').trim(),
+    embedHosts:String(env.LIVE_PROVIDER_2_ALLOWED_EMBED_HOSTS||env.LIVE_CONTENT_ALLOWED_EMBED_HOSTS||'').trim(),
+    linkHints:String(env.LIVE_PROVIDER_2_LINK_HINTS||env.LIVE_CONTENT_LINK_HINTS||'').trim(),
+    maxScrapePages:Number(env.LIVE_PROVIDER_2_MAX_SCRAPE_PAGES||env.LIVE_CONTENT_MAX_SCRAPE_PAGES)||12,
+    apiKey:String(env.LIVE_PROVIDER_2_API_KEY||env.LIVE_CONTENT_API_KEY||'').trim()
+  };
+}
+function liveProviderPublicInfo(env,providerId){
+  const cfg=liveProviderConfig(env,providerId);
+  let hostname='';
+  try{hostname=normaliseBaseUrl(cfg.baseUrl)?.hostname||''}catch{}
+  return {
+    id:cfg.id,
+    name:cfg.name,
+    mode:cfg.mode,
+    configured:!!hostname,
+    hostname
+  };
+}
+function configuredLiveProviders(env){
+  return ['1','2'].map(id=>liveProviderPublicInfo(env,id)).filter(x=>x.configured);
+}
+function allowedEmbedUrl(embedUrl,base,cfg){
   try{
     const u=new URL(embedUrl);
     if(u.protocol!=='https:')return false;
-    const configured=csvHosts(env.LIVE_CONTENT_ALLOWED_EMBED_HOSTS);
+    const configured=csvHosts(cfg.embedHosts);
     const hosts=configured.length?configured:[base.hostname.toLowerCase()];
     return hosts.includes(u.hostname.toLowerCase());
   }catch{return false}
 }
-function allowedProviderPageUrl(pageUrl,base,env){
+function allowedProviderPageUrl(pageUrl,base,cfg){
   try{
     const u=new URL(pageUrl,base);
     if(u.protocol!=='https:')return false;
-    const configured=csvHosts(env.LIVE_CONTENT_ALLOWED_PAGE_HOSTS);
+    const configured=csvHosts(cfg.pageHosts);
     const hosts=configured.length?configured:[base.hostname.toLowerCase()];
     return hosts.includes(u.hostname.toLowerCase());
   }catch{return false}
@@ -303,8 +364,8 @@ function rawStreamSourceEntries(stream){
   });
   return entries;
 }
-function allowedStreamSources(stream,base,env){
-  return rawStreamSourceEntries(stream).filter(entry=>allowedEmbedUrl(entry.url,base,env));
+function allowedStreamSources(stream,base,cfg){
+  return rawStreamSourceEntries(stream).filter(entry=>allowedEmbedUrl(entry.url,base,cfg));
 }
 function providerSourceHosts(stream){
   return [...new Set(rawStreamSourceEntries(stream).map(entry=>{
@@ -329,21 +390,11 @@ function streamSlugFromUrl(value){
 }
 
 async function extractAuthorisedHtmlPage(response,pageUrl){
-  const result={
-    title:'',
-    ogTitle:'',
-    thumbnail:'',
-    embedCandidates:[],
-    pageLinks:[]
-  };
-
+  const result={title:'',ogTitle:'',thumbnail:'',embedCandidates:[],pageLinks:[]};
   let titleText='';
-  const titleHandler={
-    text(chunk){titleText+=chunk.text||''}
-  };
 
   const rewriter=new HTMLRewriter()
-    .on('title',titleHandler)
+    .on('title',{text(chunk){titleText+=chunk.text||''}})
     .on('meta[property="og:title"]',{
       element(el){
         const value=el.getAttribute('content');
@@ -358,58 +409,51 @@ async function extractAuthorisedHtmlPage(response,pageUrl){
     })
     .on('iframe[src]',{
       element(el){
-        const value=el.getAttribute('src');
-        const absolute=safeHttpsUrl(value,pageUrl);
+        const absolute=safeHttpsUrl(el.getAttribute('src'),pageUrl);
         if(absolute)result.embedCandidates.push(absolute);
       }
     })
     .on('video[src]',{
       element(el){
-        const value=el.getAttribute('src');
-        const absolute=safeHttpsUrl(value,pageUrl);
+        const absolute=safeHttpsUrl(el.getAttribute('src'),pageUrl);
         if(absolute)result.embedCandidates.push(absolute);
       }
     })
     .on('source[src]',{
       element(el){
-        const value=el.getAttribute('src');
-        const absolute=safeHttpsUrl(value,pageUrl);
+        const absolute=safeHttpsUrl(el.getAttribute('src'),pageUrl);
         if(absolute)result.embedCandidates.push(absolute);
       }
     })
     .on('[data-embed]',{
       element(el){
-        const value=el.getAttribute('data-embed');
-        const absolute=safeHttpsUrl(value,pageUrl);
+        const absolute=safeHttpsUrl(el.getAttribute('data-embed'),pageUrl);
         if(absolute)result.embedCandidates.push(absolute);
       }
     })
     .on('[data-src]',{
       element(el){
-        const value=el.getAttribute('data-src');
-        const absolute=safeHttpsUrl(value,pageUrl);
+        const absolute=safeHttpsUrl(el.getAttribute('data-src'),pageUrl);
         if(absolute)result.embedCandidates.push(absolute);
       }
     })
     .on('a[href]',{
       element(el){
-        const value=el.getAttribute('href');
-        const absolute=safeHttpsUrl(value,pageUrl);
+        const absolute=safeHttpsUrl(el.getAttribute('href'),pageUrl);
         if(absolute)result.pageLinks.push(absolute);
       }
     });
 
   const transformed=rewriter.transform(response);
-  await transformed.text(); // consume the body so all handlers run
+  await transformed.text();
 
   result.title=titleText.trim().replace(/\s+/g,' ').slice(0,180);
   result.embedCandidates=[...new Set(result.embedCandidates)];
   result.pageLinks=[...new Set(result.pageLinks)];
   return result;
 }
-
-function scrapeLinkHints(env,category){
-  const configured=String(env.LIVE_CONTENT_LINK_HINTS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+function scrapeLinkHints(cfg,category){
+  const configured=String(cfg.linkHints||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
   if(configured.length)return configured;
   return [String(category||'soccer').toLowerCase(),'football','soccer','match','game','event','watch','stream','live','sport'];
 }
@@ -421,19 +465,18 @@ function isLikelyEventPage(url,hints){
   }catch{return false}
 }
 
-async function scrapeAuthorisedProvider(env,base,category){
+async function scrapeAuthorisedProvider(cfg,base,category){
   if(typeof HTMLRewriter==='undefined'){
     const err=new Error('HTML scraping mode requires the Cloudflare Workers HTMLRewriter runtime.');
     err.status=500;
     throw err;
   }
 
-  const pathTemplate=String(env.LIVE_CONTENT_SCRAPE_PATH||'/').trim()||'/';
-  const path=pathTemplate.replace(/\{category\}/g,encodeURIComponent(category));
+  const path=String(cfg.scrapePath||'/').replace(/\{category\}/g,encodeURIComponent(category));
   const listingUrl=new URL(path,base).toString();
 
-  if(!allowedProviderPageUrl(listingUrl,base,env)){
-    const err=new Error('LIVE_CONTENT_SCRAPE_PATH resolves to a provider page host that is not allowed.');
+  if(!allowedProviderPageUrl(listingUrl,base,cfg)){
+    const err=new Error(`Provider ${cfg.id}: scrape path resolves to a page host that is not allowed.`);
     err.status=500;
     throw err;
   }
@@ -442,28 +485,27 @@ async function scrapeAuthorisedProvider(env,base,category){
     accept:'text/html,application/xhtml+xml',
     'user-agent':'CommandCentre/1.0 authorised-content-integration'
   };
-  if(env.LIVE_CONTENT_API_KEY)headers.authorization=`Bearer ${env.LIVE_CONTENT_API_KEY}`;
+  if(cfg.apiKey)headers.authorization=`Bearer ${cfg.apiKey}`;
 
   const listingResponse=await fetch(listingUrl,{headers,redirect:'follow'});
   if(!listingResponse.ok){
-    const err=new Error(`Live content provider HTTP ${listingResponse.status}`);
+    const err=new Error(`${cfg.name} HTTP ${listingResponse.status}`);
     err.status=listingResponse.status>=400&&listingResponse.status<500?listingResponse.status:502;
     throw err;
   }
 
   const listing=await extractAuthorisedHtmlPage(listingResponse,listingUrl);
-  const hints=scrapeLinkHints(env,category);
-  const maxPages=Math.max(1,Math.min(24,Number(env.LIVE_CONTENT_MAX_SCRAPE_PAGES)||12));
+  const hints=scrapeLinkHints(cfg,category);
+  const maxPages=Math.max(1,Math.min(24,Number(cfg.maxScrapePages)||12));
 
   const eventPages=listing.pageLinks
-    .filter(url=>allowedProviderPageUrl(url,base,env))
+    .filter(url=>allowedProviderPageUrl(url,base,cfg))
     .filter(url=>isLikelyEventPage(url,hints))
     .filter(url=>url!==listingUrl)
     .slice(0,maxPages);
 
   const streams=[];
 
-  // If the listing itself directly contains player embeds, expose them as one stream.
   if(listing.embedCandidates.length){
     streams.push({
       id:'listing-live',
@@ -480,10 +522,7 @@ async function scrapeAuthorisedProvider(env,base,category){
       const r=await fetch(pageUrl,{headers,redirect:'follow'});
       if(!r.ok)return null;
       const page=await extractAuthorisedHtmlPage(r,pageUrl);
-
-      // Some frameworks link straight to an allowed player URL rather than placing
-      // the iframe in the event page.
-      const directEmbedLinks=page.pageLinks.filter(url=>allowedEmbedUrl(url,base,env));
+      const directEmbedLinks=page.pageLinks.filter(url=>allowedEmbedUrl(url,base,cfg));
       const sources=[...new Set([...page.embedCandidates,...directEmbedLinks])];
       if(!sources.length)return null;
 
@@ -504,33 +543,32 @@ async function scrapeAuthorisedProvider(env,base,category){
   return {count:streams.length,streams};
 }
 
-async function fetchAuthorisedApiProvider(env,base,category){
-  const pathTemplate=String(env.LIVE_CONTENT_API_PATH||'/api/v1/streams').trim()||'/api/v1/streams';
-  const endpoint=new URL(pathTemplate,base);
+async function fetchAuthorisedApiProvider(cfg,base,category){
+  const endpoint=new URL(String(cfg.apiPath||'/api/v1/streams'),base);
   if(!endpoint.searchParams.has('category'))endpoint.searchParams.set('category',category);
 
   const headers={accept:'application/json'};
-  if(env.LIVE_CONTENT_API_KEY)headers.authorization=`Bearer ${env.LIVE_CONTENT_API_KEY}`;
+  if(cfg.apiKey)headers.authorization=`Bearer ${cfg.apiKey}`;
 
   const r=await fetch(endpoint.toString(),{headers});
   const data=await r.json().catch(()=>({}));
   if(!r.ok){
-    const err=new Error(data?.message||data?.error||`Live content provider HTTP ${r.status}`);
+    const err=new Error(data?.message||data?.error||`${cfg.name} HTTP ${r.status}`);
     err.status=r.status>=400&&r.status<500?r.status:502;
     throw err;
   }
   return data;
 }
 
-async function liveContentStreams(env,category='soccer',requestUrl='https://local/api/live-content',force=false){
-  const base=liveContentBaseUrl(env);
+async function liveContentStreams(env,category='soccer',requestUrl='https://local/api/live-content',force=false,providerId='1'){
+  const cfg=liveProviderConfig(env,providerId);
+  const base=normaliseBaseUrl(cfg.baseUrl);
   if(!base){
-    const err=new Error('Set LIVE_CONTENT_BASE_URL (or the older LIVE_CONTENT_API_BASE_URL) first.');
+    const err=new Error(`${cfg.name} is not configured.`);
     err.status=503;
     throw err;
   }
 
-  const mode=liveContentMode(env);
   const safeCategory=String(category||'soccer').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40)||'soccer';
 
   let cache=null,key=null;
@@ -539,7 +577,7 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
     if(cache&&!force){
       const u=new URL(requestUrl);
       u.pathname='/__cache/live-content';
-      u.search=new URLSearchParams({category:safeCategory,mode}).toString();
+      u.search=new URLSearchParams({category:safeCategory,mode:cfg.mode,provider:cfg.id}).toString();
       key=new Request(u.toString());
       const hit=await cache.match(key);
       if(hit)return hit.json();
@@ -548,16 +586,16 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
     cache=null;key=null;
   }
 
-  const data=mode==='scrape'
-    ?await scrapeAuthorisedProvider(env,base,safeCategory)
-    :await fetchAuthorisedApiProvider(env,base,safeCategory);
+  const data=cfg.mode==='scrape'
+    ?await scrapeAuthorisedProvider(cfg,base,safeCategory)
+    :await fetchAuthorisedApiProvider(cfg,base,safeCategory);
 
   const providerStreams=Array.isArray(data.streams)?data.streams:[];
   const rejectedHostsSet=new Set();
 
   const streams=providerStreams.map(s=>{
     const allHosts=providerSourceHosts(s);
-    const sources=allowedStreamSources(s,base,env);
+    const sources=allowedStreamSources(s,base,cfg);
 
     if(!sources.length)allHosts.forEach(host=>rejectedHostsSet.add(host));
 
@@ -587,11 +625,13 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
     };
   }).filter(s=>s.embed_url);
 
-  const configuredAllowedHosts=csvHosts(env.LIVE_CONTENT_ALLOWED_EMBED_HOSTS);
+  const configuredAllowedHosts=csvHosts(cfg.embedHosts);
   const rejectedHosts=[...rejectedHostsSet].sort();
 
   const payload={
-    mode,
+    providerId:cfg.id,
+    providerName:cfg.name,
+    mode:cfg.mode,
     count:streams.length,
     providerCount:providerStreams.length,
     rejectedCount:Math.max(0,providerStreams.length-streams.length),
@@ -599,10 +639,10 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
     rejectedHosts,
     diagnostic:
       providerStreams.length>0&&streams.length===0
-        ?'The provider returned streams, but none of their HTTPS player hosts matched LIVE_CONTENT_ALLOWED_EMBED_HOSTS.'
+        ?`${cfg.name} returned streams, but none of their HTTPS player hosts matched its allowed embed-host list.`
         :rejectedHosts.length
-          ?'Some provider streams were rejected because their player hosts were not on the allowlist.'
-          :'All usable provider stream hosts passed the allowlist check.',
+          ?`Some ${cfg.name} streams were rejected because their player hosts were not on its allowlist.`
+          :`All usable ${cfg.name} stream hosts passed the allowlist check.`,
     streams,
     category:safeCategory,
     updatedAt:new Date().toISOString()
@@ -613,7 +653,7 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
       if(!key){
         const u=new URL(requestUrl);
         u.pathname='/__cache/live-content';
-        u.search=new URLSearchParams({category:safeCategory,mode}).toString();
+        u.search=new URLSearchParams({category:safeCategory,mode:cfg.mode,provider:cfg.id}).toString();
         key=new Request(u.toString());
       }
       await cache.put(key,new Response(JSON.stringify(payload),{
@@ -1079,14 +1119,14 @@ async function commandCentreStatus(env,live=false){
       :'Football API and VAPID keys are both required for background football alerts.'
   });
 
-  const liveContentBaseConfigured=!!(env.LIVE_CONTENT_BASE_URL||env.LIVE_CONTENT_API_BASE_URL);
+  const liveProviders=configuredLiveProviders(env);
   services.push({
-    name:'Live content provider',
-    state:liveContentBaseConfigured?'Configured':'Not configured',
-    kind:liveContentBaseConfigured?'info':'warn',
-    detail:liveContentBaseConfigured
-      ?`Provider base URL is present • mode: ${liveContentMode(env)}.`
-      :'Add LIVE_CONTENT_BASE_URL to enable the live Sport player.'
+    name:'Live Sport providers',
+    state:liveProviders.length?`${liveProviders.length} configured`:'Not configured',
+    kind:liveProviders.length?'info':'warn',
+    detail:liveProviders.length
+      ?liveProviders.map(p=>`${p.name} (${p.mode})`).join(' • ')
+      :'Configure LIVE_PROVIDER_1_BASE_URL and/or LIVE_PROVIDER_2_BASE_URL.'
   });
   services.push({
     name:'Movies & TV metadata',
@@ -1455,8 +1495,18 @@ export default {
         await ensureMirrorTables(env);const code=String(url.searchParams.get('code')||''),recipient=String(url.searchParams.get('for')||''),after=Math.max(0,Number(url.searchParams.get('after')||0));if(!/^\d{6}$/.test(code)||!['sender','receiver'].includes(recipient))return json({error:'Invalid mirror request.'},400);const rows=await env.DB.prepare(`SELECT id,type,data,sender,recipient FROM mirror_signals WHERE code=? AND recipient=? AND id>? ORDER BY id ASC LIMIT 100`).bind(code,recipient,after).all();const signals=(rows.results||[]).map(r=>({id:r.id,type:r.type,sender:r.sender,recipient:r.recipient,data:(()=>{try{return JSON.parse(r.data)}catch{return {}}})()}));return json({signals});
       }
 
+      if(url.pathname==='/api/live-content/providers'&&request.method==='GET'){
+        return json({providers:configuredLiveProviders(env)});
+      }
+
       if(url.pathname==='/api/live-content'&&request.method==='GET'){
-        return json(await liveContentStreams(env,url.searchParams.get('category')||'soccer',request.url,url.searchParams.get('refresh')==='1'));
+        return json(await liveContentStreams(
+          env,
+          url.searchParams.get('category')||'soccer',
+          request.url,
+          url.searchParams.get('refresh')==='1',
+          url.searchParams.get('provider')||'1'
+        ));
       }
 
       if(url.pathname==='/api/status'&&request.method==='GET'){
