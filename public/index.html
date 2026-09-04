@@ -771,6 +771,84 @@ img,video,iframe{
 
 
 /* v8 productivity suite */
+
+/* v8.2 iPhone-style home launcher */
+.home-pager-shell{display:grid;gap:12px}
+.home-pager{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;scroll-behavior:smooth;padding-bottom:2px}
+.home-pager::-webkit-scrollbar{display:none}
+.home-panel{flex:0 0 100%;min-width:100%;scroll-snap-align:start}
+.home-panel-intro{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;padding:0 4px}
+.home-panel-tag{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#d8e5ff}
+.home-panel-tag small{font-size:8px;font-weight:600;color:#9fb1ca;letter-spacing:0;text-transform:none}
+.home-panel-arrow{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--text);padding:9px 12px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer}
+.home-panel-arrow:hover{filter:brightness(1.08)}
+.home-pager-dots{display:flex;align-items:center;justify-content:center;gap:8px}
+.home-page-dot{width:9px;height:9px;border-radius:999px;border:0;background:rgba(255,255,255,.22);cursor:pointer;padding:0;transition:transform .18s ease,background .18s ease, width .18s ease}
+.home-page-dot.active{width:22px;background:linear-gradient(135deg,#8ab0ff,#d2b2ff)}
+
+.launcher-screen{position:relative;overflow:hidden;padding:16px;border-radius:34px;background:linear-gradient(180deg,rgba(5,8,15,.98),rgba(6,10,18,.94));border:1px solid rgba(255,255,255,.08);box-shadow:0 28px 60px rgba(0,0,0,.35)}
+.launcher-screen:before{content:'';position:absolute;inset:auto -40px -80px auto;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(129,165,255,.28),rgba(129,165,255,0));pointer-events:none}
+.launcher-screen:after{content:'';position:absolute;inset:-70px auto auto -50px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(255,183,218,.16),rgba(255,183,218,0));pointer-events:none}
+.launcher-header{position:relative;z-index:1;display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:14px;padding:2px 4px}
+.launcher-greeting{font-size:11px;color:#d8e2f3;opacity:.9;margin-bottom:4px}
+.launcher-date{font-size:29px;font-weight:800;letter-spacing:-.03em;line-height:1.02}
+.launcher-time{font-size:14px;color:#b6c3da;margin-top:5px}
+.launcher-swipe-hint{font-size:10px;color:#9aacc8}
+.launcher-widget-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.launcher-widget{position:relative;text-align:left;border:1px solid rgba(255,255,255,.09);border-radius:26px;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.05));backdrop-filter:blur(18px);padding:14px 14px 13px;color:var(--text);cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.launcher-widget.large{grid-column:span 2;min-height:118px;background:linear-gradient(135deg,rgba(155,175,255,.18),rgba(255,255,255,.05))}
+.launcher-widget-title{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#dbe5f7;opacity:.92}
+.launcher-widget-value{font-size:29px;font-weight:850;line-height:1;margin-top:8px;letter-spacing:-.04em}
+.launcher-widget-value.small{font-size:20px;line-height:1.15}
+.launcher-widget-sub{font-size:10px;color:#c4d1e5;margin-top:8px;line-height:1.4}
+.launcher-widget-foot{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.launcher-chip{display:inline-flex;align-items:center;gap:5px;padding:7px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(8,13,22,.42);color:#f4f7fc;font-size:10px;font-weight:700;cursor:pointer}
+.launcher-chip:hover,.iphone-app:hover,.launcher-dock-app:hover{filter:brightness(1.08)}
+.launcher-app-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 10px;margin-bottom:14px}
+.iphone-app{background:transparent;border:0;padding:0;text-align:center;color:var(--text);font:inherit;cursor:pointer;min-width:0;position:relative}
+.iphone-app-icon{width:64px;height:64px;margin:0 auto 7px;border-radius:20px;display:grid;place-items:center;font-size:28px;color:#fff;box-shadow:0 14px 28px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.18)}
+.iphone-app-label{display:block;font-size:10px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px}
+.iphone-app-badge{position:absolute;top:-4px;right:6px;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:#ff4c6a;color:#fff;display:none;align-items:center;justify-content:center;font-size:9px;font-weight:800;border:2px solid rgba(5,8,15,.96)}
+.iphone-app-badge.show{display:inline-flex}
+.app-theme-today{background:linear-gradient(180deg,#ffd6df,#fca0b8);color:#58152a}
+.app-theme-entertainment{background:linear-gradient(180deg,#7b63ff,#5a41dc)}
+.app-theme-mirror{background:linear-gradient(180deg,#5ca7ff,#1a5cff)}
+.app-theme-sport{background:linear-gradient(180deg,#39d38d,#119d62)}
+.app-theme-weather{background:linear-gradient(180deg,#8ed8ff,#378dff)}
+.app-theme-calendar{background:linear-gradient(180deg,#ffffff,#e6ecf8);color:#202a3d}
+.app-theme-notes{background:linear-gradient(180deg,#ffd44b,#f5b400);color:#413100}
+.app-theme-news{background:linear-gradient(180deg,#ff9e7a,#ff6f47)}
+.app-theme-bible{background:linear-gradient(180deg,#a993ff,#7c62eb)}
+.app-theme-briefing{background:linear-gradient(180deg,#c7b3ff,#8e6fff)}
+.app-theme-status{background:linear-gradient(180deg,#9fb0c6,#6a7d99)}
+.launcher-dock{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:10px;border-radius:24px;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(18px)}
+.launcher-dock-app{border:0;background:transparent;color:var(--text);font:inherit;padding:2px 3px;text-align:center;cursor:pointer}
+.launcher-dock-icon{width:50px;height:50px;border-radius:16px;margin:0 auto 6px;display:grid;place-items:center;font-size:24px;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.08)}
+.launcher-dock-label{display:block;font-size:9px;line-height:1.2;color:#f5f8fd}
+.launcher-mini-meta{display:grid;gap:6px}
+.launcher-stat-line{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:#d4dded}
+.launcher-stat-line strong{font-size:10px;color:#fff}
+@media(max-width:760px){
+  .launcher-screen{padding:14px;border-radius:30px}
+  .launcher-date{font-size:25px}
+  .launcher-widget{border-radius:22px;padding:13px 12px}
+  .iphone-app-icon{width:58px;height:58px;border-radius:18px;font-size:25px}
+  .launcher-app-grid{gap:12px 8px}
+}
+@media(max-width:520px){
+  .home-pager{gap:12px}
+  .home-panel-intro{padding:0 2px}
+  .launcher-widget-grid{gap:8px}
+  .launcher-widget.large{min-height:106px}
+  .launcher-widget-value{font-size:24px}
+  .launcher-widget-value.small{font-size:18px}
+  .launcher-app-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:11px 6px}
+  .iphone-app-icon{width:54px;height:54px;border-radius:17px;font-size:23px;margin-bottom:6px}
+  .iphone-app-label{font-size:9px}
+  .launcher-dock{gap:5px;padding:8px}
+  .launcher-dock-icon{width:44px;height:44px;border-radius:14px;font-size:21px}
+}
+
 .global-quick-add{position:fixed;right:18px;bottom:22px;z-index:34;width:52px;height:52px;border:0;border-radius:50%;background:linear-gradient(135deg,#4f7df4,#795fe3);color:#fff;font-size:27px;box-shadow:0 16px 42px rgba(62,91,211,.42);cursor:pointer}
 .global-quick-add:active{transform:scale(.96)}
 .home-widget[hidden]{display:none!important}.home-widget-settings{display:grid;gap:7px}.home-widget-setting{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:9px;padding:9px 10px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.025)}.home-widget-order{display:flex;gap:5px}
@@ -806,7 +884,7 @@ img,video,iframe{
       <button class="sidebar-item" data-page="entertainment"><span class="sidebar-emoji">🎮</span> Entertainment</button>
       <button class="sidebar-item" data-page="watch"><span class="sidebar-emoji">🎬</span> Watch</button>
       <button class="sidebar-item" data-page="mirror"><span class="sidebar-emoji">📺</span> Mirror</button>
-      <button class="sidebar-item" data-page="football"><span class="sidebar-emoji">⚽</span> Football</button>
+      <button class="sidebar-item" data-page="football"><span class="sidebar-emoji">🏟️</span> Sport</button>
       <button class="sidebar-item" data-page="weather"><span class="sidebar-emoji">🌤️</span> Weather</button>
       <button class="sidebar-item" data-page="calendar"><span class="sidebar-emoji">🗓️</span> Calendar</button>
       <button class="sidebar-item" data-page="notes"><span class="sidebar-emoji">📝</span> Notes</button>
@@ -814,7 +892,7 @@ img,video,iframe{
       <button class="sidebar-item" data-page="news"><span class="sidebar-emoji">📰</span> News</button>
       <button class="sidebar-item" data-page="bible"><span class="sidebar-emoji">📖</span> Bible</button>
       <button class="sidebar-item" data-page="briefing"><span class="sidebar-emoji">📋</span> Briefing</button>
-      <button class="sidebar-item" data-page="status"><span class="sidebar-emoji">🩺</span> Status</button>
+      <button class="sidebar-item" data-page="status"><span class="sidebar-emoji">🩺</span> Status Check</button>
     </nav>
   </aside>
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -833,6 +911,13 @@ img,video,iframe{
 
   <main>
     <section class="page active" id="homePage">
+      <div class="home-pager-shell">
+        <div class="home-pager" id="homePager">
+      <div class="home-panel">
+        <div class="home-panel-intro">
+          <div class="home-panel-tag">Dashboard <small>Swipe to the app page for quick navigation</small></div>
+          <button class="home-panel-arrow" type="button" data-home-slide-to="1">Apps →</button>
+        </div>
       <div class="stack">
         <div class="hero">
           <div class="card-head">
@@ -855,6 +940,95 @@ img,video,iframe{
           <div class="home-widget" data-home-widget="reminders"><article class="card"><div class="card-head"><div><div class="title">📝 Reminders</div><div class="sub">Stored on this device</div></div><button class="btn primary" id="addReminderBtn">+ Add</button></div><div id="remindersHome"></div></article></div>
           <div class="home-widget" data-home-widget="assistant"><article class="card"><div class="card-head"><div><div class="title">🤖 Assistant</div><div class="sub">Optional DeepSeek chat</div></div></div><div id="chatMessages" style="max-height:260px;overflow:auto;display:grid;gap:8px;margin-bottom:9px"><div class="post" style="cursor:default"><h4>Hi — I’m your Command Center assistant.</h4><div class="post-meta">Add a DeepSeek key in Settings to enable chat.</div></div></div><div style="display:flex;gap:7px"><input id="chatInput" style="flex:1;background:#0b1220;border:1px solid var(--line);color:var(--text);border-radius:11px;padding:10px;font-size:12px" placeholder="Ask something…" /><button class="btn primary" id="sendChat">Send</button></div></article></div>
         </div>
+      </div>
+      </div>
+      <div class="home-panel">
+        <div class="home-panel-intro">
+          <button class="home-panel-arrow" type="button" data-home-slide-to="0">← Dashboard</button>
+          <div class="home-panel-tag">Launcher <small>Like an iPhone home screen, but for your sections</small></div>
+        </div>
+        <div class="launcher-screen">
+          <div class="launcher-header">
+            <div>
+              <div class="launcher-greeting">Command Centre app page</div>
+              <div class="launcher-date" id="launcherDate">Monday 15</div>
+              <div class="launcher-time" id="launcherTime">10:37 • Your shortcuts and sections</div>
+            </div>
+            <div class="launcher-swipe-hint">Swipe right to return</div>
+          </div>
+
+          <div class="launcher-widget-grid">
+            <button class="launcher-widget large" type="button" data-launch-page="today">
+              <div class="launcher-widget-title">Today</div>
+              <div class="launcher-widget-value small" id="launcherTodayValue">Nothing planned</div>
+              <div class="launcher-widget-sub" id="launcherTodayMeta">Open Today to see your schedule, reminders and next actions.</div>
+              <div class="launcher-widget-foot">
+                <span class="launcher-chip">☀️ Open Today</span>
+                <span class="launcher-chip">🗓️ Calendar</span>
+                <span class="launcher-chip">➕ Quick add</span>
+              </div>
+            </button>
+
+            <button class="launcher-widget" type="button" data-launch-page="weather">
+              <div class="launcher-widget-title">Weather</div>
+              <div class="launcher-widget-value" id="launcherWeatherValue">—°</div>
+              <div class="launcher-widget-sub" id="launcherWeatherMeta">Tap to open the full forecast.</div>
+            </button>
+
+            <div class="launcher-widget" role="group" aria-label="Content shortcuts">
+              <div class="launcher-widget-title">Entertainment</div>
+              <div class="launcher-widget-value small">YouTube & Movies</div>
+              <div class="launcher-widget-sub">Jump straight into your content pages.</div>
+              <div class="launcher-widget-foot">
+                <button class="launcher-chip" type="button" data-launch-watch="youtube">▶ YouTube</button>
+                <button class="launcher-chip" type="button" data-launch-watch="movies">🎬 Movies & TV</button>
+              </div>
+            </div>
+
+            <button class="launcher-widget" type="button" data-launch-page="briefing">
+              <div class="launcher-widget-title">Briefing</div>
+              <div class="launcher-widget-value small" id="launcherBriefingValue">Ready</div>
+              <div class="launcher-widget-sub" id="launcherBriefingMeta">Generate your daily overview, news and reminders.</div>
+            </button>
+
+            <div class="launcher-widget" role="group" aria-label="Quick actions">
+              <div class="launcher-widget-title">Quick actions</div>
+              <div class="launcher-mini-meta">
+                <div class="launcher-stat-line"><span>Notes</span><strong id="launcherNotesCount">0</strong></div>
+                <div class="launcher-stat-line"><span>Favourite teams</span><strong id="launcherTeamsCount">0</strong></div>
+                <div class="launcher-stat-line"><span>Reminders</span><strong id="launcherRemindersCount">0</strong></div>
+              </div>
+              <div class="launcher-widget-foot">
+                <button class="launcher-chip" type="button" data-launch-action="quickadd">＋ Add</button>
+                <button class="launcher-chip" type="button" data-launch-page="notes">📝 Notes</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="launcher-app-grid" id="homeLauncherApps">
+            <button class="iphone-app" type="button" data-launch-page="today"><span class="iphone-app-icon app-theme-today">☀️</span><span class="iphone-app-badge" id="launcherBadgeToday"></span><span class="iphone-app-label">Today</span></button>
+            <button class="iphone-app" type="button" data-launch-page="entertainment"><span class="iphone-app-icon app-theme-entertainment">🍿</span><span class="iphone-app-label">Entertainment</span></button>
+            <button class="iphone-app" type="button" data-launch-page="mirror"><span class="iphone-app-icon app-theme-mirror">📺</span><span class="iphone-app-label">Mirror</span></button>
+            <button class="iphone-app" type="button" data-launch-page="football"><span class="iphone-app-icon app-theme-sport">🏟️</span><span class="iphone-app-badge" id="launcherBadgeSport"></span><span class="iphone-app-label">Sport</span></button>
+            <button class="iphone-app" type="button" data-launch-page="weather"><span class="iphone-app-icon app-theme-weather">🌤️</span><span class="iphone-app-label">Weather</span></button>
+            <button class="iphone-app" type="button" data-launch-page="calendar"><span class="iphone-app-icon app-theme-calendar">🗓️</span><span class="iphone-app-badge" id="launcherBadgeCalendar"></span><span class="iphone-app-label">Calendar</span></button>
+            <button class="iphone-app" type="button" data-launch-page="notes"><span class="iphone-app-icon app-theme-notes">📝</span><span class="iphone-app-badge" id="launcherBadgeNotes"></span><span class="iphone-app-label">Notes</span></button>
+            <button class="iphone-app" type="button" data-launch-page="news"><span class="iphone-app-icon app-theme-news">📰</span><span class="iphone-app-label">News</span></button>
+            <button class="iphone-app" type="button" data-launch-page="bible"><span class="iphone-app-icon app-theme-bible">📖</span><span class="iphone-app-label">Bible</span></button>
+            <button class="iphone-app" type="button" data-launch-page="briefing"><span class="iphone-app-icon app-theme-briefing">📋</span><span class="iphone-app-label">Briefing</span></button>
+            <button class="iphone-app" type="button" data-launch-page="status"><span class="iphone-app-icon app-theme-status">🩺</span><span class="iphone-app-label">Status Check</span></button>
+          </div>
+
+          <div class="launcher-dock">
+            <button class="launcher-dock-app" type="button" data-launch-page="today"><span class="launcher-dock-icon">☀️</span><span class="launcher-dock-label">Today</span></button>
+            <button class="launcher-dock-app" type="button" data-launch-watch="youtube"><span class="launcher-dock-icon">▶️</span><span class="launcher-dock-label">YouTube</span></button>
+            <button class="launcher-dock-app" type="button" data-launch-watch="movies"><span class="launcher-dock-icon">🎬</span><span class="launcher-dock-label">Movies & TV</span></button>
+            <button class="launcher-dock-app" type="button" data-launch-page="notes"><span class="launcher-dock-icon">📝</span><span class="launcher-dock-label">Notes</span></button>
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="home-pager-dots"><button class="home-page-dot active" type="button" data-home-slide-to="0" aria-label="Open dashboard panel"></button><button class="home-page-dot" type="button" data-home-slide-to="1" aria-label="Open launcher panel"></button></div>
       </div>
     </section>
 
@@ -1145,8 +1319,8 @@ img,video,iframe{
         <article class="card">
           <div class="card-head">
             <div>
-              <div class="title">⚽ Football Hub</div>
-              <div class="sub">Top European leagues, the English pyramid, fixtures, tables and all your favourite teams.</div>
+              <div class="title">🏟️ Sport Hub</div>
+              <div class="sub">Football first — expanded leagues, live fixtures and favourite teams, with room to grow into a wider sport hub.</div>
             </div>
             <button class="btn" id="footballRefreshBtn">↻ Refresh</button>
           </div>
@@ -1692,7 +1866,7 @@ function openHomeCustomizer(){openSettings();showSettingsSection('home');renderH
 function sortedTodayItems(){return [...calendarItemsForDate(dayKey())].sort((a,b)=>String(a.time||'99:99').localeCompare(String(b.time||'99:99')))}
 function todayItemHtml(x){const event=x.itemType==='event',title=event?x.title:x.text,meta=event?(x.notes||'Calendar event'):`${x.category||'General'} • ${formatFrequency(x.frequency||'none')}`;return `<div class="today-item"><div class="today-time">${esc(x.time||'Anytime')}</div><div class="today-item-main"><div class="today-item-title">${event?'🗓️':'🔔'} ${esc(title||'Item')}</div><div class="today-item-meta">${esc(meta)}</div></div></div>`}
 function renderHomeTodaySummary(){const el=qs('#homeTodaySummary');if(!el)return;const items=sortedTodayItems(),events=items.filter(x=>x.itemType==='event').length,rems=items.filter(x=>x.itemType==='reminder').length;el.innerHTML=`<div class="mini"><strong>${events}</strong><span>Event${events===1?'':'s'} today</span></div><div class="mini"><strong>${rems}</strong><span>Reminder${rems===1?'':'s'} due</span></div>`}
-function renderTodayPage(){const d=new Date(),items=sortedTodayItems();const t=qs('#todayPageTitle');if(t)t.textContent=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});const schedule=qs('#todaySchedule');if(schedule)schedule.innerHTML=items.length?`<div class="today-list">${items.map(todayItemHtml).join('')}</div>`:'<div class="empty">Nothing scheduled today.</div>';const mins=d.getHours()*60+d.getMinutes();const timed=items.map(x=>{if(!x.time)return null;const [h,m]=x.time.split(':').map(Number);return {...x,_m:h*60+m}}).filter(x=>x&&x._m>=mins);const next=timed[0]||items.find(x=>!x.time);const ne=qs('#todayNextUp');if(ne)ne.innerHTML=next?todayItemHtml(next):'<div class="empty">Your day is clear from here.</div>';const notes=state.notes.filter(n=>!n.deletedAt).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt)).slice(0,4);const nl=qs('#todayRecentNotes');if(nl)nl.innerHTML=notes.length?`<div class="notes-list">${notes.map(n=>`<button class="note-card" style="width:100%;text-align:left;color:inherit;font:inherit" data-today-note="${esc(n.id)}"><div class="note-icon">${n.pinned?'📌':'📝'}</div><div class="note-card-main"><div class="note-card-title">${esc(n.title)}</div><div class="note-card-preview">${esc(notePreview(n.body)||'No text')}</div></div></button>`).join('')}</div>`:'<div class="empty">No notes yet.</div>';renderContinueWatchingInto('todayContinueWatching',6);renderHomeTodaySummary()}
+function renderTodayPage(){renderHomeLauncher();const d=new Date(),items=sortedTodayItems();const t=qs('#todayPageTitle');if(t)t.textContent=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});const schedule=qs('#todaySchedule');if(schedule)schedule.innerHTML=items.length?`<div class="today-list">${items.map(todayItemHtml).join('')}</div>`:'<div class="empty">Nothing scheduled today.</div>';const mins=d.getHours()*60+d.getMinutes();const timed=items.map(x=>{if(!x.time)return null;const [h,m]=x.time.split(':').map(Number);return {...x,_m:h*60+m}}).filter(x=>x&&x._m>=mins);const next=timed[0]||items.find(x=>!x.time);const ne=qs('#todayNextUp');if(ne)ne.innerHTML=next?todayItemHtml(next):'<div class="empty">Your day is clear from here.</div>';const notes=state.notes.filter(n=>!n.deletedAt).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt)).slice(0,4);const nl=qs('#todayRecentNotes');if(nl)nl.innerHTML=notes.length?`<div class="notes-list">${notes.map(n=>`<button class="note-card" style="width:100%;text-align:left;color:inherit;font:inherit" data-today-note="${esc(n.id)}"><div class="note-icon">${n.pinned?'📌':'📝'}</div><div class="note-card-main"><div class="note-card-title">${esc(n.title)}</div><div class="note-card-preview">${esc(notePreview(n.body)||'No text')}</div></div></button>`).join('')}</div>`:'<div class="empty">No notes yet.</div>';renderContinueWatchingInto('todayContinueWatching',6);renderHomeTodaySummary()}
 
 function combinedContinueHistory(){return [...(state.entertainment.youtubeHistoryDetailed||[]).map(x=>({...x,kind:'youtube'})),...(state.entertainment.mediaHistory||[]).map(x=>({...x,kind:'media'}))].sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0))}
 function continueCardHtml(item,index){const art=item.kind==='youtube'?item.thumbnail:item.posterUrl,title=item.title||(item.kind==='youtube'?'YouTube video':'Movie / TV'),meta=item.kind==='youtube'?(item.channelTitle||'YouTube'):(item.type==='tv'?`TV${item.season?` • S${item.season}${item.episode?` E${item.episode}`:''}`:''}`:'Movie');return `<button class="continue-card ${item.kind==='media'?'media':''}" data-continue-index="${index}">${art?`<img class="continue-art" src="${esc(art)}" alt="">`:`<span class="continue-placeholder">${item.kind==='youtube'?'▶️':'🎬'}</span>`}<span class="continue-body"><span class="continue-title">${esc(title)}</span><span class="continue-meta">${esc(meta)}</span></span></button>`}
@@ -1700,7 +1874,7 @@ function renderContinueWatchingInto(id,limit=6){const el=qs('#'+id);if(!el)retur
 function renderAllContinueWatching(){renderContinueWatchingInto('homeContinueWatching',6);renderContinueWatchingInto('todayContinueWatching',6);renderMediaContinueWatching()}
 async function openContinueItem(index){const item=combinedContinueHistory()[Number(index)];if(!item)return;if(item.kind==='youtube'){openWatchPage('youtube');setTimeout(()=>loadYoutubeVideo(item.id),60);return}openWatchPage('movies');mediaEmbedState.results=[{id:item.id,type:item.type,title:item.title,year:item.year||'',posterUrl:item.posterUrl||'',overview:item.overview||'',backdropUrl:item.backdropUrl||''}];await selectMediaResult(0);if(item.type==='tv'){const s=qs('#mediaSeasonSelect');if(s&&item.season){s.value=String(item.season);await loadMediaEpisodes()}const e=qs('#mediaEpisodeSelect');if(e&&item.episode)e.value=String(item.episode)}}
 
-const SEARCH_PAGES=[['home','Home','🏠'],['today','Today','☀️'],['calendar','Calendar','🗓️'],['notes','Notes','📝'],['watch','Watch','🎬'],['football','Football','⚽'],['weather','Weather','🌤️'],['news','News','📰'],['portfolio','Portfolio','📈'],['briefing','Briefing','📋'],['music','Music','🎵'],['bible','Bible','📖']];
+const SEARCH_PAGES=[['home','Home','🏠'],['today','Today','☀️'],['calendar','Calendar','🗓️'],['notes','Notes','📝'],['watch','Watch','🎬'],['entertainment','Entertainment','🍿'],['mirror','Mirror','📺'],['football','Sport','🏟️'],['weather','Weather','🌤️'],['news','News','📰'],['status','Status Check','🩺'],['portfolio','Portfolio','📈'],['briefing','Briefing','📋'],['bible','Bible','📖']];
 const universalSearchStore={media:[],youtube:[]};let universalSearchTimer=null,universalSearchSeq=0;
 function openUniversalSearch(initial=''){openModal('universalSearchModal');const input=qs('#universalSearchInput');if(input){input.value=initial;setTimeout(()=>input.focus(),40)}runUniversalSearch(initial)}
 function localUniversalResults(q){const n=q.trim().toLowerCase();const pages=SEARCH_PAGES.filter(x=>!n||x[1].toLowerCase().includes(n)).slice(0,6);if(!n)return{pages,notes:[],schedule:[]};const notes=state.notes.filter(x=>!x.deletedAt&&(`${x.title||''} ${notePreview(x.body)} ${x.folder||''}`).toLowerCase().includes(n)).slice(0,6);const schedule=[...state.events.map(x=>({...x,kind:'event'})),...state.reminders.map(x=>({...x,kind:'reminder'}))].filter(x=>(x.kind==='event'?`${x.title||''} ${x.notes||''}`:`${x.text||''} ${x.category||''}`).toLowerCase().includes(n)).slice(0,6);return{pages,notes,schedule}}
@@ -2055,7 +2229,7 @@ function init(){
       ()=>renderReminders(),
       ()=>renderCalendar(),
       ()=>renderNotes(),
-      ()=>{applyHomeLayout();renderHomeTodaySummary();renderAllContinueWatching();renderTodayPage()},
+      ()=>{applyHomeLayout();renderHomeTodaySummary();renderAllContinueWatching();renderTodayPage();bindHomeLauncher();renderHomeLauncher();setHomeSlide(0,false);setTimeout(syncHomePager,60)},
       ()=>renderMangaGrid(mangaPool.slice(0,9)),
       ()=>renderDailyManga(),
       ()=>loadWords(),
@@ -2081,6 +2255,101 @@ function syncMobileDock(page){
       key===page
     );
   });
+}
+
+
+let homeLauncherBound=false,homeLauncherSlide=0;
+function setLauncherBadge(id,count){
+  const el=qs(id);if(!el)return;
+  const value=Number(count)||0;
+  if(value>0){el.textContent=value>99?'99+':String(value);el.classList.add('show');}
+  else{el.textContent='';el.classList.remove('show');}
+}
+function renderHomeLauncher(){
+  const dateEl=qs('#launcherDate'),timeEl=qs('#launcherTime');
+  const now=new Date();
+  if(dateEl)dateEl.textContent=now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  if(timeEl)timeEl.textContent=`${now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})} • Swipe and tap to jump around`;
+
+  const todayItems=typeof sortedTodayItems==='function'?sortedTodayItems():[];
+  const todayValue=qs('#launcherTodayValue'),todayMeta=qs('#launcherTodayMeta');
+  const next=todayItems[0];
+  if(todayValue)todayValue.textContent=todayItems.length?`${todayItems.length} item${todayItems.length===1?'':'s'} today`:'Nothing planned';
+  if(todayMeta)todayMeta.textContent=next
+    ? `${next.time?`${next.time} • `:''}${next.title||next.text||'Open Today to see your schedule.'}`
+    : 'Open Today to see your schedule, reminders and next actions.';
+
+  const weatherValue=qs('#launcherWeatherValue'),weatherMeta=qs('#launcherWeatherMeta');
+  if(weatherCache?.data?.current){
+    const current=weatherCache.data.current,info=weatherInfo(current.weather_code),name=weatherCache?.loc?.name||state.city;
+    if(weatherValue)weatherValue.textContent=`${Math.round(current.temperature_2m)}°`;
+    if(weatherMeta)weatherMeta.textContent=`${info[0]} ${info[1]} • ${name}`;
+  }else{
+    if(weatherValue)weatherValue.textContent='—°';
+    if(weatherMeta)weatherMeta.textContent=`Tap to load weather for ${state.city}.`;
+  }
+
+  const reminderCount=Array.isArray(state.reminders)?state.reminders.length:0;
+  const noteCount=Array.isArray(state.notes)?state.notes.filter(n=>!n.deletedAt).length:0;
+  const todayCount=todayItems.length;
+  const favTeams=Array.isArray(state.footballFavouriteTeams)?state.footballFavouriteTeams.length:(state.footballFavouriteTeamId?1:0);
+  const briefValue=qs('#launcherBriefingValue'),briefMeta=qs('#launcherBriefingMeta');
+  if(briefValue)briefValue.textContent=`${todayCount||0} scheduled`;
+  if(briefMeta)briefMeta.textContent=todayCount
+    ? 'Open Briefing for your reminders, calendar and daily overview.'
+    : 'Generate your daily overview, news and reminders.';
+  if(qs('#launcherNotesCount'))qs('#launcherNotesCount').textContent=String(noteCount);
+  if(qs('#launcherTeamsCount'))qs('#launcherTeamsCount').textContent=String(favTeams);
+  if(qs('#launcherRemindersCount'))qs('#launcherRemindersCount').textContent=String(reminderCount);
+  setLauncherBadge('#launcherBadgeToday',todayCount);
+  setLauncherBadge('#launcherBadgeNotes',noteCount);
+  setLauncherBadge('#launcherBadgeCalendar',Array.isArray(state.events)?state.events.length:0);
+  setLauncherBadge('#launcherBadgeSport',favTeams);
+}
+function syncHomePager(){
+  const pager=qs('#homePager');if(!pager)return;
+  const slides=[...pager.children];if(!slides.length)return;
+  let best=0,bestDist=Infinity;
+  slides.forEach((slide,i)=>{
+    const dist=Math.abs(slide.offsetLeft-pager.scrollLeft);
+    if(dist<bestDist){best=i;bestDist=dist;}
+  });
+  homeLauncherSlide=best;
+  qsa('.home-page-dot').forEach((dot,i)=>dot.classList.toggle('active',i===best));
+}
+function setHomeSlide(index,smooth=true){
+  const pager=qs('#homePager');if(!pager)return;
+  const slides=[...pager.children];
+  const target=slides[Math.max(0,Math.min(index,slides.length-1))];
+  if(!target)return;
+  pager.scrollTo({left:target.offsetLeft,behavior:smooth?'smooth':'auto'});
+  homeLauncherSlide=index;
+  setTimeout(syncHomePager, smooth?220:0);
+}
+function runHomeLauncherAction(btn){
+  if(!btn)return;
+  const watch=btn.dataset.launchWatch;
+  const page=btn.dataset.launchPage;
+  const action=btn.dataset.launchAction;
+  if(watch){openWatchPage(watch);return;}
+  if(action==='quickadd'){openQuickAdd();return;}
+  if(page){switchPage(page);return;}
+}
+function bindHomeLauncher(){
+  if(homeLauncherBound)return;
+  homeLauncherBound=true;
+  const pager=qs('#homePager');
+  if(pager){
+    pager.addEventListener('scroll',()=>{clearTimeout(bindHomeLauncher._t);bindHomeLauncher._t=setTimeout(syncHomePager,50)});
+  }
+  document.addEventListener('click',e=>{
+    const slideBtn=e.target.closest('[data-home-slide-to]');
+    if(slideBtn){setHomeSlide(Number(slideBtn.dataset.homeSlideTo||0));return;}
+    const launchBtn=e.target.closest('[data-launch-page],[data-launch-watch],[data-launch-action]');
+    if(launchBtn){runHomeLauncherAction(launchBtn);return;}
+  });
+  window.addEventListener('resize',()=>setTimeout(syncHomePager,60));
+  setInterval(()=>{if(qs('#homePage')?.classList.contains('active'))renderHomeLauncher()},60000);
 }
 
 function openWatchPage(section=null){
@@ -2120,7 +2389,7 @@ function switchPage(page,persist=true){
   if(page==='mirror'){updateNativeMirrorAvailability();mirrorStatus('mirrorSenderStatus',navigator.mediaDevices?.getDisplayMedia?'Ready to create a mirror room.':'Screen capture is unavailable in this browser. Receiver mode still works.',navigator.mediaDevices?.getDisplayMedia?'ok':'')}
   if(page==='weather')loadWeather();
   if(page==='calendar'){calendarView='year';calendarYearCursor=new Date().getFullYear();renderCalendar()}
-  if(page==='home'){applyHomeLayout();renderHomeTodaySummary();renderContinueWatchingInto('homeContinueWatching',6)}
+  if(page==='home'){applyHomeLayout();renderHomeTodaySummary();renderContinueWatchingInto('homeContinueWatching',6);bindHomeLauncher();renderHomeLauncher();setHomeSlide(0,false);setTimeout(syncHomePager,60)}
   if(page==='today')renderTodayPage();
   if(page==='notes')renderNotes();
   if(page==='news')loadNews(false);
@@ -4669,7 +4938,8 @@ async function loadWeather(){
     const c=data.current,wi=weatherInfo(c.weather_code);
     qs('#weatherSnapshot').innerHTML=`<div class="metric" style="font-size:22px">${Math.round(c.temperature_2m)}°C</div><div class="sub" style="margin-top:4px">${wi[0]} ${wi[1]} • feels ${Math.round(c.apparent_temperature)}°C</div>`;
     renderWeatherFull();
-  }catch(e){qs('#weatherSnapshot').innerHTML='<div class="danger">Weather could not be loaded. Check the city name or your connection.</div>';qs('#weatherFull').innerHTML='<div class="danger">Weather could not be loaded.</div>'}
+    renderHomeLauncher();
+  }catch(e){qs('#weatherSnapshot').innerHTML='<div class="danger">Weather could not be loaded. Check the city name or your connection.</div>';qs('#weatherFull').innerHTML='<div class="danger">Weather could not be loaded.</div>';renderHomeLauncher()}
 }
 function selectWeatherDay(i){weatherSelectedDay=i;renderWeatherFull()}
 function renderWeatherFull(){
@@ -4913,7 +5183,7 @@ function noteExec(cmd,value=null){const el=qs('#noteBody');if(!el)return;el.focu
 function refreshToolbarState(){['bold','italic','underline','strikeThrough','insertUnorderedList'].forEach(cmd=>{const btn=qs(`#noteToolbar [data-cmd="${cmd}"]`);if(!btn)return;let active=false;try{active=document.queryCommandState(cmd)}catch{}btn.classList.toggle('active',active)})}
 function bindNoteToolbar(){qsa('#noteToolbar [data-cmd]').forEach(btn=>btn.addEventListener('click',()=>{const cmd=btn.dataset.cmd;if(cmd==='removeFormat'){noteExec('removeFormat');noteExec('unlink');return}noteExec(cmd)}));qs('#noteFontSize')?.addEventListener('change',e=>noteExec('fontSize',e.target.value));qsa('#noteColorSwatches .color-dot').forEach(dot=>dot.addEventListener('click',()=>{qsa('#noteColorSwatches .color-dot').forEach(d=>d.classList.remove('active'));dot.classList.add('active');noteExec('foreColor',dot.dataset.color)}));const body=qs('#noteBody');if(body){body.addEventListener('input',updateNoteBodyEmptyState);body.addEventListener('keyup',refreshToolbarState);body.addEventListener('mouseup',refreshToolbarState);body.addEventListener('paste',e=>{e.preventDefault();const text=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,text)})}}
 window.editNote=id=>openNote(id);
-function renderNotes(){renderNotesNavigation();const el=qs('#notesList');if(!el)return;const q=(qs('#notesSearch')?.value||'').trim().toLowerCase();let notes=[...state.notes];if(notesFilter==='deleted')notes=notes.filter(n=>n.deletedAt);else{notes=notes.filter(n=>!n.deletedAt);if(notesFilter==='pinned')notes=notes.filter(n=>n.pinned);else if(notesFilter.startsWith('folder:'))notes=notes.filter(n=>n.folder===notesFilter.slice(7))}if(q)notes=notes.filter(n=>(`${n.title||''} ${notePreview(n.body)} ${n.folder||''}`).toLowerCase().includes(q));notes.sort((a,b)=>{if(!a.deletedAt&&!b.deletedAt&&a.pinned!==b.pinned)return a.pinned?-1:1;return new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt)});if(!notes.length){el.innerHTML=q?'<div class="notes-empty"><strong>No matching notes</strong>Try another search.</div>':'<div class="notes-empty"><strong>Nothing here</strong>Create a note or choose another folder.</div>';return}const card=n=>`<div class="note-card ${n.pinned?'pinned':''}" data-note-id="${esc(n.id)}"><div class="note-icon">${n.deletedAt?'🗑':(n.pinned?'📌':'📝')}</div><div class="note-card-main"><div class="note-card-title">${esc(n.title||'Untitled note')}</div><div class="note-card-preview">${esc(notePreview(n.body)||'No text')}</div><div class="note-card-meta"><span class="note-folder-pill">${esc(n.folder||'Notes')}</span><span>${esc(noteDateLabel(n.updatedAt||n.createdAt))}</span></div></div></div>`;const pinned=notesFilter!=='deleted'?notes.filter(n=>n.pinned):[],other=notesFilter!=='deleted'?notes.filter(n=>!n.pinned):notes;el.innerHTML=pinned.length&&other.length?`<div class="notes-section-label">Pinned</div><div class="notes-list">${pinned.map(card).join('')}</div><div class="notes-section-label">Notes</div><div class="notes-list">${other.map(card).join('')}</div>`:`<div class="notes-list">${notes.map(card).join('')}</div>`;qsa('#notesList [data-note-id]').forEach(c=>c.addEventListener('click',()=>openNote(c.dataset.noteId)))}
+function renderNotes(){renderHomeLauncher();renderNotesNavigation();const el=qs('#notesList');if(!el)return;const q=(qs('#notesSearch')?.value||'').trim().toLowerCase();let notes=[...state.notes];if(notesFilter==='deleted')notes=notes.filter(n=>n.deletedAt);else{notes=notes.filter(n=>!n.deletedAt);if(notesFilter==='pinned')notes=notes.filter(n=>n.pinned);else if(notesFilter.startsWith('folder:'))notes=notes.filter(n=>n.folder===notesFilter.slice(7))}if(q)notes=notes.filter(n=>(`${n.title||''} ${notePreview(n.body)} ${n.folder||''}`).toLowerCase().includes(q));notes.sort((a,b)=>{if(!a.deletedAt&&!b.deletedAt&&a.pinned!==b.pinned)return a.pinned?-1:1;return new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt)});if(!notes.length){el.innerHTML=q?'<div class="notes-empty"><strong>No matching notes</strong>Try another search.</div>':'<div class="notes-empty"><strong>Nothing here</strong>Create a note or choose another folder.</div>';return}const card=n=>`<div class="note-card ${n.pinned?'pinned':''}" data-note-id="${esc(n.id)}"><div class="note-icon">${n.deletedAt?'🗑':(n.pinned?'📌':'📝')}</div><div class="note-card-main"><div class="note-card-title">${esc(n.title||'Untitled note')}</div><div class="note-card-preview">${esc(notePreview(n.body)||'No text')}</div><div class="note-card-meta"><span class="note-folder-pill">${esc(n.folder||'Notes')}</span><span>${esc(noteDateLabel(n.updatedAt||n.createdAt))}</span></div></div></div>`;const pinned=notesFilter!=='deleted'?notes.filter(n=>n.pinned):[],other=notesFilter!=='deleted'?notes.filter(n=>!n.pinned):notes;el.innerHTML=pinned.length&&other.length?`<div class="notes-section-label">Pinned</div><div class="notes-list">${pinned.map(card).join('')}</div><div class="notes-section-label">Notes</div><div class="notes-list">${other.map(card).join('')}</div>`:`<div class="notes-list">${notes.map(card).join('')}</div>`;qsa('#notesList [data-note-id]').forEach(c=>c.addEventListener('click',()=>openNote(c.dataset.noteId)))}
 function saveNote(){const title=qs('#noteTitle').value.trim()||'Untitled note',body=qs('#noteBody').innerHTML,folder=qs('#noteFolder')?.value||'Notes',pinned=!!qs('#notePinned')?.checked,now=nowIso();if(!state.noteFolders.includes(folder))state.noteFolders.push(folder);if(editingNoteId)state.notes=state.notes.map(n=>n.id===editingNoteId?{...n,title,body,folder,pinned,updatedAt:now}:n);else state.notes=[{id:makeId('note'),title,body,folder,pinned,createdAt:now,updatedAt:now,deletedAt:''},...state.notes];saveState();closeModal('noteModal');renderNotes();renderTodayPage();toast(editingNoteId?'Note updated':'Note saved');editingNoteId=null}
 function deleteEditingNote(){if(!editingNoteId)return;const n=state.notes.find(x=>x.id===editingNoteId);if(!n)return;if(n.deletedAt){if(confirm('Delete this note permanently?'))state.notes=state.notes.filter(x=>x.id!==editingNoteId);else return}else{if(!confirm('Move this note to Recently Deleted?'))return;state.notes=state.notes.map(x=>x.id===editingNoteId?{...x,deletedAt:nowIso(),updatedAt:nowIso()}:x)}saveState();closeModal('noteModal');renderNotes();renderTodayPage();toast(n.deletedAt?'Note permanently deleted':'Moved to Recently Deleted');editingNoteId=null}
 function restoreEditingNote(){if(!editingNoteId)return;state.notes=state.notes.map(x=>x.id===editingNoteId?{...x,deletedAt:'',updatedAt:nowIso()}:x);saveState();closeModal('noteModal');setNotesFilter('all');renderTodayPage();toast('Note restored');editingNoteId=null}
