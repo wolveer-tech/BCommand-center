@@ -1296,6 +1296,177 @@ body.home-fullscreen .mobile-watch-fab{
 
 .media-personal-section{display:none;margin-bottom:13px}.media-personal-section.visible{display:block}.media-personal-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0}.media-personal-title strong{font-size:11px}.media-personal-title span{font-size:8px;color:var(--muted)}.media-recommend-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}.media-recommend-card{border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;min-width:0}.media-recommend-card img,.media-recommend-placeholder{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:13px;border:1px solid var(--line);background:#111827}.media-recommend-placeholder{display:grid;place-items:center;font-size:22px}.media-recommend-title{font-size:8px;font-weight:800;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .settings-card-clean{padding:13px!important;background:rgba(255,255,255,.025)!important}.settings-description{font-size:9px;color:var(--muted);margin:4px 0 10px;line-height:1.45}
+
+/* v9.0 — mobile Settings / Home Customise repair */
+#settingsModal{
+  overscroll-behavior:contain;
+}
+#settingsModal .modal-card{
+  width:min(620px,100%);
+  min-width:0;
+  max-height:calc(100dvh - 20px);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+#settingsModal .modal-head{
+  flex:0 0 auto;
+  min-width:0;
+}
+#settingsModal .modal-card > .stack{
+  flex:1 1 auto;
+  min-height:0;
+  min-width:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  padding-right:2px;
+}
+#settingsModal .settings-tabs{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
+#settingsModal .settings-section,
+#settingsModal .settings-card-clean,
+#settingsModal .home-widget-settings,
+#settingsModal .home-widget-setting{
+  min-width:0;
+  max-width:100%;
+}
+#settingsModal .modal-actions{
+  flex:0 0 auto;
+  position:static;
+  z-index:2;
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid var(--line);
+  background:#0c1422;
+}
+#settingsModal .home-widget-setting strong{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#settingsModal .home-widget-order{
+  flex:0 0 auto;
+}
+
+@media(max-width:700px){
+  #settingsModal{
+    padding:0;
+    place-items:stretch;
+    background:#0c1422;
+  }
+  #settingsModal .modal-card{
+    width:100%;
+    max-width:none;
+    height:100dvh;
+    max-height:100dvh;
+    border:0;
+    border-radius:0;
+    padding:
+      max(10px,env(safe-area-inset-top))
+      max(10px,env(safe-area-inset-right))
+      max(8px,env(safe-area-inset-bottom))
+      max(10px,env(safe-area-inset-left));
+    box-shadow:none;
+  }
+  #settingsModal .modal-head{
+    margin-bottom:8px;
+  }
+  #settingsModal .modal-card > .stack{
+    padding-right:0;
+  }
+  #settingsModal .settings-tabs{
+    gap:6px;
+    margin:0 0 8px;
+    padding:2px 0 7px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    scrollbar-width:none;
+  }
+  #settingsModal .settings-tabs::-webkit-scrollbar{
+    display:none;
+  }
+  #settingsModal .settings-tabs .btn{
+    min-height:36px;
+    padding:7px 9px;
+    font-size:9px;
+  }
+  #settingsModal .settings-card-clean{
+    width:100%;
+    padding:11px!important;
+    border-radius:15px;
+    overflow:hidden;
+  }
+
+  /* Home > Customize: each module uses the full phone width and the
+     reorder controls move onto their own row instead of being clipped. */
+  #settingsModal [data-settings-panel="home"] .card-head{
+    align-items:flex-start;
+  }
+  #settingsModal [data-settings-panel="home"] .card-head > div{
+    min-width:0;
+  }
+  #settingsModal .home-widget-settings{
+    width:100%;
+    gap:7px;
+  }
+  #settingsModal .home-widget-setting{
+    width:100%;
+    grid-template-columns:auto minmax(0,1fr);
+    grid-template-rows:auto auto;
+    gap:7px 9px;
+    padding:10px;
+  }
+  #settingsModal .home-widget-setting > input{
+    grid-column:1;
+    grid-row:1;
+    width:20px;
+    height:20px;
+    margin:0;
+  }
+  #settingsModal .home-widget-setting > strong{
+    grid-column:2;
+    grid-row:1;
+    align-self:center;
+    white-space:normal;
+    overflow-wrap:anywhere;
+    line-height:1.25;
+    font-size:11px;
+  }
+  #settingsModal .home-widget-order{
+    grid-column:1 / -1;
+    grid-row:2;
+    justify-content:flex-end;
+    width:100%;
+  }
+  #settingsModal .home-widget-order .btn{
+    min-width:44px;
+    min-height:36px;
+    padding:6px 12px;
+  }
+  #settingsModal .modal-actions{
+    margin:8px -2px 0;
+    padding:8px 2px max(2px,env(safe-area-inset-bottom));
+  }
+  #settingsModal .modal-actions .btn{
+    flex:1 1 0;
+    min-width:0;
+  }
+
+  /* Nothing from the Home screen should sit over the full-screen settings UI. */
+  body:has(#settingsModal.open) .global-quick-add,
+  body:has(#settingsModal.open) .mobile-dock,
+  body:has(#settingsModal.open) .mobile-watch-fab{
+    visibility:hidden!important;
+    pointer-events:none!important;
+  }
+}
+
 @media(max-width:760px){.global-quick-add{width:48px;height:48px;right:14px;bottom:calc(82px + env(safe-area-inset-bottom));font-size:25px}.home-today-grid,.today-grid{grid-template-columns:1fr}.continue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.notes-shell{grid-template-columns:1fr}.notes-sidebar{position:static;overflow-x:auto;padding:6px}.notes-nav-title{display:none}.notes-nav{display:flex;gap:5px;width:max-content}.notes-nav-btn{width:auto;white-space:nowrap;padding:8px 10px}.note-editor-options{grid-template-columns:1fr}.media-recommend-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:390px){.media-recommend-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
