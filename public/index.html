@@ -1105,6 +1105,7 @@ body.home-fullscreen .mobile-watch-fab{
 .app-theme-bible{background:linear-gradient(180deg,#a993ff,#7c62eb)}
 .app-theme-briefing{background:linear-gradient(180deg,#c7b3ff,#8e6fff)}
 .app-theme-status{background:linear-gradient(180deg,#9fb0c6,#6a7d99)}
+.app-theme-settings{background:linear-gradient(145deg,#667489,#2b3443)}
 .launcher-dock{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:10px;border-radius:24px;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(18px)}
 .launcher-dock-app{border:0;background:transparent;color:var(--text);font:inherit;padding:2px 3px;text-align:center;cursor:pointer}
 .launcher-dock-icon{width:50px;height:50px;border-radius:16px;margin:0 auto 6px;display:grid;place-items:center;font-size:24px;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.08)}
@@ -1142,6 +1143,157 @@ body.home-fullscreen .mobile-watch-fab{
 .search-modal-card{max-width:760px}.universal-search-box{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:9px;padding:11px 13px;border:1px solid rgba(255,255,255,.12);border-radius:17px;background:#0b1220}.universal-search-box input{width:100%;min-width:0;border:0!important;outline:0!important;background:transparent!important;padding:0!important;color:var(--text);font:inherit;font-size:16px}.universal-search-hint{display:flex;justify-content:space-between;gap:10px;margin:7px 2px 11px;color:var(--muted);font-size:8px}.universal-results{display:grid;gap:11px;max-height:58vh;overflow:auto}.search-section-title{font-size:9px;font-weight:850;color:#aebbd0;text-transform:uppercase;letter-spacing:.55px;margin-bottom:6px}.search-result-list{display:grid;gap:6px}.search-result{width:100%;display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:9px;padding:9px 10px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.03);color:inherit;font:inherit;text-align:left;cursor:pointer}.search-result-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.06)}.search-result-title{font-size:10px;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.search-result-sub{font-size:8px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .quick-add-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.quick-add-choice{min-height:112px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.035);color:inherit;font:inherit;padding:15px;text-align:left;cursor:pointer}.quick-add-icon{font-size:25px;display:block;margin-bottom:14px}.quick-add-choice strong{display:block;font-size:12px}.quick-add-choice span:last-child{display:block;font-size:9px;color:var(--muted);margin-top:4px}
 .notes-shell{display:grid;grid-template-columns:190px minmax(0,1fr);gap:10px}.notes-sidebar{border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.025);padding:9px;align-self:start;position:sticky;top:82px}.notes-nav-title{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.55px;font-weight:850;padding:4px 7px 7px}.notes-nav{display:grid;gap:4px}.notes-nav-btn{width:100%;border:0;background:transparent;color:var(--muted);font:inherit;text-align:left;padding:8px 9px;border-radius:10px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:space-between;gap:7px}.notes-nav-btn.active{background:rgba(98,139,255,.15);color:#fff}.notes-nav-count{font-size:8px;color:#8090a7}.note-card.pinned{border-color:rgba(240,196,83,.22)}.note-card-meta{display:flex;gap:6px;align-items:center;font-size:8px;color:var(--muted);margin-top:4px}.note-folder-pill{display:inline-flex;padding:2px 6px;border-radius:999px;background:rgba(255,255,255,.055)}.note-editor-options{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:end}.note-pin-control{display:flex;align-items:center;gap:7px;min-height:40px;border:1px solid var(--line);border-radius:11px;padding:0 10px;font-size:10px;color:var(--muted);background:#0b1220}.notes-section-label{font-size:9px;font-weight:850;color:#9fb0c7;margin:9px 2px 5px}
+
+/* v8.9 — mobile Notes width containment */
+#notesPage,
+#notesPage .stack,
+#notesPage .card,
+.notes-shell,
+.notes-main,
+.notes-toolbar,
+.notes-list,
+.note-card{
+  min-width:0;
+  max-width:100%;
+}
+#notesPage{
+  width:100%;
+  overflow-x:hidden;
+}
+.notes-shell{
+  width:100%;
+  overflow:hidden;
+}
+.notes-main{
+  width:100%;
+  overflow:hidden;
+}
+.notes-toolbar{
+  width:100%;
+}
+.notes-search{
+  min-width:0;
+  max-width:100%;
+}
+.note-card{
+  width:100%;
+  overflow:hidden;
+}
+.note-card-main{
+  width:0;
+  min-width:0;
+  max-width:100%;
+}
+.note-card-title,
+.note-card-preview{
+  max-width:100%;
+}
+.note-card-meta{
+  min-width:0;
+  max-width:100%;
+  flex-wrap:wrap;
+  overflow:hidden;
+}
+.note-folder-pill{
+  min-width:0;
+  max-width:min(58vw,220px);
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+#todayRecentNotes,
+#todayRecentNotes .notes-list,
+#todayRecentNotes .note-card{
+  min-width:0;
+  width:100%;
+  max-width:100%;
+  overflow:hidden;
+}
+
+@media(max-width:760px){
+  #notesPage > .stack{
+    width:100%;
+    max-width:100%;
+    overflow:hidden;
+  }
+  #notesPage > .stack > .card{
+    width:100%;
+    max-width:100%;
+    overflow:hidden;
+  }
+  .notes-shell{
+    display:block;
+  }
+  .notes-sidebar{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    overflow-x:auto;
+    overflow-y:hidden;
+    overscroll-behavior-x:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .notes-sidebar::-webkit-scrollbar{
+    display:none;
+  }
+  .notes-nav{
+    display:flex;
+    width:max-content;
+    min-width:100%;
+    max-width:none;
+    gap:5px;
+  }
+  .notes-nav-btn{
+    flex:0 0 auto;
+    max-width:72vw;
+    overflow:hidden;
+  }
+  .notes-nav-btn > span:first-child{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .notes-main{
+    margin-top:10px;
+  }
+  .note-card{
+    gap:9px;
+    padding:11px;
+    border-radius:14px;
+  }
+  .note-icon{
+    width:28px;
+    height:28px;
+    border-radius:8px;
+  }
+  .note-card-title{
+    font-size:11px;
+  }
+  .note-card-preview{
+    font-size:9px;
+  }
+  .note-card-meta{
+    gap:4px;
+    font-size:7px;
+  }
+}
+
+@media(max-width:390px){
+  .note-card{
+    gap:8px;
+    padding:10px;
+  }
+  .note-icon{
+    width:26px;
+    height:26px;
+    font-size:13px;
+  }
+  .note-folder-pill{
+    max-width:48vw;
+  }
+}
+
 .media-personal-section{display:none;margin-bottom:13px}.media-personal-section.visible{display:block}.media-personal-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0}.media-personal-title strong{font-size:11px}.media-personal-title span{font-size:8px;color:var(--muted)}.media-recommend-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}.media-recommend-card{border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;min-width:0}.media-recommend-card img,.media-recommend-placeholder{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:13px;border:1px solid var(--line);background:#111827}.media-recommend-placeholder{display:grid;place-items:center;font-size:22px}.media-recommend-title{font-size:8px;font-weight:800;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .settings-card-clean{padding:13px!important;background:rgba(255,255,255,.025)!important}.settings-description{font-size:9px;color:var(--muted);margin:4px 0 10px;line-height:1.45}
 @media(max-width:760px){.global-quick-add{width:48px;height:48px;right:14px;bottom:calc(82px + env(safe-area-inset-bottom));font-size:25px}.home-today-grid,.today-grid{grid-template-columns:1fr}.continue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.notes-shell{grid-template-columns:1fr}.notes-sidebar{position:static;overflow-x:auto;padding:6px}.notes-nav-title{display:none}.notes-nav{display:flex;gap:5px;width:max-content}.notes-nav-btn{width:auto;white-space:nowrap;padding:8px 10px}.note-editor-options{grid-template-columns:1fr}.media-recommend-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -1301,6 +1453,7 @@ body.home-fullscreen .mobile-watch-fab{
             <button class="iphone-app" type="button" data-launch-page="bible"><span class="iphone-app-icon app-theme-bible">📖</span><span class="iphone-app-label">Bible</span></button>
             <button class="iphone-app" type="button" data-launch-page="briefing"><span class="iphone-app-icon app-theme-briefing">📋</span><span class="iphone-app-label">Briefing</span></button>
             <button class="iphone-app" type="button" data-launch-page="status"><span class="iphone-app-icon app-theme-status">🩺</span><span class="iphone-app-label">Status Check</span></button>
+            <button class="iphone-app" type="button" data-launch-action="settings"><span class="iphone-app-icon app-theme-settings">⚙️</span><span class="iphone-app-label">Settings</span></button>
           </div>
 
           <div class="launcher-dock">
@@ -2620,6 +2773,7 @@ function runHomeLauncherAction(btn){
   const action=btn.dataset.launchAction;
   if(watch){openWatchPage(watch);return;}
   if(action==='quickadd'){openQuickAdd();return;}
+  if(action==='settings'){openSettings();return;}
   if(page){switchPage(page);return;}
 }
 function bindHomeLauncher(){
