@@ -86,7 +86,7 @@
 .mirror-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.mirror-panel{border:1px solid var(--line);border-radius:16px;background:var(--panel2);padding:13px}.mirror-code{font-size:28px;font-weight:900;letter-spacing:6px;text-align:center;padding:13px;border:1px dashed #ffffff35;border-radius:14px;background:#070c14;margin:10px 0}.mirror-video{width:100%;aspect-ratio:16/9;border:1px solid var(--line);border-radius:14px;background:#05080e;object-fit:contain}.mirror-video:fullscreen{width:100vw;height:100vh;max-width:none;max-height:none;aspect-ratio:auto;border:0;border-radius:0;background:#000;object-fit:contain}.mirror-audio-state{font-size:9px;color:var(--muted);margin-top:6px}.mirror-state{font-size:9px;color:var(--muted);line-height:1.5;margin-top:8px}.mirror-state.ok{color:var(--green)}.mirror-state.bad{color:var(--red)}.mirror-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.mirror-native-note{border:1px solid rgba(242,201,76,.25);background:rgba(242,201,76,.07);border-radius:14px;padding:12px;margin-top:10px;font-size:9px;line-height:1.55;color:#d9cda3}@media(max-width:760px){.yt-explore-grid,.mirror-grid{grid-template-columns:1fr}.mirror-code{font-size:24px;letter-spacing:4px}}
 
 
-.live-stream-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.live-stream-card{border:1px solid var(--line);border-radius:14px;background:var(--panel2);overflow:hidden;cursor:pointer;touch-action:manipulation}.live-stream-card img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#05080e}.live-stream-info{padding:10px}.live-stream-title{font-size:11px;font-weight:850;line-height:1.35}.live-stream-meta{font-size:9px;color:var(--muted);margin-top:4px}.live-stream-time{display:inline-flex;margin-top:6px;padding:3px 7px;border-radius:999px;background:rgba(255,104,118,.12);color:var(--red);font-size:8px;font-weight:800}.live-stream-frame{width:100%;aspect-ratio:16/9;border:0;border-radius:14px;background:#05080e}.native-mirror-box{border:1px solid rgba(71,214,232,.25);background:rgba(71,214,232,.06);border-radius:15px;padding:13px;margin-top:12px}.native-mirror-box .title{font-size:13px}.native-mirror-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.native-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:999px;font-size:8px;font-weight:800;background:#ffffff08;color:var(--muted)}.native-pill.ok{background:rgba(39,211,155,.1);color:var(--green)}@media(max-width:760px){.live-stream-grid{grid-template-columns:1fr}}
+.live-stream-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.live-stream-card{border:1px solid var(--line);border-radius:14px;background:var(--panel2);overflow:hidden;cursor:pointer;touch-action:manipulation}.live-stream-card img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#05080e}.live-stream-info{padding:10px}.live-stream-title{font-size:11px;font-weight:850;line-height:1.35}.live-stream-meta{font-size:9px;color:var(--muted);margin-top:4px}.live-stream-time{display:inline-flex;margin-top:6px;padding:3px 7px;border-radius:999px;background:rgba(255,104,118,.12);color:var(--red);font-size:8px;font-weight:800}.live-stream-frame{width:100%;aspect-ratio:16/9;border:0;border-radius:14px;background:#05080e}.live-source-switcher{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 9px}.live-source-btn{appearance:none;border:1px solid var(--line);background:var(--panel2);color:var(--muted);padding:7px 10px;border-radius:999px;font-size:9px;font-weight:850;cursor:pointer}.live-source-btn.active{background:rgba(71,214,232,.12);border-color:rgba(71,214,232,.45);color:var(--cyan)}.live-source-count{display:inline-flex;margin-left:6px;padding:2px 6px;border-radius:999px;background:#ffffff0a;color:var(--muted);font-size:7px;font-weight:800}.native-mirror-box{border:1px solid rgba(71,214,232,.25);background:rgba(71,214,232,.06);border-radius:15px;padding:13px;margin-top:12px}.native-mirror-box .title{font-size:13px}.native-mirror-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.native-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:999px;font-size:8px;font-weight:800;background:#ffffff08;color:var(--muted)}.native-pill.ok{background:rgba(39,211,155,.1);color:var(--green)}@media(max-width:760px){.live-stream-grid{grid-template-columns:1fr}}
 
 .watch-quick-btn{position:relative}.mobile-watch-fab{display:none;position:fixed;right:14px;bottom:14px;z-index:23;border:1px solid #ffffff24;background:linear-gradient(135deg,#3568e8,#7658db);color:#fff;border-radius:999px;padding:10px 14px;box-shadow:0 12px 35px rgba(26,55,145,.48);font:inherit;align-items:center;gap:7px;cursor:pointer}.mobile-watch-fab span{font-size:16px}.mobile-watch-fab strong{font-size:11px}.mobile-watch-fab:active{transform:scale(.97)}
 /* v6.4: scrollable main menu/sidebar */
@@ -1680,13 +1680,14 @@ body.home-fullscreen .mobile-watch-fab{
 
         <article class="card">
           <div class="card-head">
-            <div><div class="title">📡 Live football</div><div class="sub">Live streams supplied by your configured authorised provider.</div></div>
+            <div><div class="title">📡 Live football</div><div class="sub">Live streams supplied by your configured authorised provider. Switch sources inside the player when more than one is available.</div></div>
             <button class="btn" id="liveFootballRefreshBtn">↻ Refresh live</button>
           </div>
           <div id="liveFootballStatus" class="section-note">Configure your provider base URL in Cloudflare, then refresh.</div>
           <div id="liveFootballGrid" class="live-stream-grid"></div>
           <div id="liveFootballPlayerWrap" style="display:none;margin-top:12px">
             <div class="card-head"><div><div class="title" id="liveFootballPlayerTitle">Live stream</div><div class="sub" id="liveFootballPlayerMeta"></div></div><button class="btn small" id="closeLiveFootballBtn">Close player</button></div>
+            <div id="liveFootballSources" class="live-source-switcher"></div>
             <iframe id="liveFootballFrame" class="live-stream-frame" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
           </div>
           <div class="setting-note">Command Centre only displays streams returned by the provider you configure. Use a provider you are authorised to access and embed.</div>
@@ -4030,10 +4031,26 @@ async function playSelectedMedia(openExternal=false){
 
 
 let liveFootballStreams=[];
+let liveFootballCurrentStreamIndex=-1;
+let liveFootballCurrentSourceIndex=0;
+
 function liveStreamDate(ts){
   if(!ts)return 'Live';
   const n=Number(ts);if(!Number.isFinite(n))return 'Live';
-  const d=new Date(n*1000);return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' • '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  const d=new Date(n*1000);
+  return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' • '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+function liveSourceEntries(stream){
+  const raw=Array.isArray(stream?.sources)&&stream.sources.length
+    ?stream.sources
+    :(stream?.embed_url?[stream.embed_url]:[]);
+  return raw.map((entry,index)=>{
+    if(typeof entry==='string')return {url:entry,label:`Source ${index+1}`};
+    return {
+      url:String(entry?.url||entry?.embed_url||entry?.src||''),
+      label:String(entry?.label||entry?.name||entry?.quality||`Source ${index+1}`)
+    };
+  }).filter(x=>x.url);
 }
 async function loadLiveFootball(force=false){
   const status=qs('#liveFootballStatus'),grid=qs('#liveFootballGrid');
@@ -4041,31 +4058,109 @@ async function loadLiveFootball(force=false){
   status.textContent='Loading live football…';
   grid.innerHTML='<div class="empty">Loading…</div>';
   try{
-    const q=new URLSearchParams({category:'soccer'});if(force)q.set('refresh','1');
+    const q=new URLSearchParams({category:'soccer'});
+    if(force)q.set('refresh','1');
     const data=await fetchJson(`/api/live-content?${q.toString()}`,{},15000);
     liveFootballStreams=Array.isArray(data.streams)?data.streams:[];
-    if(!liveFootballStreams.length){grid.innerHTML='<div class="empty">No live football streams are currently available from your provider.</div>';status.textContent='No live streams right now.';return}
-    grid.innerHTML=liveFootballStreams.map((s,i)=>`<article class="live-stream-card" data-live-stream-index="${i}" role="button" tabindex="0">
-      ${s.thumbnail_url?`<img src="${esc(s.thumbnail_url)}" alt="">`:''}
-      <div class="live-stream-info"><div class="live-stream-title">${esc(s.name||'Live match')}</div><div class="live-stream-meta">${esc(s.league||s.category||'Football')}</div><span class="live-stream-time">${esc(liveStreamDate(s.match_timestamp))}</span></div>
-    </article>`).join('');
-    status.textContent=`${liveFootballStreams.length} live stream${liveFootballStreams.length===1?'':'s'} available`;
-  }catch(e){grid.innerHTML='';status.textContent=e.message||'Live provider unavailable'}
+    if(!liveFootballStreams.length){
+      const detail=data?.rejectedCount
+        ?`Provider returned ${data.providerCount||0}, but ${data.rejectedCount} were rejected by the allowed-host rules.`
+        :'No live football streams are currently available from your provider.';
+      grid.innerHTML=`<div class="empty">${esc(detail)}</div>`;
+      status.textContent=data?.diagnostic||'No live streams right now.';
+      return;
+    }
+    grid.innerHTML=liveFootballStreams.map((s,i)=>{
+      const count=liveSourceEntries(s).length;
+      return `<article class="live-stream-card" data-live-stream-index="${i}" role="button" tabindex="0">
+        ${s.thumbnail_url?`<img src="${esc(s.thumbnail_url)}" alt="">`:''}
+        <div class="live-stream-info">
+          <div class="live-stream-title">${esc(s.name||'Live match')}${count>1?`<span class="live-source-count">${count} sources</span>`:''}</div>
+          <div class="live-stream-meta">${esc(s.league||s.category||'Football')}</div>
+          <span class="live-stream-time">${esc(liveStreamDate(s.match_timestamp))}</span>
+        </div>
+      </article>`;
+    }).join('');
+    status.textContent=`${liveFootballStreams.length} live stream${liveFootballStreams.length===1?'':'s'} available • ${data.mode==='scrape'?'authorised page mode':'API mode'}`;
+  }catch(e){
+    grid.innerHTML='';
+    status.textContent=e.message||'Live provider unavailable';
+  }
+}
+function renderLiveFootballSources(stream){
+  const wrap=qs('#liveFootballSources');
+  if(!wrap)return;
+  const sources=liveSourceEntries(stream);
+  wrap.innerHTML=sources.map((source,index)=>`<button class="live-source-btn${index===liveFootballCurrentSourceIndex?' active':''}" type="button" data-live-source-index="${index}">${esc(source.label||`Source ${index+1}`)}</button>`).join('');
+  wrap.style.display=sources.length>1?'flex':'none';
+}
+function setLiveFootballSource(sourceIndex){
+  const stream=liveFootballStreams[liveFootballCurrentStreamIndex];
+  const sources=liveSourceEntries(stream);
+  const index=Number(sourceIndex);
+  const source=sources[index];
+  if(!source?.url)return;
+  liveFootballCurrentSourceIndex=index;
+  const frame=qs('#liveFootballFrame');
+  if(frame)frame.src=source.url;
+  renderLiveFootballSources(stream);
+  if(qs('#liveFootballPlayerMeta')){
+    const base=stream.league||stream.category||'';
+    qs('#liveFootballPlayerMeta').textContent=sources.length>1?`${base} • ${source.label||`Source ${index+1}`}`:base;
+  }
 }
 function openLiveFootball(index){
-  const s=liveFootballStreams[Number(index)];if(!s?.embed_url)return;
-  const wrap=qs('#liveFootballPlayerWrap'),frame=qs('#liveFootballFrame');
-  if(qs('#liveFootballPlayerTitle'))qs('#liveFootballPlayerTitle').textContent=s.name||'Live stream';
-  if(qs('#liveFootballPlayerMeta'))qs('#liveFootballPlayerMeta').textContent=s.league||s.category||'';
-  if(frame)frame.src=s.embed_url;
-  if(wrap){wrap.style.display='block';setTimeout(()=>wrap.scrollIntoView({behavior:'smooth',block:'center'}),60)}
+  const stream=liveFootballStreams[Number(index)];
+  if(!stream)return;
+  const sources=liveSourceEntries(stream);
+  if(!sources.length)return;
+  liveFootballCurrentStreamIndex=Number(index);
+  liveFootballCurrentSourceIndex=0;
+  const wrap=qs('#liveFootballPlayerWrap');
+  if(qs('#liveFootballPlayerTitle'))qs('#liveFootballPlayerTitle').textContent=stream.name||'Live stream';
+  renderLiveFootballSources(stream);
+  setLiveFootballSource(0);
+  if(wrap){
+    wrap.style.display='block';
+    setTimeout(()=>wrap.scrollIntoView({behavior:'smooth',block:'center'}),60);
+  }
 }
-function closeLiveFootball(){const frame=qs('#liveFootballFrame'),wrap=qs('#liveFootballPlayerWrap');if(frame)frame.src='about:blank';if(wrap)wrap.style.display='none'}
+function closeLiveFootball(){
+  const frame=qs('#liveFootballFrame'),wrap=qs('#liveFootballPlayerWrap'),sources=qs('#liveFootballSources');
+  if(frame)frame.src='about:blank';
+  if(wrap)wrap.style.display='none';
+  if(sources)sources.innerHTML='';
+  liveFootballCurrentStreamIndex=-1;
+  liveFootballCurrentSourceIndex=0;
+}
 function bindLiveFootball(){
   const grid=qs('#liveFootballGrid');
-  if(grid&&!grid.dataset.bound){grid.dataset.bound='1';grid.addEventListener('click',e=>{const card=e.target.closest('[data-live-stream-index]');if(card)openLiveFootball(card.dataset.liveStreamIndex)});grid.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const card=e.target.closest('[data-live-stream-index]');if(card){e.preventDefault();openLiveFootball(card.dataset.liveStreamIndex)}})}
+  if(grid&&!grid.dataset.bound){
+    grid.dataset.bound='1';
+    grid.addEventListener('click',e=>{
+      const card=e.target.closest('[data-live-stream-index]');
+      if(card)openLiveFootball(card.dataset.liveStreamIndex);
+    });
+    grid.addEventListener('keydown',e=>{
+      if(e.key!=='Enter'&&e.key!==' ')return;
+      const card=e.target.closest('[data-live-stream-index]');
+      if(card){
+        e.preventDefault();
+        openLiveFootball(card.dataset.liveStreamIndex);
+      }
+    });
+  }
+  const sources=qs('#liveFootballSources');
+  if(sources&&!sources.dataset.bound){
+    sources.dataset.bound='1';
+    sources.addEventListener('click',e=>{
+      const btn=e.target.closest('[data-live-source-index]');
+      if(btn)setLiveFootballSource(btn.dataset.liveSourceIndex);
+    });
+  }
 }
 window.openLiveFootball=openLiveFootball;
+window.setLiveFootballSource=setLiveFootballSource;
 
 const FOOTBALL_COMPETITIONS={
   PL:'Premier League',
