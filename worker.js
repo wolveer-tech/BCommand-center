@@ -265,16 +265,62 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
   const r=await fetch(endpoint.toString(),{headers});
   const data=await r.json().catch(()=>({}));
   if(!r.ok){const err=new Error(data?.message||data?.error||`Live content provider HTTP ${r.status}`);err.status=r.status>=400&&r.status<500?r.status:502;throw err}
-  const streams=(Array.isArray(data.streams)?data.streams:[]).map(s=>({
-    name:String(s.name||'Live stream').slice(0,180),
-    category:String(s.category||safeCategory).slice(0,80),
-    league:String(s.league||'').slice(0,120),
-    stream_key:String(s.stream_key||'').slice(0,200),
-    match_timestamp:Number(s.match_timestamp)||null,
-    embed_url:allowedEmbedUrl(s.embed_url,base,env)?String(s.embed_url):'',
-    thumbnail_url:(()=>{try{const u=new URL(s.thumbnail_url||'');return u.protocol==='https:'?u.toString():''}catch{return ''}})()
-  })).filter(s=>s.embed_url);
-  const payload={count:streams.length,streams,category:safeCategory,updatedAt:new Date().toISOString()};
+  function sourceUrlCandidate(value){
+    if(typeof value==='string')return value.trim();
+    if(!value||typeof value!=='object')return '';
+    return String(
+      value.embed_url||
+      value.url||
+      value.src||
+      value.source||
+      ''
+    ).trim();
+  }
+  function allowedStreamSources(stream){
+    const candidates=[
+      sourceUrlCandidate(stream?.embed_url),
+      ...(Array.isArray(stream?.sources)
+        ?stream.sources.map(sourceUrlCandidate)
+        :[])
+    ].filter(Boolean);
+
+    const unique=[...new Set(candidates)];
+    return unique.filter(url=>allowedEmbedUrl(url,base,env));
+  }
+
+  const providerStreams=Array.isArray(data.streams)?data.streams:[];
+  const streams=providerStreams.map(s=>{
+    const sources=allowedStreamSources(s);
+    return {
+      id:String(s.id||'').slice(0,200),
+      name:String(s.name||'Live stream').slice(0,180),
+      category:String(s.category||safeCategory).slice(0,80),
+      league:String(s.league||'').slice(0,120),
+      stream_key:String(s.stream_key||'').slice(0,200),
+      match_timestamp:Number(s.match_timestamp)||null,
+      viewers:Number(s.viewers)||0,
+      embed_url:sources[0]||'',
+      source_count:sources.length,
+      thumbnail_url:(()=>{try{const u=new URL(s.thumbnail_url||'');return u.protocol==='https:'?u.toString():''}catch{return ''}})(),
+      team1:s.team1&&typeof s.team1==='object'?{
+        name:String(s.team1.name||'').slice(0,120),
+        logo:(()=>{try{const u=new URL(s.team1.logo||'');return u.protocol==='https:'?u.toString():''}catch{return ''}})()
+      }:null,
+      team2:s.team2&&typeof s.team2==='object'?{
+        name:String(s.team2.name||'').slice(0,120),
+        logo:(()=>{try{const u=new URL(s.team2.logo||'');return u.protocol==='https:'?u.toString():''}catch{return ''}})()
+      }:null
+    };
+  }).filter(s=>s.embed_url);
+
+  const payload={
+    count:streams.length,
+    providerCount:providerStreams.length,
+    rejectedCount:Math.max(0,providerStreams.length-streams.length),
+    streams,
+    category:safeCategory,
+    updatedAt:new Date().toISOString()
+  };
   if(cache){try{if(!key){const u=new URL(requestUrl);u.pathname='/__cache/live-content';u.search=new URLSearchParams({category:safeCategory}).toString();key=new Request(u.toString())}await cache.put(key,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=120'}}))}catch{}}
   return payload;
 }
