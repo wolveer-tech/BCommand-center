@@ -289,8 +289,32 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
   }
 
   const providerStreams=Array.isArray(data.streams)?data.streams:[];
+
+  function providerSourceHosts(stream){
+    const candidates=[
+      sourceUrlCandidate(stream?.embed_url),
+      ...(Array.isArray(stream?.sources)
+        ?stream.sources.map(sourceUrlCandidate)
+        :[])
+    ].filter(Boolean);
+
+    return [...new Set(candidates.map(value=>{
+      try{
+        const u=new URL(value);
+        return u.protocol==='https:'?u.hostname.toLowerCase():'';
+      }catch{return ''}
+    }).filter(Boolean))];
+  }
+
+  const rejectedHostsSet=new Set();
   const streams=providerStreams.map(s=>{
+    const allHosts=providerSourceHosts(s);
     const sources=allowedStreamSources(s);
+
+    if(!sources.length){
+      allHosts.forEach(host=>rejectedHostsSet.add(host));
+    }
+
     return {
       id:String(s.id||'').slice(0,200),
       name:String(s.name||'Live stream').slice(0,180),
@@ -313,10 +337,25 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
     };
   }).filter(s=>s.embed_url);
 
+  const configuredAllowedHosts=String(env.LIVE_CONTENT_ALLOWED_EMBED_HOSTS||'')
+    .split(',')
+    .map(x=>x.trim().toLowerCase())
+    .filter(Boolean);
+
+  const rejectedHosts=[...rejectedHostsSet].sort();
+
   const payload={
     count:streams.length,
     providerCount:providerStreams.length,
     rejectedCount:Math.max(0,providerStreams.length-streams.length),
+    configuredAllowedHosts,
+    rejectedHosts,
+    diagnostic:
+      providerStreams.length>0&&streams.length===0
+        ?'The provider returned streams, but none of their HTTPS player hosts matched LIVE_CONTENT_ALLOWED_EMBED_HOSTS.'
+        :rejectedHosts.length
+          ?'Some provider streams were rejected because their player hosts were not on the allowlist.'
+          :'All usable provider stream hosts passed the allowlist check.',
     streams,
     category:safeCategory,
     updatedAt:new Date().toISOString()
