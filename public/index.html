@@ -1317,11 +1317,46 @@ body.home-fullscreen .mobile-watch-fab{
   flex:1 1 auto;
   min-height:0;
   min-width:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  padding-right:0;
+}
+#settingsModal .settings-tabs{
+  flex:0 0 auto;
+  position:relative;
+  z-index:20;
+  background:#0c1422;
+}
+#settingsModal .settings-panels{
+  flex:1 1 auto;
+  min-height:0;
+  min-width:0;
+  width:100%;
   overflow-y:auto;
   overflow-x:hidden;
   overscroll-behavior:contain;
   -webkit-overflow-scrolling:touch;
-  padding-right:2px;
+  position:relative;
+  z-index:1;
+}
+#settingsModal .settings-section{
+  display:none!important;
+  position:relative;
+  z-index:1;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+}
+#settingsModal .settings-section.active{
+  display:block!important;
+}
+#settingsModal [data-settings-panel="home"]{
+  overflow:visible;
+}
+#settingsModal [data-settings-panel="home"] .settings-card-clean{
+  position:relative;
+  z-index:1;
 }
 #settingsModal .settings-tabs{
   width:100%;
@@ -1379,6 +1414,22 @@ body.home-fullscreen .mobile-watch-fab{
   }
   #settingsModal .modal-card > .stack{
     padding-right:0;
+    overflow:hidden;
+  }
+  #settingsModal .settings-tabs{
+    flex:0 0 auto;
+    position:relative;
+    z-index:30;
+    background:#0c1422;
+    border-bottom:1px solid var(--line);
+  }
+  #settingsModal .settings-panels{
+    flex:1 1 auto;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding-top:8px;
+    padding-bottom:8px;
   }
   #settingsModal .settings-tabs{
     gap:6px;
@@ -2225,6 +2276,7 @@ body.home-fullscreen .mobile-watch-fab{
     <button class="btn settings-tab" data-settings-section="integrations">🔌 Integrations</button>
   </div>
 
+  <div class="settings-panels">
   <section class="settings-section active" data-settings-panel="general"><article class="card settings-card-clean">
     <div class="title">⚙️ General</div><div class="settings-description">Basic Command Centre behaviour.</div>
     <div class="field"><label>Weather city</label><input id="settingsCity" value="London" /></div>
@@ -2268,6 +2320,7 @@ body.home-fullscreen .mobile-watch-fab{
     <div class="field"><label>Spotify redirect URI</label><div style="display:flex;gap:6px"><input id="spotifyRedirectDisplay" readonly style="flex:1;font-size:10px" /><button class="btn small" id="copyRedirectUriBtn" type="button">Copy</button></div></div>
     <div class="field"><label>Reddit proxy/API URL (optional)</label><input id="settingsRedditProxy" placeholder="https://your-server.example/reddit" /></div>
   </article></section>
+  </div>
 </div>
 <div class="modal-actions"><button class="btn" data-close="settingsModal">Cancel</button><button class="btn primary" id="saveSettings">Save</button></div>
 </div></div>
@@ -3315,7 +3368,13 @@ window.completeBibleReadingBlock=completeBibleReadingBlock;
 
 function parseBibleSearch(raw){const q=String(raw||'').trim();if(!q)return{book:'',chapter:null};const m=q.match(/^(.*?)(?:\s+(\d+))?$/);return{book:(m?.[1]||q).trim().toLowerCase(),chapter:m?.[2]?Number(m[2]):null}}
 function applyBibleSearch(){const input=qs('#bibleSearch');if(!input)return;const {book,chapter}=parseBibleSearch(input.value);qsa('.bible-book').forEach(card=>{const title=card.querySelector('.bible-book-title')?.textContent?.trim().toLowerCase()||'';const match=!book||title.includes(book);card.classList.toggle('search-hidden',!match);card.classList.toggle('search-match',!!book&&match);card.querySelectorAll('.chapter-check').forEach((ch,i)=>ch.classList.toggle('search-hit',match&&chapter===i+1));if(match&&chapter)card.classList.add('open')})}
-function showSettingsSection(name){qsa('.settings-section').forEach(x=>x.classList.toggle('active',x.dataset.settingsPanel===name));qsa('.settings-tab').forEach(x=>x.classList.toggle('active',x.dataset.settingsSection===name));const s=qs('#settingsSectionSelect');if(s)s.value=name}
+function showSettingsSection(name){
+  qsa('#settingsModal .settings-section').forEach(x=>x.classList.toggle('active',x.dataset.settingsPanel===name));
+  qsa('#settingsModal .settings-tab').forEach(x=>x.classList.toggle('active',x.dataset.settingsSection===name));
+  const s=qs('#settingsSectionSelect');if(s)s.value=name;
+  const panels=qs('#settingsModal .settings-panels');
+  if(panels)panels.scrollTop=0;
+}
 
 function renderBibleChecklist(){const target=qs('#bibleChecklist'),prog=qs('#bibleProgress');if(!target||!prog)return;const readCount=Object.keys(state.bibleRead||{}).filter(k=>state.bibleRead[k]).length;const pctDone=Math.round(readCount/BIBLE_TOTAL_CHAPTERS*100);const booksDone=BIBLE_BOOKS.filter(([book,count])=>Array.from({length:count},(_,i)=>i+1).every(ch=>isBibleChapterRead(book,ch))).length;prog.innerHTML=`<div><strong>${readCount.toLocaleString()} / ${BIBLE_TOTAL_CHAPTERS.toLocaleString()} chapters</strong><div class="sub">${booksDone} / ${BIBLE_BOOKS.length} books complete • ${pctDone}%</div></div><div class="bible-progress"><div class="bible-progress-bar"><div class="bible-progress-fill" style="width:${pctDone}%"></div></div><span class="sub">${pctDone}%</span></div>`;let current='';target.innerHTML=BIBLE_BOOKS.map(([book,count,testament])=>{const done=Array.from({length:count},(_,i)=>i+1).filter(ch=>isBibleChapterRead(book,ch)).length;const heading=testament!==current?(current=testament,`<div class="bible-testament">${testament}</div>`):'';const allDone=done===count;const slug=book.replace(/\s+/g,'-').replace(/[^A-Za-z0-9-]/g,'');return `${heading}<div class="bible-book"><div class="bible-book-head" onclick="this.parentElement.classList.toggle('open')"><div><div class="bible-book-title">${esc(book)}</div><div class="bible-book-meta">${done}/${count} chapters read</div></div><button class="btn small ${allDone?'green':''}" onclick="event.stopPropagation();window.toggleBibleBook('${esc(book).replace(/'/g,"\\'")}',${!allDone})">${allDone?'✓ Book read':'Mark book read'}</button></div><div class="bible-book-chapters">${Array.from({length:count},(_,i)=>i+1).map(ch=>`<span class="chapter-check"><input id="bc-${slug}-${ch}" type="checkbox" ${isBibleChapterRead(book,ch)?'checked':''} onchange="window.toggleBibleChapter('${esc(book).replace(/'/g,"\\'")}',${ch},this.checked)"><label for="bc-${slug}-${ch}">${ch}</label></span>`).join('')}</div></div>`}).join('');applyBibleSearch()}
 window.toggleBibleChapter=(book,ch,read)=>setBibleChapterRead(book,ch,read);
