@@ -240,80 +240,326 @@ async function sendMorningBriefings(env){
 
 
 
+
 function normaliseBaseUrl(value){
   const raw=String(value||'').trim().replace(/\/$/,'');
   if(!raw)return null;
-  const u=new URL(raw);if(u.protocol!=='https:')throw new Error('LIVE_CONTENT_API_BASE_URL must use HTTPS.');return u;
+  const u=new URL(raw);
+  if(u.protocol!=='https:')throw new Error('Live content provider base URL must use HTTPS.');
+  return u;
+}
+function liveContentMode(env){
+  const mode=String(env.LIVE_CONTENT_PROVIDER_MODE||'api').trim().toLowerCase();
+  return mode==='scrape'?'scrape':'api';
+}
+function liveContentBaseUrl(env){
+  return normaliseBaseUrl(env.LIVE_CONTENT_BASE_URL||env.LIVE_CONTENT_API_BASE_URL||'');
+}
+function csvHosts(value){
+  return String(value||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
 }
 function allowedEmbedUrl(embedUrl,base,env){
   try{
-    const u=new URL(embedUrl);if(u.protocol!=='https:')return false;
-    const configured=String(env.LIVE_CONTENT_ALLOWED_EMBED_HOSTS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+    const u=new URL(embedUrl);
+    if(u.protocol!=='https:')return false;
+    const configured=csvHosts(env.LIVE_CONTENT_ALLOWED_EMBED_HOSTS);
     const hosts=configured.length?configured:[base.hostname.toLowerCase()];
     return hosts.includes(u.hostname.toLowerCase());
   }catch{return false}
 }
-async function liveContentStreams(env,category='soccer',requestUrl='https://local/api/live-content',force=false){
-  if(!env.LIVE_CONTENT_API_BASE_URL){const err=new Error('LIVE_CONTENT_API_BASE_URL is not configured.');err.status=503;throw err}
-  const base=normaliseBaseUrl(env.LIVE_CONTENT_API_BASE_URL);
-  const safeCategory=String(category||'soccer').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40)||'soccer';
-  let cache=null,key=null;
-  try{cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;if(cache&&!force){const u=new URL(requestUrl);u.pathname='/__cache/live-content';u.search=new URLSearchParams({category:safeCategory}).toString();key=new Request(u.toString());const hit=await cache.match(key);if(hit)return hit.json()}}catch{cache=null;key=null}
-  const endpoint=new URL(base.toString());endpoint.pathname=endpoint.pathname.replace(/\/$/,'')+'/api/v1/streams';endpoint.searchParams.set('category',safeCategory);
+function allowedProviderPageUrl(pageUrl,base,env){
+  try{
+    const u=new URL(pageUrl,base);
+    if(u.protocol!=='https:')return false;
+    const configured=csvHosts(env.LIVE_CONTENT_ALLOWED_PAGE_HOSTS);
+    const hosts=configured.length?configured:[base.hostname.toLowerCase()];
+    return hosts.includes(u.hostname.toLowerCase());
+  }catch{return false}
+}
+function sourceUrlCandidate(value){
+  if(typeof value==='string')return value.trim();
+  if(!value||typeof value!=='object')return '';
+  return String(value.embed_url||value.url||value.src||value.source||'').trim();
+}
+function sourceLabelCandidate(value,index){
+  if(value&&typeof value==='object'){
+    const label=String(value.label||value.name||value.quality||'').trim();
+    if(label)return label.slice(0,60);
+  }
+  return `Source ${index+1}`;
+}
+function rawStreamSourceEntries(stream){
+  const values=[
+    ...(stream?.embed_url?[stream.embed_url]:[]),
+    ...(Array.isArray(stream?.sources)?stream.sources:[])
+  ];
+  const seen=new Set();
+  const entries=[];
+  values.forEach((value,index)=>{
+    const url=sourceUrlCandidate(value);
+    if(!url||seen.has(url))return;
+    seen.add(url);
+    entries.push({url,label:sourceLabelCandidate(value,index)});
+  });
+  return entries;
+}
+function allowedStreamSources(stream,base,env){
+  return rawStreamSourceEntries(stream).filter(entry=>allowedEmbedUrl(entry.url,base,env));
+}
+function providerSourceHosts(stream){
+  return [...new Set(rawStreamSourceEntries(stream).map(entry=>{
+    try{
+      const u=new URL(entry.url);
+      return u.protocol==='https:'?u.hostname.toLowerCase():'';
+    }catch{return ''}
+  }).filter(Boolean))];
+}
+function safeHttpsUrl(value,base=null){
+  try{
+    const u=base?new URL(value,base):new URL(value);
+    return u.protocol==='https:'?u.toString():'';
+  }catch{return ''}
+}
+function streamSlugFromUrl(value){
+  try{
+    const u=new URL(value);
+    const part=u.pathname.split('/').filter(Boolean).pop()||u.hostname;
+    return decodeURIComponent(part).replace(/[-_]+/g,' ').replace(/\b\w/g,m=>m.toUpperCase()).slice(0,180);
+  }catch{return 'Live stream'}
+}
+
+async function extractAuthorisedHtmlPage(response,pageUrl){
+  const result={
+    title:'',
+    ogTitle:'',
+    thumbnail:'',
+    embedCandidates:[],
+    pageLinks:[]
+  };
+
+  let titleText='';
+  const titleHandler={
+    text(chunk){titleText+=chunk.text||''}
+  };
+
+  const rewriter=new HTMLRewriter()
+    .on('title',titleHandler)
+    .on('meta[property="og:title"]',{
+      element(el){
+        const value=el.getAttribute('content');
+        if(value&&!result.ogTitle)result.ogTitle=value.trim().slice(0,180);
+      }
+    })
+    .on('meta[property="og:image"]',{
+      element(el){
+        const value=el.getAttribute('content');
+        if(value&&!result.thumbnail)result.thumbnail=safeHttpsUrl(value,pageUrl);
+      }
+    })
+    .on('iframe[src]',{
+      element(el){
+        const value=el.getAttribute('src');
+        const absolute=safeHttpsUrl(value,pageUrl);
+        if(absolute)result.embedCandidates.push(absolute);
+      }
+    })
+    .on('video[src]',{
+      element(el){
+        const value=el.getAttribute('src');
+        const absolute=safeHttpsUrl(value,pageUrl);
+        if(absolute)result.embedCandidates.push(absolute);
+      }
+    })
+    .on('source[src]',{
+      element(el){
+        const value=el.getAttribute('src');
+        const absolute=safeHttpsUrl(value,pageUrl);
+        if(absolute)result.embedCandidates.push(absolute);
+      }
+    })
+    .on('[data-embed]',{
+      element(el){
+        const value=el.getAttribute('data-embed');
+        const absolute=safeHttpsUrl(value,pageUrl);
+        if(absolute)result.embedCandidates.push(absolute);
+      }
+    })
+    .on('[data-src]',{
+      element(el){
+        const value=el.getAttribute('data-src');
+        const absolute=safeHttpsUrl(value,pageUrl);
+        if(absolute)result.embedCandidates.push(absolute);
+      }
+    })
+    .on('a[href]',{
+      element(el){
+        const value=el.getAttribute('href');
+        const absolute=safeHttpsUrl(value,pageUrl);
+        if(absolute)result.pageLinks.push(absolute);
+      }
+    });
+
+  const transformed=rewriter.transform(response);
+  await transformed.text(); // consume the body so all handlers run
+
+  result.title=titleText.trim().replace(/\s+/g,' ').slice(0,180);
+  result.embedCandidates=[...new Set(result.embedCandidates)];
+  result.pageLinks=[...new Set(result.pageLinks)];
+  return result;
+}
+
+function scrapeLinkHints(env,category){
+  const configured=String(env.LIVE_CONTENT_LINK_HINTS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+  if(configured.length)return configured;
+  return [String(category||'soccer').toLowerCase(),'football','soccer','match','game','event','watch','stream','live','sport'];
+}
+function isLikelyEventPage(url,hints){
+  try{
+    const u=new URL(url);
+    const hay=(u.pathname+' '+u.search).toLowerCase();
+    return hints.some(h=>h&&hay.includes(h));
+  }catch{return false}
+}
+
+async function scrapeAuthorisedProvider(env,base,category){
+  if(typeof HTMLRewriter==='undefined'){
+    const err=new Error('HTML scraping mode requires the Cloudflare Workers HTMLRewriter runtime.');
+    err.status=500;
+    throw err;
+  }
+
+  const pathTemplate=String(env.LIVE_CONTENT_SCRAPE_PATH||'/').trim()||'/';
+  const path=pathTemplate.replace(/\{category\}/g,encodeURIComponent(category));
+  const listingUrl=new URL(path,base).toString();
+
+  if(!allowedProviderPageUrl(listingUrl,base,env)){
+    const err=new Error('LIVE_CONTENT_SCRAPE_PATH resolves to a provider page host that is not allowed.');
+    err.status=500;
+    throw err;
+  }
+
+  const headers={
+    accept:'text/html,application/xhtml+xml',
+    'user-agent':'CommandCentre/1.0 authorised-content-integration'
+  };
+  if(env.LIVE_CONTENT_API_KEY)headers.authorization=`Bearer ${env.LIVE_CONTENT_API_KEY}`;
+
+  const listingResponse=await fetch(listingUrl,{headers,redirect:'follow'});
+  if(!listingResponse.ok){
+    const err=new Error(`Live content provider HTTP ${listingResponse.status}`);
+    err.status=listingResponse.status>=400&&listingResponse.status<500?listingResponse.status:502;
+    throw err;
+  }
+
+  const listing=await extractAuthorisedHtmlPage(listingResponse,listingUrl);
+  const hints=scrapeLinkHints(env,category);
+  const maxPages=Math.max(1,Math.min(24,Number(env.LIVE_CONTENT_MAX_SCRAPE_PAGES)||12));
+
+  const eventPages=listing.pageLinks
+    .filter(url=>allowedProviderPageUrl(url,base,env))
+    .filter(url=>isLikelyEventPage(url,hints))
+    .filter(url=>url!==listingUrl)
+    .slice(0,maxPages);
+
+  const streams=[];
+
+  // If the listing itself directly contains player embeds, expose them as one stream.
+  if(listing.embedCandidates.length){
+    streams.push({
+      id:'listing-live',
+      name:listing.ogTitle||listing.title||`Live ${category}`,
+      category,
+      league:'',
+      thumbnail_url:listing.thumbnail,
+      sources:listing.embedCandidates.map((url,i)=>({url,label:`Source ${i+1}`}))
+    });
+  }
+
+  const pageResults=await Promise.all(eventPages.map(async pageUrl=>{
+    try{
+      const r=await fetch(pageUrl,{headers,redirect:'follow'});
+      if(!r.ok)return null;
+      const page=await extractAuthorisedHtmlPage(r,pageUrl);
+
+      // Some frameworks link straight to an allowed player URL rather than placing
+      // the iframe in the event page.
+      const directEmbedLinks=page.pageLinks.filter(url=>allowedEmbedUrl(url,base,env));
+      const sources=[...new Set([...page.embedCandidates,...directEmbedLinks])];
+      if(!sources.length)return null;
+
+      return {
+        id:new URL(pageUrl).pathname.slice(-180)||pageUrl.slice(-180),
+        name:page.ogTitle||page.title||streamSlugFromUrl(pageUrl),
+        category,
+        league:'',
+        thumbnail_url:page.thumbnail,
+        sources:sources.map((url,i)=>({url,label:`Source ${i+1}`}))
+      };
+    }catch{
+      return null;
+    }
+  }));
+
+  streams.push(...pageResults.filter(Boolean));
+  return {count:streams.length,streams};
+}
+
+async function fetchAuthorisedApiProvider(env,base,category){
+  const pathTemplate=String(env.LIVE_CONTENT_API_PATH||'/api/v1/streams').trim()||'/api/v1/streams';
+  const endpoint=new URL(pathTemplate,base);
+  if(!endpoint.searchParams.has('category'))endpoint.searchParams.set('category',category);
+
   const headers={accept:'application/json'};
   if(env.LIVE_CONTENT_API_KEY)headers.authorization=`Bearer ${env.LIVE_CONTENT_API_KEY}`;
+
   const r=await fetch(endpoint.toString(),{headers});
   const data=await r.json().catch(()=>({}));
-  if(!r.ok){const err=new Error(data?.message||data?.error||`Live content provider HTTP ${r.status}`);err.status=r.status>=400&&r.status<500?r.status:502;throw err}
-  function sourceUrlCandidate(value){
-    if(typeof value==='string')return value.trim();
-    if(!value||typeof value!=='object')return '';
-    return String(
-      value.embed_url||
-      value.url||
-      value.src||
-      value.source||
-      ''
-    ).trim();
+  if(!r.ok){
+    const err=new Error(data?.message||data?.error||`Live content provider HTTP ${r.status}`);
+    err.status=r.status>=400&&r.status<500?r.status:502;
+    throw err;
   }
-  function allowedStreamSources(stream){
-    const candidates=[
-      sourceUrlCandidate(stream?.embed_url),
-      ...(Array.isArray(stream?.sources)
-        ?stream.sources.map(sourceUrlCandidate)
-        :[])
-    ].filter(Boolean);
+  return data;
+}
 
-    const unique=[...new Set(candidates)];
-    return unique.filter(url=>allowedEmbedUrl(url,base,env));
+async function liveContentStreams(env,category='soccer',requestUrl='https://local/api/live-content',force=false){
+  const base=liveContentBaseUrl(env);
+  if(!base){
+    const err=new Error('Set LIVE_CONTENT_BASE_URL (or the older LIVE_CONTENT_API_BASE_URL) first.');
+    err.status=503;
+    throw err;
   }
+
+  const mode=liveContentMode(env);
+  const safeCategory=String(category||'soccer').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40)||'soccer';
+
+  let cache=null,key=null;
+  try{
+    cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
+    if(cache&&!force){
+      const u=new URL(requestUrl);
+      u.pathname='/__cache/live-content';
+      u.search=new URLSearchParams({category:safeCategory,mode}).toString();
+      key=new Request(u.toString());
+      const hit=await cache.match(key);
+      if(hit)return hit.json();
+    }
+  }catch{
+    cache=null;key=null;
+  }
+
+  const data=mode==='scrape'
+    ?await scrapeAuthorisedProvider(env,base,safeCategory)
+    :await fetchAuthorisedApiProvider(env,base,safeCategory);
 
   const providerStreams=Array.isArray(data.streams)?data.streams:[];
-
-  function providerSourceHosts(stream){
-    const candidates=[
-      sourceUrlCandidate(stream?.embed_url),
-      ...(Array.isArray(stream?.sources)
-        ?stream.sources.map(sourceUrlCandidate)
-        :[])
-    ].filter(Boolean);
-
-    return [...new Set(candidates.map(value=>{
-      try{
-        const u=new URL(value);
-        return u.protocol==='https:'?u.hostname.toLowerCase():'';
-      }catch{return ''}
-    }).filter(Boolean))];
-  }
-
   const rejectedHostsSet=new Set();
+
   const streams=providerStreams.map(s=>{
     const allHosts=providerSourceHosts(s);
-    const sources=allowedStreamSources(s);
+    const sources=allowedStreamSources(s,base,env);
 
-    if(!sources.length){
-      allHosts.forEach(host=>rejectedHostsSet.add(host));
-    }
+    if(!sources.length)allHosts.forEach(host=>rejectedHostsSet.add(host));
 
     return {
       id:String(s.id||'').slice(0,200),
@@ -323,28 +569,29 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
       stream_key:String(s.stream_key||'').slice(0,200),
       match_timestamp:Number(s.match_timestamp)||null,
       viewers:Number(s.viewers)||0,
-      embed_url:sources[0]||'',
+      embed_url:sources[0]?.url||'',
+      sources:sources.map((entry,index)=>({
+        url:entry.url,
+        label:String(entry.label||`Source ${index+1}`).slice(0,60)
+      })),
       source_count:sources.length,
-      thumbnail_url:(()=>{try{const u=new URL(s.thumbnail_url||'');return u.protocol==='https:'?u.toString():''}catch{return ''}})(),
+      thumbnail_url:safeHttpsUrl(s.thumbnail_url||''),
       team1:s.team1&&typeof s.team1==='object'?{
         name:String(s.team1.name||'').slice(0,120),
-        logo:(()=>{try{const u=new URL(s.team1.logo||'');return u.protocol==='https:'?u.toString():''}catch{return ''}})()
+        logo:safeHttpsUrl(s.team1.logo||'')
       }:null,
       team2:s.team2&&typeof s.team2==='object'?{
         name:String(s.team2.name||'').slice(0,120),
-        logo:(()=>{try{const u=new URL(s.team2.logo||'');return u.protocol==='https:'?u.toString():''}catch{return ''}})()
+        logo:safeHttpsUrl(s.team2.logo||'')
       }:null
     };
   }).filter(s=>s.embed_url);
 
-  const configuredAllowedHosts=String(env.LIVE_CONTENT_ALLOWED_EMBED_HOSTS||'')
-    .split(',')
-    .map(x=>x.trim().toLowerCase())
-    .filter(Boolean);
-
+  const configuredAllowedHosts=csvHosts(env.LIVE_CONTENT_ALLOWED_EMBED_HOSTS);
   const rejectedHosts=[...rejectedHostsSet].sort();
 
   const payload={
+    mode,
     count:streams.length,
     providerCount:providerStreams.length,
     rejectedCount:Math.max(0,providerStreams.length-streams.length),
@@ -360,7 +607,20 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
     category:safeCategory,
     updatedAt:new Date().toISOString()
   };
-  if(cache){try{if(!key){const u=new URL(requestUrl);u.pathname='/__cache/live-content';u.search=new URLSearchParams({category:safeCategory}).toString();key=new Request(u.toString())}await cache.put(key,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=120'}}))}catch{}}
+
+  if(cache){
+    try{
+      if(!key){
+        const u=new URL(requestUrl);
+        u.pathname='/__cache/live-content';
+        u.search=new URLSearchParams({category:safeCategory,mode}).toString();
+        key=new Request(u.toString());
+      }
+      await cache.put(key,new Response(JSON.stringify(payload),{
+        headers:{'content-type':'application/json','cache-control':'public,max-age=120'}
+      }));
+    }catch{}
+  }
   return payload;
 }
 
@@ -819,11 +1079,14 @@ async function commandCentreStatus(env,live=false){
       :'Football API and VAPID keys are both required for background football alerts.'
   });
 
+  const liveContentBaseConfigured=!!(env.LIVE_CONTENT_BASE_URL||env.LIVE_CONTENT_API_BASE_URL);
   services.push({
     name:'Live content provider',
-    state:env.LIVE_CONTENT_API_BASE_URL?'Configured':'Not configured',
-    kind:env.LIVE_CONTENT_API_BASE_URL?'info':'warn',
-    detail:env.LIVE_CONTENT_API_BASE_URL?'Provider base URL is present.':'Add LIVE_CONTENT_API_BASE_URL to enable the live football player.'
+    state:liveContentBaseConfigured?'Configured':'Not configured',
+    kind:liveContentBaseConfigured?'info':'warn',
+    detail:liveContentBaseConfigured
+      ?`Provider base URL is present • mode: ${liveContentMode(env)}.`
+      :'Add LIVE_CONTENT_BASE_URL to enable the live Sport player.'
   });
   services.push({
     name:'Movies & TV metadata',
