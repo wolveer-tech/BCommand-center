@@ -1103,6 +1103,13 @@ async function footballFetch(path,env){
   return data;
 }
 
+function apiSportsKey(env){
+  // API-SPORTS uses one account API key across the sports APIs that are
+  // active on the dashboard. Prefer the new shared variable, while keeping
+  // API_FOOTBALL_KEY as a backwards-compatible alias.
+  return String(env.API_SPORTS_KEY||env.API_FOOTBALL_KEY||'').trim();
+}
+
 function currentApiFootballSeason(){
   const d=new Date();
   // European seasons are represented by their starting year in API-Football.
@@ -1120,8 +1127,9 @@ function apiFootballErrorText(data){
   return '';
 }
 async function apiFootballFetch(endpoint,params,env){
-  if(!env.API_FOOTBALL_KEY){
-    const err=new Error('This competition is outside your football-data.org permissions. Add API_FOOTBALL_KEY as a Cloudflare Worker secret to enable the automatic fallback provider.');
+  const key=apiSportsKey(env);
+  if(!key){
+    const err=new Error('This competition is outside your football-data.org permissions. Add the shared API_SPORTS_KEY Cloudflare secret to enable the API-SPORTS fallback.');
     err.status=503;err.missingFallbackKey=true;throw err;
   }
   const u=new URL(`https://v3.football.api-sports.io/${String(endpoint||'').replace(/^\/+/, '')}`);
@@ -1129,13 +1137,15 @@ async function apiFootballFetch(endpoint,params,env){
     if(v!==undefined&&v!==null&&String(v)!=='')u.searchParams.set(k,String(v));
   });
   const r=await fetch(u.toString(),{
-    headers:{'x-apisports-key':env.API_FOOTBALL_KEY,accept:'application/json'}
+    headers:{'x-apisports-key':key,accept:'application/json'}
   });
   const data=await r.json().catch(()=>({}));
   const apiError=apiFootballErrorText(data);
   if(!r.ok||apiFootballHasErrors(data)){
     let message=apiError||`API-Football HTTP ${r.status}`;
-    if(r.status===429||/rate limit|request limit|quota/i.test(message)){
+    if(r.status===403){
+      message=`API-Football rejected the shared API-SPORTS key (403)${apiError?`: ${apiError}`:''}. Check that Cloudflare contains the current dashboard API key and that API-SPORTS whitelist restrictions are not blocking the Worker.`;
+    }else if(r.status===429||/rate limit|request limit|quota/i.test(message)){
       message='API-Football request limit reached. Command Centre will keep using cached football data where available.';
     }
     const err=new Error(message);
@@ -1303,18 +1313,18 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
 
     // Avoid triggering a known 403 for competitions outside the normal primary-key
     // coverage. If a fallback key is present, go directly to API-Football.
-    if(!FOOTBALL_DATA_PRIMARY_CODES.has(code)&&env.API_FOOTBALL_KEY){
+    if(!FOOTBALL_DATA_PRIMARY_CODES.has(code)&&apiSportsKey(env)){
       payload=await apiFootballBundle(env,code);
     }else{
       try{
         payload=await fetchPrimary();
       }catch(primaryError){
-        if(primaryError?.status===403&&env.API_FOOTBALL_KEY){
+        if(primaryError?.status===403&&apiSportsKey(env)){
           console.warn(`football-data.org denied ${code}; using API-Football fallback`);
           payload=await apiFootballBundle(env,code);
-        }else if(primaryError?.status===403&&!env.API_FOOTBALL_KEY&&API_FOOTBALL_COMPETITIONS[code]){
+        }else if(primaryError?.status===403&&!apiSportsKey(env)&&API_FOOTBALL_COMPETITIONS[code]){
           const cfg=API_FOOTBALL_COMPETITIONS[code];
-          const err=new Error(`${cfg.name} is outside the permissions of your football-data.org API key. Add API_FOOTBALL_KEY as a Cloudflare Worker secret and Command Centre will load it automatically from API-Football.`);
+          const err=new Error(`${cfg.name} is outside the permissions of your football-data.org API key. Add the shared API_SPORTS_KEY as a Cloudflare Worker secret and Command Centre will load it automatically from API-Football.`);
           err.status=503;throw err;
         }else{
           throw primaryError;
@@ -1408,14 +1418,13 @@ function apiSportsErrorText(data){
   return '';
 }
 function basketballApiKey(env){
-  // The same API-SPORTS dashboard key can be used when Basketball access is
-  // activated. A dedicated secret can override it if the user prefers.
-  return String(env.API_BASKETBALL_KEY||env.API_FOOTBALL_KEY||'').trim();
+  // Basketball uses the same API-SPORTS account key as API-Football.
+  return apiSportsKey(env);
 }
 async function apiBasketballFetchDay(env,date){
   const key=basketballApiKey(env);
   if(!key){
-    const err=new Error('Basketball live data is not configured. Add API_BASKETBALL_KEY, or use your API_FOOTBALL_KEY after enabling API-Basketball in API-SPORTS.');
+    const err=new Error('Basketball live data is not configured. Add the single shared API_SPORTS_KEY Cloudflare secret using the API key shown at the top of your API-SPORTS dashboard.');
     err.status=503;err.setupRequired=true;throw err;
   }
   const u=new URL('https://v1.basketball.api-sports.io/games');
@@ -1427,8 +1436,8 @@ async function apiBasketballFetchDay(env,date){
   const apiError=apiSportsErrorText(data);
   if(!r.ok||apiError){
     let message=apiError||`API-Basketball HTTP ${r.status}`;
-    if(r.status===403||/access|subscription|plan|permission/i.test(message)){
-      message='API-Basketball is not enabled for this API-SPORTS key. Enable Basketball in the API-SPORTS dashboard, or add API_BASKETBALL_KEY.';
+    if(r.status===403){
+      message=`API-Basketball rejected the shared API-SPORTS key (403)${apiError?`: ${apiError}`:''}. If Basketball shows Active in your dashboard, check that Cloudflare has the same current API key and that API-SPORTS IP/domain whitelist settings are not blocking the Worker.`;
     }else if(r.status===429||/rate limit|quota|request limit/i.test(message)){
       message='API-Basketball request limit reached. Cached basketball scores will be used where available.';
     }
@@ -1762,16 +1771,19 @@ async function commandCentreStatus(env,live=false){
     services.push({name:'Football Data API',state:'Configured',kind:'info',detail:'FOOTBALL_DATA_API_KEY is present.'});
   }
 
+  const sharedApiSportsKey=apiSportsKey(env);
   services.push({
-    name:'Football fallback API',
-    state:env.API_FOOTBALL_KEY?'Configured':'Not configured',
-    kind:env.API_FOOTBALL_KEY?'ok':'warn',
-    detail:env.API_FOOTBALL_KEY
-      ?'API_FOOTBALL_KEY is present. Restricted competitions can fall back to API-Football automatically.'
-      :'Add API_FOOTBALL_KEY to load competitions such as League One when football-data.org returns 403.'
+    name:'API-SPORTS shared key',
+    state:sharedApiSportsKey?'Configured':'Not configured',
+    kind:sharedApiSportsKey?'ok':'warn',
+    detail:sharedApiSportsKey
+      ?(env.API_SPORTS_KEY
+        ?'API_SPORTS_KEY is present and is shared by API-Football and API-Basketball.'
+        :'Using the existing API_FOOTBALL_KEY as the shared API-SPORTS key. You can rename it to API_SPORTS_KEY later.')
+      :'Add one API_SPORTS_KEY secret using the single API key shown in your API-SPORTS dashboard.'
   });
 
-  const anyFootballApi=!!(env.FOOTBALL_DATA_API_KEY||env.API_FOOTBALL_KEY);
+  const anyFootballApi=!!(env.FOOTBALL_DATA_API_KEY||sharedApiSportsKey);
   services.push({
     name:'Football notification engine',
     state:(anyFootballApi&&env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY)?'Ready':'Needs setup',
@@ -1811,13 +1823,11 @@ async function commandCentreStatus(env,live=false){
   });
   services.push({
     name:'Basketball live data',
-    state:(env.API_BASKETBALL_KEY||env.API_FOOTBALL_KEY)?'Configured':'Needs setup',
-    kind:(env.API_BASKETBALL_KEY||env.API_FOOTBALL_KEY)?'ok':'warn',
-    detail:env.API_BASKETBALL_KEY
-      ?'API_BASKETBALL_KEY is present.'
-      :(env.API_FOOTBALL_KEY
-        ?'Using API_FOOTBALL_KEY with API-Basketball. Make sure Basketball access is enabled in API-SPORTS.'
-        :'Add API_BASKETBALL_KEY, or enable API-Basketball for your existing API-SPORTS key.')
+    state:sharedApiSportsKey?'Configured':'Needs setup',
+    kind:sharedApiSportsKey?'ok':'warn',
+    detail:sharedApiSportsKey
+      ?'Using the same shared API-SPORTS key as Football. Basketball must show Active in the API-SPORTS dashboard.'
+      :'Add API_SPORTS_KEY once; do not create a separate Basketball key.'
   });
   services.push({
     name:'Tennis live data',
