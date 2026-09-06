@@ -1350,11 +1350,12 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
 
 const GENERAL_SPORTS=new Set(['tennis','basketball']);
 
-function sportsDbDayKey(offset=0){
+function sportsDayKey(offset=0){
   const d=new Date();
   d.setUTCDate(d.getUTCDate()+offset);
   return d.toISOString().slice(0,10);
 }
+function sportsDbDayKey(offset=0){return sportsDayKey(offset)}
 async function sportsDbFetchDay(env,sport,date){
   const key=String(env.SPORTSDB_API_KEY||'123').trim()||'123';
   const u=new URL(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/eventsday.php`);
@@ -1364,7 +1365,7 @@ async function sportsDbFetchDay(env,sport,date){
   const data=await r.json().catch(()=>({}));
   if(!r.ok){
     const err=new Error(r.status===429
-      ?'Sports data rate limit reached. Please wait a minute before refreshing again.'
+      ?'Sports fallback data rate limit reached. Please wait before refreshing again.'
       :`TheSportsDB HTTP ${r.status}`);
     err.status=r.status===429?429:(r.status>=400&&r.status<500?r.status:502);
     throw err;
@@ -1386,29 +1387,272 @@ function cleanGeneralSportEvent(e,kind){
     awayId:String(e.idAwayTeam||''),
     homeScore:e.intHomeScore==null?null:Number(e.intHomeScore),
     awayScore:e.intAwayScore==null?null:Number(e.intAwayScore),
+    displayScore:'',
     date,
     time,
     timestamp,
     status:String(e.strStatus||''),
+    liveDetail:'',
+    isLive:['Q1','Q2','Q3','Q4','OT','HT','BT','LIVE','IN PLAY'].includes(String(e.strStatus||'').toUpperCase()),
     round:String(e.intRound||''),
     venue:String(e.strVenue||''),
     thumbnail:String(e.strThumb||e.strPoster||'')
   };
 }
+
+// ---------- API-SPORTS Basketball ----------
+function apiSportsErrorText(data){
+  const errors=data?.errors;
+  if(Array.isArray(errors))return errors.map(x=>typeof x==='string'?x:JSON.stringify(x)).join(' • ');
+  if(errors&&typeof errors==='object')return Object.values(errors).map(x=>String(x)).filter(Boolean).join(' • ');
+  return '';
+}
+function basketballApiKey(env){
+  // The same API-SPORTS dashboard key can be used when Basketball access is
+  // activated. A dedicated secret can override it if the user prefers.
+  return String(env.API_BASKETBALL_KEY||env.API_FOOTBALL_KEY||'').trim();
+}
+async function apiBasketballFetchDay(env,date){
+  const key=basketballApiKey(env);
+  if(!key){
+    const err=new Error('Basketball live data is not configured. Add API_BASKETBALL_KEY, or use your API_FOOTBALL_KEY after enabling API-Basketball in API-SPORTS.');
+    err.status=503;err.setupRequired=true;throw err;
+  }
+  const u=new URL('https://v1.basketball.api-sports.io/games');
+  u.searchParams.set('date',date);
+  const r=await fetch(u.toString(),{
+    headers:{'x-apisports-key':key,accept:'application/json'}
+  });
+  const data=await r.json().catch(()=>({}));
+  const apiError=apiSportsErrorText(data);
+  if(!r.ok||apiError){
+    let message=apiError||`API-Basketball HTTP ${r.status}`;
+    if(r.status===403||/access|subscription|plan|permission/i.test(message)){
+      message='API-Basketball is not enabled for this API-SPORTS key. Enable Basketball in the API-SPORTS dashboard, or add API_BASKETBALL_KEY.';
+    }else if(r.status===429||/rate limit|quota|request limit/i.test(message)){
+      message='API-Basketball request limit reached. Cached basketball scores will be used where available.';
+    }
+    const err=new Error(message);
+    err.status=r.status===429?429:(r.status>=400&&r.status<500?r.status:502);
+    throw err;
+  }
+  return Array.isArray(data?.response)?data.response:[];
+}
+function cleanApiBasketballGame(g){
+  const statusShort=String(g?.status?.short||'').toUpperCase();
+  const statusLong=String(g?.status?.long||'').trim();
+  const timer=String(g?.status?.timer||'').trim();
+  const liveShort=new Set(['Q1','Q2','Q3','Q4','OT','BT','HT']);
+  const isLive=liveShort.has(statusShort)||/live|quarter|half|overtime|break/i.test(statusLong);
+  const finished=statusShort==='FT'||/finished|final/i.test(statusLong);
+  const homeTotal=g?.scores?.home?.total;
+  const awayTotal=g?.scores?.away?.total;
+  const dateObj=String(g?.date||'').trim();
+  let date='',time='',timestamp=dateObj;
+  if(dateObj){
+    const d=new Date(dateObj);
+    if(Number.isFinite(d.getTime())){
+      date=d.toISOString().slice(0,10);
+      time=d.toISOString().slice(11,19);
+      timestamp=d.toISOString();
+    }
+  }
+  const leagueParts=[g?.league?.name,g?.country?.name||g?.country?.code].filter(Boolean);
+  return {
+    id:`basketball-${String(g?.id||`${dateObj}-${g?.teams?.home?.name||''}-${g?.teams?.away?.name||''}`)}`,
+    sport:'basketball',
+    name:[g?.teams?.home?.name,g?.teams?.away?.name].filter(Boolean).join(' vs ')||'Basketball game',
+    league:leagueParts.join(' • '),
+    home:String(g?.teams?.home?.name||'Home'),
+    away:String(g?.teams?.away?.name||'Away'),
+    homeId:String(g?.teams?.home?.id||''),
+    awayId:String(g?.teams?.away?.id||''),
+    homeScore:homeTotal===null||homeTotal===undefined?null:Number(homeTotal),
+    awayScore:awayTotal===null||awayTotal===undefined?null:Number(awayTotal),
+    displayScore:(homeTotal!==null&&homeTotal!==undefined&&awayTotal!==null&&awayTotal!==undefined)?`${homeTotal} – ${awayTotal}`:'',
+    date,
+    time,
+    timestamp,
+    status:statusShort||statusLong,
+    liveDetail:isLive?[statusShort,statusLong,timer].filter(Boolean).join(' • '):'',
+    isLive,
+    finished,
+    round:String(g?.week||g?.stage||''),
+    venue:String(g?.venue||''),
+    thumbnail:String(g?.league?.logo||'')
+  };
+}
+async function apiBasketballBundle(env){
+  // One request per day. Yesterday gives results; today gives live/current;
+  // tomorrow gives upcoming fixtures. This keeps the free quota manageable.
+  const dates=[sportsDayKey(-1),sportsDayKey(0),sportsDayKey(1)];
+  const results=await Promise.all(dates.map(d=>apiBasketballFetchDay(env,d)));
+  const seen=new Set();
+  const events=results.flat().map(cleanApiBasketballGame).filter(e=>{
+    if(!e.id||seen.has(e.id))return false;
+    seen.add(e.id);return true;
+  });
+  return {
+    sport:'basketball',
+    provider:'API-Basketball',
+    events,
+    updatedAt:new Date().toISOString(),
+    warning:'',
+    windowLabel:'yesterday, today and tomorrow'
+  };
+}
+
+// ---------- API-Tennis ----------
+async function apiTennisFetch(env,method,params={}){
+  const key=String(env.API_TENNIS_KEY||'').trim();
+  if(!key){
+    const err=new Error('Tennis live data is not configured. Add API_TENNIS_KEY as a Cloudflare Worker secret.');
+    err.status=503;err.setupRequired=true;throw err;
+  }
+  const u=new URL('https://api.api-tennis.com/tennis/');
+  u.searchParams.set('method',method);
+  u.searchParams.set('APIkey',key);
+  Object.entries(params).forEach(([k,v])=>{
+    if(v!==undefined&&v!==null&&String(v)!=='')u.searchParams.set(k,String(v));
+  });
+  const r=await fetch(u.toString(),{headers:{accept:'application/json'}});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok||Number(data?.success)===0){
+    const raw=data?.error||data?.message||data?.result;
+    let message=typeof raw==='string'?raw:`API-Tennis HTTP ${r.status}`;
+    if(r.status===429||/limit|quota|requests/i.test(message)){
+      message='API-Tennis request limit reached. Cached tennis scores will be used where available.';
+    }
+    const err=new Error(message);
+    err.status=r.status===429?429:(r.status>=400&&r.status<500?r.status:502);
+    throw err;
+  }
+  return Array.isArray(data?.result)?data.result:[];
+}
+function tennisResultText(t){
+  const final=String(t?.event_final_result||'').trim();
+  const game=String(t?.event_game_result||'').trim();
+  if(final&&final!=='-'&&final!=='null')return final.replace(/\s*-\s*/g,' – ');
+  if(game&&game!=='-'&&game!=='null')return game.replace(/\s*-\s*/g,' – ');
+  return '';
+}
+function tennisIsLive(t){
+  const status=String(t?.event_status||'').trim().toLowerCase();
+  if(!status)return false;
+  if(/finish|ended|cancel|retired|walkover|postpon/.test(status))return false;
+  return /set|game|live|progress|playing|break|serve|rain delay|suspended/.test(status);
+}
+function cleanApiTennisMatch(t){
+  const date=String(t?.event_date||'').trim();
+  const time=String(t?.event_time||'').trim();
+  let timestamp='';
+  if(date){
+    const d=new Date(`${date}T${time||'00:00'}:00`);
+    if(Number.isFinite(d.getTime()))timestamp=d.toISOString();
+  }
+  const home=String(t?.event_first_player||'Player 1');
+  const away=String(t?.event_second_player||'Player 2');
+  const status=String(t?.event_status||'').trim();
+  const isLive=tennisIsLive(t);
+  const score=tennisResultText(t);
+  const type=String(t?.event_type_type||'').trim();
+  const tournament=String(t?.tournament_name||t?.tournament_key||'').trim();
+  const league=[tournament,type].filter(Boolean).join(' • ');
+  return {
+    id:`tennis-${String(t?.event_key||`${date}-${time}-${home}-${away}`)}`,
+    sport:'tennis',
+    name:`${home} vs ${away}`,
+    league,
+    home,
+    away,
+    homeId:String(t?.first_player_key||''),
+    awayId:String(t?.second_player_key||''),
+    homeScore:null,
+    awayScore:null,
+    displayScore:score,
+    date,
+    time,
+    timestamp,
+    status,
+    liveDetail:isLive?[status,score].filter(Boolean).join(' • '):'',
+    isLive,
+    finished:/finish|ended/i.test(status)||(!isLive&&score&&score!=='-'),
+    round:String(t?.tournament_round||''),
+    venue:'',
+    thumbnail:''
+  };
+}
+async function apiTennisBundle(env){
+  const dateStart=sportsDayKey(-1),dateStop=sportsDayKey(2);
+  const [fixtures,live]=await Promise.all([
+    apiTennisFetch(env,'get_fixtures',{
+      date_start:dateStart,
+      date_stop:dateStop,
+      timezone:'Europe/London'
+    }),
+    apiTennisFetch(env,'get_livescore',{timezone:'Europe/London'}).catch(e=>{
+      console.warn('API-Tennis livescore request failed',e?.message||e);
+      return [];
+    })
+  ]);
+
+  const map=new Map();
+  fixtures.forEach(t=>{
+    const e=cleanApiTennisMatch(t);
+    map.set(e.id,e);
+  });
+  live.forEach(t=>{
+    const e=cleanApiTennisMatch(t);
+    map.set(e.id,{...(map.get(e.id)||{}),...e,isLive:true});
+  });
+
+  return {
+    sport:'tennis',
+    provider:'API-Tennis',
+    events:[...map.values()],
+    updatedAt:new Date().toISOString(),
+    warning:'',
+    windowLabel:'yesterday through the next two days'
+  };
+}
+
+async function sportsDbFallbackBundle(env,sportKey){
+  const providerSport=sportKey==='basketball'?'Basketball':'Tennis';
+  const dates=[sportsDayKey(-1),sportsDayKey(0),sportsDayKey(1)];
+  let all=[],warnings=[];
+  for(const date of dates){
+    try{all.push(...await sportsDbFetchDay(env,providerSport,date))}
+    catch(e){warnings.push(e.message||String(e));if(e?.status===429)break}
+  }
+  const seen=new Set();
+  const events=all.map(e=>cleanGeneralSportEvent(e,sportKey)).filter(e=>{
+    if(!e.id||seen.has(e.id))return false;
+    seen.add(e.id);return true;
+  });
+  return {
+    sport:sportKey,
+    provider:'TheSportsDB fallback',
+    events,
+    updatedAt:new Date().toISOString(),
+    warning:warnings[0]||`Using fallback ${sportKey} data. Add the dedicated live-data key for fuller coverage.`,
+    windowLabel:'yesterday, today and tomorrow',
+    setupRequired:true
+  };
+}
+
 async function getGeneralSportBundle(env,kind='tennis',force=false,requestUrl='https://local/api/sports'){
   const sportKey=String(kind||'tennis').toLowerCase();
   if(!GENERAL_SPORTS.has(sportKey)){
     const err=new Error('Unsupported sport.');
     err.status=400;throw err;
   }
-  const providerSport=sportKey==='basketball'?'Basketball':'Tennis';
 
   let cache=null,cacheKey=null,cachedPayload=null;
   try{
     cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
     if(cache){
       const u=new URL(requestUrl);
-      u.pathname='/__cache/general-sports';
+      u.pathname='/__cache/general-sports-v2';
       u.search=new URLSearchParams({sport:sportKey}).toString();
       cacheKey=new Request(u.toString());
       const hit=await cache.match(cacheKey);
@@ -1416,61 +1660,54 @@ async function getGeneralSportBundle(env,kind='tennis',force=false,requestUrl='h
     }
   }catch{}
 
-  if(cachedPayload&&!force)return {...cachedPayload,cache:'hit'};
+  // Ten minutes keeps these feeds useful while protecting free/trial quotas.
+  if(cachedPayload&&!force){
+    const age=Date.now()-Date.parse(cachedPayload.updatedAt||0);
+    if(Number.isFinite(age)&&age<10*60*1000)return {...cachedPayload,cache:'hit'};
+  }
   if(cachedPayload&&force){
     const age=Date.now()-Date.parse(cachedPayload.updatedAt||0);
     if(Number.isFinite(age)&&age<60*1000){
-      return {...cachedPayload,cache:'refresh-cooldown',warning:'Using the recent result to protect the sports-data request limit.'};
+      return {...cachedPayload,cache:'refresh-cooldown',warning:cachedPayload.warning||'Using the recent result to protect the live sports API request limit.'};
     }
   }
 
-  const dates=[sportsDbDayKey(-1),sportsDbDayKey(0),sportsDbDayKey(1),sportsDbDayKey(2)];
-  let all=[],warnings=[];
-  for(const date of dates){
-    try{
-      const events=await sportsDbFetchDay(env,providerSport,date);
-      all.push(...events);
-    }catch(e){
-      warnings.push(e.message||String(e));
-      if(e?.status===429)break;
+  try{
+    let payload;
+    if(sportKey==='basketball'){
+      try{
+        payload=await apiBasketballBundle(env);
+      }catch(e){
+        if(e?.setupRequired){
+          payload=await sportsDbFallbackBundle(env,sportKey);
+          payload.warning=`${e.message} ${payload.events.length?'Limited fallback events are shown below.':''}`.trim();
+        }else throw e;
+      }
+    }else{
+      try{
+        payload=await apiTennisBundle(env);
+      }catch(e){
+        if(e?.setupRequired){
+          payload=await sportsDbFallbackBundle(env,sportKey);
+          payload.warning=`${e.message} ${payload.events.length?'Limited fallback events are shown below.':''}`.trim();
+        }else throw e;
+      }
     }
+
+    if(cache&&cacheKey){
+      try{
+        await cache.put(cacheKey,new Response(JSON.stringify(payload),{
+          headers:{'content-type':'application/json','cache-control':'public,max-age=600'}
+        }));
+      }catch{}
+    }
+    return {...payload,cache:'fresh'};
+  }catch(e){
+    if(cachedPayload){
+      return {...cachedPayload,cache:'stale',warning:e?.message||'Live sports provider unavailable; showing cached data.'};
+    }
+    throw e;
   }
-
-  if(!all.length&&cachedPayload)return {...cachedPayload,cache:'stale',warning:warnings[0]||'Using cached sports data.'};
-  if(!all.length&&warnings.length){
-    const err=new Error(warnings[0]);err.status=warnings[0].includes('rate limit')?429:502;throw err;
-  }
-
-  const seen=new Set();
-  const events=all
-    .map(e=>cleanGeneralSportEvent(e,sportKey))
-    .filter(e=>{
-      if(!e.id||seen.has(e.id))return false;
-      seen.add(e.id);return true;
-    })
-    .sort((a,b)=>{
-      const ax=Date.parse(a.timestamp||`${a.date}T${a.time||'00:00:00'}Z`)||0;
-      const bx=Date.parse(b.timestamp||`${b.date}T${b.time||'00:00:00'}Z`)||0;
-      return ax-bx;
-    });
-
-  const payload={
-    sport:sportKey,
-    provider:'TheSportsDB',
-    events,
-    updatedAt:new Date().toISOString(),
-    warning:warnings[0]||'',
-    cache:'fresh'
-  };
-
-  if(cache){
-    try{
-      await cache.put(cacheKey,new Response(JSON.stringify(payload),{
-        headers:{'content-type':'application/json','cache-control':'public,max-age=600'}
-      }));
-    }catch{}
-  }
-  return payload;
 }
 
 async function footballStatus(env){
@@ -1573,10 +1810,22 @@ async function commandCentreStatus(env,live=false){
     detail:env.NEWSDATA_API_KEY?'Secret is present. Live calls are skipped here to preserve quota.':'NEWSDATA_API_KEY is missing.'
   });
   services.push({
-    name:'Tennis & Basketball data',
-    state:'Configured',
-    kind:'info',
-    detail:env.SPORTSDB_API_KEY?'TheSportsDB custom key is configured.':'Using TheSportsDB free API key for schedules and scores.'
+    name:'Basketball live data',
+    state:(env.API_BASKETBALL_KEY||env.API_FOOTBALL_KEY)?'Configured':'Needs setup',
+    kind:(env.API_BASKETBALL_KEY||env.API_FOOTBALL_KEY)?'ok':'warn',
+    detail:env.API_BASKETBALL_KEY
+      ?'API_BASKETBALL_KEY is present.'
+      :(env.API_FOOTBALL_KEY
+        ?'Using API_FOOTBALL_KEY with API-Basketball. Make sure Basketball access is enabled in API-SPORTS.'
+        :'Add API_BASKETBALL_KEY, or enable API-Basketball for your existing API-SPORTS key.')
+  });
+  services.push({
+    name:'Tennis live data',
+    state:env.API_TENNIS_KEY?'Configured':'Needs setup',
+    kind:env.API_TENNIS_KEY?'ok':'warn',
+    detail:env.API_TENNIS_KEY
+      ?'API_TENNIS_KEY is present. Live scores and fixtures can be loaded.'
+      :'Add API_TENNIS_KEY to enable comprehensive live tennis scores and fixtures.'
   });
   services.push({
     name:'Alpha Vantage',
