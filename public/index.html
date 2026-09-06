@@ -85,6 +85,14 @@
 .sport-switch-btn{appearance:none;border:1px solid var(--line);background:var(--panel2);color:var(--muted);padding:8px 12px;border-radius:999px;font-size:10px;font-weight:850;cursor:pointer}
 .sport-switch-btn.active{background:rgba(71,214,232,.12);border-color:rgba(71,214,232,.45);color:var(--cyan)}
 .sport-event-list{display:grid;gap:8px}
+.sport-live-wrap{display:grid;gap:8px}
+.sport-live-empty{font-size:9px;color:var(--muted);padding:4px 0}
+.sport-event.live{border-color:rgba(255,84,111,.42);background:rgba(255,84,111,.065);box-shadow:0 0 0 1px rgba(255,84,111,.04) inset}
+.sport-live-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:999px;background:rgba(255,84,111,.14);color:#ff8799;font-size:8px;font-weight:900;white-space:nowrap}
+.sport-live-badge::before{content:"";width:6px;height:6px;border-radius:50%;background:#ff546f;box-shadow:0 0 0 3px rgba(255,84,111,.12)}
+.sport-score-detail{font-size:7px;color:#ff9aac;margin-top:2px;font-weight:750;text-align:center}
+.sport-provider-note{font-size:8px;color:var(--muted);margin-top:4px}
+
 .sport-event{border:1px solid var(--line);background:var(--panel2);border-radius:13px;padding:10px;min-width:0}
 .sport-event.followed{border-color:rgba(242,201,76,.28);background:rgba(242,201,76,.055)}
 .sport-event-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
@@ -2120,6 +2128,13 @@ body.home-fullscreen .mobile-watch-fab{
             <div id="generalSportFollowing" class="sport-following"><div class="empty">Nothing followed yet.</div></div>
           </article>
 
+          <article class="card">
+            <div class="card-head">
+              <div><div class="title">🔴 Live now</div><div class="sub" id="generalSportLiveSub">Live scores update whenever the Sport feed refreshes.</div></div>
+            </div>
+            <div id="generalSportLive" class="sport-live-wrap"><div class="sport-live-empty">Choose Tennis or Basketball.</div></div>
+          </article>
+
           <div class="football-grid">
             <article class="card">
               <div class="card-head"><div><div class="title">🗓️ Today & upcoming</div><div class="sub" id="generalSportUpcomingSub">Upcoming events</div></div></div>
@@ -2132,7 +2147,7 @@ body.home-fullscreen .mobile-watch-fab{
           </div>
 
           <article class="card">
-            <div class="setting-note">Tennis and basketball schedules/scores are loaded through TheSportsDB and cached by the Worker to reduce API usage. You can optionally add SPORTSDB_API_KEY in Cloudflare if you use your own TheSportsDB key.</div>
+            <div class="setting-note"><b>Live data:</b> Basketball uses API-Basketball through API-SPORTS. Tennis uses API-Tennis. The Worker caches results to protect your request allowance. TheSportsDB remains only as a limited fallback if a dedicated key is missing.</div>
           </article>
         </div>
       </div>
@@ -4725,12 +4740,20 @@ function generalSportEventTime(e){
   if(!d||Number.isNaN(d.getTime()))return e.date||'TBC';
   return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' • '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
 }
+function generalSportLive(e){
+  if(e?.isLive===true)return true;
+  const s=String(e?.status||'').toLowerCase();
+  return ['q1','q2','q3','q4','ot','ht','bt','live','in play','set 1','set 2','set 3','set 4','set 5'].some(x=>s===x||s.includes(x));
+}
 function generalSportFinished(e){
+  if(e?.finished===true)return true;
   const s=String(e.status||'').toLowerCase();
   if(['match finished','finished','ft','final','ended'].some(x=>s.includes(x)))return true;
+  if(generalSportLive(e))return false;
   return Number.isFinite(e.homeScore)&&Number.isFinite(e.awayScore);
 }
 function generalSportScore(e){
+  if(e?.displayScore)return String(e.displayScore);
   if(Number.isFinite(e.homeScore)&&Number.isFinite(e.awayScore))return `${e.homeScore} – ${e.awayScore}`;
   return generalSportFinished(e)?'Final':'vs';
 }
@@ -4738,16 +4761,20 @@ function generalSportEventCard(e,kind){
   const home=e.home||String(e.name||'').split(' vs ')[0]||'';
   const away=e.away||String(e.name||'').split(' vs ')[1]||'';
   const followed=isSportFollowed(kind,home)||isSportFollowed(kind,away);
+  const live=generalSportLive(e);
   const homeStar=home?`<button class="sport-follow-btn ${isSportFollowed(kind,home)?'active':''}" onclick="toggleSportFollow('${kind}','${encodeURIComponent(home)}')" title="Follow ${esc(home)}">${isSportFollowed(kind,home)?'★':'☆'}</button>`:'';
   const awayStar=away?`<button class="sport-follow-btn ${isSportFollowed(kind,away)?'active':''}" onclick="toggleSportFollow('${kind}','${encodeURIComponent(away)}')" title="Follow ${esc(away)}">${isSportFollowed(kind,away)?'★':'☆'}</button>`:'';
-  return `<div class="sport-event ${followed?'followed':''}">
+  const badge=live
+    ?`<span class="sport-live-badge">LIVE</span>`
+    :(followed?'<span class="football-favourite-badge">★ Following</span>':'');
+  return `<div class="sport-event ${followed?'followed':''} ${live?'live':''}">
     <div class="sport-event-top">
-      <div><div class="sport-event-title">${esc(e.league||e.name||sportLabel(kind))}</div><div class="sport-event-meta">${esc(generalSportEventTime(e))}${e.round?` • Round ${esc(e.round)}`:''}</div></div>
-      ${followed?'<span class="football-favourite-badge">★ Following</span>':''}
+      <div><div class="sport-event-title">${esc(e.league||e.name||sportLabel(kind))}</div><div class="sport-event-meta">${esc(generalSportEventTime(e))}${e.round?` • ${esc(String(e.round).startsWith('Round')?e.round:`Round ${e.round}`)}`:''}</div></div>
+      ${badge}
     </div>
     <div class="sport-participants">
       <div class="sport-person">${homeStar}<span class="sport-person-name">${esc(home||e.name||'Participant')}</span></div>
-      <div class="sport-event-score">${esc(generalSportScore(e))}</div>
+      <div class="sport-event-score">${esc(generalSportScore(e))}${live&&e.liveDetail?`<div class="sport-score-detail">${esc(e.liveDetail)}</div>`:''}</div>
       <div class="sport-person away"><span class="sport-person-name">${esc(away||'')}</span>${awayStar}</div>
     </div>
   </div>`;
@@ -4770,35 +4797,63 @@ function renderGeneralSport(kind){
     const bf=isSportFollowed(kind,b.home)||isSportFollowed(kind,b.away)?1:0;
     return bf-af||timeOf(a)-timeOf(b);
   };
-  const upcoming=events.filter(e=>!generalSportFinished(e)&&timeOf(e)>=now-3*60*60*1000).sort(favFirst).slice(0,12);
-  const recent=events.filter(e=>generalSportFinished(e)||timeOf(e)<now-3*60*60*1000).sort((a,b)=>{
-    const af=isSportFollowed(kind,a.home)||isSportFollowed(kind,a.away)?1:0;
-    const bf=isSportFollowed(kind,b.home)||isSportFollowed(kind,b.away)?1:0;
-    return bf-af||timeOf(b)-timeOf(a);
-  }).slice(0,12);
-  const up=qs('#generalSportUpcoming'),res=qs('#generalSportResults');
-  if(up)up.innerHTML=upcoming.length?upcoming.map(e=>generalSportEventCard(e,kind)).join(''):`<div class="empty">No ${sportLabel(kind).toLowerCase()} events found in the current schedule window.</div>`;
-  if(res)res.innerHTML=recent.length?recent.map(e=>generalSportEventCard(e,kind)).join(''):`<div class="empty">No recent ${sportLabel(kind).toLowerCase()} results found.</div>`;
+
+  const live=events.filter(generalSportLive).sort(favFirst).slice(0,10);
+  const upcoming=events
+    .filter(e=>!generalSportLive(e)&&!generalSportFinished(e)&&timeOf(e)>=now-4*60*60*1000)
+    .sort(favFirst).slice(0,14);
+  const recent=events
+    .filter(e=>!generalSportLive(e)&&(generalSportFinished(e)||timeOf(e)<now-4*60*60*1000))
+    .sort((a,b)=>{
+      const af=isSportFollowed(kind,a.home)||isSportFollowed(kind,a.away)?1:0;
+      const bf=isSportFollowed(kind,b.home)||isSportFollowed(kind,b.away)?1:0;
+      return bf-af||timeOf(b)-timeOf(a);
+    }).slice(0,14);
+
+  const liveEl=qs('#generalSportLive'),up=qs('#generalSportUpcoming'),res=qs('#generalSportResults');
+  if(liveEl)liveEl.innerHTML=live.length
+    ?live.map(e=>generalSportEventCard(e,kind)).join('')
+    :`<div class="sport-live-empty">No ${sportLabel(kind).toLowerCase()} events are live right now.</div>`;
+  if(up)up.innerHTML=upcoming.length
+    ?upcoming.map(e=>generalSportEventCard(e,kind)).join('')
+    :`<div class="empty">No upcoming ${sportLabel(kind).toLowerCase()} events were returned in this schedule window.</div>`;
+  if(res)res.innerHTML=recent.length
+    ?recent.map(e=>generalSportEventCard(e,kind)).join('')
+    :`<div class="empty">No recent ${sportLabel(kind).toLowerCase()} results were returned.</div>`;
+
   const sub=qs('#generalSportUpcomingSub');
-  if(sub)sub.textContent=`${sportLabel(kind)} • today and next two days`;
+  if(sub)sub.textContent=`${sportLabel(kind)} • ${cache.windowLabel||'current schedule window'}`;
+  const liveSub=qs('#generalSportLiveSub');
+  if(liveSub)liveSub.textContent=live.length
+    ?`${live.length} live ${live.length===1?'event':'events'} • ${cache.provider||'live provider'}`
+    :`No live ${sportLabel(kind).toLowerCase()} right now • ${cache.provider||'live provider'}`;
+
   renderGeneralSportFollowing(kind);
 }
 async function loadGeneralSport(kind,force=false){
   if(!['tennis','basketball'].includes(kind))return;
   const token=++generalSportLoadToken;
   const status=qs('#footballStatus');
-  if(status)status.innerHTML=`<span class="status"><span class="dot loading"></span>Loading ${sportLabel(kind).toLowerCase()}…</span>`;
+  if(status)status.innerHTML=`<span class="status"><span class="dot loading"></span>Loading live ${sportLabel(kind).toLowerCase()}…</span>`;
   try{
     const q=new URLSearchParams({sport:kind});if(force)q.set('refresh','1');
-    const data=await fetchJson(`/api/sports?${q.toString()}`,{},18000);
+    const data=await fetchJson(`/api/sports?${q.toString()}`,{},22000);
     if(token!==generalSportLoadToken)return;
-    generalSportCache[kind]={events:Array.isArray(data.events)?data.events:[],updatedAt:data.updatedAt||new Date().toISOString()};
+    generalSportCache[kind]={
+      events:Array.isArray(data.events)?data.events:[],
+      updatedAt:data.updatedAt||new Date().toISOString(),
+      provider:data.provider||'Sports provider',
+      windowLabel:data.windowLabel||'current schedule window',
+      setupRequired:!!data.setupRequired
+    };
     renderGeneralSport(kind);
-    if(status)status.innerHTML=`<span class="status"><span class="dot live"></span>${sportEmoji(kind)} ${sportLabel(kind)} • updated ${new Date(generalSportCache[kind].updatedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}${data.warning?' • '+esc(data.warning):''}</span>`;
+    const setup=data.setupRequired?' • setup needed for full live coverage':'';
+    if(status)status.innerHTML=`<span class="status"><span class="dot ${data.setupRequired?'loading':'live'}"></span>${sportEmoji(kind)} ${sportLabel(kind)} • ${esc(data.provider||'sports data')} • updated ${new Date(generalSportCache[kind].updatedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}${setup}${data.warning?' • '+esc(data.warning):''}</span>`;
   }catch(e){
     if(token!==generalSportLoadToken)return;
     if(status)status.innerHTML=`<span class="status"><span class="dot error"></span>${esc(e.message||`${sportLabel(kind)} data unavailable`)}</span>`;
-    if(qs('#generalSportUpcoming'))qs('#generalSportUpcoming').innerHTML='<div class="empty">Could not load events.</div>';
+    if(qs('#generalSportLive'))qs('#generalSportLive').innerHTML='<div class="sport-live-empty">Live data could not be loaded.</div>';
+    if(qs('#generalSportUpcoming'))qs('#generalSportUpcoming').innerHTML='<div class="empty">Could not load fixtures.</div>';
     if(qs('#generalSportResults'))qs('#generalSportResults').innerHTML='<div class="empty">Could not load results.</div>';
   }
 }
