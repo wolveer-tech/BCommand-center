@@ -1054,6 +1054,29 @@ async function youtubeStatus(env){
 
 const FOOTBALL_COMPETITIONS=new Set(['PL','PD','BL1','SA','FL1','DED','PPL','ELC','EL1','EL2','ENL','CL','EL','UCL','FAC','FLC']);
 
+// football-data.org remains the primary provider where the user's key has access.
+// Competitions commonly restricted on its free tier go straight to API-Football
+// when API_FOOTBALL_KEY is configured, avoiding a pointless HTTP 403 first.
+const FOOTBALL_DATA_PRIMARY_CODES=new Set(['PL','PD','BL1','SA','FL1','DED','PPL','ELC','CL']);
+const API_FOOTBALL_COMPETITIONS={
+  PL:{id:39,name:'Premier League',country:'England'},
+  PD:{id:140,name:'La Liga',country:'Spain'},
+  BL1:{id:78,name:'Bundesliga',country:'Germany'},
+  SA:{id:135,name:'Serie A',country:'Italy'},
+  FL1:{id:61,name:'Ligue 1',country:'France'},
+  DED:{id:88,name:'Eredivisie',country:'Netherlands'},
+  PPL:{id:94,name:'Primeira Liga',country:'Portugal'},
+  ELC:{id:40,name:'Championship',country:'England'},
+  EL1:{id:41,name:'League One',country:'England'},
+  EL2:{id:42,name:'League Two',country:'England'},
+  ENL:{id:43,name:'National League',country:'England'},
+  CL:{id:2,name:'UEFA Champions League',country:'Europe'},
+  EL:{id:3,name:'UEFA Europa League',country:'Europe'},
+  UCL:{id:848,name:'UEFA Conference League',country:'Europe'},
+  FAC:{id:45,name:'FA Cup',country:'England'},
+  FLC:{id:48,name:'League Cup',country:'England'}
+};
+
 function isoDayOffset(n){
   const d=new Date();d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);
 }
@@ -1079,6 +1102,155 @@ async function footballFetch(path,env){
   }
   return data;
 }
+
+function currentApiFootballSeason(){
+  const d=new Date();
+  // European seasons are represented by their starting year in API-Football.
+  return d.getUTCMonth()>=6?d.getUTCFullYear():d.getUTCFullYear()-1;
+}
+function apiFootballHasErrors(data){
+  const errors=data?.errors;
+  if(Array.isArray(errors))return errors.length>0;
+  return !!(errors&&typeof errors==='object'&&Object.keys(errors).length);
+}
+function apiFootballErrorText(data){
+  const errors=data?.errors;
+  if(Array.isArray(errors))return errors.map(x=>typeof x==='string'?x:JSON.stringify(x)).join(' • ');
+  if(errors&&typeof errors==='object')return Object.values(errors).map(x=>String(x)).join(' • ');
+  return '';
+}
+async function apiFootballFetch(endpoint,params,env){
+  if(!env.API_FOOTBALL_KEY){
+    const err=new Error('This competition is outside your football-data.org permissions. Add API_FOOTBALL_KEY as a Cloudflare Worker secret to enable the automatic fallback provider.');
+    err.status=503;err.missingFallbackKey=true;throw err;
+  }
+  const u=new URL(`https://v3.football.api-sports.io/${String(endpoint||'').replace(/^\/+/, '')}`);
+  Object.entries(params||{}).forEach(([k,v])=>{
+    if(v!==undefined&&v!==null&&String(v)!=='')u.searchParams.set(k,String(v));
+  });
+  const r=await fetch(u.toString(),{
+    headers:{'x-apisports-key':env.API_FOOTBALL_KEY,accept:'application/json'}
+  });
+  const data=await r.json().catch(()=>({}));
+  const apiError=apiFootballErrorText(data);
+  if(!r.ok||apiFootballHasErrors(data)){
+    let message=apiError||`API-Football HTTP ${r.status}`;
+    if(r.status===429||/rate limit|request limit|quota/i.test(message)){
+      message='API-Football request limit reached. Command Centre will keep using cached football data where available.';
+    }
+    const err=new Error(message);
+    err.status=r.status===429?429:(r.status>=400&&r.status<500?r.status:502);
+    throw err;
+  }
+  return data;
+}
+function apiFootballTeam(team){
+  const id=Number(team?.id)||0;
+  return {
+    // Negative IDs namespace API-Football teams so favourites/notifications know
+    // which upstream service to query without changing the existing D1 schema.
+    id:id?-Math.abs(id):0,
+    name:String(team?.name||'Team'),
+    shortName:String(team?.name||'Team'),
+    tla:'',
+    crest:String(team?.logo||'')
+  };
+}
+function apiFootballMatchStatus(fixture){
+  const short=String(fixture?.status?.short||'NS').toUpperCase();
+  if(['FT','AET','PEN'].includes(short))return 'FINISHED';
+  if(['CANC','ABD','AWD','WO'].includes(short))return 'CANCELLED';
+  if(['PST'].includes(short))return 'POSTPONED';
+  if(['SUSP','INT','HT','BT'].includes(short))return 'PAUSED';
+  if(['1H','2H','ET','P','LIVE'].includes(short))return 'IN_PLAY';
+  return 'SCHEDULED';
+}
+function cleanApiFootballFixture(item){
+  const fixture=item?.fixture||{};
+  const fid=Number(fixture.id)||0;
+  const full=item?.score?.fulltime||{};
+  const goals=item?.goals||{};
+  const homeScore=full.home??goals.home??null;
+  const awayScore=full.away??goals.away??null;
+  return {
+    id:fid?-Math.abs(fid):String(`api-football-${fixture.date||Date.now()}`),
+    utcDate:String(fixture.date||new Date().toISOString()),
+    status:apiFootballMatchStatus(fixture),
+    minute:Number(fixture?.status?.elapsed)||null,
+    competition:{
+      id:Number(item?.league?.id)||0,
+      name:String(item?.league?.name||''),
+      code:'',
+      emblem:String(item?.league?.logo||'')
+    },
+    homeTeam:apiFootballTeam(item?.teams?.home),
+    awayTeam:apiFootballTeam(item?.teams?.away),
+    score:{fullTime:{
+      home:homeScore===null||homeScore===undefined?null:Number(homeScore),
+      away:awayScore===null||awayScore===undefined?null:Number(awayScore)
+    }}
+  };
+}
+function cleanApiFootballStandingRow(row){
+  const all=row?.all||{};
+  const goals=all?.goals||{};
+  return {
+    position:Number(row?.rank)||0,
+    team:apiFootballTeam(row?.team),
+    playedGames:Number(all?.played)||0,
+    won:Number(all?.win)||0,
+    draw:Number(all?.draw)||0,
+    lost:Number(all?.lose)||0,
+    points:Number(row?.points)||0,
+    goalsFor:Number(goals?.for)||0,
+    goalsAgainst:Number(goals?.against)||0,
+    goalDifference:Number(row?.goalsDiff)||0
+  };
+}
+function cleanApiFootballStandings(data){
+  const response=Array.isArray(data?.response)?data.response:[];
+  const groups=Array.isArray(response?.[0]?.league?.standings)?response[0].league.standings:[];
+  return groups.map((rows,index)=>{
+    const first=Array.isArray(rows)?rows[0]:null;
+    const groupName=String(first?.group||'').trim();
+    return {
+      type:'TOTAL',
+      group:groupName&&groups.length>1?groupName:(groups.length>1?`Group ${index+1}`:''),
+      table:(Array.isArray(rows)?rows:[]).map(cleanApiFootballStandingRow)
+    };
+  }).filter(x=>x.table.length);
+}
+async function apiFootballBundle(env,code){
+  const cfg=API_FOOTBALL_COMPETITIONS[code];
+  if(!cfg){
+    const err=new Error('No API-Football mapping exists for this competition.');
+    err.status=503;throw err;
+  }
+  const season=currentApiFootballSeason();
+  const dateFrom=isoDayOffset(-7),dateTo=isoDayOffset(14);
+
+  const [fixturesData,standingsData]=await Promise.all([
+    apiFootballFetch('fixtures',{league:cfg.id,season,from:dateFrom,to:dateTo,timezone:'UTC'},env),
+    apiFootballFetch('standings',{league:cfg.id,season},env).catch(e=>{
+      // Knockout cups may not expose a table. Fixtures should still render.
+      console.warn(`API-Football standings unavailable for ${code}`,e?.message||e);
+      return {response:[]};
+    })
+  ]);
+
+  const matches=(Array.isArray(fixturesData?.response)?fixturesData.response:[]).map(cleanApiFootballFixture);
+  const standings=cleanApiFootballStandings(standingsData);
+  return {
+    competition:{id:cfg.id,name:cfg.name,code},
+    standings,
+    matches,
+    provider:'API-Football',
+    providerMode:'fallback',
+    season,
+    warning:`Using API-Football for ${cfg.name} because this competition is not available through the current football-data.org key permissions.`,
+    updatedAt:new Date().toISOString()
+  };
+}
 async function getFootballBundle(env,competition='PL',force=false,requestUrl='https://local/api/football'){
   const code=String(competition||'PL').toUpperCase();
   if(!FOOTBALL_COMPETITIONS.has(code)){
@@ -1091,66 +1263,85 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
     cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
     if(cache){
       const u=new URL(requestUrl);
-      u.pathname='/__cache/football';
+      u.pathname='/__cache/football-v3';
       u.search=new URLSearchParams({competition:code}).toString();
       cacheKey=new Request(u.toString(),{method:'GET'});
       const hit=await cache.match(cacheKey);
-      if(hit){
-        try{cachedPayload=await hit.json()}catch{}
-      }
+      if(hit){try{cachedPayload=await hit.json()}catch{}}
     }
   }catch(e){console.warn('Football cache read skipped',e);cache=null;cacheKey=null}
 
-  // Normal league switching always uses the 15-minute cached result when available.
   if(cachedPayload&&!force)return {...cachedPayload,cache:'hit'};
-
-  // Even a manual refresh is protected from repeated taps. This prevents a user from
-  // consuming the free football-data.org minute quota by repeatedly pressing Refresh.
   if(cachedPayload&&force){
     const age=Date.now()-Date.parse(cachedPayload.updatedAt||0);
     if(Number.isFinite(age)&&age<60*1000){
-      return {...cachedPayload,cache:'refresh-cooldown',warning:'Using the recent result to protect the football-data.org request limit.'};
+      return {...cachedPayload,cache:'refresh-cooldown',warning:cachedPayload.warning||'Using the recent result to protect football API request limits.'};
     }
   }
 
-  const dateFrom=isoDayOffset(-7),dateTo=isoDayOffset(14);
-  try{
+  const fetchPrimary=async()=>{
+    const dateFrom=isoDayOffset(-7),dateTo=isoDayOffset(14);
     const [standingsData,matchesData]=await Promise.all([
       footballFetch(`/competitions/${encodeURIComponent(code)}/standings`,env).catch(e=>{
-        // Cup competitions may not expose a single standings resource.
         if(code==='CL'&&e.status===404)return {competition:{name:'UEFA Champions League',code},standings:[]};
         throw e;
       }),
       footballFetch(`/competitions/${encodeURIComponent(code)}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`,env)
     ]);
-
-    const payload={
+    return {
       competition:standingsData.competition||matchesData.competition||{code,name:code},
       standings:Array.isArray(standingsData.standings)?standingsData.standings:[],
       matches:Array.isArray(matchesData.matches)?matchesData.matches:[],
-      updatedAt:new Date().toISOString(),
-      cache:'fresh'
+      provider:'football-data.org',
+      providerMode:'primary',
+      updatedAt:new Date().toISOString()
     };
+  };
+
+  try{
+    let payload;
+
+    // Avoid triggering a known 403 for competitions outside the normal primary-key
+    // coverage. If a fallback key is present, go directly to API-Football.
+    if(!FOOTBALL_DATA_PRIMARY_CODES.has(code)&&env.API_FOOTBALL_KEY){
+      payload=await apiFootballBundle(env,code);
+    }else{
+      try{
+        payload=await fetchPrimary();
+      }catch(primaryError){
+        if(primaryError?.status===403&&env.API_FOOTBALL_KEY){
+          console.warn(`football-data.org denied ${code}; using API-Football fallback`);
+          payload=await apiFootballBundle(env,code);
+        }else if(primaryError?.status===403&&!env.API_FOOTBALL_KEY&&API_FOOTBALL_COMPETITIONS[code]){
+          const cfg=API_FOOTBALL_COMPETITIONS[code];
+          const err=new Error(`${cfg.name} is outside the permissions of your football-data.org API key. Add API_FOOTBALL_KEY as a Cloudflare Worker secret and Command Centre will load it automatically from API-Football.`);
+          err.status=503;throw err;
+        }else{
+          throw primaryError;
+        }
+      }
+    }
 
     if(cache){
       try{
         if(!cacheKey){
           const u=new URL(requestUrl);
-          u.pathname='/__cache/football';
+          u.pathname='/__cache/football-v3';
           u.search=new URLSearchParams({competition:code}).toString();
           cacheKey=new Request(u.toString(),{method:'GET'});
         }
-        await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=900'}}));
+        await cache.put(cacheKey,new Response(JSON.stringify(payload),{
+          headers:{'content-type':'application/json','cache-control':'public,max-age=900'}
+        }));
       }catch(e){console.warn('Football cache write skipped',e)}
     }
-    return payload;
+    return {...payload,cache:'fresh'};
   }catch(e){
-    // If the upstream provider throttles us, keep the app useful with the last result.
-    if(e?.status===429&&cachedPayload){
+    if((e?.status===429||e?.status===403)&&cachedPayload){
       return {
         ...cachedPayload,
-        cache:'stale-rate-limit',
-        warning:e.message||'Football provider rate limit reached; showing cached data.'
+        cache:e.status===429?'stale-rate-limit':'stale-permission-fallback',
+        warning:e.message||'Football provider unavailable; showing cached data.'
       };
     }
     throw e;
@@ -1326,7 +1517,7 @@ async function commandCentreStatus(env,live=false){
 
   // Football live check.
   if(!env.FOOTBALL_DATA_API_KEY){
-    services.push({name:'Football Data API',state:'Not configured',kind:'warn',detail:'Add FOOTBALL_DATA_API_KEY to enable the Football Hub.'});
+    services.push({name:'Football Data API',state:'Not configured',kind:'warn',detail:'Add FOOTBALL_DATA_API_KEY to use football-data.org as the primary Football Hub provider.'});
   }else if(live){
     const fb=await footballStatus(env);
     services.push({name:'Football Data API',state:fb.ok?'Healthy':'Error',kind:fb.ok?'ok':'bad',detail:fb.ok?(fb.detail||'football-data.org responded.'):(fb.error||'Football API check failed.')});
@@ -1335,12 +1526,22 @@ async function commandCentreStatus(env,live=false){
   }
 
   services.push({
+    name:'Football fallback API',
+    state:env.API_FOOTBALL_KEY?'Configured':'Not configured',
+    kind:env.API_FOOTBALL_KEY?'ok':'warn',
+    detail:env.API_FOOTBALL_KEY
+      ?'API_FOOTBALL_KEY is present. Restricted competitions can fall back to API-Football automatically.'
+      :'Add API_FOOTBALL_KEY to load competitions such as League One when football-data.org returns 403.'
+  });
+
+  const anyFootballApi=!!(env.FOOTBALL_DATA_API_KEY||env.API_FOOTBALL_KEY);
+  services.push({
     name:'Football notification engine',
-    state:(env.FOOTBALL_DATA_API_KEY&&env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY)?'Ready':'Needs setup',
-    kind:(env.FOOTBALL_DATA_API_KEY&&env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY)?'ok':'warn',
-    detail:(env.FOOTBALL_DATA_API_KEY&&env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY)
-      ?'Favourite-team fixture alerts and full-time pushes can run in the background.'
-      :'Football API and VAPID keys are both required for background football alerts.'
+    state:(anyFootballApi&&env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY)?'Ready':'Needs setup',
+    kind:(anyFootballApi&&env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY)?'ok':'warn',
+    detail:(anyFootballApi&&env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY)
+      ?'Favourite-team fixture alerts and full-time pushes can run in the background across primary and fallback competitions.'
+      :'At least one football API key plus the VAPID keys are required for background football alerts.'
   });
 
   const liveProviders=configuredLiveProviders(env);
@@ -1461,9 +1662,16 @@ function footballKickoffLabel(match,timezone){
   }catch{return d.toISOString()}
 }
 async function footballTeamMatches(env,teamId,daysBack=2,daysForward=21){
-  if(!teamId)return [];
+  const numericId=Number(teamId)||0;
+  if(!numericId)return [];
   const dateFrom=isoDayOffset(-daysBack),dateTo=isoDayOffset(daysForward);
-  const data=await footballFetch(`/teams/${encodeURIComponent(teamId)}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`,env);
+  if(numericId<0){
+    const data=await apiFootballFetch('fixtures',{
+      team:Math.abs(numericId),from:dateFrom,to:dateTo,timezone:'UTC'
+    },env);
+    return (Array.isArray(data?.response)?data.response:[]).map(cleanApiFootballFixture);
+  }
+  const data=await footballFetch(`/teams/${encodeURIComponent(numericId)}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`,env);
   return Array.isArray(data.matches)?data.matches:[];
 }
 async function insertFootballScheduledNotification(env,pref,match,type,dueAt,title,body){
@@ -1769,7 +1977,7 @@ export default {
             name:String(t?.name||'').slice(0,120),
             crest:String(t?.crest||'').slice(0,500)
           }))
-          .filter(t=>t.id>0)
+          .filter(t=>t.id!==0)
           .filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i)
           .slice(0,20);
 
