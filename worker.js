@@ -50,6 +50,58 @@ function cleanNewsArticle(a,kind){
     category:Array.isArray(a.category)?a.category:[]
   };
 }
+function financialRelevanceScore(article){
+  const title=String(article?.title||'').toLowerCase();
+  const desc=String(article?.description||article?.summary||'').toLowerCase();
+  const categories=(Array.isArray(article?.category)?article.category:[]).join(' ').toLowerCase();
+  const text=`${title} ${desc} ${categories}`;
+
+  const strong=[
+    'stock market','stocks','shares','equities','ftse','s&p 500','s&p500','nasdaq','dow jones',
+    'bond market','bonds','treasury yield','gilt','yields','interest rate','rate cut','rate hike',
+    'bank of england','federal reserve','fed rate','ecb','central bank','inflation','cpi','gdp',
+    'recession','economic growth','unemployment','jobs report','payrolls','earnings','quarterly results',
+    'revenue','operating profit','net profit','profit warning','dividend','buyback','ipo','initial public offering',
+    'merger','acquisition','takeover','valuation','market cap','investor','investment','portfolio',
+    'forex','foreign exchange','currency','sterling','pound','dollar','euro','yen',
+    'oil price','crude oil','gold price','commodities','bitcoin','crypto','cryptocurrency',
+    'mortgage rates','banking sector','financial markets','financial market','economy macro',
+    'economy monetary','earnings'
+  ];
+  const medium=[
+    'market','economy','economic','finance','financial','bank','lender','company','business',
+    'trade','tariff','budget','fiscal','debt','credit','fund','asset','wealth','pension'
+  ];
+  const noise=[
+    'celebrity','film','movie','music','tv show','football','soccer','tennis','basketball',
+    'fashion','recipe','weather forecast','crime scene','murder','royal family','horoscope'
+  ];
+
+  let score=0;
+  strong.forEach(k=>{if(text.includes(k))score+=3});
+  medium.forEach(k=>{if(text.includes(k))score+=1});
+  noise.forEach(k=>{if(text.includes(k))score-=2});
+
+  // Alpha Vantage topic metadata is particularly useful for keeping this feed focused.
+  const topicText=categories.replaceAll('_',' ');
+  if(['financial markets','economy macro','economy monetary','earnings'].some(k=>topicText.includes(k)))score+=4;
+
+  return score;
+}
+function filterFinancialArticles(items,limit=10){
+  const seen=new Set();
+  return (Array.isArray(items)?items:[])
+    .map(a=>({...a,_financeScore:financialRelevanceScore(a)}))
+    .filter(a=>a.title&&a.link&&a._financeScore>=3)
+    .sort((a,b)=>(b._financeScore-a._financeScore)||String(b.pubDate||'').localeCompare(String(a.pubDate||'')))
+    .filter(a=>{
+      const key=String(a.title||'').toLowerCase().replace(/\s+/g,' ').trim();
+      if(!key||seen.has(key))return false;
+      seen.add(key);return true;
+    })
+    .slice(0,limit)
+    .map(({_financeScore,...a})=>a);
+}
 async function fetchNewsData(endpoint,env,params={}){
   if(!env.NEWSDATA_API_KEY) throw new Error('NEWSDATA_API_KEY is not configured');
   const u=new URL(`https://newsdata.io/api/1/${endpoint}`);
@@ -76,18 +128,21 @@ async function fetchAlphaVantageFinancialNews(env){
   if(!r.ok)throw new Error(`Alpha Vantage HTTP ${r.status}`);
   const data=await r.json();
   if(data.Note||data.Information)throw new Error(data.Note||data.Information);
-  return (Array.isArray(data.feed)?data.feed:[]).map(a=>({
+  const mapped=(Array.isArray(data.feed)?data.feed:[]).map(a=>({
     id:String(a.url||`${a.title||''}-${a.time_published||''}`),
     kind:'financial',title:String(a.title||'').trim(),description:String(a.summary||'').trim().slice(0,500),
     link:String(a.url||''),source:String(a.source||'Alpha Vantage'),pubDate:a.time_published||'',
     category:(a.topics||[]).map(x=>x.topic).filter(Boolean),
     overallSentimentLabel:a.overall_sentiment_label||'',overallSentimentScore:Number(a.overall_sentiment_score)
   })).filter(a=>a.title&&a.link);
+  return filterFinancialArticles(mapped,14);
 }
 
 async function newsCategory(env,kind,force=false){
   await ensureNewsTables(env);
-  const cached=await env.DB.prepare('SELECT payload,updated_at FROM news_cache WHERE kind=?').bind(kind).first();
+  // Version the financial cache so older broad/random finance results are not reused.
+  const cacheKind=kind==='financial'?'financial-focused-v2':kind;
+  const cached=await env.DB.prepare('SELECT payload,updated_at FROM news_cache WHERE kind=?').bind(cacheKind).first();
   const maxAge=60*60*1000;
   if(!force&&cached&&Date.now()-Number(cached.updated_at)<maxAge){
     try{return JSON.parse(cached.payload)}catch{}
@@ -95,19 +150,32 @@ async function newsCategory(env,kind,force=false){
   const raw=kind==='financial'
     ? await fetchNewsData('market',env,{})
     : await fetchNewsData('latest',env,{category:'top,world'});
-  const cleaned=raw.map(a=>cleanNewsArticle(a,kind)).filter(a=>a.title&&a.link).slice(0,10);
+  const mapped=raw.map(a=>cleanNewsArticle(a,kind)).filter(a=>a.title&&a.link);
+  const cleaned=kind==='financial'?filterFinancialArticles(mapped,10):mapped.slice(0,10);
   await env.DB.prepare('INSERT INTO news_cache(kind,payload,updated_at) VALUES(?,?,?) ON CONFLICT(kind) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at')
-    .bind(kind,JSON.stringify(cleaned),Date.now()).run();
+    .bind(cacheKind,JSON.stringify(cleaned),Date.now()).run();
   return cleaned;
 }
 async function getNewsBundle(env,force=false,financialProvider='hybrid'){
   const worldPromise=newsCategory(env,'world',force);
   let financialPromise;
-  if(financialProvider==='alphavantage') financialPromise=fetchAlphaVantageFinancialNews(env);
-  else if(financialProvider==='newsdata') financialPromise=newsCategory(env,'financial',force);
-  else financialPromise=(async()=>{try{const a=await fetchAlphaVantageFinancialNews(env);if(a.length)return a.slice(0,10)}catch(e){console.warn('Alpha Vantage failed; falling back to NewsData',e)}return newsCategory(env,'financial',force)})();
+  if(financialProvider==='alphavantage'){
+    financialPromise=fetchAlphaVantageFinancialNews(env).then(x=>filterFinancialArticles(x,10));
+  }else if(financialProvider==='newsdata'){
+    financialPromise=newsCategory(env,'financial',force);
+  }else{
+    financialPromise=(async()=>{
+      let av=[],nd=[];
+      try{av=await fetchAlphaVantageFinancialNews(env)}catch(e){console.warn('Alpha Vantage financial news failed',e)}
+      // If Alpha Vantage does not provide enough strongly relevant stories, top up from NewsData.
+      if(av.length<8){
+        try{nd=await newsCategory(env,'financial',force)}catch(e){console.warn('NewsData financial news failed',e)}
+      }
+      return filterFinancialArticles([...av,...nd],10);
+    })();
+  }
   const [world,financial]=await Promise.all([worldPromise,financialPromise]);
-  return {world,financial,updatedAt:new Date().toISOString(),financialProvider};
+  return {world,financial,updatedAt:new Date().toISOString(),financialProvider,financialFocus:'strict'};
 }
 function isMajorHeadline(a){
   const s=`${a.title||''} ${a.description||''}`.toLowerCase();
@@ -999,11 +1067,14 @@ async function footballFetch(path,env){
   });
   const data=await r.json().catch(()=>({}));
   if(!r.ok){
+    const retryAfter=Number(r.headers.get('retry-after')||0);
     const baseMessage=data?.message||data?.error||`football-data.org HTTP ${r.status}`;
-    const err=new Error(r.status===403
-      ? `${baseMessage} This competition may require a higher football-data.org access tier for your API key.`
-      : baseMessage);
+    let message=baseMessage;
+    if(r.status===403)message=`${baseMessage} This competition may require a higher football-data.org access tier for your API key.`;
+    if(r.status===429)message=`Football data rate limit reached.${retryAfter?` Try again in about ${retryAfter} seconds.`:' Please wait about a minute before forcing another refresh.'}`;
+    const err=new Error(message);
     err.status=r.status===429?429:(r.status>=400&&r.status<500?r.status:502);
+    err.retryAfter=retryAfter;
     throw err;
   }
   return data;
@@ -1015,49 +1086,202 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
     err.status=400;throw err;
   }
 
-  let cache=null,cacheKey=null;
+  let cache=null,cacheKey=null,cachedPayload=null;
   try{
     cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
-    if(cache&&!force){
+    if(cache){
       const u=new URL(requestUrl);
       u.pathname='/__cache/football';
       u.search=new URLSearchParams({competition:code}).toString();
       cacheKey=new Request(u.toString(),{method:'GET'});
       const hit=await cache.match(cacheKey);
-      if(hit)return hit.json();
+      if(hit){
+        try{cachedPayload=await hit.json()}catch{}
+      }
     }
   }catch(e){console.warn('Football cache read skipped',e);cache=null;cacheKey=null}
 
+  // Normal league switching always uses the 15-minute cached result when available.
+  if(cachedPayload&&!force)return {...cachedPayload,cache:'hit'};
+
+  // Even a manual refresh is protected from repeated taps. This prevents a user from
+  // consuming the free football-data.org minute quota by repeatedly pressing Refresh.
+  if(cachedPayload&&force){
+    const age=Date.now()-Date.parse(cachedPayload.updatedAt||0);
+    if(Number.isFinite(age)&&age<60*1000){
+      return {...cachedPayload,cache:'refresh-cooldown',warning:'Using the recent result to protect the football-data.org request limit.'};
+    }
+  }
+
   const dateFrom=isoDayOffset(-7),dateTo=isoDayOffset(14);
-  const [standingsData,matchesData]=await Promise.all([
-    footballFetch(`/competitions/${encodeURIComponent(code)}/standings`,env).catch(e=>{
-      // Cup competitions may not expose a single standings resource.
-      if(code==='CL'&&e.status===404)return {competition:{name:'UEFA Champions League',code},standings:[]};
-      throw e;
-    }),
-    footballFetch(`/competitions/${encodeURIComponent(code)}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`,env)
-  ]);
+  try{
+    const [standingsData,matchesData]=await Promise.all([
+      footballFetch(`/competitions/${encodeURIComponent(code)}/standings`,env).catch(e=>{
+        // Cup competitions may not expose a single standings resource.
+        if(code==='CL'&&e.status===404)return {competition:{name:'UEFA Champions League',code},standings:[]};
+        throw e;
+      }),
+      footballFetch(`/competitions/${encodeURIComponent(code)}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`,env)
+    ]);
+
+    const payload={
+      competition:standingsData.competition||matchesData.competition||{code,name:code},
+      standings:Array.isArray(standingsData.standings)?standingsData.standings:[],
+      matches:Array.isArray(matchesData.matches)?matchesData.matches:[],
+      updatedAt:new Date().toISOString(),
+      cache:'fresh'
+    };
+
+    if(cache){
+      try{
+        if(!cacheKey){
+          const u=new URL(requestUrl);
+          u.pathname='/__cache/football';
+          u.search=new URLSearchParams({competition:code}).toString();
+          cacheKey=new Request(u.toString(),{method:'GET'});
+        }
+        await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=900'}}));
+      }catch(e){console.warn('Football cache write skipped',e)}
+    }
+    return payload;
+  }catch(e){
+    // If the upstream provider throttles us, keep the app useful with the last result.
+    if(e?.status===429&&cachedPayload){
+      return {
+        ...cachedPayload,
+        cache:'stale-rate-limit',
+        warning:e.message||'Football provider rate limit reached; showing cached data.'
+      };
+    }
+    throw e;
+  }
+}
+
+const GENERAL_SPORTS=new Set(['tennis','basketball']);
+
+function sportsDbDayKey(offset=0){
+  const d=new Date();
+  d.setUTCDate(d.getUTCDate()+offset);
+  return d.toISOString().slice(0,10);
+}
+async function sportsDbFetchDay(env,sport,date){
+  const key=String(env.SPORTSDB_API_KEY||'123').trim()||'123';
+  const u=new URL(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/eventsday.php`);
+  u.searchParams.set('d',date);
+  u.searchParams.set('s',sport);
+  const r=await fetch(u.toString(),{headers:{accept:'application/json'}});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok){
+    const err=new Error(r.status===429
+      ?'Sports data rate limit reached. Please wait a minute before refreshing again.'
+      :`TheSportsDB HTTP ${r.status}`);
+    err.status=r.status===429?429:(r.status>=400&&r.status<500?r.status:502);
+    throw err;
+  }
+  return Array.isArray(data.events)?data.events:[];
+}
+function cleanGeneralSportEvent(e,kind){
+  const timestamp=String(e.strTimestamp||'').trim();
+  const date=String(e.dateEvent||'').trim();
+  const time=String(e.strTime||'').trim();
+  return {
+    id:String(e.idEvent||`${kind}-${date}-${e.strEvent||''}`),
+    sport:kind,
+    name:String(e.strEvent||[e.strHomeTeam,e.strAwayTeam].filter(Boolean).join(' vs ')||'Event'),
+    league:String(e.strLeague||e.strLeagueAlternate||''),
+    home:String(e.strHomeTeam||''),
+    away:String(e.strAwayTeam||''),
+    homeId:String(e.idHomeTeam||''),
+    awayId:String(e.idAwayTeam||''),
+    homeScore:e.intHomeScore==null?null:Number(e.intHomeScore),
+    awayScore:e.intAwayScore==null?null:Number(e.intAwayScore),
+    date,
+    time,
+    timestamp,
+    status:String(e.strStatus||''),
+    round:String(e.intRound||''),
+    venue:String(e.strVenue||''),
+    thumbnail:String(e.strThumb||e.strPoster||'')
+  };
+}
+async function getGeneralSportBundle(env,kind='tennis',force=false,requestUrl='https://local/api/sports'){
+  const sportKey=String(kind||'tennis').toLowerCase();
+  if(!GENERAL_SPORTS.has(sportKey)){
+    const err=new Error('Unsupported sport.');
+    err.status=400;throw err;
+  }
+  const providerSport=sportKey==='basketball'?'Basketball':'Tennis';
+
+  let cache=null,cacheKey=null,cachedPayload=null;
+  try{
+    cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
+    if(cache){
+      const u=new URL(requestUrl);
+      u.pathname='/__cache/general-sports';
+      u.search=new URLSearchParams({sport:sportKey}).toString();
+      cacheKey=new Request(u.toString());
+      const hit=await cache.match(cacheKey);
+      if(hit){try{cachedPayload=await hit.json()}catch{}}
+    }
+  }catch{}
+
+  if(cachedPayload&&!force)return {...cachedPayload,cache:'hit'};
+  if(cachedPayload&&force){
+    const age=Date.now()-Date.parse(cachedPayload.updatedAt||0);
+    if(Number.isFinite(age)&&age<60*1000){
+      return {...cachedPayload,cache:'refresh-cooldown',warning:'Using the recent result to protect the sports-data request limit.'};
+    }
+  }
+
+  const dates=[sportsDbDayKey(-1),sportsDbDayKey(0),sportsDbDayKey(1),sportsDbDayKey(2)];
+  let all=[],warnings=[];
+  for(const date of dates){
+    try{
+      const events=await sportsDbFetchDay(env,providerSport,date);
+      all.push(...events);
+    }catch(e){
+      warnings.push(e.message||String(e));
+      if(e?.status===429)break;
+    }
+  }
+
+  if(!all.length&&cachedPayload)return {...cachedPayload,cache:'stale',warning:warnings[0]||'Using cached sports data.'};
+  if(!all.length&&warnings.length){
+    const err=new Error(warnings[0]);err.status=warnings[0].includes('rate limit')?429:502;throw err;
+  }
+
+  const seen=new Set();
+  const events=all
+    .map(e=>cleanGeneralSportEvent(e,sportKey))
+    .filter(e=>{
+      if(!e.id||seen.has(e.id))return false;
+      seen.add(e.id);return true;
+    })
+    .sort((a,b)=>{
+      const ax=Date.parse(a.timestamp||`${a.date}T${a.time||'00:00:00'}Z`)||0;
+      const bx=Date.parse(b.timestamp||`${b.date}T${b.time||'00:00:00'}Z`)||0;
+      return ax-bx;
+    });
 
   const payload={
-    competition:standingsData.competition||matchesData.competition||{code,name:code},
-    standings:Array.isArray(standingsData.standings)?standingsData.standings:[],
-    matches:Array.isArray(matchesData.matches)?matchesData.matches:[],
-    updatedAt:new Date().toISOString()
+    sport:sportKey,
+    provider:'TheSportsDB',
+    events,
+    updatedAt:new Date().toISOString(),
+    warning:warnings[0]||'',
+    cache:'fresh'
   };
 
   if(cache){
     try{
-      if(!cacheKey){
-        const u=new URL(requestUrl);
-        u.pathname='/__cache/football';
-        u.search=new URLSearchParams({competition:code}).toString();
-        cacheKey=new Request(u.toString(),{method:'GET'});
-      }
-      await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=900'}}));
-    }catch(e){console.warn('Football cache write skipped',e)}
+      await cache.put(cacheKey,new Response(JSON.stringify(payload),{
+        headers:{'content-type':'application/json','cache-control':'public,max-age=600'}
+      }));
+    }catch{}
   }
   return payload;
 }
+
 async function footballStatus(env){
   if(!env.FOOTBALL_DATA_API_KEY)return {configured:false,ok:false,error:'FOOTBALL_DATA_API_KEY is missing.'};
   try{
@@ -1146,6 +1370,12 @@ async function commandCentreStatus(env,live=false){
     state:env.NEWSDATA_API_KEY?'Configured':'Not configured',
     kind:env.NEWSDATA_API_KEY?'info':'warn',
     detail:env.NEWSDATA_API_KEY?'Secret is present. Live calls are skipped here to preserve quota.':'NEWSDATA_API_KEY is missing.'
+  });
+  services.push({
+    name:'Tennis & Basketball data',
+    state:'Configured',
+    kind:'info',
+    detail:env.SPORTSDB_API_KEY?'TheSportsDB custom key is configured.':'Using TheSportsDB free API key for schedules and scores.'
   });
   services.push({
     name:'Alpha Vantage',
@@ -1517,6 +1747,12 @@ export default {
         const competition=url.searchParams.get('competition')||'PL';
         const force=url.searchParams.get('refresh')==='1';
         return json(await getFootballBundle(env,competition,force,request.url));
+      }
+
+      if(url.pathname==='/api/sports'&&request.method==='GET'){
+        const sport=url.searchParams.get('sport')||'tennis';
+        const force=url.searchParams.get('refresh')==='1';
+        return json(await getGeneralSportBundle(env,sport,force,request.url));
       }
 
       if(url.pathname==='/api/football/notifications/preferences'&&request.method==='POST'){
