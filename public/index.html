@@ -4682,7 +4682,7 @@ async function loadLiveFootball(force=false,kind=liveSportKind()){
       </article>`;
     }).join('');
 
-    status.textContent=`${data.providerName||selected.name} • ${display} • ${liveFootballStreams.length} stream${liveFootballStreams.length===1?'':'s'} • ${data.mode==='scrape'?'page mode':'API mode'}`;
+    status.textContent=`${data.providerName||selected.name} • ${display} • ${liveFootballStreams.length} stream${liveFootballStreams.length===1?'':'s'} • ${data.mode==='scrape'?'page mode':data.mode==='dynamic'?'dynamic-data mode':'API mode'}`;
   }catch(e){
     grid.innerHTML='';
     status.textContent=e.message||'Live provider unavailable';
