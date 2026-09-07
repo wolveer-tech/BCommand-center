@@ -3569,14 +3569,22 @@ function init(){
 
     bind('saveHolding','click',saveHolding);
     bind('deleteHoldingBtn','click',deleteEditingHolding);
-    bindMusicPlayer();
+    try{bindMusicPlayer()}
+    catch(e){console.error('Music player init failed',e)}
     bind('sendChat','click',sendChat);
     const chat=qs('#chatInput');if(chat)chat.addEventListener('keydown',e=>{if(e.key==='Enter')sendChat()});
+    // Legacy Spotify settings are optional. Keep the settings helpers safe,
+    // but do not initialise the removed Spotify embed UI.
     bind('spotifyConnectBtn','click',spotifyConnect);
     bind('spotifyDisconnectBtn','click',spotifyDisconnect);
-    bind('copyRedirectUriBtn','click',()=>{const el=qs('#spotifyRedirectDisplay');el.select();navigator.clipboard?.writeText(el.value).then(()=>toast('Redirect URI copied')).catch(()=>document.execCommand('copy'))});
-    bind('loadSpotifyEmbedBtn','click',loadSpotifyEmbed);
-    const embedInput=qs('#spotifyEmbedInput');if(embedInput)embedInput.addEventListener('keydown',e=>{if(e.key==='Enter')loadSpotifyEmbed()});
+    bind('copyRedirectUriBtn','click',()=>{
+      const el=qs('#spotifyRedirectDisplay');
+      if(!el)return;
+      el.select();
+      navigator.clipboard?.writeText(el.value)
+        .then(()=>toast('Redirect URI copied'))
+        .catch(()=>document.execCommand('copy'));
+    });
     handleSpotifyRedirect();
     updateSpotifyConnectedUI();
     applySettingsUI();const footballSel=qs('#footballCompetition');if(footballSel)footballSel.value=state.footballCompetition||'PL';calendarCursor=new Date();selectedCalendarDate=dayKey();updateClock();setInterval(updateClock,1000);registerNotificationSW();updateNotificationUI();if(state.notificationsEnabled&&Notification.permission==='granted')scheduleAllNotifications();generateBriefing();setTimeout(applyLaunchRoute,60);
