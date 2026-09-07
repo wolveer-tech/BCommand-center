@@ -1844,6 +1844,43 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
   .music-search-provider-head span{display:block;text-align:left;margin-top:3px}
 }
 
+
+.music-provider-statuses{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:6px;
+  margin-bottom:12px
+}
+.music-provider-status{
+  border:1px solid var(--line);
+  border-radius:11px;
+  padding:7px 8px;
+  background:var(--panel2);
+  min-width:0
+}
+.music-provider-status strong{
+  display:block;
+  font-size:8px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis
+}
+.music-provider-status span{
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-size:7px;
+  line-height:1.35
+}
+.music-provider-status.loading{opacity:.75}
+.music-provider-status.done{border-color:rgba(65,214,183,.3)}
+.music-provider-status.error{border-color:rgba(255,107,107,.3)}
+.music-provider-status.skipped{opacity:.65}
+.music-empty.compact{padding:12px;margin-bottom:8px}
+@media(max-width:620px){
+  .music-provider-statuses{grid-template-columns:1fr}
+}
+
 </style>
 </head>
 <body>
@@ -7302,7 +7339,15 @@ const musicRuntime={
   tab:'foryou',
   searchQuery:'',
   searchResults:[],
+  audiusResults:[],
+  youtubeResults:[],
   musicbrainzResults:[],
+  searchSeq:0,
+  searchProviderState:{
+    audius:{status:'idle',error:''},
+    youtube:{status:'idle',error:''},
+    musicbrainz:{status:'idle',error:''}
+  },
   trending:[],
   forYou:[],
   current:null,
@@ -7425,7 +7470,7 @@ function musicBrainzCard(track,index){
   </article>`;
 }
 
-async function findPlayableMusicBrainz(index){
+function findPlayableMusicBrainz(index){
   const track=musicRuntime.musicbrainzResults[Number(index)];
   if(!track)return;
 
@@ -7433,32 +7478,8 @@ async function findPlayableMusicBrainz(index){
   const input=qs('#musicSearchInput');
   if(input)input.value=q;
 
-  musicRuntime.searchQuery=q;
-  musicRuntime.tab='search';
-  musicUpdateTabs();
-
-  const content=qs('#musicContent');
-  if(content)content.innerHTML=`<div class="music-empty">Looking for a playable version of ${esc(track.title||'this recording')}…</div>`;
-
-  try{
-    const data=await fetchJson(`/api/music/search?q=${encodeURIComponent(q)}`,{},22000);
-    const audius=Array.isArray(data.audius)?data.audius:[];
-    const youtube=Array.isArray(data.youtube)?data.youtube:[];
-    musicRuntime.searchResults=[...audius,...youtube];
-    musicRuntime.musicbrainzResults=Array.isArray(data.musicbrainz)?data.musicbrainz:[];
-
-    renderMusicContent();
-
-    if(audius.length){
-      toast('Found an Audius version');
-    }else if(youtube.length){
-      toast('Found a YouTube version');
-    }else{
-      toast('MusicBrainz identified the recording, but no playable source was found');
-    }
-  }catch(e){
-    if(content)content.innerHTML=`<div class="music-empty">${esc(e.message||'Could not find a playable version')}</div>`;
-  }
+  toast(`Looking for a playable version of ${track.title||'this recording'}…`);
+  startIndependentMusicSearch(q,{includeMusicBrainz:false});
 }
 window.findPlayableMusicBrainz=findPlayableMusicBrainz;
 
@@ -7520,33 +7541,122 @@ async function loadMusicTrending(force=false){
   renderMusicContent();
 }
 
-async function searchMusic(){
-  const input=qs('#musicSearchInput');
-  const q=String(input?.value||'').trim();
-  if(q.length<2){toast('Enter at least 2 characters');return}
+function musicProviderFriendlyError(provider,error){
+  const timedOut=error?.name==='AbortError'||/abort|timed out|timeout/i.test(String(error?.message||''));
+  if(timedOut){
+    if(provider==='musicbrainz')return 'MusicBrainz took too long — playable results are still available.';
+    if(provider==='youtube')return 'YouTube took too long — Audius and MusicBrainz can still load.';
+    return 'Audius took too long — YouTube and MusicBrainz can still load.';
+  }
 
-  musicRuntime.searchQuery=q;
-  musicRuntime.tab='search';
-  musicUpdateTabs();
+  const message=String(error?.message||'').trim();
+  if(message)return message;
 
-  const content=qs('#musicContent');
-  if(content)content.innerHTML='<div class="music-empty">Searching Audius, YouTube and MusicBrainz…</div>';
+  if(provider==='musicbrainz')return 'MusicBrainz is temporarily unavailable.';
+  if(provider==='youtube')return 'YouTube search is temporarily unavailable.';
+  return 'Audius search is temporarily unavailable.';
+}
+
+function resetMusicSearchProviders(includeMusicBrainz=true){
+  musicRuntime.audiusResults=[];
+  musicRuntime.youtubeResults=[];
+  musicRuntime.searchResults=[];
+  if(includeMusicBrainz)musicRuntime.musicbrainzResults=[];
+
+  musicRuntime.searchProviderState={
+    audius:{status:'loading',error:''},
+    youtube:{status:'loading',error:''},
+    musicbrainz:includeMusicBrainz
+      ?{status:'loading',error:''}
+      :{status:'skipped',error:'Exact playable lookup — metadata search not repeated.'}
+  };
+}
+
+function syncPlayableMusicResults(){
+  musicRuntime.searchResults=[
+    ...musicRuntime.audiusResults,
+    ...musicRuntime.youtubeResults
+  ];
+}
+
+async function runIndependentMusicProvider(provider,q,seq){
+  const config={
+    audius:{
+      url:`/api/music/search/audius?q=${encodeURIComponent(q)}`,
+      timeout:10000
+    },
+    youtube:{
+      url:`/api/music/search/youtube?q=${encodeURIComponent(q)}`,
+      timeout:12000
+    },
+    musicbrainz:{
+      url:`/api/music/search/musicbrainz?q=${encodeURIComponent(q)}`,
+      timeout:18000
+    }
+  }[provider];
+
+  if(!config)return;
 
   try{
-    const data=await fetchJson(`/api/music/search?q=${encodeURIComponent(q)}`,{},22000);
-    const audius=Array.isArray(data.audius)?data.audius:[];
-    const youtube=Array.isArray(data.youtube)?data.youtube:[];
-    const musicbrainz=Array.isArray(data.musicbrainz)?data.musicbrainz:[];
+    const data=await fetchJson(config.url,{},config.timeout);
+    if(seq!==musicRuntime.searchSeq)return;
 
-    musicRuntime.searchResults=[...audius,...youtube];
-    musicRuntime.musicbrainzResults=musicbrainz;
-
-    renderMusicContent();
-  }catch(e){
-    musicRuntime.searchResults=[];
-    musicRuntime.musicbrainzResults=[];
-    if(content)content.innerHTML=`<div class="music-empty">${esc(e.message||'Music search failed')}</div>`;
+    if(provider==='audius'){
+      musicRuntime.audiusResults=Array.isArray(data.tracks)?data.tracks:[];
+      musicRuntime.searchProviderState.audius={
+        status:musicRuntime.audiusResults.length?'done':'empty',
+        error:''
+      };
+      syncPlayableMusicResults();
+    }else if(provider==='youtube'){
+      musicRuntime.youtubeResults=Array.isArray(data.tracks)?data.tracks:[];
+      musicRuntime.searchProviderState.youtube={
+        status:musicRuntime.youtubeResults.length?'done':(data.configured===false?'unavailable':'empty'),
+        error:data.configured===false?(data.message||'YouTube API is not configured.'):''
+      };
+      syncPlayableMusicResults();
+    }else{
+      musicRuntime.musicbrainzResults=Array.isArray(data.recordings)?data.recordings:[];
+      musicRuntime.searchProviderState.musicbrainz={
+        status:musicRuntime.musicbrainzResults.length?'done':'empty',
+        error:''
+      };
+    }
+  }catch(error){
+    if(seq!==musicRuntime.searchSeq)return;
+    musicRuntime.searchProviderState[provider]={
+      status:'error',
+      error:musicProviderFriendlyError(provider,error)
+    };
   }
+
+  if(seq===musicRuntime.searchSeq)renderMusicContent();
+}
+
+function startIndependentMusicSearch(q,{includeMusicBrainz=true}={}){
+  const clean=String(q||'').trim();
+  if(clean.length<2){toast('Enter at least 2 characters');return}
+
+  musicRuntime.searchQuery=clean;
+  musicRuntime.tab='search';
+  musicRuntime.searchSeq+=1;
+  const seq=musicRuntime.searchSeq;
+
+  resetMusicSearchProviders(includeMusicBrainz);
+  musicUpdateTabs();
+  renderMusicContent();
+
+  // Intentionally not awaited together:
+  // every provider updates the UI as soon as it finishes.
+  runIndependentMusicProvider('audius',clean,seq);
+  runIndependentMusicProvider('youtube',clean,seq);
+  if(includeMusicBrainz)runIndependentMusicProvider('musicbrainz',clean,seq);
+}
+
+function searchMusic(){
+  const input=qs('#musicSearchInput');
+  const q=String(input?.value||'').trim();
+  startIndependentMusicSearch(q,{includeMusicBrainz:true});
 }
 window.searchMusic=searchMusic;
 
@@ -7611,29 +7721,67 @@ function renderMusicContent(){
   if(musicRuntime.tab==='search'){
     const playable=musicRuntime.searchResults;
     const metadata=musicRuntime.musicbrainzResults;
+    const providerState=musicRuntime.searchProviderState||{};
 
-    if(!playable.length&&!metadata.length){
-      content.innerHTML='<div class="music-empty">Search for a song or artist above.</div>';
-      return;
-    }
+    const stateText=(provider,label,count=0)=>{
+      const s=providerState[provider]||{status:'idle',error:''};
+      if(s.status==='loading')return `${label}: searching…`;
+      if(s.status==='done')return `${label}: ${count} result${count===1?'':'s'}`;
+      if(s.status==='empty')return `${label}: no results`;
+      if(s.status==='skipped')return `${label}: not needed`;
+      if(s.status==='unavailable'||s.status==='error')return `${label}: unavailable`;
+      return `${label}: ready`;
+    };
 
-    const sections=[];
+    const statusRows=[
+      ['audius','Audius',musicRuntime.audiusResults.length],
+      ['youtube','YouTube',musicRuntime.youtubeResults.length],
+      ['musicbrainz','MusicBrainz',metadata.length]
+    ];
+
+    const statusHtml=`<div class="music-provider-statuses">${statusRows.map(([key,label,count])=>{
+      const s=providerState[key]||{status:'idle',error:''};
+      const stateClass=['done','empty','loading','skipped'].includes(s.status)?s.status:'error';
+      return `<div class="music-provider-status ${stateClass}">
+        <strong>${esc(stateText(key,label,count))}</strong>
+        ${s.error?`<span>${esc(s.error)}</span>`:''}
+      </div>`;
+    }).join('')}</div>`;
+
+    const sections=[statusHtml];
+
     if(playable.length){
       sections.push(`
         <div class="music-search-provider-head">
           <strong>Playable results</strong>
-          <span>Audius + YouTube</span>
+          <span>Results appear as soon as Audius or YouTube responds.</span>
         </div>
         <div class="music-grid">${playable.map((x,i)=>musicTrackCard(x,i,'search')).join('')}</div>`);
+    }else{
+      const playableStillLoading=
+        providerState.audius?.status==='loading'||
+        providerState.youtube?.status==='loading';
+
+      if(playableStillLoading){
+        sections.push('<div class="music-empty compact">Looking for playable versions…</div>');
+      }else{
+        sections.push('<div class="music-empty compact">No playable Audius or YouTube result was found for this search.</div>');
+      }
     }
 
     if(metadata.length){
       sections.push(`
         <div class="music-search-provider-head musicbrainz-head">
           <strong>MusicBrainz matches</strong>
-          <span>Use these exact recording matches if the playable providers missed the song.</span>
+          <span>Metadata discovery loads independently and never holds up playback results.</span>
         </div>
         <div class="music-grid">${metadata.map((x,i)=>musicBrainzCard(x,i)).join('')}</div>`);
+    }else if(providerState.musicbrainz?.status==='loading'){
+      sections.push(`
+        <div class="music-search-provider-head musicbrainz-head">
+          <strong>MusicBrainz matches</strong>
+          <span>Still checking exact recording metadata in the background…</span>
+        </div>`);
     }
 
     content.innerHTML=sections.join('');
