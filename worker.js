@@ -348,6 +348,7 @@ function liveProviderConfig(env,providerId='1'){
       dynamicPath:String(env.LIVE_PROVIDER_1_DYNAMIC_PATH||'').trim(),
       dynamicRoot:String(env.LIVE_PROVIDER_1_DYNAMIC_ROOT||'').trim(),
       dynamicCategoryField:String(env.LIVE_PROVIDER_1_DYNAMIC_CATEGORY_FIELD||'').trim(),
+      dynamicItemsField:String(env.LIVE_PROVIDER_1_DYNAMIC_ITEMS_FIELD||'').trim(),
       dynamicCategoryParam:String(env.LIVE_PROVIDER_1_DYNAMIC_CATEGORY_PARAM||'').trim(),
 
       categoryAliases:{
@@ -374,6 +375,7 @@ function liveProviderConfig(env,providerId='1'){
       dynamicPath:String(env.LIVE_PROVIDER_2_DYNAMIC_PATH||'').trim(),
       dynamicRoot:String(env.LIVE_PROVIDER_2_DYNAMIC_ROOT||'').trim(),
       dynamicCategoryField:String(env.LIVE_PROVIDER_2_DYNAMIC_CATEGORY_FIELD||'').trim(),
+      dynamicItemsField:String(env.LIVE_PROVIDER_2_DYNAMIC_ITEMS_FIELD||'').trim(),
       dynamicCategoryParam:String(env.LIVE_PROVIDER_2_DYNAMIC_CATEGORY_PARAM||'').trim(),
 
       categoryAliases:{
@@ -399,6 +401,7 @@ function liveProviderConfig(env,providerId='1'){
       dynamicPath:String(env.LIVE_PROVIDER_3_DYNAMIC_PATH||'').trim(),
       dynamicRoot:String(env.LIVE_PROVIDER_3_DYNAMIC_ROOT||'').trim(),
       dynamicCategoryField:String(env.LIVE_PROVIDER_3_DYNAMIC_CATEGORY_FIELD||'').trim(),
+      dynamicItemsField:String(env.LIVE_PROVIDER_3_DYNAMIC_ITEMS_FIELD||'').trim(),
       dynamicCategoryParam:String(env.LIVE_PROVIDER_3_DYNAMIC_CATEGORY_PARAM||'').trim(),
 
     categoryAliases:{
@@ -444,11 +447,12 @@ function allowedProviderPageUrl(pageUrl,base,cfg){
 function sourceUrlCandidate(value){
   if(typeof value==='string')return value.trim();
   if(!value||typeof value!=='object')return '';
-  return String(value.embed_url||value.url||value.src||value.source||'').trim();
+  const candidate=String(value.embed_url||value.url||value.src||'').trim();
+  return /^https:\/\//i.test(candidate)?candidate:'';
 }
 function sourceLabelCandidate(value,index){
   if(value&&typeof value==='object'){
-    const label=String(value.label||value.name||value.quality||'').trim();
+    const label=String(value.label||value.name||value.quality||value.source||'').trim();
     if(label)return label.slice(0,60);
   }
   return `Source ${index+1}`;
@@ -702,6 +706,52 @@ function dynamicRootItems(data,cfg){
   ];
   return candidates.find(Array.isArray)||[];
 }
+function dynamicNestedItems(group,cfg){
+  if(!group||typeof group!=='object')return [];
+
+  // Explicit configuration wins.
+  if(cfg.dynamicItemsField){
+    const nested=valueAtPath(group,cfg.dynamicItemsField);
+    return Array.isArray(nested)?nested:[];
+  }
+
+  // Common nested collection names.
+  const candidates=[
+    group.streams,
+    group.events,
+    group.items,
+    group.matches,
+    group.results,
+    group.data
+  ];
+  return candidates.find(Array.isArray)||[];
+}
+function dynamicExpandItems(rootItems,cfg,requestedCategory){
+  const rows=Array.isArray(rootItems)?rootItems:[];
+
+  // First try the grouped/nested shape:
+  // {
+  //   "streams": [
+  //     {"category":"Football","streams":[...]},
+  //     {"category":"Tennis","streams":[...]}
+  //   ]
+  // }
+  const matchingGroups=rows.filter(group=>dynamicCategoryMatches(group,cfg,requestedCategory));
+  const nested=matchingGroups.flatMap(group=>dynamicNestedItems(group,cfg));
+
+  if(nested.length){
+    return nested.map(item=>({
+      ...item,
+      __groupCategory:dynamicItemCategory(matchingGroups.find(group=>{
+        const items=dynamicNestedItems(group,cfg);
+        return items.includes(item);
+      })||{},cfg)
+    }));
+  }
+
+  // Otherwise treat the root array as the stream/event list itself.
+  return rows.filter(item=>dynamicCategoryMatches(item,cfg,requestedCategory));
+}
 function dynamicSourceList(item){
   const raw=firstUseful(
     item,
@@ -725,19 +775,21 @@ function normaliseDynamicStream(item,index,requestedCategory){
     'thumbnail_url','thumbnail','image','poster','cover'
   ]);
   const timestamp=firstUseful(item,[
-    'match_timestamp','timestamp','start_timestamp','startTime','start_time'
+    'match_timestamp','timestamp','start_timestamp','starts_at','startTime','start_time'
   ]);
   const id=firstUseful(item,['id','stream_key','key','slug'])||`${requestedCategory}-${index+1}`;
+  const tag=String(firstUseful(item,['tag','status','state'])||'').trim();
 
   return {
     id:String(id).slice(0,200),
     name:String(title).slice(0,180),
     category:String(requestedCategory).slice(0,80),
-    league:String(league||'').slice(0,120),
+    league:String(league||item.__groupCategory||'').slice(0,120),
     match_timestamp:Number(timestamp)||null,
     embed_url:typeof embed==='string'?embed:'',
     sources:dynamicSourceList(item),
     thumbnail_url:typeof thumbnail==='string'?thumbnail:'',
+    tag:String(tag).slice(0,40),
     team1:item?.team1&&typeof item.team1==='object'?item.team1:null,
     team2:item?.team2&&typeof item.team2==='object'?item.team2:null
   };
@@ -789,14 +841,15 @@ async function fetchDynamicProvider(cfg,base,category){
     throw err;
   }
 
-  const items=dynamicRootItems(data,cfg);
-  const matching=items.filter(item=>dynamicCategoryMatches(item,cfg,category));
+  const rootItems=dynamicRootItems(data,cfg);
+  const matching=dynamicExpandItems(rootItems,cfg,category);
 
   return {
     count:matching.length,
     streams:matching.map((item,index)=>normaliseDynamicStream(item,index,category)),
     dynamicEndpointHost:endpoint.hostname,
-    dynamicContentType:contentType
+    dynamicContentType:contentType,
+    dynamicRootCount:rootItems.length
   };
 }
 
