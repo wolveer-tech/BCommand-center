@@ -1760,6 +1760,29 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
   .music-mini-player{left:10px;right:10px;bottom:72px;width:auto}
 }
 
+
+.music-search-provider-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  margin:4px 0 9px;
+  padding:0 2px;
+}
+.music-search-provider-head strong{font-size:11px}
+.music-search-provider-head span{font-size:8px;color:var(--muted);text-align:right}
+.musicbrainz-head{margin-top:18px}
+.musicbrainz-card .music-track-art-fallback{
+  background:linear-gradient(135deg,rgba(89,108,255,.18),rgba(65,214,183,.12));
+}
+.musicbrainz-card .music-source-badge{
+  background:rgba(89,108,255,.14);
+}
+@media(max-width:620px){
+  .music-search-provider-head{display:block}
+  .music-search-provider-head span{display:block;text-align:left;margin-top:3px}
+}
+
 </style>
 </head>
 <body>
@@ -2516,7 +2539,7 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
           <div class="card-head">
             <div>
               <div class="title">🎵 Music</div>
-              <div class="sub" id="musicStatusSub">Free music search with Audius and official YouTube playback fallback.</div>
+              <div class="sub" id="musicStatusSub">Free playback with Audius and YouTube, plus MusicBrainz discovery when a track is hard to find.</div>
             </div>
             <div class="toolbar">
               <button class="btn" id="musicRefreshBtn">↻ Refresh</button>
@@ -2557,9 +2580,9 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
 
         <article class="card">
           <div class="music-provider-note">
-            Audius supplies free on-demand tracks from its open music catalogue. When a song is not available there,
-            Command Centre can show an official YouTube embedded-player fallback using your existing YouTube API integration.
-            YouTube fallback playback stays inside the official embedded player.
+            Audius supplies free on-demand tracks from its open catalogue. YouTube is the broad-catalogue playback fallback
+            through its official embedded player. MusicBrainz is used as a free metadata/discovery fallback to identify
+            songs, artists, releases and exact recordings when the playable providers cannot find the track directly.
           </div>
         </article>
       </div>
@@ -7218,6 +7241,7 @@ const musicRuntime={
   tab:'foryou',
   searchQuery:'',
   searchResults:[],
+  musicbrainzResults:[],
   trending:[],
   forYou:[],
   current:null,
@@ -7314,6 +7338,69 @@ function musicTrackCard(track,index,collection='current'){
     </div>
   </article>`;
 }
+
+function musicBrainzCard(track,index){
+  const details=[
+    track.album||'',
+    track.year||'',
+    track.duration?musicDurationLabel(track.duration):'',
+    track.isrc?`ISRC ${track.isrc}`:''
+  ].filter(Boolean).join(' • ');
+
+  return `<article class="music-track-card musicbrainz-card">
+    <div class="music-track-art-fallback">🧠</div>
+    <div class="music-track-body">
+      <div class="music-track-title">${esc(track.title||'Untitled')}</div>
+      <div class="music-track-artist">${esc(track.artist||'Unknown artist')}</div>
+      <div class="music-track-meta">
+        <span class="music-source-badge">MusicBrainz</span>
+        <span>${esc(details||'Metadata match')}</span>
+      </div>
+    </div>
+    <div class="music-card-actions">
+      <button class="music-play" data-musicbrainz-find="${index}">Find playable</button>
+      ${track.musicBrainzUrl?`<a class="btn small" href="${esc(track.musicBrainzUrl)}" target="_blank" rel="noopener">Info</a>`:''}
+    </div>
+  </article>`;
+}
+
+async function findPlayableMusicBrainz(index){
+  const track=musicRuntime.musicbrainzResults[Number(index)];
+  if(!track)return;
+
+  const q=[track.title,track.artist].filter(Boolean).join(' ').trim();
+  const input=qs('#musicSearchInput');
+  if(input)input.value=q;
+
+  musicRuntime.searchQuery=q;
+  musicRuntime.tab='search';
+  musicUpdateTabs();
+
+  const content=qs('#musicContent');
+  if(content)content.innerHTML=`<div class="music-empty">Looking for a playable version of ${esc(track.title||'this recording')}…</div>`;
+
+  try{
+    const data=await fetchJson(`/api/music/search?q=${encodeURIComponent(q)}`,{},22000);
+    const audius=Array.isArray(data.audius)?data.audius:[];
+    const youtube=Array.isArray(data.youtube)?data.youtube:[];
+    musicRuntime.searchResults=[...audius,...youtube];
+    musicRuntime.musicbrainzResults=Array.isArray(data.musicbrainz)?data.musicbrainz:[];
+
+    renderMusicContent();
+
+    if(audius.length){
+      toast('Found an Audius version');
+    }else if(youtube.length){
+      toast('Found a YouTube version');
+    }else{
+      toast('MusicBrainz identified the recording, but no playable source was found');
+    }
+  }catch(e){
+    if(content)content.innerHTML=`<div class="music-empty">${esc(e.message||'Could not find a playable version')}</div>`;
+  }
+}
+window.findPlayableMusicBrainz=findPlayableMusicBrainz;
+
 function musicCollection(name){
   if(name==='search')return musicRuntime.searchResults;
   if(name==='trending')return musicRuntime.trending;
@@ -7361,12 +7448,13 @@ async function loadMusicTrending(force=false){
       .slice(0,20);
     if(status){
       const yt=data.youtubeConfigured?'YouTube fallback ready':'YouTube fallback unavailable';
-      status.textContent=`Audius free catalogue • ${yt}`;
+      const mb=data.musicbrainzAvailable?'MusicBrainz discovery ready':'MusicBrainz unavailable';
+      status.textContent=`Audius free catalogue • ${yt} • ${mb}`;
     }
   }catch(e){
     musicRuntime.trending=[];
     musicRuntime.forYou=state.musicRecent.slice(0,12);
-    if(status)status.textContent=`Audius unavailable right now • YouTube search can still be used`;
+    if(status)status.textContent=`Audius unavailable right now • YouTube and MusicBrainz search can still be used`;
   }
   renderMusicContent();
 }
@@ -7375,19 +7463,27 @@ async function searchMusic(){
   const input=qs('#musicSearchInput');
   const q=String(input?.value||'').trim();
   if(q.length<2){toast('Enter at least 2 characters');return}
+
   musicRuntime.searchQuery=q;
   musicRuntime.tab='search';
   musicUpdateTabs();
+
   const content=qs('#musicContent');
-  if(content)content.innerHTML='<div class="music-empty">Searching Audius and YouTube…</div>';
+  if(content)content.innerHTML='<div class="music-empty">Searching Audius, YouTube and MusicBrainz…</div>';
+
   try{
-    const data=await fetchJson(`/api/music/search?q=${encodeURIComponent(q)}`,{},20000);
+    const data=await fetchJson(`/api/music/search?q=${encodeURIComponent(q)}`,{},22000);
     const audius=Array.isArray(data.audius)?data.audius:[];
     const youtube=Array.isArray(data.youtube)?data.youtube:[];
+    const musicbrainz=Array.isArray(data.musicbrainz)?data.musicbrainz:[];
+
     musicRuntime.searchResults=[...audius,...youtube];
+    musicRuntime.musicbrainzResults=musicbrainz;
+
     renderMusicContent();
   }catch(e){
     musicRuntime.searchResults=[];
+    musicRuntime.musicbrainzResults=[];
     if(content)content.innerHTML=`<div class="music-empty">${esc(e.message||'Music search failed')}</div>`;
   }
 }
@@ -7448,6 +7544,38 @@ function renderMusicContent(){
     content.innerHTML=playlist.tracks.length
       ?`<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn small red" data-music-playlist-delete="${esc(id)}">Delete playlist</button></div><div class="music-grid">${playlist.tracks.map((x,i)=>musicTrackCard(x,i,`playlist:${id}`)).join('')}</div>`
       :'<div class="music-empty">This playlist is empty.</div>';
+    return;
+  }
+
+  if(musicRuntime.tab==='search'){
+    const playable=musicRuntime.searchResults;
+    const metadata=musicRuntime.musicbrainzResults;
+
+    if(!playable.length&&!metadata.length){
+      content.innerHTML='<div class="music-empty">Search for a song or artist above.</div>';
+      return;
+    }
+
+    const sections=[];
+    if(playable.length){
+      sections.push(`
+        <div class="music-search-provider-head">
+          <strong>Playable results</strong>
+          <span>Audius + YouTube</span>
+        </div>
+        <div class="music-grid">${playable.map((x,i)=>musicTrackCard(x,i,'search')).join('')}</div>`);
+    }
+
+    if(metadata.length){
+      sections.push(`
+        <div class="music-search-provider-head musicbrainz-head">
+          <strong>MusicBrainz matches</strong>
+          <span>Use these exact recording matches if the playable providers missed the song.</span>
+        </div>
+        <div class="music-grid">${metadata.map((x,i)=>musicBrainzCard(x,i)).join('')}</div>`);
+    }
+
+    content.innerHTML=sections.join('');
     return;
   }
 
@@ -7623,6 +7751,12 @@ function bindMusicPlayer(){
   qsa('[data-music-tab]').forEach(b=>b.addEventListener('click',()=>setMusicTab(b.dataset.musicTab)));
 
   qs('#musicContent')?.addEventListener('click',e=>{
+    const mb=e.target.closest('[data-musicbrainz-find]');
+    if(mb){
+      findPlayableMusicBrainz(Number(mb.dataset.musicbrainzFind));
+      return;
+    }
+
     const play=e.target.closest('[data-music-play]');
     if(play){
       const list=musicCollection(play.dataset.musicCollection||musicRuntime.tab);
