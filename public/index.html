@@ -2129,22 +2129,6 @@ body.home-fullscreen .mobile-watch-fab{
         </article>
 
         <article class="card">
-          <div class="card-head">
-            <div><div class="title">📡 Live football</div><div class="sub">Live streams supplied by your configured authorised provider. Switch sources inside the player when more than one is available.</div></div>
-            <button class="btn" id="liveFootballRefreshBtn">↻ Refresh live</button>
-          </div>
-          <div id="liveFootballProviders" class="live-provider-switcher"></div>
-          <div id="liveFootballStatus" class="section-note">Choose a configured provider, then refresh.</div>
-          <div id="liveFootballGrid" class="live-stream-grid"></div>
-          <div id="liveFootballPlayerWrap" style="display:none;margin-top:12px">
-            <div class="card-head"><div><div class="title" id="liveFootballPlayerTitle">Live stream</div><div class="sub" id="liveFootballPlayerMeta"></div></div><button class="btn small" id="closeLiveFootballBtn">Close player</button></div>
-            <div id="liveFootballSources" class="live-source-switcher"></div>
-            <iframe id="liveFootballFrame" class="live-stream-frame" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
-          </div>
-          <div class="setting-note">Command Centre only displays streams returned by the provider you configure. Use a provider you are authorised to access and embed.</div>
-        </article>
-
-        <article class="card">
           <div class="warning">Football data is loaded through your Cloudflare Worker using football-data.org. The app now supports the major European leagues plus Championship, League One, League Two and National League. Your football-data.org subscription determines which lower divisions your API key can actually access.</div>
         </article>
 
@@ -2180,6 +2164,25 @@ body.home-fullscreen .mobile-watch-fab{
             <div class="setting-note"><b>Live data:</b> Football and Basketball use the same shared API-SPORTS account key. Tennis uses API-Tennis because it is a separate provider. The Worker caches results to protect your request allowances.</div>
           </article>
         </div>
+        <article class="card" id="liveSportStreamingCard">
+          <div class="card-head">
+            <div>
+              <div class="title" id="liveSportStreamingTitle">📡 Live football streams</div>
+              <div class="sub" id="liveSportStreamingSub">Streams supplied by your configured authorised providers. Choose a provider, then switch player sources when available.</div>
+            </div>
+            <button class="btn" id="liveFootballRefreshBtn">↻ Refresh streams</button>
+          </div>
+          <div id="liveFootballProviders" class="live-provider-switcher"></div>
+          <div id="liveFootballStatus" class="section-note">Choose a configured provider, then refresh.</div>
+          <div id="liveFootballGrid" class="live-stream-grid"></div>
+          <div id="liveFootballPlayerWrap" style="display:none;margin-top:12px">
+            <div class="card-head"><div><div class="title" id="liveFootballPlayerTitle">Live stream</div><div class="sub" id="liveFootballPlayerMeta"></div></div><button class="btn small" id="closeLiveFootballBtn">Close player</button></div>
+            <div id="liveFootballSources" class="live-source-switcher"></div>
+            <iframe id="liveFootballFrame" class="live-stream-frame" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+          </div>
+          <div class="setting-note">This section changes automatically with Football, Tennis and Basketball. Command Centre only displays streams from providers you configure and are authorised to access and embed.</div>
+        </article>
+
       </div>
     </section>
 
@@ -3171,7 +3174,7 @@ function switchPage(page,persist=true){
   if(page==='manga')loadManga();
   if(page==='reddit')loadReddit();
   if(page==='entertainment'){renderEntertainmentHub();refreshEntertainmentFeed(false)}
-  if(page==='football'){bindSportSwitcher();const sk=currentSportTab();if(sk==='football'){loadFootball(false);loadLiveFootball(false);bindLiveFootball();}else loadGeneralSport(sk,false);}
+  if(page==='football'){bindSportSwitcher();bindLiveFootball();const sk=currentSportTab();if(sk==='football')loadFootball(false);else loadGeneralSport(sk,false);loadLiveFootball(false,sk);}
   if(page==='status')runStatusChecks();
   if(page==='mirror'){updateNativeMirrorAvailability();mirrorStatus('mirrorSenderStatus',navigator.mediaDevices?.getDisplayMedia?'Ready to create a mirror room.':'Screen capture is unavailable in this browser. Receiver mode still works.',navigator.mediaDevices?.getDisplayMedia?'ok':'')}
   if(page==='weather')loadWeather();
@@ -4538,10 +4541,39 @@ async function playSelectedMedia(openExternal=false){
 
 let liveFootballStreams=[];
 let liveFootballProviders=[];
-let liveFootballProviderId=localStorage.getItem('cc_live_provider')||'1';
+let liveFootballProviderId='1';
 let liveFootballCurrentStreamIndex=-1;
 let liveFootballCurrentSourceIndex=0;
 
+function liveSportKind(){
+  const kind=typeof currentSportTab==='function'?currentSportTab():'football';
+  return ['football','tennis','basketball'].includes(kind)?kind:'football';
+}
+function liveSportCategory(kind=liveSportKind()){
+  return kind==='tennis'?'tennis':kind==='basketball'?'basketball':'soccer';
+}
+function liveSportDisplay(kind=liveSportKind()){
+  return kind==='tennis'?'Tennis':kind==='basketball'?'Basketball':'Football';
+}
+function liveSportProviderStorageKey(kind=liveSportKind()){
+  return `cc_live_provider_${kind}`;
+}
+function restoreLiveSportProvider(kind=liveSportKind()){
+  liveFootballProviderId=localStorage.getItem(liveSportProviderStorageKey(kind))
+    ||localStorage.getItem('cc_live_provider')
+    ||'1';
+}
+function updateLiveSportStreamingUi(kind=liveSportKind()){
+  restoreLiveSportProvider(kind);
+  const name=liveSportDisplay(kind);
+  const title=qs('#liveSportStreamingTitle');
+  const sub=qs('#liveSportStreamingSub');
+  const refresh=qs('#liveFootballRefreshBtn');
+  if(title)title.textContent=`📡 Live ${name.toLowerCase()} streams`;
+  if(sub)sub.textContent=`${name} streams supplied by your configured authorised providers. Choose a provider, then switch player sources when available.`;
+  if(refresh)refresh.textContent=`↻ Refresh ${name.toLowerCase()} streams`;
+  renderLiveFootballProviders();
+}
 function liveStreamDate(ts){
   if(!ts)return 'Live';
   const n=Number(ts);if(!Number.isFinite(n))return 'Live';
@@ -4576,9 +4608,10 @@ async function loadLiveFootballProviders(){
   try{
     const data=await fetchJson('/api/live-content/providers',{},10000);
     liveFootballProviders=Array.isArray(data.providers)?data.providers:[];
+    restoreLiveSportProvider();
     if(liveFootballProviders.length&&!liveFootballProviders.some(p=>p.id===liveFootballProviderId)){
       liveFootballProviderId=liveFootballProviders[0].id;
-      localStorage.setItem('cc_live_provider',liveFootballProviderId);
+      localStorage.setItem(liveSportProviderStorageKey(),liveFootballProviderId);
     }
     renderLiveFootballProviders();
     return liveFootballProviders;
@@ -4592,30 +4625,37 @@ async function selectLiveFootballProvider(providerId){
   if(!liveFootballProviders.some(p=>p.id===String(providerId)))return;
   closeLiveFootball();
   liveFootballProviderId=String(providerId);
+  localStorage.setItem(liveSportProviderStorageKey(),liveFootballProviderId);
   localStorage.setItem('cc_live_provider',liveFootballProviderId);
   renderLiveFootballProviders();
   await loadLiveFootball(true);
 }
-async function loadLiveFootball(force=false){
+async function loadLiveFootball(force=false,kind=liveSportKind()){
   const status=qs('#liveFootballStatus'),grid=qs('#liveFootballGrid');
   if(!status||!grid)return;
+
+  updateLiveSportStreamingUi(kind);
 
   if(!liveFootballProviders.length)await loadLiveFootballProviders();
   if(!liveFootballProviders.length){
     grid.innerHTML='<div class="empty">No live Sport providers are configured in Cloudflare.</div>';
-    status.textContent='Configure Provider 1 and/or Provider 2.';
+    status.textContent='Configure Provider 1, Provider 2 and/or Provider 3.';
     return;
   }
 
+  if(!liveFootballProviders.some(p=>p.id===liveFootballProviderId)){
+    liveFootballProviderId=liveFootballProviders[0].id;
+    localStorage.setItem(liveSportProviderStorageKey(kind),liveFootballProviderId);
+  }
   const selected=liveFootballProviders.find(p=>p.id===liveFootballProviderId)||liveFootballProviders[0];
-  liveFootballProviderId=selected.id;
   renderLiveFootballProviders();
 
-  status.textContent=`Loading ${selected.name}…`;
+  const display=liveSportDisplay(kind);
+  status.textContent=`Loading ${display.toLowerCase()} streams from ${selected.name}…`;
   grid.innerHTML='<div class="empty">Loading…</div>';
 
   try{
-    const q=new URLSearchParams({category:'soccer',provider:liveFootballProviderId});
+    const q=new URLSearchParams({category:liveSportCategory(kind),provider:liveFootballProviderId});
     if(force)q.set('refresh','1');
 
     const data=await fetchJson(`/api/live-content?${q.toString()}`,{},20000);
@@ -4623,10 +4663,10 @@ async function loadLiveFootball(force=false){
 
     if(!liveFootballStreams.length){
       const detail=data?.rejectedCount
-        ?`${data.providerName||selected.name} returned ${data.providerCount||0}, but ${data.rejectedCount} were rejected by its allowed-host rules.`
-        :`No live football streams are currently available from ${data.providerName||selected.name}.`;
+        ?`${data.providerName||selected.name} returned ${data.providerCount||0} ${display.toLowerCase()} stream entries, but ${data.rejectedCount} were rejected by its allowed-host rules.`
+        :`No live ${display.toLowerCase()} streams are currently available from ${data.providerName||selected.name}.`;
       grid.innerHTML=`<div class="empty">${esc(detail)}</div>`;
-      status.textContent=data?.diagnostic||'No live streams right now.';
+      status.textContent=data?.diagnostic||`No live ${display.toLowerCase()} streams right now.`;
       return;
     }
 
@@ -4635,14 +4675,14 @@ async function loadLiveFootball(force=false){
       return `<article class="live-stream-card" data-live-stream-index="${i}" role="button" tabindex="0">
         ${s.thumbnail_url?`<img src="${esc(s.thumbnail_url)}" alt="">`:''}
         <div class="live-stream-info">
-          <div class="live-stream-title">${esc(s.name||'Live match')}${count>1?`<span class="live-source-count">${count} sources</span>`:''}</div>
-          <div class="live-stream-meta">${esc(s.league||s.category||'Football')}</div>
+          <div class="live-stream-title">${esc(s.name||`Live ${display.toLowerCase()}`)}${count>1?`<span class="live-source-count">${count} sources</span>`:''}</div>
+          <div class="live-stream-meta">${esc(s.league||s.category||display)}</div>
           <span class="live-stream-time">${esc(liveStreamDate(s.match_timestamp))}</span>
         </div>
       </article>`;
     }).join('');
 
-    status.textContent=`${data.providerName||selected.name} • ${liveFootballStreams.length} stream${liveFootballStreams.length===1?'':'s'} • ${data.mode==='scrape'?'page mode':'API mode'}`;
+    status.textContent=`${data.providerName||selected.name} • ${display} • ${liveFootballStreams.length} stream${liveFootballStreams.length===1?'':'s'} • ${data.mode==='scrape'?'page mode':'API mode'}`;
   }catch(e){
     grid.innerHTML='';
     status.textContent=e.message||'Live provider unavailable';
@@ -4667,7 +4707,7 @@ function setLiveFootballSource(sourceIndex){
   renderLiveFootballSources(stream);
   if(qs('#liveFootballPlayerMeta')){
     const provider=liveFootballProviders.find(p=>p.id===liveFootballProviderId);
-    const base=stream.league||stream.category||'';
+    const base=stream.league||stream.category||liveSportDisplay();
     const bits=[provider?.name||'',base,sources.length>1?(source.label||`Source ${index+1}`):''].filter(Boolean);
     qs('#liveFootballPlayerMeta').textContent=bits.join(' • ');
   }
@@ -4892,15 +4932,17 @@ function setSportTab(kind,load=true){
   state.activeSportTab=kind;saveState();
   qsa('[data-sport-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.sportTab===kind));
   const football=qs('#footballSportContent'),general=qs('#generalSportContent'),comp=qs('#footballCompetitionWrap');
-  if(kind!=='football'&&typeof closeLiveFootball==='function')closeLiveFootball();
+  if(typeof closeLiveFootball==='function')closeLiveFootball();
   if(football)football.style.display=kind==='football'?'block':'none';
   if(general)general.style.display=kind==='football'?'none':'grid';
   if(comp)comp.style.display=kind==='football'?'block':'none';
   const refresh=qs('#footballRefreshBtn');
   if(refresh)refresh.textContent=kind==='football'?'↻ Refresh':`↻ Refresh ${sportLabel(kind)}`;
+  if(typeof updateLiveSportStreamingUi==='function')updateLiveSportStreamingUi(kind);
   if(load){
     if(kind==='football')loadFootball(false);
     else loadGeneralSport(kind,false);
+    if(typeof loadLiveFootball==='function')loadLiveFootball(false,kind);
   }
 }
 function refreshSelectedSport(){
