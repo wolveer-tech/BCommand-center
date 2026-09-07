@@ -2814,6 +2814,47 @@ async function musicTrending(env,requestUrl,force=false){
   return payload;
 }
 
+
+async function musicSearchAudius(env,query){
+  const q=String(query||'').trim();
+  if(q.length<2){
+    const err=new Error('Enter at least 2 characters to search music.');
+    err.status=400;throw err;
+  }
+
+  const data=await audiusJson('/tracks/search',{
+    query:q,
+    limit:18,
+    sort_method:'relevant'
+  },env);
+
+  const raw=Array.isArray(data?.data)?data.data:Array.isArray(data)?data:[];
+  return raw.map(normalizeAudiusTrack).filter(x=>x.id&&x.streamable);
+}
+
+async function musicSearchYouTube(env,query,requestUrl){
+  const q=String(query||'').trim();
+  if(q.length<2){
+    const err=new Error('Enter at least 2 characters to search music.');
+    err.status=400;throw err;
+  }
+
+  if(!env.YOUTUBE_API_KEY){
+    return {
+      tracks:[],
+      configured:false,
+      message:'YouTube API is not configured.'
+    };
+  }
+
+  const yt=await searchYouTube(env,`${q} official audio`,requestUrl);
+  return {
+    tracks:(yt.items||[]).map(normalizeMusicYoutube),
+    configured:true,
+    message:''
+  };
+}
+
 async function musicSearch(env,query,requestUrl){
   const q=String(query||'').trim();
   if(q.length<2){
@@ -2821,54 +2862,31 @@ async function musicSearch(env,query,requestUrl){
     err.status=400;throw err;
   }
 
-  let audius=[],youtube=[],musicbrainz=[];
-  let audiusError='',youtubeError='',musicbrainzError='';
+  const [audiusSettled,youtubeSettled,musicbrainzSettled]=await Promise.allSettled([
+    musicSearchAudius(env,q),
+    musicSearchYouTube(env,q,requestUrl),
+    musicBrainzSearch(env,q,requestUrl)
+  ]);
 
-  const jobs=[
-    (async()=>{
-      try{
-        const data=await audiusJson('/tracks/search',{query:q,limit:18,sort_method:'relevant'},env);
-        const raw=Array.isArray(data?.data)?data.data:Array.isArray(data)?data:[];
-        audius=raw.map(normalizeAudiusTrack).filter(x=>x.id&&x.streamable);
-      }catch(e){
-        audiusError=e?.message||'Audius search unavailable';
-      }
-    })(),
-    (async()=>{
-      if(!env.YOUTUBE_API_KEY){
-        youtubeError='YouTube API is not configured';
-        return;
-      }
-      try{
-        const yt=await searchYouTube(env,`${q} official audio`,requestUrl);
-        youtube=(yt.items||[]).map(normalizeMusicYoutube);
-      }catch(e){
-        youtubeError=e?.message||'YouTube search unavailable';
-      }
-    })(),
-    (async()=>{
-      try{
-        musicbrainz=await musicBrainzSearch(env,q,requestUrl);
-      }catch(e){
-        musicbrainzError=e?.message||'MusicBrainz search unavailable';
-      }
-    })()
-  ];
-
-  await Promise.all(jobs);
-
-  if(!audius.length&&!youtube.length&&!musicbrainz.length&&audiusError&&youtubeError&&musicbrainzError){
-    const err=new Error(`${audiusError}. ${youtubeError}. ${musicbrainzError}`);
-    err.status=502;throw err;
-  }
+  const audius=audiusSettled.status==='fulfilled'?audiusSettled.value:[];
+  const youtubeResult=youtubeSettled.status==='fulfilled'
+    ?youtubeSettled.value
+    :{tracks:[],configured:!!env.YOUTUBE_API_KEY,message:''};
+  const musicbrainz=musicbrainzSettled.status==='fulfilled'?musicbrainzSettled.value:[];
 
   return {
     audius,
-    youtube,
+    youtube:Array.isArray(youtubeResult?.tracks)?youtubeResult.tracks:[],
     musicbrainz,
-    audiusError,
-    youtubeError,
-    musicbrainzError
+    audiusError:audiusSettled.status==='rejected'
+      ?(audiusSettled.reason?.message||'Audius search unavailable')
+      :'',
+    youtubeError:youtubeSettled.status==='rejected'
+      ?(youtubeSettled.reason?.message||'YouTube search unavailable')
+      :(!youtubeResult?.configured?(youtubeResult?.message||'YouTube API is not configured'):''),
+    musicbrainzError:musicbrainzSettled.status==='rejected'
+      ?(musicbrainzSettled.reason?.message||'MusicBrainz search unavailable')
+      :''
   };
 }
 async function audiusStreamResponse(request,env,trackId){
@@ -3150,6 +3168,18 @@ export default {
 
       if(url.pathname==='/api/music/trending'&&request.method==='GET'){
         return json(await musicTrending(env,request.url,url.searchParams.get('refresh')==='1'));
+      }
+
+      if(url.pathname==='/api/music/search/audius'&&request.method==='GET'){
+        return json({tracks:await musicSearchAudius(env,url.searchParams.get('q')||'')});
+      }
+
+      if(url.pathname==='/api/music/search/youtube'&&request.method==='GET'){
+        return json(await musicSearchYouTube(env,url.searchParams.get('q')||'',request.url));
+      }
+
+      if(url.pathname==='/api/music/search/musicbrainz'&&request.method==='GET'){
+        return json({recordings:await musicBrainzSearch(env,url.searchParams.get('q')||'',request.url)});
       }
 
       if(url.pathname==='/api/music/search'&&request.method==='GET'){
