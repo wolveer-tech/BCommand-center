@@ -2637,6 +2637,117 @@ function normalizeAudiusTrack(track){
   };
 }
 
+
+let musicBrainzLastRequestAt=0;
+let musicBrainzGate=Promise.resolve();
+
+async function musicBrainzThrottle(){
+  const previous=musicBrainzGate;
+  let release;
+  musicBrainzGate=new Promise(resolve=>{release=resolve});
+  await previous;
+  const wait=Math.max(0,1100-(Date.now()-musicBrainzLastRequestAt));
+  if(wait)await new Promise(resolve=>setTimeout(resolve,wait));
+  musicBrainzLastRequestAt=Date.now();
+  release();
+}
+
+function musicBrainzArtistName(recording){
+  const credit=Array.isArray(recording?.['artist-credit'])?recording['artist-credit']:[];
+  const joined=credit.map(x=>String(x?.name||x?.artist?.name||'').trim()).filter(Boolean).join(' & ');
+  return joined||'Unknown artist';
+}
+
+function normalizeMusicBrainzRecording(recording){
+  const releases=Array.isArray(recording?.releases)?recording.releases:[];
+  const release=releases[0]||{};
+  const releaseGroup=release?.['release-group']||{};
+  const isrcs=Array.isArray(recording?.isrcs)?recording.isrcs.filter(Boolean):[];
+  return {
+    id:String(recording?.id||''),
+    source:'musicbrainz',
+    playable:false,
+    title:String(recording?.title||'Untitled'),
+    artist:musicBrainzArtistName(recording),
+    album:String(releaseGroup?.title||release?.title||''),
+    year:String(recording?.['first-release-date']||release?.date||'').slice(0,4),
+    duration:Math.max(0,Math.round((Number(recording?.length)||0)/1000)),
+    score:Number(recording?.score)||0,
+    isrc:isrcs[0]?String(isrcs[0]):'',
+    musicBrainzUrl:recording?.id?`https://musicbrainz.org/recording/${encodeURIComponent(String(recording.id))}`:''
+  };
+}
+
+async function musicBrainzSearch(env,query,requestUrl){
+  const q=String(query||'').trim();
+  if(q.length<2)return [];
+
+  let cache=null,cacheKey=null;
+  try{
+    cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
+    if(cache){
+      const u=new URL(requestUrl);
+      u.pathname='/__cache/musicbrainz-recordings';
+      u.search='';
+      u.searchParams.set('q',q.toLowerCase());
+      cacheKey=new Request(u.toString(),{method:'GET'});
+      const hit=await cache.match(cacheKey);
+      if(hit){
+        const cached=await hit.json();
+        return Array.isArray(cached?.recordings)?cached.recordings:[];
+      }
+    }
+  }catch{
+    cache=null;
+    cacheKey=null;
+  }
+
+  await musicBrainzThrottle();
+
+  const url=new URL('https://musicbrainz.org/ws/2/recording/');
+  url.searchParams.set('query',q);
+  url.searchParams.set('fmt','json');
+  url.searchParams.set('limit','12');
+
+  const contact=String(
+    env.MUSICBRAINZ_CONTACT||
+    env.VAPID_SUBJECT||
+    new URL(requestUrl).origin
+  ).replace(/^mailto:/i,'').trim();
+
+  const response=await fetch(url.toString(),{
+    headers:{
+      accept:'application/json',
+      'user-agent':`CommandCentre/10.5 (${contact||'Command Centre user'})`
+    }
+  });
+
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok){
+    const err=new Error(data?.error||`MusicBrainz HTTP ${response.status}`);
+    err.status=response.status>=400&&response.status<500?response.status:502;
+    throw err;
+  }
+
+  const recordings=(Array.isArray(data?.recordings)?data.recordings:[])
+    .map(normalizeMusicBrainzRecording)
+    .filter(x=>x.id&&x.title)
+    .slice(0,12);
+
+  if(cache&&cacheKey){
+    try{
+      await cache.put(cacheKey,new Response(JSON.stringify({recordings}),{
+        headers:{
+          'content-type':'application/json',
+          'cache-control':'public,max-age=21600'
+        }
+      }));
+    }catch{}
+  }
+
+  return recordings;
+}
+
 function normalizeMusicYoutube(item){
   return {
     id:String(item?.videoId||''),
@@ -2687,7 +2798,7 @@ async function musicTrending(env,requestUrl,force=false){
   const data=await audiusJson('/tracks/trending',{limit:24,time:'week'},env);
   const raw=Array.isArray(data?.data)?data.data:Array.isArray(data)?data:[];
   const tracks=raw.map(normalizeAudiusTrack).filter(x=>x.id&&x.streamable);
-  const payload={tracks,youtubeConfigured:!!env.YOUTUBE_API_KEY};
+  const payload={tracks,youtubeConfigured:!!env.YOUTUBE_API_KEY,musicbrainzAvailable:true};
 
   if(cache){
     try{
@@ -2710,27 +2821,56 @@ async function musicSearch(env,query,requestUrl){
     err.status=400;throw err;
   }
 
-  let audius=[],youtube=[],audiusError='',youtubeError='';
-  try{
-    const data=await audiusJson('/tracks/search',{query:q,limit:18,sort_method:'relevant'},env);
-    const raw=Array.isArray(data?.data)?data.data:Array.isArray(data)?data:[];
-    audius=raw.map(normalizeAudiusTrack).filter(x=>x.id&&x.streamable);
-  }catch(e){audiusError=e?.message||'Audius search unavailable'}
+  let audius=[],youtube=[],musicbrainz=[];
+  let audiusError='',youtubeError='',musicbrainzError='';
 
-  if(env.YOUTUBE_API_KEY){
-    try{
-      const yt=await searchYouTube(env,`${q} official audio`,requestUrl);
-      youtube=(yt.items||[]).map(normalizeMusicYoutube);
-    }catch(e){youtubeError=e?.message||'YouTube search unavailable'}
-  }else youtubeError='YouTube API is not configured';
+  const jobs=[
+    (async()=>{
+      try{
+        const data=await audiusJson('/tracks/search',{query:q,limit:18,sort_method:'relevant'},env);
+        const raw=Array.isArray(data?.data)?data.data:Array.isArray(data)?data:[];
+        audius=raw.map(normalizeAudiusTrack).filter(x=>x.id&&x.streamable);
+      }catch(e){
+        audiusError=e?.message||'Audius search unavailable';
+      }
+    })(),
+    (async()=>{
+      if(!env.YOUTUBE_API_KEY){
+        youtubeError='YouTube API is not configured';
+        return;
+      }
+      try{
+        const yt=await searchYouTube(env,`${q} official audio`,requestUrl);
+        youtube=(yt.items||[]).map(normalizeMusicYoutube);
+      }catch(e){
+        youtubeError=e?.message||'YouTube search unavailable';
+      }
+    })(),
+    (async()=>{
+      try{
+        musicbrainz=await musicBrainzSearch(env,q,requestUrl);
+      }catch(e){
+        musicbrainzError=e?.message||'MusicBrainz search unavailable';
+      }
+    })()
+  ];
 
-  if(!audius.length&&!youtube.length&&audiusError&&youtubeError){
-    const err=new Error(`${audiusError}. ${youtubeError}`);
+  await Promise.all(jobs);
+
+  if(!audius.length&&!youtube.length&&!musicbrainz.length&&audiusError&&youtubeError&&musicbrainzError){
+    const err=new Error(`${audiusError}. ${youtubeError}. ${musicbrainzError}`);
     err.status=502;throw err;
   }
-  return {audius,youtube,audiusError,youtubeError};
-}
 
+  return {
+    audius,
+    youtube,
+    musicbrainz,
+    audiusError,
+    youtubeError,
+    musicbrainzError
+  };
+}
 async function audiusStreamResponse(request,env,trackId){
   const id=String(trackId||'').trim();
   if(!/^[A-Za-z0-9_-]{1,128}$/.test(id))return json({error:'Invalid Audius track id'},400);
@@ -3020,7 +3160,9 @@ export default {
         return json({
           audius:true,
           youtubeConfigured:!!env.YOUTUBE_API_KEY,
-          audiusBearerConfigured:!!env.AUDIUS_BEARER_TOKEN
+          musicbrainz:true,
+          audiusBearerConfigured:!!env.AUDIUS_BEARER_TOKEN,
+          musicbrainzContactConfigured:!!(env.MUSICBRAINZ_CONTACT||env.VAPID_SUBJECT)
         });
       }
 
