@@ -321,7 +321,13 @@ function csvHosts(value){
   return String(value||'').split(',').map(x=>x.trim().replace(/\/+$/,'').toLowerCase()).filter(Boolean);
 }
 function cleanProviderId(value){
-  return String(value||'1')==='2'?'2':'1';
+  const id=String(value||'1');
+  return ['1','2','3'].includes(id)?id:'1';
+}
+function liveProviderCategory(cfg,category){
+  const key=String(category||'soccer').toLowerCase();
+  const mapped=cfg?.categoryAliases?.[key];
+  return String(mapped||key).trim().toLowerCase().replace(/[^a-z0-9_-]/g,'')||key;
 }
 function liveProviderConfig(env,providerId='1'){
   const id=cleanProviderId(providerId);
@@ -331,45 +337,60 @@ function liveProviderConfig(env,providerId='1'){
       id:'1',
       name:String(env.LIVE_PROVIDER_1_NAME||'Provider 1').trim().slice(0,60)||'Provider 1',
       mode:String(env.LIVE_PROVIDER_1_MODE||'api').trim().toLowerCase()==='scrape'?'scrape':'api',
-
-      // Provider 1 intentionally falls back to the ORIGINAL API variables so
-      // an existing API provider can come back without being overwritten by
-      // the newer scrape-provider settings.
-      baseUrl:String(
-        env.LIVE_PROVIDER_1_BASE_URL||
-        env.LIVE_CONTENT_API_BASE_URL||
-        ''
-      ).trim(),
-
+      baseUrl:String(env.LIVE_PROVIDER_1_BASE_URL||env.LIVE_CONTENT_API_BASE_URL||'').trim(),
       apiPath:String(env.LIVE_PROVIDER_1_API_PATH||env.LIVE_CONTENT_API_PATH||'/api/v1/streams').trim()||'/api/v1/streams',
       scrapePath:String(env.LIVE_PROVIDER_1_SCRAPE_PATH||'/').trim()||'/',
       pageHosts:String(env.LIVE_PROVIDER_1_ALLOWED_PAGE_HOSTS||'').trim(),
       embedHosts:String(env.LIVE_PROVIDER_1_ALLOWED_EMBED_HOSTS||env.LIVE_CONTENT_ALLOWED_EMBED_HOSTS||'').trim(),
       linkHints:String(env.LIVE_PROVIDER_1_LINK_HINTS||'').trim(),
       maxScrapePages:Number(env.LIVE_PROVIDER_1_MAX_SCRAPE_PAGES)||12,
-      apiKey:String(env.LIVE_PROVIDER_1_API_KEY||env.LIVE_CONTENT_API_KEY||'').trim()
+      apiKey:String(env.LIVE_PROVIDER_1_API_KEY||env.LIVE_CONTENT_API_KEY||'').trim(),
+      categoryAliases:{
+        soccer:String(env.LIVE_PROVIDER_1_CATEGORY_SOCCER||'soccer').trim(),
+        tennis:String(env.LIVE_PROVIDER_1_CATEGORY_TENNIS||'tennis').trim(),
+        basketball:String(env.LIVE_PROVIDER_1_CATEGORY_BASKETBALL||'basketball').trim()
+      }
+    };
+  }
+
+  if(id==='2'){
+    return {
+      id:'2',
+      name:String(env.LIVE_PROVIDER_2_NAME||'Provider 2').trim().slice(0,60)||'Provider 2',
+      mode:String(env.LIVE_PROVIDER_2_MODE||env.LIVE_CONTENT_PROVIDER_MODE||'scrape').trim().toLowerCase()==='api'?'api':'scrape',
+      baseUrl:String(env.LIVE_PROVIDER_2_BASE_URL||env.LIVE_CONTENT_BASE_URL||'').trim(),
+      apiPath:String(env.LIVE_PROVIDER_2_API_PATH||env.LIVE_CONTENT_API_PATH||'/api/v1/streams').trim()||'/api/v1/streams',
+      scrapePath:String(env.LIVE_PROVIDER_2_SCRAPE_PATH||env.LIVE_CONTENT_SCRAPE_PATH||'/').trim()||'/',
+      pageHosts:String(env.LIVE_PROVIDER_2_ALLOWED_PAGE_HOSTS||env.LIVE_CONTENT_ALLOWED_PAGE_HOSTS||'').trim(),
+      embedHosts:String(env.LIVE_PROVIDER_2_ALLOWED_EMBED_HOSTS||env.LIVE_CONTENT_ALLOWED_EMBED_HOSTS||'').trim(),
+      linkHints:String(env.LIVE_PROVIDER_2_LINK_HINTS||env.LIVE_CONTENT_LINK_HINTS||'').trim(),
+      maxScrapePages:Number(env.LIVE_PROVIDER_2_MAX_SCRAPE_PAGES||env.LIVE_CONTENT_MAX_SCRAPE_PAGES)||12,
+      apiKey:String(env.LIVE_PROVIDER_2_API_KEY||env.LIVE_CONTENT_API_KEY||'').trim(),
+      categoryAliases:{
+        soccer:String(env.LIVE_PROVIDER_2_CATEGORY_SOCCER||'soccer').trim(),
+        tennis:String(env.LIVE_PROVIDER_2_CATEGORY_TENNIS||'tennis').trim(),
+        basketball:String(env.LIVE_PROVIDER_2_CATEGORY_BASKETBALL||'basketball').trim()
+      }
     };
   }
 
   return {
-    id:'2',
-    name:String(env.LIVE_PROVIDER_2_NAME||'Provider 2').trim().slice(0,60)||'Provider 2',
-    mode:String(env.LIVE_PROVIDER_2_MODE||env.LIVE_CONTENT_PROVIDER_MODE||'scrape').trim().toLowerCase()==='api'?'api':'scrape',
-
-    // Provider 2 falls back to the v8.6 generic/scrape variables.
-    baseUrl:String(
-      env.LIVE_PROVIDER_2_BASE_URL||
-      env.LIVE_CONTENT_BASE_URL||
-      ''
-    ).trim(),
-
-    apiPath:String(env.LIVE_PROVIDER_2_API_PATH||env.LIVE_CONTENT_API_PATH||'/api/v1/streams').trim()||'/api/v1/streams',
-    scrapePath:String(env.LIVE_PROVIDER_2_SCRAPE_PATH||env.LIVE_CONTENT_SCRAPE_PATH||'/').trim()||'/',
-    pageHosts:String(env.LIVE_PROVIDER_2_ALLOWED_PAGE_HOSTS||env.LIVE_CONTENT_ALLOWED_PAGE_HOSTS||'').trim(),
-    embedHosts:String(env.LIVE_PROVIDER_2_ALLOWED_EMBED_HOSTS||env.LIVE_CONTENT_ALLOWED_EMBED_HOSTS||'').trim(),
-    linkHints:String(env.LIVE_PROVIDER_2_LINK_HINTS||env.LIVE_CONTENT_LINK_HINTS||'').trim(),
-    maxScrapePages:Number(env.LIVE_PROVIDER_2_MAX_SCRAPE_PAGES||env.LIVE_CONTENT_MAX_SCRAPE_PAGES)||12,
-    apiKey:String(env.LIVE_PROVIDER_2_API_KEY||env.LIVE_CONTENT_API_KEY||'').trim()
+    id:'3',
+    name:String(env.LIVE_PROVIDER_3_NAME||'Provider 3').trim().slice(0,60)||'Provider 3',
+    mode:String(env.LIVE_PROVIDER_3_MODE||'api').trim().toLowerCase()==='scrape'?'scrape':'api',
+    baseUrl:String(env.LIVE_PROVIDER_3_BASE_URL||'').trim(),
+    apiPath:String(env.LIVE_PROVIDER_3_API_PATH||'/api/v1/streams').trim()||'/api/v1/streams',
+    scrapePath:String(env.LIVE_PROVIDER_3_SCRAPE_PATH||'/').trim()||'/',
+    pageHosts:String(env.LIVE_PROVIDER_3_ALLOWED_PAGE_HOSTS||'').trim(),
+    embedHosts:String(env.LIVE_PROVIDER_3_ALLOWED_EMBED_HOSTS||'').trim(),
+    linkHints:String(env.LIVE_PROVIDER_3_LINK_HINTS||'').trim(),
+    maxScrapePages:Number(env.LIVE_PROVIDER_3_MAX_SCRAPE_PAGES)||12,
+    apiKey:String(env.LIVE_PROVIDER_3_API_KEY||'').trim(),
+    categoryAliases:{
+      soccer:String(env.LIVE_PROVIDER_3_CATEGORY_SOCCER||'soccer').trim(),
+      tennis:String(env.LIVE_PROVIDER_3_CATEGORY_TENNIS||'tennis').trim(),
+      basketball:String(env.LIVE_PROVIDER_3_CATEGORY_BASKETBALL||'basketball').trim()
+    }
   };
 }
 function liveProviderPublicInfo(env,providerId){
@@ -385,7 +406,7 @@ function liveProviderPublicInfo(env,providerId){
   };
 }
 function configuredLiveProviders(env){
-  return ['1','2'].map(id=>liveProviderPublicInfo(env,id)).filter(x=>x.configured);
+  return ['1','2','3'].map(id=>liveProviderPublicInfo(env,id)).filter(x=>x.configured);
 }
 function allowedEmbedUrl(embedUrl,base,cfg){
   try{
@@ -523,7 +544,10 @@ async function extractAuthorisedHtmlPage(response,pageUrl){
 function scrapeLinkHints(cfg,category){
   const configured=String(cfg.linkHints||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
   if(configured.length)return configured;
-  return [String(category||'soccer').toLowerCase(),'football','soccer','match','game','event','watch','stream','live','sport'];
+  const c=String(category||'soccer').toLowerCase();
+  if(c==='tennis')return ['tennis','atp','wta','match','court','event','watch','stream','live','sport'];
+  if(c==='basketball')return ['basketball','nba','wnba','game','match','event','watch','stream','live','sport'];
+  return ['football','soccer','match','game','event','watch','stream','live','sport'];
 }
 function isLikelyEventPage(url,hints){
   try{
@@ -540,7 +564,8 @@ async function scrapeAuthorisedProvider(cfg,base,category){
     throw err;
   }
 
-  const path=String(cfg.scrapePath||'/').replace(/\{category\}/g,encodeURIComponent(category));
+  const providerCategory=liveProviderCategory(cfg,category);
+  const path=String(cfg.scrapePath||'/').replace(/\{category\}/g,encodeURIComponent(providerCategory));
   const listingUrl=new URL(path,base).toString();
 
   if(!allowedProviderPageUrl(listingUrl,base,cfg)){
@@ -613,7 +638,7 @@ async function scrapeAuthorisedProvider(cfg,base,category){
 
 async function fetchAuthorisedApiProvider(cfg,base,category){
   const endpoint=new URL(String(cfg.apiPath||'/api/v1/streams'),base);
-  if(!endpoint.searchParams.has('category'))endpoint.searchParams.set('category',category);
+  if(!endpoint.searchParams.has('category'))endpoint.searchParams.set('category',liveProviderCategory(cfg,category));
 
   const headers={accept:'application/json'};
   if(cfg.apiKey)headers.authorization=`Bearer ${cfg.apiKey}`;
