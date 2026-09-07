@@ -1719,34 +1719,64 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
   border:0;border-radius:12px;margin:0 auto;background:#000
 }
 
-/* Persistent mini-player */
+/* Persistent mini-player — compact so the rest of the app stays usable */
 .music-mini-player{
-  position:fixed;z-index:85;right:14px;bottom:14px;width:min(430px,calc(100vw - 28px));
-  border:1px solid rgba(255,255,255,.12);border-radius:18px;
+  position:fixed;z-index:85;right:12px;bottom:12px;
+  width:min(350px,calc(100vw - 24px));
+  border:1px solid rgba(255,255,255,.12);border-radius:14px;
   background:rgba(8,13,22,.94);backdrop-filter:blur(22px);
-  box-shadow:0 18px 55px rgba(0,0,0,.38);padding:9px;display:none
+  box-shadow:0 12px 36px rgba(0,0,0,.34);
+  padding:6px 7px 5px;
+  display:none
 }
 .music-mini-player.open{display:block}
-.music-mini-main{display:flex;align-items:center;gap:8px}
-.music-mini-art{width:46px;height:46px;border-radius:11px;object-fit:cover;background:#101928;flex:0 0 auto}
-.music-mini-info{flex:1;min-width:0}
-.music-mini-title{font-size:9px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.music-mini-artist{font-size:7px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
-.music-mini-controls{display:flex;gap:3px;align-items:center}
-.music-mini-controls button{
-  width:30px;height:30px;border-radius:999px;border:0;background:rgba(255,255,255,.07);
-  color:var(--text);font-size:11px;display:grid;place-items:center;cursor:pointer
+.music-mini-main{display:flex;align-items:center;gap:6px;min-height:38px}
+.music-mini-art{
+  width:36px;height:36px;border-radius:8px;object-fit:cover;
+  background:#101928;flex:0 0 auto
 }
-.music-mini-progress{height:3px;background:rgba(255,255,255,.08);border-radius:99px;margin-top:7px;overflow:hidden}
-.music-mini-progress-fill{height:100%;width:0;background:linear-gradient(90deg,#795cff,#26d5aa)}
-.music-mini-youtube{display:none;margin-top:8px}
+.music-mini-info{flex:1;min-width:0;padding-right:2px}
+.music-mini-title{
+  font-size:8px;font-weight:900;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis
+}
+.music-mini-artist{
+  font-size:6.5px;color:var(--muted);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;margin-top:2px
+}
+.music-mini-controls{display:flex;gap:2px;align-items:center}
+.music-mini-controls button{
+  width:26px;height:26px;border-radius:999px;border:0;
+  background:rgba(255,255,255,.07);
+  color:var(--text);font-size:9px;
+  display:grid;place-items:center;cursor:pointer
+}
+.music-mini-progress{
+  height:2px;background:rgba(255,255,255,.08);
+  border-radius:99px;margin-top:4px;overflow:hidden
+}
+.music-mini-progress-fill{
+  height:100%;width:0;
+  background:linear-gradient(90deg,#795cff,#26d5aa)
+}
+
+/* YouTube must stay visibly embedded, so only its surrounding chrome is compact. */
+.music-mini-youtube{display:none;margin-top:5px}
+.music-mini-player.youtube-mode{
+  width:216px;
+  padding:5px
+}
 .music-mini-player.youtube-mode .music-mini-youtube{display:block}
 .music-mini-player.youtube-mode .music-mini-audio-only-controls{display:none}
+.music-mini-player.youtube-mode .music-mini-info{max-width:92px}
 .music-mini-youtube iframe{
-  width:220px;height:220px;min-width:200px;min-height:200px;border:0;border-radius:12px;display:block;margin:0 auto;background:#000
+  width:200px;height:200px;min-width:200px;min-height:200px;
+  border:0;border-radius:10px;display:block;margin:0 auto;background:#000
 }
 .music-mini-close{
-  position:absolute;right:7px;top:7px;width:24px!important;height:24px!important;background:rgba(0,0,0,.5)!important
+  position:static!important;
+  width:24px!important;height:24px!important;
+  background:rgba(255,255,255,.07)!important
 }
 
 @media(max-width:900px){.music-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -1757,7 +1787,38 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
   .music-now-title{font-size:17px}
   .music-library-grid{grid-template-columns:1fr}
   .music-youtube-stage iframe{width:100%;height:auto;aspect-ratio:16/9;min-height:200px}
-  .music-mini-player{left:10px;right:10px;bottom:72px;width:auto}
+
+  /* A narrow floating bar above the mobile dock instead of a full-width panel. */
+  .music-mini-player{
+    left:auto;
+    right:8px;
+    bottom:calc(68px + env(safe-area-inset-bottom));
+    width:min(290px,calc(100vw - 16px));
+    border-radius:13px;
+    padding:5px 6px 4px
+  }
+  .music-mini-art{width:34px;height:34px;border-radius:8px}
+  .music-mini-main{gap:5px;min-height:36px}
+  .music-mini-title{font-size:7.5px}
+  .music-mini-artist{font-size:6px}
+
+  /* Keep only the essential controls on a small phone. */
+  .music-mini-audio-only-controls #musicMiniPrev,
+  .music-mini-audio-only-controls #musicMiniNext{
+    display:none
+  }
+  .music-mini-controls button{width:25px;height:25px}
+
+  .music-mini-player.youtube-mode{
+    width:212px;
+    right:8px;
+    padding:4px
+  }
+  .music-mini-player.youtube-mode .music-mini-art{display:none}
+  .music-mini-player.youtube-mode .music-mini-info{max-width:105px}
+  .music-mini-youtube iframe{
+    width:200px;height:200px;min-width:200px;min-height:200px
+  }
 }
 
 
@@ -2741,7 +2802,7 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
       <button type="button" id="musicMiniNext" aria-label="Next">▶▶</button>
     </div>
     <div class="music-mini-controls">
-      <button type="button" id="musicMiniOpen" aria-label="Open Music">⌃</button>
+      <button type="button" id="musicMiniOpen" aria-label="Open Music" title="Open Music">↗</button>
       <button type="button" class="music-mini-close" id="musicMiniClose" aria-label="Close player">×</button>
     </div>
   </div>
