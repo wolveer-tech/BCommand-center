@@ -346,6 +346,9 @@ function liveProviderConfig(env,providerId='1'){
       maxScrapePages:Number(env.LIVE_PROVIDER_1_MAX_SCRAPE_PAGES)||12,
       apiKey:String(env.LIVE_PROVIDER_1_API_KEY||env.LIVE_CONTENT_API_KEY||'').trim(),
       dynamicPath:String(env.LIVE_PROVIDER_1_DYNAMIC_PATH||'').trim(),
+      dynamicBaseUrl:String(env.LIVE_PROVIDER_1_DYNAMIC_BASE_URL||'').trim(),
+      dynamicAllowedHosts:String(env.LIVE_PROVIDER_1_ALLOWED_DATA_HOSTS||'').trim(),
+      dynamicCacheBustParam:String(env.LIVE_PROVIDER_1_DYNAMIC_CACHEBUST_PARAM||'').trim(),
       dynamicRoot:String(env.LIVE_PROVIDER_1_DYNAMIC_ROOT||'').trim(),
       dynamicCategoryField:String(env.LIVE_PROVIDER_1_DYNAMIC_CATEGORY_FIELD||'').trim(),
       dynamicItemsField:String(env.LIVE_PROVIDER_1_DYNAMIC_ITEMS_FIELD||'').trim(),
@@ -373,6 +376,9 @@ function liveProviderConfig(env,providerId='1'){
       maxScrapePages:Number(env.LIVE_PROVIDER_2_MAX_SCRAPE_PAGES||env.LIVE_CONTENT_MAX_SCRAPE_PAGES)||12,
       apiKey:String(env.LIVE_PROVIDER_2_API_KEY||env.LIVE_CONTENT_API_KEY||'').trim(),
       dynamicPath:String(env.LIVE_PROVIDER_2_DYNAMIC_PATH||'').trim(),
+      dynamicBaseUrl:String(env.LIVE_PROVIDER_2_DYNAMIC_BASE_URL||'').trim(),
+      dynamicAllowedHosts:String(env.LIVE_PROVIDER_2_ALLOWED_DATA_HOSTS||'').trim(),
+      dynamicCacheBustParam:String(env.LIVE_PROVIDER_2_DYNAMIC_CACHEBUST_PARAM||'').trim(),
       dynamicRoot:String(env.LIVE_PROVIDER_2_DYNAMIC_ROOT||'').trim(),
       dynamicCategoryField:String(env.LIVE_PROVIDER_2_DYNAMIC_CATEGORY_FIELD||'').trim(),
       dynamicItemsField:String(env.LIVE_PROVIDER_2_DYNAMIC_ITEMS_FIELD||'').trim(),
@@ -399,6 +405,9 @@ function liveProviderConfig(env,providerId='1'){
     maxScrapePages:Number(env.LIVE_PROVIDER_3_MAX_SCRAPE_PAGES)||12,
     apiKey:String(env.LIVE_PROVIDER_3_API_KEY||'').trim(),
       dynamicPath:String(env.LIVE_PROVIDER_3_DYNAMIC_PATH||'').trim(),
+      dynamicBaseUrl:String(env.LIVE_PROVIDER_3_DYNAMIC_BASE_URL||'').trim(),
+      dynamicAllowedHosts:String(env.LIVE_PROVIDER_3_ALLOWED_DATA_HOSTS||'').trim(),
+      dynamicCacheBustParam:String(env.LIVE_PROVIDER_3_DYNAMIC_CACHEBUST_PARAM||'').trim(),
       dynamicRoot:String(env.LIVE_PROVIDER_3_DYNAMIC_ROOT||'').trim(),
       dynamicCategoryField:String(env.LIVE_PROVIDER_3_DYNAMIC_CATEGORY_FIELD||'').trim(),
       dynamicItemsField:String(env.LIVE_PROVIDER_3_DYNAMIC_ITEMS_FIELD||'').trim(),
@@ -441,6 +450,19 @@ function allowedProviderPageUrl(pageUrl,base,cfg){
     if(u.protocol!=='https:')return false;
     const configured=csvHosts(cfg.pageHosts);
     const hosts=configured.length?configured:[base.hostname.toLowerCase()];
+    return hosts.includes(u.hostname.toLowerCase());
+  }catch{return false}
+}
+function allowedDynamicDataUrl(dataUrl,dataBase,cfg){
+  try{
+    const u=new URL(dataUrl,dataBase);
+    if(u.protocol!=='https:')return false;
+    const configured=csvHosts(cfg.dynamicAllowedHosts);
+    const fallback=[
+      dataBase.hostname.toLowerCase(),
+      ...csvHosts(cfg.pageHosts)
+    ];
+    const hosts=configured.length?configured:[...new Set(fallback)];
     return hosts.includes(u.hostname.toLowerCase());
   }catch{return false}
 }
@@ -802,16 +824,39 @@ async function fetchDynamicProvider(cfg,base,category){
     throw err;
   }
 
+  // A same-page web app may load its JSON from a completely different host
+  // (for example a Worker/API subdomain). Allow that host to be configured
+  // separately from the visible website.
+  let dataBase=base;
+  if(cfg.dynamicBaseUrl){
+    try{
+      dataBase=normaliseBaseUrl(cfg.dynamicBaseUrl);
+    }catch{
+      const err=new Error(`LIVE_PROVIDER_${cfg.id}_DYNAMIC_BASE_URL is not a valid HTTPS URL.`);
+      err.status=500;
+      throw err;
+    }
+  }
+
   const providerCategory=liveProviderCategory(cfg,category);
   const resolvedPath=rawPath.replace(/\{category\}/g,encodeURIComponent(providerCategory));
-  const endpoint=new URL(resolvedPath,base);
+  const endpoint=new URL(resolvedPath,dataBase);
 
   if(cfg.dynamicCategoryParam&&!endpoint.searchParams.has(cfg.dynamicCategoryParam)){
     endpoint.searchParams.set(cfg.dynamicCategoryParam,providerCategory);
   }
 
-  if(!allowedProviderPageUrl(endpoint.toString(),base,cfg)){
-    const err=new Error(`${cfg.name}: dynamic data endpoint resolves to a host that is not in LIVE_PROVIDER_${cfg.id}_ALLOWED_PAGE_HOSTS.`);
+  // Some dynamic sites append a changing timestamp such as ?t=1723456789012
+  // to bypass CDN/browser caches. If configured, generate it automatically.
+  if(cfg.dynamicCacheBustParam){
+    endpoint.searchParams.set(cfg.dynamicCacheBustParam,String(Date.now()));
+  }
+
+  if(!allowedDynamicDataUrl(endpoint.toString(),dataBase,cfg)){
+    const err=new Error(
+      `${cfg.name}: dynamic data endpoint host "${endpoint.hostname}" is not allowed. `+
+      `Add that hostname to LIVE_PROVIDER_${cfg.id}_ALLOWED_DATA_HOSTS.`
+    );
     err.status=500;
     throw err;
   }
@@ -834,8 +879,8 @@ async function fetchDynamicProvider(cfg,base,category){
     data=JSON.parse(text);
   }catch{
     const err=new Error(
-      `${cfg.name} dynamic endpoint did not return JSON. `+
-      `The page itself can stay at "/", but LIVE_PROVIDER_${cfg.id}_DYNAMIC_PATH must point to the authorised JSON/data request used by that page.`
+      `${cfg.name} dynamic endpoint returned ${contentType||'a non-JSON response'} from ${endpoint.hostname}. `+
+      `Check LIVE_PROVIDER_${cfg.id}_DYNAMIC_BASE_URL and LIVE_PROVIDER_${cfg.id}_DYNAMIC_PATH.`
     );
     err.status=502;
     throw err;
@@ -852,7 +897,6 @@ async function fetchDynamicProvider(cfg,base,category){
     dynamicRootCount:rootItems.length
   };
 }
-
 async function fetchAuthorisedApiProvider(cfg,base,category){
   const endpoint=new URL(String(cfg.apiPath||'/api/v1/streams'),base);
   if(!endpoint.searchParams.has('category'))endpoint.searchParams.set('category',liveProviderCategory(cfg,category));
