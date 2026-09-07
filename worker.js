@@ -336,7 +336,7 @@ function liveProviderConfig(env,providerId='1'){
     return {
       id:'1',
       name:String(env.LIVE_PROVIDER_1_NAME||'Provider 1').trim().slice(0,60)||'Provider 1',
-      mode:String(env.LIVE_PROVIDER_1_MODE||'api').trim().toLowerCase()==='scrape'?'scrape':'api',
+      mode:(['scrape','dynamic'].includes(String(env.LIVE_PROVIDER_1_MODE||'api').trim().toLowerCase())?String(env.LIVE_PROVIDER_1_MODE||'api').trim().toLowerCase():'api'),
       baseUrl:String(env.LIVE_PROVIDER_1_BASE_URL||env.LIVE_CONTENT_API_BASE_URL||'').trim(),
       apiPath:String(env.LIVE_PROVIDER_1_API_PATH||env.LIVE_CONTENT_API_PATH||'/api/v1/streams').trim()||'/api/v1/streams',
       scrapePath:String(env.LIVE_PROVIDER_1_SCRAPE_PATH||'/').trim()||'/',
@@ -345,6 +345,11 @@ function liveProviderConfig(env,providerId='1'){
       linkHints:String(env.LIVE_PROVIDER_1_LINK_HINTS||'').trim(),
       maxScrapePages:Number(env.LIVE_PROVIDER_1_MAX_SCRAPE_PAGES)||12,
       apiKey:String(env.LIVE_PROVIDER_1_API_KEY||env.LIVE_CONTENT_API_KEY||'').trim(),
+      dynamicPath:String(env.LIVE_PROVIDER_1_DYNAMIC_PATH||'').trim(),
+      dynamicRoot:String(env.LIVE_PROVIDER_1_DYNAMIC_ROOT||'').trim(),
+      dynamicCategoryField:String(env.LIVE_PROVIDER_1_DYNAMIC_CATEGORY_FIELD||'').trim(),
+      dynamicCategoryParam:String(env.LIVE_PROVIDER_1_DYNAMIC_CATEGORY_PARAM||'').trim(),
+
       categoryAliases:{
         soccer:String(env.LIVE_PROVIDER_1_CATEGORY_SOCCER||'soccer').trim(),
         tennis:String(env.LIVE_PROVIDER_1_CATEGORY_TENNIS||'tennis').trim(),
@@ -357,7 +362,7 @@ function liveProviderConfig(env,providerId='1'){
     return {
       id:'2',
       name:String(env.LIVE_PROVIDER_2_NAME||'Provider 2').trim().slice(0,60)||'Provider 2',
-      mode:String(env.LIVE_PROVIDER_2_MODE||env.LIVE_CONTENT_PROVIDER_MODE||'scrape').trim().toLowerCase()==='api'?'api':'scrape',
+      mode:(['api','dynamic'].includes(String(env.LIVE_PROVIDER_2_MODE||env.LIVE_CONTENT_PROVIDER_MODE||'scrape').trim().toLowerCase())?String(env.LIVE_PROVIDER_2_MODE||env.LIVE_CONTENT_PROVIDER_MODE||'scrape').trim().toLowerCase():'scrape'),
       baseUrl:String(env.LIVE_PROVIDER_2_BASE_URL||env.LIVE_CONTENT_BASE_URL||'').trim(),
       apiPath:String(env.LIVE_PROVIDER_2_API_PATH||env.LIVE_CONTENT_API_PATH||'/api/v1/streams').trim()||'/api/v1/streams',
       scrapePath:String(env.LIVE_PROVIDER_2_SCRAPE_PATH||env.LIVE_CONTENT_SCRAPE_PATH||'/').trim()||'/',
@@ -366,6 +371,11 @@ function liveProviderConfig(env,providerId='1'){
       linkHints:String(env.LIVE_PROVIDER_2_LINK_HINTS||env.LIVE_CONTENT_LINK_HINTS||'').trim(),
       maxScrapePages:Number(env.LIVE_PROVIDER_2_MAX_SCRAPE_PAGES||env.LIVE_CONTENT_MAX_SCRAPE_PAGES)||12,
       apiKey:String(env.LIVE_PROVIDER_2_API_KEY||env.LIVE_CONTENT_API_KEY||'').trim(),
+      dynamicPath:String(env.LIVE_PROVIDER_2_DYNAMIC_PATH||'').trim(),
+      dynamicRoot:String(env.LIVE_PROVIDER_2_DYNAMIC_ROOT||'').trim(),
+      dynamicCategoryField:String(env.LIVE_PROVIDER_2_DYNAMIC_CATEGORY_FIELD||'').trim(),
+      dynamicCategoryParam:String(env.LIVE_PROVIDER_2_DYNAMIC_CATEGORY_PARAM||'').trim(),
+
       categoryAliases:{
         soccer:String(env.LIVE_PROVIDER_2_CATEGORY_SOCCER||'soccer').trim(),
         tennis:String(env.LIVE_PROVIDER_2_CATEGORY_TENNIS||'tennis').trim(),
@@ -377,7 +387,7 @@ function liveProviderConfig(env,providerId='1'){
   return {
     id:'3',
     name:String(env.LIVE_PROVIDER_3_NAME||'Provider 3').trim().slice(0,60)||'Provider 3',
-    mode:String(env.LIVE_PROVIDER_3_MODE||'api').trim().toLowerCase()==='scrape'?'scrape':'api',
+    mode:(['scrape','dynamic'].includes(String(env.LIVE_PROVIDER_3_MODE||'api').trim().toLowerCase())?String(env.LIVE_PROVIDER_3_MODE||'api').trim().toLowerCase():'api'),
     baseUrl:String(env.LIVE_PROVIDER_3_BASE_URL||'').trim(),
     apiPath:String(env.LIVE_PROVIDER_3_API_PATH||'/api/v1/streams').trim()||'/api/v1/streams',
     scrapePath:String(env.LIVE_PROVIDER_3_SCRAPE_PATH||'/').trim()||'/',
@@ -386,6 +396,11 @@ function liveProviderConfig(env,providerId='1'){
     linkHints:String(env.LIVE_PROVIDER_3_LINK_HINTS||'').trim(),
     maxScrapePages:Number(env.LIVE_PROVIDER_3_MAX_SCRAPE_PAGES)||12,
     apiKey:String(env.LIVE_PROVIDER_3_API_KEY||'').trim(),
+      dynamicPath:String(env.LIVE_PROVIDER_3_DYNAMIC_PATH||'').trim(),
+      dynamicRoot:String(env.LIVE_PROVIDER_3_DYNAMIC_ROOT||'').trim(),
+      dynamicCategoryField:String(env.LIVE_PROVIDER_3_DYNAMIC_CATEGORY_FIELD||'').trim(),
+      dynamicCategoryParam:String(env.LIVE_PROVIDER_3_DYNAMIC_CATEGORY_PARAM||'').trim(),
+
     categoryAliases:{
       soccer:String(env.LIVE_PROVIDER_3_CATEGORY_SOCCER||'soccer').trim(),
       tennis:String(env.LIVE_PROVIDER_3_CATEGORY_TENNIS||'tennis').trim(),
@@ -636,6 +651,155 @@ async function scrapeAuthorisedProvider(cfg,base,category){
   return {count:streams.length,streams};
 }
 
+
+function valueAtPath(obj,path){
+  const clean=String(path||'').trim();
+  if(!clean)return obj;
+  return clean.split('.').filter(Boolean).reduce((cur,key)=>{
+    if(cur===null||cur===undefined)return undefined;
+    return cur[key];
+  },obj);
+}
+function firstUseful(obj,keys){
+  for(const key of keys){
+    const v=valueAtPath(obj,key);
+    if(v!==undefined&&v!==null&&String(v).trim()!=='')return v;
+  }
+  return '';
+}
+function normaliseCategoryWord(value){
+  const v=String(value||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'');
+  if(['football','soccer'].includes(v))return 'soccer';
+  if(['basketball','basket'].includes(v))return 'basketball';
+  if(['tennis','atp','wta'].includes(v))return 'tennis';
+  return v;
+}
+function dynamicItemCategory(item,cfg){
+  const explicit=cfg.dynamicCategoryField?valueAtPath(item,cfg.dynamicCategoryField):undefined;
+  return firstUseful(
+    {explicit,item},
+    ['explicit','item.category','item.sport','item.sport_name','item.type','item.group','item.section']
+  );
+}
+function dynamicCategoryMatches(item,cfg,requestedCategory){
+  const found=normaliseCategoryWord(dynamicItemCategory(item,cfg));
+  if(!found)return true;
+  return found===normaliseCategoryWord(requestedCategory);
+}
+function dynamicRootItems(data,cfg){
+  if(Array.isArray(data))return data;
+  if(cfg.dynamicRoot){
+    const rooted=valueAtPath(data,cfg.dynamicRoot);
+    return Array.isArray(rooted)?rooted:[];
+  }
+  const candidates=[
+    data?.streams,
+    data?.data,
+    data?.events,
+    data?.results,
+    data?.items,
+    data?.matches
+  ];
+  return candidates.find(Array.isArray)||[];
+}
+function dynamicSourceList(item){
+  const raw=firstUseful(
+    item,
+    ['sources','streams','players','links','mirrors']
+  );
+  if(Array.isArray(raw))return raw;
+  if(raw&&typeof raw==='object')return Object.values(raw);
+  return [];
+}
+function normaliseDynamicStream(item,index,requestedCategory){
+  const embed=firstUseful(item,[
+    'embed_url','embedUrl','player_url','playerUrl','iframe','iframe_url','url','stream_url','streamUrl'
+  ]);
+  const title=firstUseful(item,[
+    'name','title','event','match','label','display_name'
+  ])||`Live ${requestedCategory} ${index+1}`;
+  const league=firstUseful(item,[
+    'league','competition','tournament','event_group','category_name'
+  ]);
+  const thumbnail=firstUseful(item,[
+    'thumbnail_url','thumbnail','image','poster','cover'
+  ]);
+  const timestamp=firstUseful(item,[
+    'match_timestamp','timestamp','start_timestamp','startTime','start_time'
+  ]);
+  const id=firstUseful(item,['id','stream_key','key','slug'])||`${requestedCategory}-${index+1}`;
+
+  return {
+    id:String(id).slice(0,200),
+    name:String(title).slice(0,180),
+    category:String(requestedCategory).slice(0,80),
+    league:String(league||'').slice(0,120),
+    match_timestamp:Number(timestamp)||null,
+    embed_url:typeof embed==='string'?embed:'',
+    sources:dynamicSourceList(item),
+    thumbnail_url:typeof thumbnail==='string'?thumbnail:'',
+    team1:item?.team1&&typeof item.team1==='object'?item.team1:null,
+    team2:item?.team2&&typeof item.team2==='object'?item.team2:null
+  };
+}
+async function fetchDynamicProvider(cfg,base,category){
+  const rawPath=String(cfg.dynamicPath||'').trim();
+  if(!rawPath){
+    const err=new Error(`${cfg.name} is in dynamic mode but LIVE_PROVIDER_${cfg.id}_DYNAMIC_PATH is empty.`);
+    err.status=500;
+    throw err;
+  }
+
+  const providerCategory=liveProviderCategory(cfg,category);
+  const resolvedPath=rawPath.replace(/\{category\}/g,encodeURIComponent(providerCategory));
+  const endpoint=new URL(resolvedPath,base);
+
+  if(cfg.dynamicCategoryParam&&!endpoint.searchParams.has(cfg.dynamicCategoryParam)){
+    endpoint.searchParams.set(cfg.dynamicCategoryParam,providerCategory);
+  }
+
+  if(!allowedProviderPageUrl(endpoint.toString(),base,cfg)){
+    const err=new Error(`${cfg.name}: dynamic data endpoint resolves to a host that is not in LIVE_PROVIDER_${cfg.id}_ALLOWED_PAGE_HOSTS.`);
+    err.status=500;
+    throw err;
+  }
+
+  const headers={accept:'application/json,text/json;q=0.9,*/*;q=0.2'};
+  if(cfg.apiKey)headers.authorization=`Bearer ${cfg.apiKey}`;
+
+  const r=await fetch(endpoint.toString(),{headers,redirect:'follow'});
+  const contentType=String(r.headers.get('content-type')||'').toLowerCase();
+  const text=await r.text();
+
+  if(!r.ok){
+    const err=new Error(`${cfg.name} dynamic endpoint HTTP ${r.status}`);
+    err.status=r.status>=400&&r.status<500?r.status:502;
+    throw err;
+  }
+
+  let data;
+  try{
+    data=JSON.parse(text);
+  }catch{
+    const err=new Error(
+      `${cfg.name} dynamic endpoint did not return JSON. `+
+      `The page itself can stay at "/", but LIVE_PROVIDER_${cfg.id}_DYNAMIC_PATH must point to the authorised JSON/data request used by that page.`
+    );
+    err.status=502;
+    throw err;
+  }
+
+  const items=dynamicRootItems(data,cfg);
+  const matching=items.filter(item=>dynamicCategoryMatches(item,cfg,category));
+
+  return {
+    count:matching.length,
+    streams:matching.map((item,index)=>normaliseDynamicStream(item,index,category)),
+    dynamicEndpointHost:endpoint.hostname,
+    dynamicContentType:contentType
+  };
+}
+
 async function fetchAuthorisedApiProvider(cfg,base,category){
   const endpoint=new URL(String(cfg.apiPath||'/api/v1/streams'),base);
   if(!endpoint.searchParams.has('category'))endpoint.searchParams.set('category',liveProviderCategory(cfg,category));
@@ -681,7 +845,9 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
 
   const data=cfg.mode==='scrape'
     ?await scrapeAuthorisedProvider(cfg,base,safeCategory)
-    :await fetchAuthorisedApiProvider(cfg,base,safeCategory);
+    :cfg.mode==='dynamic'
+      ?await fetchDynamicProvider(cfg,base,safeCategory)
+      :await fetchAuthorisedApiProvider(cfg,base,safeCategory);
 
   const providerStreams=Array.isArray(data.streams)?data.streams:[];
   const rejectedHostsSet=new Set();
