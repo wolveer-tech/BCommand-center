@@ -2179,6 +2179,7 @@ body.home-fullscreen .mobile-watch-fab{
             <div class="card-head"><div><div class="title" id="liveFootballPlayerTitle">Live stream</div><div class="sub" id="liveFootballPlayerMeta"></div></div><button class="btn small" id="closeLiveFootballBtn">Close player</button></div>
             <div id="liveFootballSources" class="live-source-switcher"></div>
             <iframe id="liveFootballFrame" class="live-stream-frame" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+            <video id="liveFootballVideo" class="live-stream-frame" controls playsinline preload="metadata" style="display:none;background:#000"></video>
           </div>
           <div class="setting-note">This section changes automatically with Football, Tennis and Basketball. Command Centre only displays streams from providers you configure and are authorised to access and embed.</div>
         </article>
@@ -4581,16 +4582,26 @@ function liveStreamDate(ts){
   return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' • '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
 }
 function liveSourceEntries(stream){
+  const resolvedRefs=(Array.isArray(stream?.source_refs)?stream.source_refs:[]).map((entry,index)=>({
+    resolver:true,
+    source:String(entry?.source||''),
+    id:String(entry?.id||''),
+    label:String(entry?.label||entry?.source||`Source ${index+1}`)
+  })).filter(x=>x.source&&x.id);
+
   const raw=Array.isArray(stream?.sources)&&stream.sources.length
     ?stream.sources
     :(stream?.embed_url?[stream.embed_url]:[]);
-  return raw.map((entry,index)=>{
-    if(typeof entry==='string')return {url:entry,label:`Source ${index+1}`};
+  const direct=raw.map((entry,index)=>{
+    if(typeof entry==='string')return {url:entry,label:`Direct ${index+1}`};
     return {
       url:String(entry?.url||entry?.embed_url||entry?.src||''),
-      label:String(entry?.label||entry?.name||entry?.quality||`Source ${index+1}`)
+      label:String(entry?.label||entry?.name||entry?.quality||`Direct ${index+1}`)
     };
   }).filter(x=>x.url);
+
+  // Prefer resolver-backed sources because the JSON's static iframe can become stale.
+  return [...resolvedRefs,...direct];
 }
 function renderLiveFootballProviders(){
   const wrap=qs('#liveFootballProviders');
@@ -4695,21 +4706,72 @@ function renderLiveFootballSources(stream){
   wrap.innerHTML=sources.map((source,index)=>`<button class="live-source-btn${index===liveFootballCurrentSourceIndex?' active':''}" type="button" data-live-source-index="${index}">${esc(source.label||`Source ${index+1}`)}</button>`).join('');
   wrap.style.display=sources.length>1?'flex':'none';
 }
-function setLiveFootballSource(sourceIndex){
+function setLivePlaybackUrl(url,kind='iframe'){
+  const frame=qs('#liveFootballFrame');
+  const video=qs('#liveFootballVideo');
+
+  if(kind==='hls'||kind==='video'){
+    if(frame){
+      frame.src='about:blank';
+      frame.style.display='none';
+    }
+    if(video){
+      video.style.display='block';
+      video.src=url;
+      video.load();
+      video.play().catch(()=>{});
+    }
+    return;
+  }
+
+  if(video){
+    try{video.pause()}catch{}
+    video.removeAttribute('src');
+    video.load();
+    video.style.display='none';
+  }
+  if(frame){
+    frame.style.display='block';
+    frame.src=url;
+  }
+}
+async function setLiveFootballSource(sourceIndex){
   const stream=liveFootballStreams[liveFootballCurrentStreamIndex];
   const sources=liveSourceEntries(stream);
   const index=Number(sourceIndex);
   const source=sources[index];
-  if(!source?.url)return;
+  if(!source)return;
+
   liveFootballCurrentSourceIndex=index;
-  const frame=qs('#liveFootballFrame');
-  if(frame)frame.src=source.url;
   renderLiveFootballSources(stream);
-  if(qs('#liveFootballPlayerMeta')){
-    const provider=liveFootballProviders.find(p=>p.id===liveFootballProviderId);
-    const base=stream.league||stream.category||liveSportDisplay();
-    const bits=[provider?.name||'',base,sources.length>1?(source.label||`Source ${index+1}`):''].filter(Boolean);
-    qs('#liveFootballPlayerMeta').textContent=bits.join(' • ');
+
+  const meta=qs('#liveFootballPlayerMeta');
+  const provider=liveFootballProviders.find(p=>p.id===liveFootballProviderId);
+  const base=stream.league||stream.category||liveSportDisplay();
+
+  try{
+    if(source.resolver){
+      if(meta)meta.textContent=[provider?.name||'',base,`Resolving ${source.label||`Source ${index+1}`}…`].filter(Boolean).join(' • ');
+
+      const q=new URLSearchParams({
+        provider:liveFootballProviderId,
+        source:source.source,
+        id:source.id
+      });
+      const resolved=await fetchJson(`/api/live-content/resolve?${q.toString()}`,{},15000);
+
+      if(!resolved?.url)throw new Error('Source resolver returned no player URL.');
+      setLivePlaybackUrl(resolved.url,resolved.kind||'iframe');
+
+      if(meta)meta.textContent=[provider?.name||'',base,source.label||`Source ${index+1}`].filter(Boolean).join(' • ');
+      return;
+    }
+
+    if(!source.url)return;
+    setLivePlaybackUrl(source.url,'iframe');
+    if(meta)meta.textContent=[provider?.name||'',base,source.label||`Source ${index+1}`].filter(Boolean).join(' • ');
+  }catch(e){
+    if(meta)meta.textContent=[provider?.name||'',base,e.message||'Could not resolve this source'].filter(Boolean).join(' • ');
   }
 }
 function openLiveFootball(index){
@@ -4729,8 +4791,17 @@ function openLiveFootball(index){
   }
 }
 function closeLiveFootball(){
-  const frame=qs('#liveFootballFrame'),wrap=qs('#liveFootballPlayerWrap'),sources=qs('#liveFootballSources');
-  if(frame)frame.src='about:blank';
+  const frame=qs('#liveFootballFrame'),video=qs('#liveFootballVideo'),wrap=qs('#liveFootballPlayerWrap'),sources=qs('#liveFootballSources');
+  if(frame){
+    frame.src='about:blank';
+    frame.style.display='block';
+  }
+  if(video){
+    try{video.pause()}catch{}
+    video.removeAttribute('src');
+    video.load();
+    video.style.display='none';
+  }
   if(wrap)wrap.style.display='none';
   if(sources)sources.innerHTML='';
   liveFootballCurrentStreamIndex=-1;
