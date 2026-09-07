@@ -353,6 +353,13 @@ function liveProviderConfig(env,providerId='1'){
       dynamicCategoryField:String(env.LIVE_PROVIDER_1_DYNAMIC_CATEGORY_FIELD||'').trim(),
       dynamicItemsField:String(env.LIVE_PROVIDER_1_DYNAMIC_ITEMS_FIELD||'').trim(),
       dynamicCategoryParam:String(env.LIVE_PROVIDER_1_DYNAMIC_CATEGORY_PARAM||'').trim(),
+      resolverPath:String(env.LIVE_PROVIDER_1_RESOLVE_PATH||'').trim(),
+      resolverBaseUrl:String(env.LIVE_PROVIDER_1_RESOLVE_BASE_URL||'').trim(),
+      resolverAllowedHosts:String(env.LIVE_PROVIDER_1_ALLOWED_RESOLVE_HOSTS||'').trim(),
+      resolverSourceParam:String(env.LIVE_PROVIDER_1_RESOLVE_SOURCE_PARAM||'source').trim()||'source',
+      resolverIdParam:String(env.LIVE_PROVIDER_1_RESOLVE_ID_PARAM||'id').trim()||'id',
+      resolverUrlField:String(env.LIVE_PROVIDER_1_RESOLVE_URL_FIELD||'').trim(),
+      resolverCacheBustParam:String(env.LIVE_PROVIDER_1_RESOLVE_CACHEBUST_PARAM||'').trim(),
 
       categoryAliases:{
         soccer:String(env.LIVE_PROVIDER_1_CATEGORY_SOCCER||'soccer').trim(),
@@ -383,6 +390,13 @@ function liveProviderConfig(env,providerId='1'){
       dynamicCategoryField:String(env.LIVE_PROVIDER_2_DYNAMIC_CATEGORY_FIELD||'').trim(),
       dynamicItemsField:String(env.LIVE_PROVIDER_2_DYNAMIC_ITEMS_FIELD||'').trim(),
       dynamicCategoryParam:String(env.LIVE_PROVIDER_2_DYNAMIC_CATEGORY_PARAM||'').trim(),
+      resolverPath:String(env.LIVE_PROVIDER_2_RESOLVE_PATH||'').trim(),
+      resolverBaseUrl:String(env.LIVE_PROVIDER_2_RESOLVE_BASE_URL||'').trim(),
+      resolverAllowedHosts:String(env.LIVE_PROVIDER_2_ALLOWED_RESOLVE_HOSTS||'').trim(),
+      resolverSourceParam:String(env.LIVE_PROVIDER_2_RESOLVE_SOURCE_PARAM||'source').trim()||'source',
+      resolverIdParam:String(env.LIVE_PROVIDER_2_RESOLVE_ID_PARAM||'id').trim()||'id',
+      resolverUrlField:String(env.LIVE_PROVIDER_2_RESOLVE_URL_FIELD||'').trim(),
+      resolverCacheBustParam:String(env.LIVE_PROVIDER_2_RESOLVE_CACHEBUST_PARAM||'').trim(),
 
       categoryAliases:{
         soccer:String(env.LIVE_PROVIDER_2_CATEGORY_SOCCER||'soccer').trim(),
@@ -412,6 +426,13 @@ function liveProviderConfig(env,providerId='1'){
       dynamicCategoryField:String(env.LIVE_PROVIDER_3_DYNAMIC_CATEGORY_FIELD||'').trim(),
       dynamicItemsField:String(env.LIVE_PROVIDER_3_DYNAMIC_ITEMS_FIELD||'').trim(),
       dynamicCategoryParam:String(env.LIVE_PROVIDER_3_DYNAMIC_CATEGORY_PARAM||'').trim(),
+      resolverPath:String(env.LIVE_PROVIDER_3_RESOLVE_PATH||'').trim(),
+      resolverBaseUrl:String(env.LIVE_PROVIDER_3_RESOLVE_BASE_URL||'').trim(),
+      resolverAllowedHosts:String(env.LIVE_PROVIDER_3_ALLOWED_RESOLVE_HOSTS||'').trim(),
+      resolverSourceParam:String(env.LIVE_PROVIDER_3_RESOLVE_SOURCE_PARAM||'source').trim()||'source',
+      resolverIdParam:String(env.LIVE_PROVIDER_3_RESOLVE_ID_PARAM||'id').trim()||'id',
+      resolverUrlField:String(env.LIVE_PROVIDER_3_RESOLVE_URL_FIELD||'').trim(),
+      resolverCacheBustParam:String(env.LIVE_PROVIDER_3_RESOLVE_CACHEBUST_PARAM||'').trim(),
 
     categoryAliases:{
       soccer:String(env.LIVE_PROVIDER_3_CATEGORY_SOCCER||'soccer').trim(),
@@ -460,6 +481,20 @@ function allowedDynamicDataUrl(dataUrl,dataBase,cfg){
     const configured=csvHosts(cfg.dynamicAllowedHosts);
     const fallback=[
       dataBase.hostname.toLowerCase(),
+      ...csvHosts(cfg.pageHosts)
+    ];
+    const hosts=configured.length?configured:[...new Set(fallback)];
+    return hosts.includes(u.hostname.toLowerCase());
+  }catch{return false}
+}
+function allowedResolverUrl(resolverUrl,resolverBase,cfg){
+  try{
+    const u=new URL(resolverUrl,resolverBase);
+    if(u.protocol!=='https:')return false;
+    const configured=csvHosts(cfg.resolverAllowedHosts);
+    const fallback=[
+      resolverBase.hostname.toLowerCase(),
+      ...csvHosts(cfg.dynamicAllowedHosts),
       ...csvHosts(cfg.pageHosts)
     ];
     const hosts=configured.length?configured:[...new Set(fallback)];
@@ -783,6 +818,172 @@ function dynamicSourceList(item){
   if(raw&&typeof raw==='object')return Object.values(raw);
   return [];
 }
+function dynamicSourceRefs(item){
+  return dynamicSourceList(item).map((value,index)=>{
+    if(!value||typeof value!=='object'||Array.isArray(value))return null;
+
+    const source=String(
+      value.source??value.provider??value.type??value.server??''
+    ).trim().slice(0,80);
+    const id=String(
+      value.id??value.key??value.stream_id??value.streamId??value.slug??''
+    ).trim().slice(0,300);
+
+    if(!source||!id)return null;
+
+    const label=String(
+      value.label??value.name??value.quality??source??`Source ${index+1}`
+    ).trim().slice(0,60)||`Source ${index+1}`;
+
+    return {source,id,label};
+  }).filter(Boolean);
+}
+function safeResolverToken(value,max=300){
+  const s=String(value||'').trim();
+  if(!s||s.length>max||/[\u0000-\u001f\u007f]/.test(s))return '';
+  return s;
+}
+function resolverUrlCandidate(data,cfg){
+  if(cfg.resolverUrlField){
+    const configured=valueAtPath(data,cfg.resolverUrlField);
+    if(typeof configured==='string'&&configured.trim())return configured.trim();
+  }
+
+  const fields=[
+    'url','embed_url','embedUrl','iframe','iframe_url','player_url','playerUrl',
+    'stream_url','streamUrl','src',
+    'data.url','data.embed_url','data.embedUrl','data.iframe','data.player_url','data.stream_url',
+    'result.url','result.embed_url','result.embedUrl','result.iframe','result.player_url','result.stream_url',
+    'stream.url','stream.embed_url','stream.iframe','stream.player_url',
+    'data.stream.url','data.stream.embed_url','data.stream.iframe','data.stream.player_url'
+  ];
+
+  for(const field of fields){
+    const value=valueAtPath(data,field);
+    if(typeof value==='string'&&value.trim())return value.trim();
+  }
+  return '';
+}
+function resolvedPlaybackKind(url){
+  try{
+    const u=new URL(url);
+    const path=u.pathname.toLowerCase();
+    if(path.endsWith('.m3u8'))return 'hls';
+    if(/\.(mp4|webm|mov|m4v)$/i.test(path))return 'video';
+  }catch{}
+  return 'iframe';
+}
+async function resolveDynamicSource(env,providerId,sourceValue,idValue){
+  const cfg=liveProviderConfig(env,providerId);
+  const source=safeResolverToken(sourceValue,80);
+  const sourceId=safeResolverToken(idValue,300);
+
+  if(!source||!sourceId){
+    const err=new Error('Invalid stream source reference.');
+    err.status=400;
+    throw err;
+  }
+  if(!cfg.resolverPath){
+    const err=new Error(`${cfg.name} has source references, but LIVE_PROVIDER_${cfg.id}_RESOLVE_PATH is not configured.`);
+    err.status=503;
+    throw err;
+  }
+
+  let resolverBase=null;
+  try{
+    resolverBase=normaliseBaseUrl(
+      cfg.resolverBaseUrl||
+      cfg.dynamicBaseUrl||
+      cfg.baseUrl
+    );
+  }catch{
+    const err=new Error(`LIVE_PROVIDER_${cfg.id}_RESOLVE_BASE_URL is not a valid HTTPS URL.`);
+    err.status=500;
+    throw err;
+  }
+  if(!resolverBase){
+    const err=new Error(`${cfg.name} resolver has no base URL.`);
+    err.status=500;
+    throw err;
+  }
+
+  let path=String(cfg.resolverPath||'').trim()
+    .replace(/\{source\}/g,encodeURIComponent(source))
+    .replace(/\{id\}/g,encodeURIComponent(sourceId));
+  const endpoint=new URL(path,resolverBase);
+
+  if(!String(cfg.resolverPath).includes('{source}')){
+    endpoint.searchParams.set(cfg.resolverSourceParam||'source',source);
+  }
+  if(!String(cfg.resolverPath).includes('{id}')){
+    endpoint.searchParams.set(cfg.resolverIdParam||'id',sourceId);
+  }
+  if(cfg.resolverCacheBustParam){
+    endpoint.searchParams.set(cfg.resolverCacheBustParam,String(Date.now()));
+  }
+
+  if(!allowedResolverUrl(endpoint.toString(),resolverBase,cfg)){
+    const err=new Error(
+      `${cfg.name}: resolver host "${endpoint.hostname}" is not allowed. `+
+      `Add it to LIVE_PROVIDER_${cfg.id}_ALLOWED_RESOLVE_HOSTS.`
+    );
+    err.status=500;
+    throw err;
+  }
+
+  const headers={accept:'application/json,text/plain;q=0.9,*/*;q=0.2'};
+  if(cfg.apiKey)headers.authorization=`Bearer ${cfg.apiKey}`;
+
+  const r=await fetch(endpoint.toString(),{headers,redirect:'follow'});
+  const contentType=String(r.headers.get('content-type')||'').toLowerCase();
+  const text=await r.text();
+
+  if(!r.ok){
+    const err=new Error(`${cfg.name} source resolver HTTP ${r.status}`);
+    err.status=r.status>=400&&r.status<500?r.status:502;
+    throw err;
+  }
+
+  let resolved='';
+  if(contentType.includes('json')||/^\s*[\[{]/.test(text)){
+    let data={};
+    try{data=JSON.parse(text)}catch{
+      const err=new Error(`${cfg.name} source resolver returned invalid JSON.`);
+      err.status=502;
+      throw err;
+    }
+    resolved=resolverUrlCandidate(data,cfg);
+  }else{
+    const plain=String(text||'').trim();
+    if(/^https:\/\//i.test(plain))resolved=plain;
+  }
+
+  if(!resolved||!/^https:\/\//i.test(resolved)){
+    const err=new Error(
+      `${cfg.name} source resolver did not return an HTTPS player URL. `+
+      `If its JSON stores the URL in a different field, set LIVE_PROVIDER_${cfg.id}_RESOLVE_URL_FIELD.`
+    );
+    err.status=502;
+    throw err;
+  }
+
+  const providerBase=normaliseBaseUrl(cfg.baseUrl);
+  if(!allowedEmbedUrl(resolved,providerBase,cfg)){
+    let host='';
+    try{host=new URL(resolved).hostname}catch{}
+    const err=new Error(
+      `${cfg.name} resolved "${host||'a player host'}", but it is not in LIVE_PROVIDER_${cfg.id}_ALLOWED_EMBED_HOSTS.`
+    );
+    err.status=403;
+    throw err;
+  }
+
+  return {
+    url:resolved,
+    kind:resolvedPlaybackKind(resolved),
+    label:source
+  };
+}
 function normaliseDynamicStream(item,index,requestedCategory){
   const embed=firstUseful(item,[
     'embed_url','embedUrl','player_url','playerUrl','iframe','iframe_url','url','stream_url','streamUrl'
@@ -810,6 +1011,7 @@ function normaliseDynamicStream(item,index,requestedCategory){
     match_timestamp:Number(timestamp)||null,
     embed_url:typeof embed==='string'?embed:'',
     sources:dynamicSourceList(item),
+    source_refs:dynamicSourceRefs(item),
     thumbnail_url:typeof thumbnail==='string'?thumbnail:'',
     tag:String(tag).slice(0,40),
     team1:item?.team1&&typeof item.team1==='object'?item.team1:null,
@@ -952,8 +1154,13 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
   const streams=providerStreams.map(s=>{
     const allHosts=providerSourceHosts(s);
     const sources=allowedStreamSources(s,base,cfg);
+    const sourceRefs=(Array.isArray(s.source_refs)?s.source_refs:[]).map((ref,index)=>({
+      source:safeResolverToken(ref?.source,80),
+      id:safeResolverToken(ref?.id,300),
+      label:String(ref?.label||ref?.source||`Source ${index+1}`).slice(0,60)
+    })).filter(ref=>ref.source&&ref.id);
 
-    if(!sources.length)allHosts.forEach(host=>rejectedHostsSet.add(host));
+    if(!sources.length&&!sourceRefs.length)allHosts.forEach(host=>rejectedHostsSet.add(host));
 
     return {
       id:String(s.id||'').slice(0,200),
@@ -966,9 +1173,11 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
       embed_url:sources[0]?.url||'',
       sources:sources.map((entry,index)=>({
         url:entry.url,
-        label:String(entry.label||`Source ${index+1}`).slice(0,60)
+        label:String(entry.label||`Direct ${index+1}`).slice(0,60)
       })),
-      source_count:sources.length,
+      source_refs:sourceRefs,
+      resolver_enabled:!!cfg.resolverPath,
+      source_count:sources.length+sourceRefs.length,
       thumbnail_url:safeHttpsUrl(s.thumbnail_url||''),
       team1:s.team1&&typeof s.team1==='object'?{
         name:String(s.team1.name||'').slice(0,120),
@@ -979,7 +1188,7 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
         logo:safeHttpsUrl(s.team2.logo||'')
       }:null
     };
-  }).filter(s=>s.embed_url);
+  }).filter(s=>s.embed_url||s.source_refs.length);
 
   const configuredAllowedHosts=csvHosts(cfg.embedHosts);
   const rejectedHosts=[...rejectedHostsSet].sort();
@@ -995,10 +1204,12 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
     rejectedHosts,
     diagnostic:
       providerStreams.length>0&&streams.length===0
-        ?`${cfg.name} returned streams, but none of their HTTPS player hosts matched its allowed embed-host list.`
-        :rejectedHosts.length
-          ?`Some ${cfg.name} streams were rejected because their player hosts were not on its allowlist.`
-          :`All usable ${cfg.name} stream hosts passed the allowlist check.`,
+        ?`${cfg.name} returned streams, but none had an allowed direct player URL or a usable resolver source reference.`
+        :streams.some(s=>s.source_refs?.length)
+          ?`${cfg.name} returned source references. They will be resolved only when you open or switch a source.`
+          :rejectedHosts.length
+            ?`Some ${cfg.name} streams were rejected because their player hosts were not on its allowlist.`
+            :`All usable ${cfg.name} stream hosts passed the allowlist check.`,
     streams,
     category:safeCategory,
     updatedAt:new Date().toISOString()
@@ -2491,6 +2702,15 @@ export default {
           request.url,
           url.searchParams.get('refresh')==='1',
           url.searchParams.get('provider')||'1'
+        ));
+      }
+
+      if(url.pathname==='/api/live-content/resolve'&&request.method==='GET'){
+        return json(await resolveDynamicSource(
+          env,
+          url.searchParams.get('provider')||'1',
+          url.searchParams.get('source')||'',
+          url.searchParams.get('id')||''
         ));
       }
 
