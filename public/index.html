@@ -507,7 +507,7 @@ html,body{
     border-radius:16px;font:inherit;cursor:pointer;
   }
   .mobile-dock-btn span{font-size:17px;line-height:1}
-  .mobile-dock-btn small{font-size:8px;font-weight:750}
+  .mobile-dock-btn small{font-size:8px;font-weight:750;white-space:nowrap}
   .mobile-dock-btn.active{
     color:#fff;
     background:rgba(91,140,255,.17);
@@ -2480,7 +2480,7 @@ body.home-fullscreen .mobile-watch-fab{
   <span>🎬</span><strong>Watch</strong>
 </button>
 <nav class="mobile-dock" id="mobileDock" aria-label="Quick navigation">
-  <button class="mobile-dock-btn active" data-mobile-page="home"><span>⌂</span><small>Home</small></button>
+  <button class="mobile-dock-btn active" data-mobile-page="home"><span>⌂</span><small>Home Screen</small></button>
   <button class="mobile-dock-btn" data-mobile-page="today"><span>☀</span><small>Today</small></button>
   <button class="mobile-dock-btn" data-mobile-page="watch"><span>▶</span><small>Watch</small></button>
   <button class="mobile-dock-btn" data-mobile-page="notes"><span>✎</span><small>Notes</small></button>
@@ -2919,6 +2919,7 @@ function init(){
       const page=btn.dataset.mobilePage;
       if(page==='watch'){openWatchPage();return}
       if(page==='more'){toggleSidebar();return}
+      if(page==='home'){openHomeLauncher();return}
       switchPage(page);
       closeSidebar();
       window.scrollTo({top:0,behavior:'smooth'});
@@ -3156,6 +3157,19 @@ function openWatchPage(section=null){
   requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'smooth'}));
 }
 window.openWatchPage=openWatchPage;
+
+function openHomeLauncher(){
+  // Keep normal app startup on the Dashboard, but when the user explicitly
+  // presses Home from another section, jump directly to the app-launcher panel.
+  switchPage('home');
+  requestAnimationFrame(()=>{
+    setHomeSlide(1,false);
+    setTimeout(()=>setHomeSlide(1,false),60);
+  });
+  closeSidebar();
+  window.scrollTo({top:0,behavior:'auto'});
+}
+window.openHomeLauncher=openHomeLauncher;
 
 function switchPage(page,persist=true){
   document.body.classList.toggle('home-fullscreen',page==='home');
