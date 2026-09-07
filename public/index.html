@@ -1591,6 +1591,43 @@ body.home-fullscreen .mobile-watch-fab{
   body.home-fullscreen #homePage .launcher-screen{padding-bottom:67px}
   body.home-fullscreen #homePage .launcher-dock{left:9px;right:9px;bottom:8px;padding:5px}
 }
+
+/* v10.3 — Home is the launcher; Today is the dashboard */
+#homePage #homePager > .home-panel:first-child{display:none!important}
+#homePage .home-pager{overflow:hidden!important;scroll-snap-type:none!important}
+#homePage .home-pager-dots{display:none!important}
+#homePage #homePager > .home-panel:last-child{
+  flex:0 0 100%;
+  width:100%;
+  min-width:100%;
+}
+
+.nav-back-btn{display:none;font-size:26px;line-height:1;font-weight:500}
+body:not(.home-fullscreen) .nav-back-btn{display:grid}
+@media(max-width:760px){
+  body:not(.home-fullscreen) .brand-icon{display:none}
+  body:not(.home-fullscreen) .brand h1{font-size:12px}
+  body:not(.home-fullscreen) .brand p{display:none}
+}
+
+.today-glance{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:13px}
+.today-glance-item{padding:11px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.035);min-width:0}
+.today-glance-item strong{display:block;font-size:19px;line-height:1}
+.today-glance-item span{display:block;margin-top:5px;font-size:8px;color:var(--muted)}
+.today-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.today-action{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:999px;padding:8px 11px;font-size:9px;font-weight:800;cursor:pointer}
+.today-sport-list,.today-news-list{display:grid;gap:7px}
+.today-focus-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);color:inherit;text-decoration:none;width:100%;font:inherit;text-align:left;cursor:pointer}
+.today-focus-main{min-width:0}
+.today-focus-title{display:block;font-size:10px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.today-focus-meta{display:block;font-size:8px;color:var(--muted);margin-top:3px;line-height:1.35}
+.today-focus-badge{font-size:7px;font-weight:900;padding:4px 7px;border-radius:999px;background:rgba(71,214,232,.1);color:var(--cyan);white-space:nowrap}
+@media(max-width:760px){
+  .today-glance{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .today-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%}
+  .today-action{justify-content:center;padding:8px 4px}
+}
+
 </style>
 </head>
 <body>
@@ -1622,7 +1659,7 @@ body.home-fullscreen .mobile-watch-fab{
   <div class="main-area">
   <div class="app">
   <header class="topbar">
-    <div class="brand"><button class="icon-btn sidebar-toggle" id="sidebarToggle" aria-label="Menu">☰</button><div class="brand-icon">🎛️</div><div><h1>Command Center</h1><p>Personal dashboard</p></div></div>
+    <div class="brand"><button class="icon-btn nav-back-btn" id="navBackBtn" aria-label="Go back" title="Back">‹</button><button class="icon-btn sidebar-toggle" id="sidebarToggle" aria-label="Menu">☰</button><div class="brand-icon">🎛️</div><div><h1>Command Center</h1><p>Personal dashboard</p></div></div>
     <div style="display:flex;align-items:center;gap:8px">
       <div class="clock" id="clock"></div>
       <button class="icon-btn" id="universalSearchBtn" aria-label="Search Command Centre" title="Search">⌕</button>
@@ -1666,17 +1703,17 @@ body.home-fullscreen .mobile-watch-fab{
       </div>
       <div class="home-panel">
         <div class="home-panel-intro">
-          <button class="home-panel-arrow" type="button" data-home-slide-to="0">← Dashboard</button>
-          <div class="home-panel-tag">Launcher <small>Like an iPhone home screen, but for your sections</small></div>
+          <button class="home-panel-arrow" type="button" data-launch-page="today">☀️ Today</button>
+          <div class="home-panel-tag">Home <small>Your apps, shortcuts and quick actions</small></div>
         </div>
         <div class="launcher-screen">
           <div class="launcher-header">
             <div>
-              <div class="launcher-greeting">Command Centre app page</div>
+              <div class="launcher-greeting">Command Centre Home</div>
               <div class="launcher-date" id="launcherDate">Monday 15</div>
               <div class="launcher-time" id="launcherTime">10:37 • Your shortcuts and sections</div>
             </div>
-            <div class="launcher-swipe-hint">Swipe right to return</div>
+            <div class="launcher-swipe-hint">Swipe down to search</div>
           </div>
 
           <div class="launcher-widget-grid">
@@ -1757,12 +1794,50 @@ body.home-fullscreen .mobile-watch-fab{
 
     <section class="page" id="todayPage">
       <div class="stack">
-        <div class="hero"><div class="card-head"><div><span class="pill">TODAY</span><h2 id="todayPageTitle">Today</h2><p id="todayPageSubtitle">Your day in one place.</p></div><button class="btn primary" id="todayQuickAddBtn">+ Quick add</button></div></div>
-        <div class="today-grid">
-          <article class="card"><div class="card-head"><div><div class="title">🗓️ Schedule</div><div class="sub">Events and reminders due today.</div></div><button class="btn small" data-page-jump="calendar">Calendar</button></div><div id="todaySchedule"></div></article>
-          <article class="card"><div class="card-head"><div><div class="title">⚡ Next up</div><div class="sub">The closest timed item today.</div></div></div><div id="todayNextUp"></div></article>
+        <div class="hero today-hero">
+          <div class="card-head">
+            <div>
+              <span class="pill">TODAY</span>
+              <h2 id="todayPageTitle">Today</h2>
+              <p id="todayPageSubtitle">Your schedule, priorities and useful updates in one place.</p>
+            </div>
+            <div class="toolbar">
+              <button class="btn" onclick="openHomeLauncher()">⌂ Home</button>
+              <button class="btn primary" id="todayQuickAddBtn">+ Quick add</button>
+            </div>
+          </div>
+          <div id="todayAtAGlance" class="today-glance"></div>
+          <div class="today-actions">
+            <button class="today-action" type="button" data-quick-add="reminder">🔔<span>Reminder</span></button>
+            <button class="today-action" type="button" data-quick-add="event">🗓️<span>Event</span></button>
+            <button class="today-action" type="button" data-quick-add="note">📝<span>Note</span></button>
+            <button class="today-action" type="button" onclick="openUniversalSearch()">⌕<span>Search</span></button>
+          </div>
         </div>
-        <article class="card"><div class="card-head"><div><div class="title">▶ Continue Watching</div><div class="sub">Recent content across Watch.</div></div><button class="btn small" onclick="openWatchPage()">Open Watch</button></div><div id="todayContinueWatching"></div></article>
+
+        <div class="today-grid">
+          <article class="card">
+            <div class="card-head"><div><div class="title">⚡ Next up</div><div class="sub">The closest thing that needs your attention.</div></div></div>
+            <div id="todayNextUp"></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><div><div class="title">🗓️ Today's schedule</div><div class="sub">Events and reminders due today.</div></div><button class="btn small" data-page-jump="calendar">Calendar</button></div>
+            <div id="todaySchedule"></div>
+          </article>
+        </div>
+
+        <div class="today-grid">
+          <article class="card">
+            <div class="card-head"><div><div class="title">🏟️ Following in Sport</div><div class="sub">Teams and players you follow, plus nearby fixtures when available.</div></div><button class="btn small" data-page-jump="football">Sport</button></div>
+            <div id="todaySportFollowing"></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><div><div class="title">📈 Financial headlines</div><div class="sub">Focused market-moving news.</div></div><button class="btn small" data-page-jump="news">News</button></div>
+            <div id="todayFinanceNews"><div class="empty">Loading focused financial news…</div></div>
+          </article>
+        </div>
+
+        <article class="card"><div class="card-head"><div><div class="title">▶ Continue</div><div class="sub">Pick up recent YouTube, movies and TV.</div></div><button class="btn small" onclick="openWatchPage()">Watch</button></div><div id="todayContinueWatching"></div></article>
         <article class="card"><div class="card-head"><div><div class="title">📝 Recent Notes</div><div class="sub">Your latest active notes.</div></div><button class="btn small" data-page-jump="notes">All Notes</button></div><div id="todayRecentNotes"></div></article>
       </div>
     </section>
@@ -2437,7 +2512,7 @@ body.home-fullscreen .mobile-watch-fab{
 <div class="modal-actions"><button class="btn" data-close="settingsModal">Cancel</button><button class="btn primary" id="saveSettings">Save</button></div>
 </div></div>
 <div class="modal" id="universalSearchModal"><div class="modal-card search-modal-card">
-<div class="modal-head"><div><div class="title">⌕ Search Command Centre</div><div class="sub">Notes, reminders, calendar, pages, YouTube and Movies & TV.</div></div><button class="icon-btn" data-close="universalSearchModal">×</button></div>
+<div class="modal-head"><div><div class="title">⌕ Search Command Centre</div><div class="sub">Pages, notes, calendar, sport, news, YouTube and Movies & TV.</div></div><button class="icon-btn" data-close="universalSearchModal">×</button></div>
 <div class="universal-search-box"><span>⌕</span><input id="universalSearchInput" placeholder="Search everything…" autocomplete="off" /></div>
 <div class="universal-search-hint"><span>Type 2+ letters for online content.</span><span>Press / anywhere to search</span></div>
 <div id="universalSearchResults" class="universal-results"></div></div></div>
@@ -2654,7 +2729,139 @@ function openHomeCustomizer(){openSettings();showSettingsSection('home');renderH
 function sortedTodayItems(){return [...calendarItemsForDate(dayKey())].sort((a,b)=>String(a.time||'99:99').localeCompare(String(b.time||'99:99')))}
 function todayItemHtml(x){const event=x.itemType==='event',title=event?x.title:x.text,meta=event?(x.notes||'Calendar event'):`${x.category||'General'} • ${formatFrequency(x.frequency||'none')}`;return `<div class="today-item"><div class="today-time">${esc(x.time||'Anytime')}</div><div class="today-item-main"><div class="today-item-title">${event?'🗓️':'🔔'} ${esc(title||'Item')}</div><div class="today-item-meta">${esc(meta)}</div></div></div>`}
 function renderHomeTodaySummary(){const el=qs('#homeTodaySummary');if(!el)return;const items=sortedTodayItems(),events=items.filter(x=>x.itemType==='event').length,rems=items.filter(x=>x.itemType==='reminder').length;el.innerHTML=`<div class="mini"><strong>${events}</strong><span>Event${events===1?'':'s'} today</span></div><div class="mini"><strong>${rems}</strong><span>Reminder${rems===1?'':'s'} due</span></div>`}
-function renderTodayPage(){renderHomeLauncher();const d=new Date(),items=sortedTodayItems();const t=qs('#todayPageTitle');if(t)t.textContent=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});const schedule=qs('#todaySchedule');if(schedule)schedule.innerHTML=items.length?`<div class="today-list">${items.map(todayItemHtml).join('')}</div>`:'<div class="empty">Nothing scheduled today.</div>';const mins=d.getHours()*60+d.getMinutes();const timed=items.map(x=>{if(!x.time)return null;const [h,m]=x.time.split(':').map(Number);return {...x,_m:h*60+m}}).filter(x=>x&&x._m>=mins);const next=timed[0]||items.find(x=>!x.time);const ne=qs('#todayNextUp');if(ne)ne.innerHTML=next?todayItemHtml(next):'<div class="empty">Your day is clear from here.</div>';const notes=state.notes.filter(n=>!n.deletedAt).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt)).slice(0,4);const nl=qs('#todayRecentNotes');if(nl)nl.innerHTML=notes.length?`<div class="notes-list">${notes.map(n=>`<button class="note-card" style="width:100%;text-align:left;color:inherit;font:inherit" data-today-note="${esc(n.id)}"><div class="note-icon">${n.pinned?'📌':'📝'}</div><div class="note-card-main"><div class="note-card-title">${esc(n.title)}</div><div class="note-card-preview">${esc(notePreview(n.body)||'No text')}</div></div></button>`).join('')}</div>`:'<div class="empty">No notes yet.</div>';renderContinueWatchingInto('todayContinueWatching',6);renderHomeTodaySummary()}
+function todaySportsSummary(){
+  const rows=[];
+  const footballFavs=typeof footballFavouriteTeams==='function'?footballFavouriteTeams():[];
+  const footballMatches=(typeof footballCache!=='undefined'&&Array.isArray(footballCache.matches))?footballCache.matches:[];
+  const now=Date.now();
+
+  footballMatches
+    .filter(m=>{
+      const hid=Number(m?.homeTeam?.id||0),aid=Number(m?.awayTeam?.id||0);
+      return footballFavs.some(t=>Number(t.id)===hid||Number(t.id)===aid);
+    })
+    .filter(m=>{
+      const time=Date.parse(m.utcDate||'');
+      return !Number.isFinite(time)||time>=now-6*60*60*1000;
+    })
+    .slice(0,2)
+    .forEach(m=>rows.push({
+      title:`${footballTeamName(m.homeTeam)} vs ${footballTeamName(m.awayTeam)}`,
+      meta:footballDateTime(m.utcDate),
+      badge:'Football',
+      sport:'football'
+    }));
+
+  ['tennis','basketball'].forEach(kind=>{
+    const favs=typeof sportFavourites==='function'?sportFavourites(kind):[];
+    const cache=(typeof generalSportCache!=='undefined'&&generalSportCache[kind])?generalSportCache[kind]:{events:[]};
+    const events=Array.isArray(cache.events)?cache.events:[];
+
+    events
+      .filter(e=>favs.some(name=>[e.home,e.away].some(x=>String(x||'').toLowerCase()===String(name).toLowerCase())))
+      .filter(e=>{
+        const time=Date.parse(e.timestamp||(e.date?`${e.date}T${e.time||'00:00:00'}Z`:''));
+        return !Number.isFinite(time)||time>=now-6*60*60*1000;
+      })
+      .slice(0,2)
+      .forEach(e=>rows.push({
+        title:e.name||`${e.home||''} vs ${e.away||''}`,
+        meta:generalSportEventTime(e),
+        badge:sportLabel(kind),
+        sport:kind
+      }));
+  });
+
+  if(rows.length)return rows.slice(0,4);
+
+  footballFavs.slice(0,2).forEach(t=>rows.push({
+    title:t.name||'Favourite football team',meta:'Following',badge:'Football',sport:'football'
+  }));
+  ['tennis','basketball'].forEach(kind=>{
+    (typeof sportFavourites==='function'?sportFavourites(kind):[]).slice(0,2).forEach(name=>{
+      if(rows.length<4)rows.push({title:String(name),meta:'Following',badge:sportLabel(kind),sport:kind});
+    });
+  });
+  return rows.slice(0,4);
+}
+
+function openTodaySport(kind){
+  switchPage('football');
+  setTimeout(()=>setSportTab(kind||'football',true),60);
+}
+window.openTodaySport=openTodaySport;
+
+function renderTodayExtra(){
+  const sport=qs('#todaySportFollowing');
+  if(sport){
+    const rows=todaySportsSummary();
+    sport.innerHTML=rows.length
+      ?`<div class="today-sport-list">${rows.map(r=>`<button class="today-focus-row" type="button" onclick="openTodaySport('${esc(r.sport)}')"><span class="today-focus-main"><span class="today-focus-title">${esc(r.title)}</span><span class="today-focus-meta">${esc(r.meta||'')}</span></span><span class="today-focus-badge">${esc(r.badge)}</span></button>`).join('')}</div>`
+      :'<div class="empty">Follow a football team, tennis player or basketball team and it will appear here.</div>';
+  }
+
+  const finance=qs('#todayFinanceNews');
+  if(finance){
+    const items=(typeof newsCache!=='undefined'&&Array.isArray(newsCache.financial))?newsCache.financial.slice(0,4):[];
+    finance.innerHTML=items.length
+      ?`<div class="today-news-list">${items.map(a=>`<a class="today-focus-row" href="${esc(a.link||'#')}" target="_blank" rel="noopener"><span class="today-focus-main"><span class="today-focus-title">${esc(a.title||'Financial update')}</span><span class="today-focus-meta">${esc(a.source||'Financial news')}${a.pubDate?` • ${esc(newsTimeLabel(a.pubDate))}`:''}</span></span><span class="today-focus-badge">FINANCE</span></a>`).join('')}</div>`
+      :'<div class="empty">No focused financial headlines loaded yet.</div>';
+  }
+}
+
+function renderTodayPage(){
+  renderHomeLauncher();
+  const d=new Date(),items=sortedTodayItems();
+  const title=qs('#todayPageTitle');
+  if(title)title.textContent=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+
+  const events=items.filter(x=>x.itemType==='event').length;
+  const reminders=items.filter(x=>x.itemType==='reminder').length;
+  const notes=state.notes.filter(n=>!n.deletedAt).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt));
+  const following=(typeof footballFavouriteTeams==='function'?footballFavouriteTeams().length:0)
+    +(typeof sportFavourites==='function'?sportFavourites('tennis').length+sportFavourites('basketball').length:0);
+
+  const glance=qs('#todayAtAGlance');
+  if(glance)glance.innerHTML=`
+    <div class="today-glance-item"><strong>${events}</strong><span>Events today</span></div>
+    <div class="today-glance-item"><strong>${reminders}</strong><span>Reminders due</span></div>
+    <div class="today-glance-item"><strong>${following}</strong><span>Sport follows</span></div>
+    <div class="today-glance-item"><strong>${notes.length}</strong><span>Active notes</span></div>`;
+
+  const schedule=qs('#todaySchedule');
+  if(schedule)schedule.innerHTML=items.length
+    ?`<div class="today-list">${items.map(todayItemHtml).join('')}</div>`
+    :'<div class="empty">Nothing scheduled today.</div>';
+
+  const mins=d.getHours()*60+d.getMinutes();
+  const timed=items.map(x=>{
+    if(!x.time)return null;
+    const [h,m]=x.time.split(':').map(Number);
+    return {...x,_m:h*60+m};
+  }).filter(x=>x&&x._m>=mins);
+
+  const next=timed[0]||items.find(x=>!x.time);
+  const ne=qs('#todayNextUp');
+  if(ne)ne.innerHTML=next?todayItemHtml(next):'<div class="empty">Your day is clear from here.</div>';
+
+  const nl=qs('#todayRecentNotes');
+  const recent=notes.slice(0,4);
+  if(nl)nl.innerHTML=recent.length
+    ?`<div class="notes-list">${recent.map(n=>`<button class="note-card" style="width:100%;text-align:left;color:inherit;font:inherit" data-today-note="${esc(n.id)}"><div class="note-icon">${n.pinned?'📌':'📝'}</div><div class="note-card-main"><div class="note-card-title">${esc(n.title)}</div><div class="note-card-preview">${esc(notePreview(n.body)||'No text')}</div></div></button>`).join('')}</div>`
+    :'<div class="empty">No notes yet.</div>';
+
+  renderContinueWatchingInto('todayContinueWatching',6);
+  renderHomeTodaySummary();
+  renderTodayExtra();
+
+  if(typeof loadNews==='function'){
+    loadNews(false).then(()=>renderTodayExtra()).catch(()=>{});
+  }
+  if(typeof loadGeneralSport==='function'&&typeof sportFavourites==='function'){
+    if(sportFavourites('tennis').length)loadGeneralSport('tennis',false).then(()=>renderTodayExtra()).catch(()=>{});
+    if(sportFavourites('basketball').length)loadGeneralSport('basketball',false).then(()=>renderTodayExtra()).catch(()=>{});
+  }
+}
 
 function combinedContinueHistory(){return [...(state.entertainment.youtubeHistoryDetailed||[]).map(x=>({...x,kind:'youtube'})),...(state.entertainment.mediaHistory||[]).map(x=>({...x,kind:'media'}))].sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0))}
 function continueCardHtml(item,index){const art=item.kind==='youtube'?item.thumbnail:item.posterUrl,title=item.title||(item.kind==='youtube'?'YouTube video':'Movie / TV'),meta=item.kind==='youtube'?(item.channelTitle||'YouTube'):(item.type==='tv'?`TV${item.season?` • S${item.season}${item.episode?` E${item.episode}`:''}`:''}`:'Movie');return `<button class="continue-card ${item.kind==='media'?'media':''}" data-continue-index="${index}">${art?`<img class="continue-art" src="${esc(art)}" alt="">`:`<span class="continue-placeholder">${item.kind==='youtube'?'▶️':'🎬'}</span>`}<span class="continue-body"><span class="continue-title">${esc(title)}</span><span class="continue-meta">${esc(meta)}</span></span></button>`}
@@ -2662,14 +2869,190 @@ function renderContinueWatchingInto(id,limit=6){const el=qs('#'+id);if(!el)retur
 function renderAllContinueWatching(){renderContinueWatchingInto('homeContinueWatching',6);renderContinueWatchingInto('todayContinueWatching',6);renderMediaContinueWatching()}
 async function openContinueItem(index){const item=combinedContinueHistory()[Number(index)];if(!item)return;if(item.kind==='youtube'){openWatchPage('youtube');setTimeout(()=>loadYoutubeVideo(item.id),60);return}openWatchPage('movies');mediaEmbedState.results=[{id:item.id,type:item.type,title:item.title,year:item.year||'',posterUrl:item.posterUrl||'',overview:item.overview||'',backdropUrl:item.backdropUrl||''}];await selectMediaResult(0);if(item.type==='tv'){const s=qs('#mediaSeasonSelect');if(s&&item.season){s.value=String(item.season);await loadMediaEpisodes()}const e=qs('#mediaEpisodeSelect');if(e&&item.episode)e.value=String(item.episode)}}
 
-const SEARCH_PAGES=[['home','Home','🏠'],['today','Today','☀️'],['calendar','Calendar','🗓️'],['notes','Notes','📝'],['watch','Watch','🎬'],['entertainment','Entertainment','🍿'],['mirror','Mirror','📺'],['football','Sport','🏟️'],['weather','Weather','🌤️'],['news','News','📰'],['status','Status Check','🩺'],['portfolio','Portfolio','📈'],['briefing','Briefing','📋'],['bible','Bible','📖']];
-const universalSearchStore={media:[],youtube:[]};let universalSearchTimer=null,universalSearchSeq=0;
-function openUniversalSearch(initial=''){openModal('universalSearchModal');const input=qs('#universalSearchInput');if(input){input.value=initial;setTimeout(()=>input.focus(),40)}runUniversalSearch(initial)}
-function localUniversalResults(q){const n=q.trim().toLowerCase();const pages=SEARCH_PAGES.filter(x=>!n||x[1].toLowerCase().includes(n)).slice(0,6);if(!n)return{pages,notes:[],schedule:[]};const notes=state.notes.filter(x=>!x.deletedAt&&(`${x.title||''} ${notePreview(x.body)} ${x.folder||''}`).toLowerCase().includes(n)).slice(0,6);const schedule=[...state.events.map(x=>({...x,kind:'event'})),...state.reminders.map(x=>({...x,kind:'reminder'}))].filter(x=>(x.kind==='event'?`${x.title||''} ${x.notes||''}`:`${x.text||''} ${x.category||''}`).toLowerCase().includes(n)).slice(0,6);return{pages,notes,schedule}}
-function sr(type,index,icon,title,sub){return `<button class="search-result" data-search-type="${type}" data-search-index="${index}"><span class="search-result-icon">${icon}</span><span><span class="search-result-title">${esc(title)}</span><span class="search-result-sub">${esc(sub||'')}</span></span><span>›</span></button>`}
-function renderUniversalSearch(q,loading=false){const el=qs('#universalSearchResults');if(!el)return;const l=localUniversalResults(q),secs=[];const p=l.pages.map((x,i)=>sr('page',i,x[2],x[1],'Open section')).join('');if(p)secs.push(`<section><div class="search-section-title">Command Centre</div><div class="search-result-list">${p}</div></section>`);const ns=l.notes.map((x,i)=>sr('note',i,x.pinned?'📌':'📝',x.title||'Untitled',`${x.folder||'Notes'} • ${notePreview(x.body)||'No text'}`)).join('');if(ns)secs.push(`<section><div class="search-section-title">Notes</div><div class="search-result-list">${ns}</div></section>`);const ss=l.schedule.map((x,i)=>sr('schedule',i,x.kind==='event'?'🗓️':'🔔',x.kind==='event'?x.title:x.text,x.kind==='event'?`${x.date||''} ${x.time||''}`:`${x.category||'General'} ${x.startDate||''}`)).join('');if(ss)secs.push(`<section><div class="search-section-title">Schedule</div><div class="search-result-list">${ss}</div></section>`);if(q.trim().length>=2){const m=universalSearchStore.media.slice(0,5).map((x,i)=>sr('media',i,'🎬',x.title,`${x.type==='tv'?'TV':'Movie'} ${x.year||''}`)).join('');if(m)secs.push(`<section><div class="search-section-title">Movies & TV</div><div class="search-result-list">${m}</div></section>`);const y=universalSearchStore.youtube.slice(0,5).map((x,i)=>sr('youtube',i,'▶️',decodeHtmlText(x.title||'YouTube'),decodeHtmlText(x.channelTitle||'YouTube'))).join('');if(y)secs.push(`<section><div class="search-section-title">YouTube</div><div class="search-result-list">${y}</div></section>`);if(loading&&!m&&!y)secs.push('<div class="empty">Searching online content…</div>')}el.innerHTML=secs.length?secs.join(''):'<div class="empty">No matches yet.</div>'}
-function runUniversalSearch(q=''){clearTimeout(universalSearchTimer);universalSearchStore.media=[];universalSearchStore.youtube=[];renderUniversalSearch(q,q.trim().length>=2);if(q.trim().length<2)return;const seq=++universalSearchSeq;universalSearchTimer=setTimeout(async()=>{const query=q.trim();const [m,y]=await Promise.allSettled([fetch(`/api/media/search?q=${encodeURIComponent(query)}&type=multi`,{cache:'no-store'}).then(r=>r.json()),fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`,{cache:'no-store'}).then(r=>r.json())]);if(seq!==universalSearchSeq)return;universalSearchStore.media=m.status==='fulfilled'&&Array.isArray(m.value?.results)?m.value.results:[];universalSearchStore.youtube=y.status==='fulfilled'&&Array.isArray(y.value?.items)?y.value.items:[];renderUniversalSearch(query,false)},260)}
-function handleUniversalSearchAction(type,index){const l=localUniversalResults(qs('#universalSearchInput')?.value||'');if(type==='page'){const x=l.pages[index];if(!x)return;closeModal('universalSearchModal');x[0]==='watch'?openWatchPage():switchPage(x[0])}else if(type==='note'){const x=l.notes[index];if(x){closeModal('universalSearchModal');openNote(x.id)}}else if(type==='schedule'){const x=l.schedule[index];if(!x)return;closeModal('universalSearchModal');x.kind==='event'?openCalendarEvent(null,x.id):openReminder(x.id)}else if(type==='media'){const x=universalSearchStore.media[index];if(x){closeModal('universalSearchModal');openWatchPage('movies');mediaEmbedState.results=[x];setTimeout(()=>selectMediaResult(0),60)}}else if(type==='youtube'){const x=universalSearchStore.youtube[index];if(x){closeModal('universalSearchModal');youtubeMetaCache[x.videoId]={...x};openWatchPage('youtube');setTimeout(()=>loadYoutubeVideo(x.videoId),60)}}}
+const SEARCH_PAGES=[
+  ['home','Home','🏠'],['today','Today','☀️'],['calendar','Calendar','🗓️'],
+  ['notes','Notes','📝'],['watch','Watch','🎬'],['entertainment','Entertainment','🍿'],
+  ['mirror','Mirror','📺'],['football','Sport','🏟️'],['weather','Weather','🌤️'],
+  ['news','News','📰'],['status','Status Check','🩺'],['portfolio','Portfolio','📈'],
+  ['briefing','Briefing','📋'],['bible','Bible','📖']
+];
+const universalSearchStore={media:[],youtube:[]};
+let universalSearchTimer=null,universalSearchSeq=0;
+
+function openUniversalSearch(initial=''){
+  openModal('universalSearchModal');
+  const input=qs('#universalSearchInput');
+  if(input){input.value=initial;setTimeout(()=>input.focus(),40)}
+  runUniversalSearch(initial)
+}
+
+function localUniversalResults(q){
+  const n=q.trim().toLowerCase();
+  const pages=SEARCH_PAGES.filter(x=>!n||x[1].toLowerCase().includes(n)).slice(0,6);
+  if(!n)return{pages,notes:[],schedule:[],sports:[],news:[]};
+
+  const notes=state.notes
+    .filter(x=>!x.deletedAt&&(`${x.title||''} ${notePreview(x.body)} ${x.folder||''}`).toLowerCase().includes(n))
+    .slice(0,6);
+
+  const schedule=[
+    ...state.events.map(x=>({...x,kind:'event'})),
+    ...state.reminders.map(x=>({...x,kind:'reminder'}))
+  ].filter(x=>(x.kind==='event'?`${x.title||''} ${x.notes||''}`:`${x.text||''} ${x.category||''}`).toLowerCase().includes(n))
+   .slice(0,6);
+
+  const sports=[];
+  const favTeams=typeof footballFavouriteTeams==='function'?footballFavouriteTeams():[];
+  favTeams.forEach(t=>{
+    if(String(t.name||'').toLowerCase().includes(n)){
+      sports.push({sport:'football',title:t.name||'Football team',sub:'Followed football team'});
+    }
+  });
+
+  const footballMatches=(typeof footballCache!=='undefined'&&Array.isArray(footballCache.matches))?footballCache.matches:[];
+  footballMatches.forEach(m=>{
+    const matchTitle=`${footballTeamName(m.homeTeam)} vs ${footballTeamName(m.awayTeam)}`;
+    if(matchTitle.toLowerCase().includes(n)){
+      sports.push({sport:'football',title:matchTitle,sub:footballDateTime(m.utcDate)});
+    }
+  });
+
+  ['tennis','basketball'].forEach(kind=>{
+    const favs=typeof sportFavourites==='function'?sportFavourites(kind):[];
+    favs.forEach(name=>{
+      if(String(name).toLowerCase().includes(n)){
+        sports.push({sport:kind,title:String(name),sub:`Followed ${sportLabel(kind).toLowerCase()}`});
+      }
+    });
+
+    const events=(typeof generalSportCache!=='undefined'&&Array.isArray(generalSportCache[kind]?.events))
+      ?generalSportCache[kind].events:[];
+    events.forEach(e=>{
+      const eventTitle=e.name||`${e.home||''} vs ${e.away||''}`;
+      if(`${eventTitle} ${e.league||''}`.toLowerCase().includes(n)){
+        sports.push({sport:kind,title:eventTitle,sub:`${sportLabel(kind)} • ${generalSportEventTime(e)}`});
+      }
+    });
+  });
+
+  const seen=new Set();
+  const sportsUnique=sports.filter(x=>{
+    const key=`${x.sport}:${x.title}`.toLowerCase();
+    if(seen.has(key))return false;
+    seen.add(key);
+    return true;
+  }).slice(0,6);
+
+  const news=(typeof newsCache!=='undefined'
+    ?[
+      ...(newsCache.financial||[]).map(x=>({...x,_kind:'financial'})),
+      ...(newsCache.world||[]).map(x=>({...x,_kind:'world'}))
+    ]
+    :[])
+    .filter(a=>`${a.title||''} ${a.description||''} ${a.source||''}`.toLowerCase().includes(n))
+    .slice(0,6);
+
+  return{pages,notes,schedule,sports:sportsUnique,news};
+}
+
+function sr(type,index,icon,title,sub){
+  return `<button class="search-result" data-search-type="${type}" data-search-index="${index}"><span class="search-result-icon">${icon}</span><span><span class="search-result-title">${esc(title)}</span><span class="search-result-sub">${esc(sub||'')}</span></span><span>›</span></button>`
+}
+
+function renderUniversalSearch(q,loading=false){
+  const el=qs('#universalSearchResults');if(!el)return;
+  const l=localUniversalResults(q),secs=[];
+
+  const p=l.pages.map((x,i)=>sr('page',i,x[2],x[1],'Open section')).join('');
+  if(p)secs.push(`<section><div class="search-section-title">Command Centre</div><div class="search-result-list">${p}</div></section>`);
+
+  const ns=l.notes.map((x,i)=>sr('note',i,x.pinned?'📌':'📝',x.title||'Untitled',`${x.folder||'Notes'} • ${notePreview(x.body)||'No text'}`)).join('');
+  if(ns)secs.push(`<section><div class="search-section-title">Notes</div><div class="search-result-list">${ns}</div></section>`);
+
+  const ss=l.schedule.map((x,i)=>sr('schedule',i,x.kind==='event'?'🗓️':'🔔',x.kind==='event'?x.title:x.text,x.kind==='event'?`${x.date||''} ${x.time||''}`:`${x.category||'General'} ${x.startDate||''}`)).join('');
+  if(ss)secs.push(`<section><div class="search-section-title">Schedule</div><div class="search-result-list">${ss}</div></section>`);
+
+  const sp=l.sports.map((x,i)=>sr('sport',i,x.sport==='tennis'?'🎾':x.sport==='basketball'?'🏀':'⚽',x.title,x.sub)).join('');
+  if(sp)secs.push(`<section><div class="search-section-title">Sport</div><div class="search-result-list">${sp}</div></section>`);
+
+  const nw=l.news.map((x,i)=>sr('news',i,x._kind==='financial'?'📈':'📰',x.title||'News',`${x.source||'News'} • ${x._kind==='financial'?'Finance':'World'}`)).join('');
+  if(nw)secs.push(`<section><div class="search-section-title">News</div><div class="search-result-list">${nw}</div></section>`);
+
+  if(q.trim().length>=2){
+    const m=universalSearchStore.media.slice(0,5).map((x,i)=>sr('media',i,'🎬',x.title,`${x.type==='tv'?'TV':'Movie'} ${x.year||''}`)).join('');
+    if(m)secs.push(`<section><div class="search-section-title">Movies & TV</div><div class="search-result-list">${m}</div></section>`);
+
+    const y=universalSearchStore.youtube.slice(0,5).map((x,i)=>sr('youtube',i,'▶️',decodeHtmlText(x.title||'YouTube'),decodeHtmlText(x.channelTitle||'YouTube'))).join('');
+    if(y)secs.push(`<section><div class="search-section-title">YouTube</div><div class="search-result-list">${y}</div></section>`);
+
+    if(loading&&!m&&!y)secs.push('<div class="empty">Searching online content…</div>')
+  }
+
+  el.innerHTML=secs.length?secs.join(''):'<div class="empty">No matches yet.</div>'
+}
+
+function runUniversalSearch(q=''){
+  clearTimeout(universalSearchTimer);
+  universalSearchStore.media=[];
+  universalSearchStore.youtube=[];
+  renderUniversalSearch(q,q.trim().length>=2);
+  if(q.trim().length<2)return;
+
+  const seq=++universalSearchSeq;
+  universalSearchTimer=setTimeout(async()=>{
+    const query=q.trim();
+    const [m,y]=await Promise.allSettled([
+      fetch(`/api/media/search?q=${encodeURIComponent(query)}&type=multi`,{cache:'no-store'}).then(r=>r.json()),
+      fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`,{cache:'no-store'}).then(r=>r.json())
+    ]);
+    if(seq!==universalSearchSeq)return;
+    universalSearchStore.media=m.status==='fulfilled'&&Array.isArray(m.value?.results)?m.value.results:[];
+    universalSearchStore.youtube=y.status==='fulfilled'&&Array.isArray(y.value?.items)?y.value.items:[];
+    renderUniversalSearch(query,false)
+  },260)
+}
+
+function handleUniversalSearchAction(type,index){
+  const l=localUniversalResults(qs('#universalSearchInput')?.value||'');
+
+  if(type==='page'){
+    const x=l.pages[index];if(!x)return;
+    closeModal('universalSearchModal');
+    x[0]==='watch'?openWatchPage():x[0]==='home'?openHomeLauncher():switchPage(x[0]);
+  }else if(type==='note'){
+    const x=l.notes[index];
+    if(x){closeModal('universalSearchModal');openNote(x.id)}
+  }else if(type==='schedule'){
+    const x=l.schedule[index];if(!x)return;
+    closeModal('universalSearchModal');
+    x.kind==='event'?openCalendarEvent(null,x.id):openReminder(x.id);
+  }else if(type==='sport'){
+    const x=l.sports[index];if(!x)return;
+    closeModal('universalSearchModal');
+    switchPage('football');
+    setTimeout(()=>setSportTab(x.sport,true),60);
+  }else if(type==='news'){
+    const x=l.news[index];if(!x)return;
+    closeModal('universalSearchModal');
+    switchPage('news');
+  }else if(type==='media'){
+    const x=universalSearchStore.media[index];
+    if(x){
+      closeModal('universalSearchModal');
+      openWatchPage('movies');
+      mediaEmbedState.results=[x];
+      setTimeout(()=>selectMediaResult(0),60)
+    }
+  }else if(type==='youtube'){
+    const x=universalSearchStore.youtube[index];
+    if(x){
+      closeModal('universalSearchModal');
+      youtubeMetaCache[x.videoId]={...x};
+      openWatchPage('youtube');
+      setTimeout(()=>loadYoutubeVideo(x.videoId),60)
+    }
+  }
+}
 function openQuickAdd(){openModal('quickAddModal')}function runQuickAdd(kind){closeModal('quickAddModal');if(kind==='reminder')openReminder();else if(kind==='event')openCalendarEvent(dayKey());else if(kind==='note')openNote();else if(kind==='today')switchPage('today')}
 
 // --- Mobile notifications -------------------------------------------------
@@ -2910,6 +3293,7 @@ function init(){
     }));
     qsa('[data-page-jump]').forEach(b=>b.addEventListener('click',()=>switchPage(b.dataset.pageJump)));
     bindEntertainmentControls();
+    bind('navBackBtn','click',goBack);
     bind('sidebarToggle','click',toggleSidebar);
     bind('sidebarOverlay','click',closeSidebar);
     document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSidebar()});
@@ -3019,7 +3403,7 @@ function init(){
       ()=>renderReminders(),
       ()=>renderCalendar(),
       ()=>renderNotes(),
-      ()=>{applyHomeLayout();renderHomeTodaySummary();renderAllContinueWatching();renderTodayPage();bindHomeLauncher();renderHomeLauncher();setHomeSlide(0,false);setTimeout(syncHomePager,60)},
+      ()=>{applyHomeLayout();renderHomeTodaySummary();renderAllContinueWatching();renderTodayPage();bindHomeLauncher();renderHomeLauncher();setHomeSlide(1,false);setTimeout(syncHomePager,60)},
       ()=>renderMangaGrid(mangaPool.slice(0,9)),
       ()=>renderDailyManga(),
       ()=>loadWords(),
@@ -3133,6 +3517,20 @@ function bindHomeLauncher(){
   if(pager){
     pager.addEventListener('scroll',()=>{clearTimeout(bindHomeLauncher._t);bindHomeLauncher._t=setTimeout(syncHomePager,50)});
   }
+  const launcher=qs('#homePage .launcher-screen');
+  if(launcher&&!launcher.dataset.searchSwipeBound){
+    launcher.dataset.searchSwipeBound='1';
+    let sy=0,sx=0;
+    launcher.addEventListener('touchstart',e=>{
+      const t=e.touches?.[0];if(!t)return;
+      sy=t.clientY;sx=t.clientX;
+    },{passive:true});
+    launcher.addEventListener('touchend',e=>{
+      const t=e.changedTouches?.[0];if(!t)return;
+      const dy=t.clientY-sy,dx=Math.abs(t.clientX-sx);
+      if(dy>70&&dx<70)openUniversalSearch();
+    },{passive:true});
+  }
   document.addEventListener('click',e=>{
     const slideBtn=e.target.closest('[data-home-slide-to]');
     if(slideBtn){setHomeSlide(Number(slideBtn.dataset.homeSlideTo||0));return;}
@@ -3158,10 +3556,12 @@ function openWatchPage(section=null){
 }
 window.openWatchPage=openWatchPage;
 
+let appCurrentPage='home';
+const appNavigationStack=[];
+
 function openHomeLauncher(){
-  // Keep normal app startup on the Dashboard, but when the user explicitly
-  // presses Home from another section, jump directly to the app-launcher panel.
-  switchPage('home');
+  appNavigationStack.length=0;
+  switchPage('home',false,'reset');
   requestAnimationFrame(()=>{
     setHomeSlide(1,false);
     setTimeout(()=>setHomeSlide(1,false),60);
@@ -3171,30 +3571,72 @@ function openHomeLauncher(){
 }
 window.openHomeLauncher=openHomeLauncher;
 
-function switchPage(page,persist=true){
-  document.body.classList.toggle('home-fullscreen',page==='home');
-  qsa('.page').forEach(p=>p.classList.remove('active'));
-  qsa('.sidebar-item').forEach(t=>t.classList.toggle('active',t.dataset.page===page));
+function goBack(){
+  let previous=appNavigationStack.pop();
+  while(previous===appCurrentPage)previous=appNavigationStack.pop();
+  if(!previous){
+    openHomeLauncher();
+    return;
+  }
+  switchPage(previous,false,'back');
+  window.scrollTo({top:0,behavior:'auto'});
+}
+window.goBack=goBack;
 
+function switchPage(page,persist=true,navMode='push'){
   const target=qs('#'+page+'Page');
   if(!target){console.warn('Unknown page',page);return}
 
+  if(page!==appCurrentPage){
+    if(navMode==='push'&&appCurrentPage){
+      const last=appNavigationStack[appNavigationStack.length-1];
+      if(last!==appCurrentPage)appNavigationStack.push(appCurrentPage);
+      if(appNavigationStack.length>20)appNavigationStack.shift();
+    }
+    appCurrentPage=page;
+  }
+
+  document.body.classList.toggle('home-fullscreen',page==='home');
+  qsa('.page').forEach(p=>p.classList.remove('active'));
+  qsa('.sidebar-item').forEach(t=>t.classList.toggle('active',t.dataset.page===page));
   target.classList.add('active');
   syncMobileDock(page);
 
-  // Page changes are intentionally not persisted.
-  // This guarantees a normal refresh/reopen begins on Home.
+  const back=qs('#navBackBtn');
+  if(back)back.style.display=page==='home'?'none':'grid';
 
   if(page==='portfolio')loadPortfolio();
   if(page==='manga')loadManga();
   if(page==='reddit')loadReddit();
   if(page==='entertainment'){renderEntertainmentHub();refreshEntertainmentFeed(false)}
-  if(page==='football'){bindSportSwitcher();bindLiveFootball();const sk=currentSportTab();if(sk==='football')loadFootball(false);else loadGeneralSport(sk,false);loadLiveFootball(false,sk);}
+  if(page==='football'){
+    bindSportSwitcher();
+    bindLiveFootball();
+    const sk=currentSportTab();
+    if(sk==='football')loadFootball(false);
+    else loadGeneralSport(sk,false);
+    loadLiveFootball(false,sk);
+  }
   if(page==='status')runStatusChecks();
-  if(page==='mirror'){updateNativeMirrorAvailability();mirrorStatus('mirrorSenderStatus',navigator.mediaDevices?.getDisplayMedia?'Ready to create a mirror room.':'Screen capture is unavailable in this browser. Receiver mode still works.',navigator.mediaDevices?.getDisplayMedia?'ok':'')}
+  if(page==='mirror'){
+    updateNativeMirrorAvailability();
+    mirrorStatus(
+      'mirrorSenderStatus',
+      navigator.mediaDevices?.getDisplayMedia?'Ready to create a mirror room.':'Screen capture is unavailable in this browser. Receiver mode still works.',
+      navigator.mediaDevices?.getDisplayMedia?'ok':''
+    )
+  }
   if(page==='weather')loadWeather();
   if(page==='calendar'){calendarView='year';calendarYearCursor=new Date().getFullYear();renderCalendar()}
-  if(page==='home'){applyHomeLayout();renderHomeTodaySummary();renderContinueWatchingInto('homeContinueWatching',6);bindHomeLauncher();renderHomeLauncher();setHomeSlide(0,false);setTimeout(syncHomePager,60)}
+  if(page==='home'){
+    applyHomeLayout();
+    renderHomeTodaySummary();
+    renderContinueWatchingInto('homeContinueWatching',6);
+    bindHomeLauncher();
+    renderHomeLauncher();
+    setHomeSlide(1,false);
+    setTimeout(()=>setHomeSlide(1,false),60);
+  }
   if(page==='today')renderTodayPage();
   if(page==='notes')renderNotes();
   if(page==='news')loadNews(false);
@@ -3202,6 +3644,7 @@ function switchPage(page,persist=true){
   if(page==='briefing')generateBriefing();
   if(page==='music')refreshMusicPage();
 }
+
 function toggleSidebar(){const sb=qs('#sidebar'),ov=qs('#sidebarOverlay');const open=sb.classList.toggle('open');ov.classList.toggle('open',open)}
 function closeSidebar(){qs('#sidebar')?.classList.remove('open');qs('#sidebarOverlay')?.classList.remove('open')}
 function openSettings(){
@@ -4556,7 +4999,8 @@ async function playSelectedMedia(openExternal=false){
 
 let liveFootballStreams=[];
 let liveFootballProviders=[];
-let liveFootballProviderId='1';
+let liveFootballProviderId='auto';
+let liveFootballResolvedProviderId='';
 let liveFootballCurrentStreamIndex=-1;
 let liveFootballCurrentSourceIndex=0;
 
@@ -4576,7 +5020,7 @@ function liveSportProviderStorageKey(kind=liveSportKind()){
 function restoreLiveSportProvider(kind=liveSportKind()){
   liveFootballProviderId=localStorage.getItem(liveSportProviderStorageKey(kind))
     ||localStorage.getItem('cc_live_provider')
-    ||'1';
+    ||'auto';
 }
 function updateLiveSportStreamingUi(kind=liveSportKind()){
   restoreLiveSportProvider(kind);
@@ -4624,19 +5068,21 @@ function renderLiveFootballProviders(){
     wrap.innerHTML='';
     return;
   }
-  wrap.innerHTML=liveFootballProviders.map(p=>`
+  const auto=`<button class="live-provider-btn${liveFootballProviderId==='auto'?' active':''}" type="button" data-live-provider="auto">✨ Auto<span class="mode">SMART</span></button>`;
+  const manual=liveFootballProviders.map(p=>`
     <button class="live-provider-btn${p.id===liveFootballProviderId?' active':''}" type="button" data-live-provider="${esc(p.id)}">
       ${esc(p.name)}<span class="mode">${esc(p.mode)}</span>
     </button>`).join('');
+  wrap.innerHTML=auto+manual;
 }
 async function loadLiveFootballProviders(){
   try{
     const data=await fetchJson('/api/live-content/providers',{},10000);
     liveFootballProviders=Array.isArray(data.providers)?data.providers:[];
     restoreLiveSportProvider();
-    if(liveFootballProviders.length&&!liveFootballProviders.some(p=>p.id===liveFootballProviderId)){
-      liveFootballProviderId=liveFootballProviders[0].id;
-      localStorage.setItem(liveSportProviderStorageKey(),liveFootballProviderId);
+    if(liveFootballProviders.length&&liveFootballProviderId!=='auto'&&!liveFootballProviders.some(p=>p.id===liveFootballProviderId)){
+      liveFootballProviderId='auto';
+      localStorage.setItem(liveSportProviderStorageKey(),'auto');
     }
     renderLiveFootballProviders();
     return liveFootballProviders;
@@ -4647,14 +5093,33 @@ async function loadLiveFootballProviders(){
   }
 }
 async function selectLiveFootballProvider(providerId){
-  if(!liveFootballProviders.some(p=>p.id===String(providerId)))return;
+  const id=String(providerId);
+  if(id!=='auto'&&!liveFootballProviders.some(p=>p.id===id))return;
   closeLiveFootball();
-  liveFootballProviderId=String(providerId);
-  localStorage.setItem(liveSportProviderStorageKey(),liveFootballProviderId);
-  localStorage.setItem('cc_live_provider',liveFootballProviderId);
+  liveFootballProviderId=id;
+  liveFootballResolvedProviderId='';
+  localStorage.setItem(liveSportProviderStorageKey(),id);
+  localStorage.setItem('cc_live_provider',id);
   renderLiveFootballProviders();
   await loadLiveFootball(true);
 }
+async function fetchLiveProviderForSport(providerId,kind,force=false){
+  const q=new URLSearchParams({
+    category:liveSportCategory(kind),
+    provider:String(providerId)
+  });
+  if(force)q.set('refresh','1');
+  return fetchJson(`/api/live-content?${q.toString()}`,{},20000);
+}
+
+function liveAutoProviderOrder(kind){
+  const preferred=localStorage.getItem(`cc_live_auto_last_${kind}`)||'';
+  const ids=liveFootballProviders.map(p=>p.id);
+  return preferred&&ids.includes(preferred)
+    ?[preferred,...ids.filter(id=>id!==preferred)]
+    :ids;
+}
+
 async function loadLiveFootball(force=false,kind=liveSportKind()){
   const status=qs('#liveFootballStatus'),grid=qs('#liveFootballGrid');
   if(!status||!grid)return;
@@ -4668,28 +5133,61 @@ async function loadLiveFootball(force=false,kind=liveSportKind()){
     return;
   }
 
-  if(!liveFootballProviders.some(p=>p.id===liveFootballProviderId)){
-    liveFootballProviderId=liveFootballProviders[0].id;
-    localStorage.setItem(liveSportProviderStorageKey(kind),liveFootballProviderId);
+  if(liveFootballProviderId!=='auto'&&!liveFootballProviders.some(p=>p.id===liveFootballProviderId)){
+    liveFootballProviderId='auto';
+    localStorage.setItem(liveSportProviderStorageKey(kind),'auto');
   }
-  const selected=liveFootballProviders.find(p=>p.id===liveFootballProviderId)||liveFootballProviders[0];
   renderLiveFootballProviders();
 
   const display=liveSportDisplay(kind);
-  status.textContent=`Loading ${display.toLowerCase()} streams from ${selected.name}…`;
   grid.innerHTML='<div class="empty">Loading…</div>';
 
   try{
-    const q=new URLSearchParams({category:liveSportCategory(kind),provider:liveFootballProviderId});
-    if(force)q.set('refresh','1');
+    let data=null;
+    let selected=null;
+    const attempted=[];
 
-    const data=await fetchJson(`/api/live-content?${q.toString()}`,{},20000);
+    if(liveFootballProviderId==='auto'){
+      const order=liveAutoProviderOrder(kind);
+      status.textContent=`Auto is checking ${display.toLowerCase()} providers…`;
+
+      for(const id of order){
+        const provider=liveFootballProviders.find(p=>p.id===id);
+        if(!provider)continue;
+        attempted.push(provider.name);
+        try{
+          const candidate=await fetchLiveProviderForSport(id,kind,force);
+          if(Array.isArray(candidate.streams)&&candidate.streams.length){
+            data=candidate;
+            selected=provider;
+            liveFootballResolvedProviderId=id;
+            localStorage.setItem(`cc_live_auto_last_${kind}`,id);
+            break;
+          }
+        }catch(e){
+          console.warn(`Auto provider ${provider.name} failed`,e);
+        }
+      }
+
+      if(!data){
+        liveFootballStreams=[];
+        grid.innerHTML=`<div class="empty">Auto checked ${esc(attempted.join(', ')||'all configured providers')}, but none currently returned usable ${esc(display.toLowerCase())} streams.</div>`;
+        status.textContent=`Auto • no available ${display.toLowerCase()} stream provider right now`;
+        return;
+      }
+    }else{
+      selected=liveFootballProviders.find(p=>p.id===liveFootballProviderId)||liveFootballProviders[0];
+      liveFootballResolvedProviderId=selected.id;
+      status.textContent=`Loading ${display.toLowerCase()} streams from ${selected.name}…`;
+      data=await fetchLiveProviderForSport(selected.id,kind,force);
+    }
+
     liveFootballStreams=Array.isArray(data.streams)?data.streams:[];
 
     if(!liveFootballStreams.length){
       const detail=data?.rejectedCount
-        ?`${data.providerName||selected.name} returned ${data.providerCount||0} ${display.toLowerCase()} stream entries, but ${data.rejectedCount} were rejected by its allowed-host rules.`
-        :`No live ${display.toLowerCase()} streams are currently available from ${data.providerName||selected.name}.`;
+        ?`${data.providerName||selected?.name||'Provider'} returned ${data.providerCount||0} ${display.toLowerCase()} stream entries, but ${data.rejectedCount} were rejected by its allowed-host rules.`
+        :`No live ${display.toLowerCase()} streams are currently available from ${data.providerName||selected?.name||'this provider'}.`;
       grid.innerHTML=`<div class="empty">${esc(detail)}</div>`;
       status.textContent=data?.diagnostic||`No live ${display.toLowerCase()} streams right now.`;
       return;
@@ -4698,7 +5196,7 @@ async function loadLiveFootball(force=false,kind=liveSportKind()){
     grid.innerHTML=liveFootballStreams.map((s,i)=>{
       const count=liveSourceEntries(s).length;
       return `<article class="live-stream-card" data-live-stream-index="${i}" role="button" tabindex="0">
-        ${s.thumbnail_url?`<img src="${esc(s.thumbnail_url)}" alt="">`:''}
+        ${s.thumbnail_url?`<img src="${esc(s.thumbnail_url)}" alt="" onerror="this.style.display='none'">`:''}
         <div class="live-stream-info">
           <div class="live-stream-title">${esc(s.name||`Live ${display.toLowerCase()}`)}${count>1?`<span class="live-source-count">${count} sources</span>`:''}</div>
           <div class="live-stream-meta">${esc(s.league||s.category||display)}</div>
@@ -4707,7 +5205,9 @@ async function loadLiveFootball(force=false,kind=liveSportKind()){
       </article>`;
     }).join('');
 
-    status.textContent=`${data.providerName||selected.name} • ${display} • ${liveFootballStreams.length} stream${liveFootballStreams.length===1?'':'s'} • ${data.mode==='scrape'?'page mode':data.mode==='dynamic'?'dynamic-data mode':'API mode'}`;
+    const providerName=data.providerName||selected?.name||'Provider';
+    const autoNote=liveFootballProviderId==='auto'?`Auto → ${providerName}`:providerName;
+    status.textContent=`${autoNote} • ${display} • ${liveFootballStreams.length} stream${liveFootballStreams.length===1?'':'s'} • ${data.mode==='scrape'?'page mode':data.mode==='dynamic'?'dynamic-data mode':'API mode'}`;
   }catch(e){
     grid.innerHTML='';
     status.textContent=e.message||'Live provider unavailable';
@@ -4760,7 +5260,8 @@ async function setLiveFootballSource(sourceIndex){
   renderLiveFootballSources(stream);
 
   const meta=qs('#liveFootballPlayerMeta');
-  const provider=liveFootballProviders.find(p=>p.id===liveFootballProviderId);
+  const activeProviderId=liveFootballResolvedProviderId||liveFootballProviderId;
+  const provider=liveFootballProviders.find(p=>p.id===activeProviderId);
   const base=stream.league||stream.category||liveSportDisplay();
 
   try{
@@ -4768,7 +5269,7 @@ async function setLiveFootballSource(sourceIndex){
       if(meta)meta.textContent=[provider?.name||'',base,`Resolving ${source.label||`Source ${index+1}`}…`].filter(Boolean).join(' • ');
 
       const q=new URLSearchParams({
-        provider:liveFootballProviderId,
+        provider:activeProviderId,
         source:source.source,
         id:source.id
       });
