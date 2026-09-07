@@ -2618,6 +2618,152 @@ async function sendOne(row,env){
   );
 }
 
+
+function normalizeAudiusTrack(track){
+  const art=track?.artwork||{};
+  const user=track?.user||{};
+  return {
+    id:String(track?.id||''),
+    source:'audius',
+    title:String(track?.title||'Untitled'),
+    artist:String(user?.name||user?.handle||track?.artist||'Unknown artist'),
+    artwork:String(art?._480x480||art?.['480x480']||art?._1000x1000||art?.['1000x1000']||art?._150x150||art?.['150x150']||''),
+    duration:Number(track?.duration)||0,
+    genre:String(track?.genre||''),
+    permalink:String(track?.permalink||''),
+    playCount:Number(track?.playCount??track?.play_count)||0,
+    streamable:track?.isStreamable!==false&&track?.is_streamable!==false,
+    streamUrl:track?.id?`/api/music/audius/stream?id=${encodeURIComponent(String(track.id))}`:''
+  };
+}
+
+function normalizeMusicYoutube(item){
+  return {
+    id:String(item?.videoId||''),
+    videoId:String(item?.videoId||''),
+    source:'youtube',
+    title:String(item?.title||''),
+    artist:String(item?.channelTitle||'YouTube'),
+    channelTitle:String(item?.channelTitle||'YouTube'),
+    thumbnail:String(item?.thumbnail||''),
+    duration:0,
+    genre:'YouTube fallback'
+  };
+}
+
+async function audiusJson(path,params={},env={}){
+  const url=new URL(`https://api.audius.co/v1${path}`);
+  for(const [k,v] of Object.entries(params)){
+    if(v!==undefined&&v!==null&&String(v)!=='')url.searchParams.set(k,String(v));
+  }
+  // Read-only Audius endpoints work without credentials. app_name gives the
+  // provider useful attribution; an optional bearer token can be used if the
+  // user later enables a higher-limit developer plan.
+  if(!url.searchParams.has('app_name'))url.searchParams.set('app_name','CommandCentre');
+  const headers={accept:'application/json'};
+  if(env.AUDIUS_BEARER_TOKEN)headers.authorization=`Bearer ${env.AUDIUS_BEARER_TOKEN}`;
+  const response=await fetch(url.toString(),{headers});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok){
+    const err=new Error(data?.error?.message||data?.error||data?.message||`Audius HTTP ${response.status}`);
+    err.status=response.status>=400&&response.status<500?response.status:502;
+    throw err;
+  }
+  return data;
+}
+
+async function musicTrending(env,requestUrl,force=false){
+  let cache=null,cacheKey=null;
+  try{
+    cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
+    if(cache&&!force){
+      const u=new URL(requestUrl);u.pathname='/__cache/music-trending';u.search='';
+      cacheKey=new Request(u.toString(),{method:'GET'});
+      const hit=await cache.match(cacheKey);
+      if(hit)return hit.json();
+    }
+  }catch{cache=null;cacheKey=null}
+
+  const data=await audiusJson('/tracks/trending',{limit:24,time:'week'},env);
+  const raw=Array.isArray(data?.data)?data.data:Array.isArray(data)?data:[];
+  const tracks=raw.map(normalizeAudiusTrack).filter(x=>x.id&&x.streamable);
+  const payload={tracks,youtubeConfigured:!!env.YOUTUBE_API_KEY};
+
+  if(cache){
+    try{
+      if(!cacheKey){
+        const u=new URL(requestUrl);u.pathname='/__cache/music-trending';u.search='';
+        cacheKey=new Request(u.toString(),{method:'GET'});
+      }
+      await cache.put(cacheKey,new Response(JSON.stringify(payload),{
+        headers:{'content-type':'application/json','cache-control':'public,max-age=900'}
+      }));
+    }catch{}
+  }
+  return payload;
+}
+
+async function musicSearch(env,query,requestUrl){
+  const q=String(query||'').trim();
+  if(q.length<2){
+    const err=new Error('Enter at least 2 characters to search music.');
+    err.status=400;throw err;
+  }
+
+  let audius=[],youtube=[],audiusError='',youtubeError='';
+  try{
+    const data=await audiusJson('/tracks/search',{query:q,limit:18,sort_method:'relevant'},env);
+    const raw=Array.isArray(data?.data)?data.data:Array.isArray(data)?data:[];
+    audius=raw.map(normalizeAudiusTrack).filter(x=>x.id&&x.streamable);
+  }catch(e){audiusError=e?.message||'Audius search unavailable'}
+
+  if(env.YOUTUBE_API_KEY){
+    try{
+      const yt=await searchYouTube(env,`${q} official audio`,requestUrl);
+      youtube=(yt.items||[]).map(normalizeMusicYoutube);
+    }catch(e){youtubeError=e?.message||'YouTube search unavailable'}
+  }else youtubeError='YouTube API is not configured';
+
+  if(!audius.length&&!youtube.length&&audiusError&&youtubeError){
+    const err=new Error(`${audiusError}. ${youtubeError}`);
+    err.status=502;throw err;
+  }
+  return {audius,youtube,audiusError,youtubeError};
+}
+
+async function audiusStreamResponse(request,env,trackId){
+  const id=String(trackId||'').trim();
+  if(!/^[A-Za-z0-9_-]{1,128}$/.test(id))return json({error:'Invalid Audius track id'},400);
+
+  const upstream=new URL(`https://api.audius.co/v1/tracks/${encodeURIComponent(id)}/stream`);
+  upstream.searchParams.set('app_name','CommandCentre');
+  const headers={accept:'audio/mpeg,audio/*;q=0.9,*/*;q=0.1'};
+  const range=request.headers.get('range');
+  if(range)headers.range=range;
+  if(env.AUDIUS_BEARER_TOKEN)headers.authorization=`Bearer ${env.AUDIUS_BEARER_TOKEN}`;
+
+  let response;
+  try{
+    response=await fetch(upstream.toString(),{headers,redirect:'follow'});
+  }catch(e){
+    return json({error:`Could not reach Audius audio stream: ${e?.message||e}`},502);
+  }
+  if(!response.ok&&response.status!==206){
+    const text=await response.text().catch(()=>'');
+    return json({error:text.slice(0,300)||`Audius stream HTTP ${response.status}`},response.status);
+  }
+
+  const outHeaders=new Headers();
+  for(const name of ['content-type','content-length','content-range','accept-ranges','etag','last-modified']){
+    const value=response.headers.get(name);
+    if(value)outHeaders.set(name,value);
+  }
+  if(!outHeaders.has('content-type'))outHeaders.set('content-type','audio/mpeg');
+  outHeaders.set('cache-control','private,max-age=0,no-store');
+  outHeaders.set('access-control-allow-origin','*');
+  return new Response(response.body,{status:response.status,headers:outHeaders});
+}
+
 export default {
   async fetch(request,env){
     const url=new URL(request.url);
@@ -2860,6 +3006,26 @@ export default {
             mode:url.searchParams.get('mode')||'standard'
           })
         });
+      }
+
+      if(url.pathname==='/api/music/trending'&&request.method==='GET'){
+        return json(await musicTrending(env,request.url,url.searchParams.get('refresh')==='1'));
+      }
+
+      if(url.pathname==='/api/music/search'&&request.method==='GET'){
+        return json(await musicSearch(env,url.searchParams.get('q')||'',request.url));
+      }
+
+      if(url.pathname==='/api/music/status'&&request.method==='GET'){
+        return json({
+          audius:true,
+          youtubeConfigured:!!env.YOUTUBE_API_KEY,
+          audiusBearerConfigured:!!env.AUDIUS_BEARER_TOKEN
+        });
+      }
+
+      if(url.pathname==='/api/music/audius/stream'&&request.method==='GET'){
+        return audiusStreamResponse(request,env,url.searchParams.get('id')||'');
       }
 
       if(url.pathname==='/api/youtube/explore'&&request.method==='GET'){
