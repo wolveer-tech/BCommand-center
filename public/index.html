@@ -1910,6 +1910,19 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
   .today-bible-card .toolbar{gap:5px}
 }
 
+
+.yt-recommend-actions{
+  display:flex;
+  justify-content:flex-start;
+  margin-top:7px
+}
+.yt-not-interested{
+  opacity:.72
+}
+.yt-not-interested:hover{
+  opacity:1
+}
+
 </style>
 </head>
 <body>
@@ -2278,13 +2291,14 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
 
                 <div class="section-note">Explore YouTube</div>
                 <div class="yt-explore-tabs">
-                  <button class="yt-explore-tab active" data-ytexplore="trending">🔥 Trending</button>
+                  <button class="yt-explore-tab active" data-ytexplore="foryou">✨ For You</button>
+                  <button class="yt-explore-tab" data-ytexplore="trending">🔥 Trending</button>
                   <button class="yt-explore-tab" data-ytexplore="gaming">🎮 Gaming</button>
                   <button class="yt-explore-tab" data-ytexplore="music">🎵 Music</button>
                   <button class="yt-explore-tab" data-ytexplore="sports">⚽ Sports</button>
                   <button class="yt-explore-tab" data-ytexplore="live">🔴 Live</button>
                 </div>
-                <div id="youtubeExploreStatus" class="sub">Open Watch to load Explore.</div>
+                <div id="youtubeExploreStatus" class="sub">For You learns from what you watch and search inside Command Centre.</div>
                 <div id="youtubeExploreGrid" class="yt-explore-grid" style="margin-top:9px"></div>
                 <div class="section-note">Player</div>
                 <iframe id="youtubeWatchFrame" class="watch-frame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
@@ -2957,6 +2971,9 @@ const DEFAULT_STATE = {
     likes:{},
     hidden:{},
     watchHistory:[],
+    youtubeSearchHistory:[],
+    youtubeRecommendationHidden:[],
+    youtubeForYouCache:{items:[],seed:'',reason:'',updatedAt:''},
     twitchHistory:[],
     gameStats:{best2048:0,bestSnake:0,bestReaction:null,triviaStreak:0,triviaBest:0,triviaLastDate:'',triviaLastCorrect:null,triviaLastAnswer:null,wordleStreak:0,wordleBest:0,wordleDate:'',wordleGuesses:[],wordleCurrent:'',wordleFinished:false,wordleWon:false},
     visit:{lastDate:'',streak:0}
@@ -3005,6 +3022,11 @@ state.entertainment={
   hidden:{...(DEFAULT_STATE.entertainment.hidden||{}),...(state.entertainment?.hidden||{})},
   watchHistory:Array.isArray(state.entertainment?.watchHistory)?state.entertainment.watchHistory:[],
   youtubeHistoryDetailed:Array.isArray(state.entertainment?.youtubeHistoryDetailed)?state.entertainment.youtubeHistoryDetailed:[],
+  youtubeSearchHistory:Array.isArray(state.entertainment?.youtubeSearchHistory)?state.entertainment.youtubeSearchHistory.map(String).filter(Boolean).slice(0,20):[],
+  youtubeRecommendationHidden:Array.isArray(state.entertainment?.youtubeRecommendationHidden)?state.entertainment.youtubeRecommendationHidden.map(String).filter(Boolean).slice(0,100):[],
+  youtubeForYouCache:(state.entertainment?.youtubeForYouCache&&typeof state.entertainment.youtubeForYouCache==='object')
+    ?state.entertainment.youtubeForYouCache
+    :{items:[],seed:'',reason:'',updatedAt:''},
   mediaHistory:Array.isArray(state.entertainment?.mediaHistory)?state.entertainment.mediaHistory:[],
   twitchHistory:Array.isArray(state.entertainment?.twitchHistory)?state.entertainment.twitchHistory:[],
   gameStats:{...DEFAULT_STATE.entertainment.gameStats,...(state.entertainment?.gameStats||{})},
@@ -6886,30 +6908,328 @@ function decodeHtmlText(value){
   const t=document.createElement('textarea');t.innerHTML=String(value||'');return t.value;
 }
 
-let youtubeExploreSection='trending';
+let youtubeExploreSection='foryou';
 const youtubeMetaCache={};
-async function loadYoutubeExplore(section='trending',force=false){
+
+const YT_REC_STOP_WORDS=new Set([
+  'the','and','for','with','from','this','that','your','you','are','was','were','have','has','had',
+  'into','about','after','before','over','under','what','why','how','when','where','who','which',
+  'official','video','videos','live','stream','streaming','full','episode','highlights','highlight',
+  'reaction','reactions','review','reviews','new','latest','best','watch','shorts','short','clip','clips',
+  'ft','feat','featuring','vs','v','part','season','trailer','music','audio','podcast'
+]);
+
+function recordYoutubeSearch(query){
+  const q=String(query||'').trim();
+  if(!q)return;
+  const old=state.entertainment.youtubeSearchHistory||[];
+  state.entertainment.youtubeSearchHistory=[
+    q,
+    ...old.filter(x=>String(x).toLowerCase()!==q.toLowerCase())
+  ].slice(0,20);
+  saveState();
+}
+
+function youtubeTitleKeywords(title){
+  const words=decodeHtmlText(title||'')
+    .toLowerCase()
+    .replace(/https?:\/\/\S+/g,' ')
+    .replace(/[^a-z0-9\s'-]/g,' ')
+    .split(/\s+/)
+    .map(x=>x.replace(/^[-']+|[-']+$/g,''))
+    .filter(x=>x.length>=3&&!YT_REC_STOP_WORDS.has(x)&&!/^\d+$/.test(x));
+
+  const unique=[];
+  for(const word of words){
+    if(!unique.includes(word))unique.push(word);
+    if(unique.length>=4)break;
+  }
+  return unique.join(' ');
+}
+
+function youtubeRecommendationSeeds(){
+  const rows=[];
+  const searches=Array.isArray(state.entertainment.youtubeSearchHistory)
+    ?state.entertainment.youtubeSearchHistory
+    :[];
+  const watched=Array.isArray(state.entertainment.youtubeHistoryDetailed)
+    ?state.entertainment.youtubeHistoryDetailed
+    :[];
+
+  // Recent searches are the strongest explicit signal.
+  searches.slice(0,6).forEach((q,i)=>{
+    rows.push({
+      query:String(q).trim(),
+      label:String(q).trim(),
+      reason:`Because you searched for “${String(q).trim()}”`,
+      score:100-(i*6)
+    });
+  });
+
+  // Repeated channels are a strong implicit signal.
+  const channelStats=new Map();
+  watched.forEach((item,i)=>{
+    const name=String(item.channelTitle||'').trim();
+    if(!name||name==='YouTube')return;
+    const key=name.toLowerCase();
+    const current=channelStats.get(key)||{name,count:0,latest:99};
+    current.count+=1;
+    current.latest=Math.min(current.latest,i);
+    channelStats.set(key,current);
+  });
+
+  [...channelStats.values()]
+    .sort((a,b)=>(b.count-a.count)||(a.latest-b.latest))
+    .slice(0,5)
+    .forEach((c,i)=>{
+      rows.push({
+        query:c.name,
+        label:c.name,
+        reason:c.count>1
+          ?`Because you often watch ${c.name}`
+          :`Because you watched ${c.name}`,
+        score:90+(c.count*7)-(i*3)
+      });
+    });
+
+  // Recent titles help when the user watches a topic but not one channel repeatedly.
+  watched.slice(0,8).forEach((item,i)=>{
+    const keywords=youtubeTitleKeywords(item.title);
+    if(!keywords)return;
+    rows.push({
+      query:keywords,
+      label:keywords,
+      reason:`Based on “${decodeHtmlText(item.title||'a recent video').slice(0,70)}”`,
+      score:72-(i*4)
+    });
+  });
+
+  const deduped=[];
+  const seen=new Set();
+  rows.sort((a,b)=>b.score-a.score).forEach(row=>{
+    const key=row.query.toLowerCase().replace(/\s+/g,' ').trim();
+    if(key.length<2||seen.has(key))return;
+    seen.add(key);
+    deduped.push(row);
+  });
+
+  return deduped.slice(0,12);
+}
+
+function youtubeForYouCacheValid(){
+  const cache=state.entertainment.youtubeForYouCache||{};
+  const updated=Date.parse(cache.updatedAt||'');
+  return Array.isArray(cache.items)
+    &&cache.items.length
+    &&Number.isFinite(updated)
+    &&Date.now()-updated<30*60*1000;
+}
+
+function youtubeForYouSeed(force=false){
+  const seeds=youtubeRecommendationSeeds();
+  if(!seeds.length)return null;
+
+  let index=Number(localStorage.getItem('ccYoutubeForYouSeedIndex')||'0');
+  if(!Number.isFinite(index)||index<0)index=0;
+
+  if(force){
+    index=(index+1)%seeds.length;
+    localStorage.setItem('ccYoutubeForYouSeedIndex',String(index));
+  }else{
+    index=index%seeds.length;
+  }
+
+  return seeds[index];
+}
+
+function youtubeExploreCardHtml(v,{forYou=false}={}){
+  const hidden=(state.entertainment.youtubeRecommendationHidden||[]).includes(String(v.videoId));
+  if(hidden)return '';
+
+  return `<article class="yt-explore-card" data-youtube-video="${esc(v.videoId)}" role="button" tabindex="0">
+    <img src="${esc(v.thumbnail||'')}" alt="">
+    <div class="yt-explore-info">
+      <div class="yt-explore-title">${esc(decodeHtmlText(v.title||'Video'))}</div>
+      <div class="yt-explore-meta">${esc(decodeHtmlText(v.channelTitle||'YouTube'))}${v.publishedAt?' • '+new Date(v.publishedAt).toLocaleDateString('en-GB'):''}</div>
+      ${v.live?'<div class="yt-live-badge">● LIVE</div>':''}
+      ${forYou?`<div class="yt-recommend-actions"><button type="button" class="btn small yt-not-interested" data-yt-hide="${esc(v.videoId)}">Not interested</button></div>`:''}
+    </div>
+  </article>`;
+}
+
+function renderYoutubeForYouItems(items,reason=''){
+  const grid=qs('#youtubeExploreGrid');
+  const status=qs('#youtubeExploreStatus');
+  if(!grid||!status)return;
+
+  const hidden=new Set(state.entertainment.youtubeRecommendationHidden||[]);
+  const visible=(Array.isArray(items)?items:[]).filter(v=>v?.videoId&&!hidden.has(String(v.videoId)));
+
+  visible.forEach(v=>{
+    if(v?.videoId)youtubeMetaCache[v.videoId]={...v};
+  });
+
+  if(!visible.length){
+    grid.innerHTML='<div class="empty">No personalised videos found yet. Search for or watch a few videos and For You will adapt.</div>';
+    status.textContent='For You needs a little more viewing history.';
+    return;
+  }
+
+  grid.innerHTML=visible.map(v=>youtubeExploreCardHtml(v,{forYou:true})).join('');
+  status.textContent=`${visible.length} personalised videos${reason?` • ${reason}`:''}`;
+}
+
+async function loadYoutubeForYou(force=false){
+  const grid=qs('#youtubeExploreGrid'),status=qs('#youtubeExploreStatus');
+  if(!grid||!status)return;
+
+  const seeds=youtubeRecommendationSeeds();
+
+  // With no personal signals yet, use Trending as a temporary starter feed.
+  if(!seeds.length){
+    status.textContent='Watch or search for a few videos to train For You. Showing Trending for now.';
+    try{
+      const data=await fetchJson('/api/youtube/explore?section=trending',{},15000);
+      const items=Array.isArray(data.items)?data.items:[];
+      renderYoutubeForYouItems(items,'starter feed');
+    }catch(e){
+      grid.innerHTML='';
+      status.textContent=e.message||'Could not load YouTube';
+    }
+    return;
+  }
+
+  const cache=state.entertainment.youtubeForYouCache||{};
+  if(!force&&youtubeForYouCacheValid()){
+    renderYoutubeForYouItems(cache.items,cache.reason||'based on your recent activity');
+    return;
+  }
+
+  const seed=youtubeForYouSeed(force);
+  if(!seed)return;
+
+  status.textContent=`Building For You • ${seed.reason}`;
+  grid.innerHTML='<div class="empty">Finding videos based on what you actually watch…</div>';
+
+  try{
+    // One search request per refresh keeps YouTube API quota usage sensible.
+    const data=await fetchJson(`/api/youtube/search?q=${encodeURIComponent(seed.query)}`,{},15000);
+    const watchedIds=new Set((state.entertainment.youtubeHistoryDetailed||[]).map(x=>String(x.id)));
+    const hiddenIds=new Set(state.entertainment.youtubeRecommendationHidden||[]);
+
+    const items=(Array.isArray(data.items)?data.items:[])
+      .filter(v=>v?.videoId&&!watchedIds.has(String(v.videoId))&&!hiddenIds.has(String(v.videoId)));
+
+    state.entertainment.youtubeForYouCache={
+      items,
+      seed:seed.query,
+      reason:seed.reason,
+      updatedAt:nowIso()
+    };
+    saveState();
+    renderYoutubeForYouItems(items,seed.reason);
+  }catch(e){
+    const cached=Array.isArray(cache.items)?cache.items:[];
+    if(cached.length){
+      renderYoutubeForYouItems(cached,`${cache.reason||'previous recommendations'} • cached`);
+      return;
+    }
+    grid.innerHTML='';
+    status.textContent=e?.name==='AbortError'
+      ?'For You took too long. Trending and Search still work.'
+      :(e.message||'Could not build For You');
+  }
+}
+
+function hideYoutubeRecommendation(videoId){
+  const id=String(videoId||'').trim();
+  if(!id)return;
+
+  const hidden=state.entertainment.youtubeRecommendationHidden||[];
+  state.entertainment.youtubeRecommendationHidden=[
+    id,
+    ...hidden.filter(x=>x!==id)
+  ].slice(0,100);
+
+  const cache=state.entertainment.youtubeForYouCache||{};
+  if(Array.isArray(cache.items)){
+    cache.items=cache.items.filter(x=>String(x?.videoId||'')!==id);
+  }
+
+  saveState();
+  renderYoutubeForYouItems(cache.items||[],cache.reason||'based on your recent activity');
+  toast('Removed from For You');
+}
+window.hideYoutubeRecommendation=hideYoutubeRecommendation;
+
+async function loadYoutubeExplore(section='foryou',force=false){
   youtubeExploreSection=section;
   qsa('[data-ytexplore]').forEach(b=>b.classList.toggle('active',b.dataset.ytexplore===section));
+
+  if(section==='foryou'){
+    await loadYoutubeForYou(force);
+    return;
+  }
+
   const grid=qs('#youtubeExploreGrid'),status=qs('#youtubeExploreStatus');if(!grid||!status)return;
   status.textContent='Loading YouTube Explore…';grid.innerHTML='<div class="empty">Loading…</div>';
+
   try{
     const params=new URLSearchParams({section});if(force)params.set('refresh','1');
-    const data=await fetchJson(`/api/youtube/explore?${params.toString()}`,{},15000),items=Array.isArray(data.items)?data.items:[];
+    const data=await fetchJson(`/api/youtube/explore?${params.toString()}`,{},15000);
+    const items=Array.isArray(data.items)?data.items:[];
     items.forEach(v=>{if(v?.videoId)youtubeMetaCache[v.videoId]={...v}});
-    if(!items.length){grid.innerHTML='<div class="empty">No embeddable videos found.</div>';status.textContent='No results';return}
-    grid.innerHTML=items.map(v=>`<article class="yt-explore-card" data-youtube-video="${esc(v.videoId)}" role="button" tabindex="0"><img src="${esc(v.thumbnail||'')}" alt=""><div class="yt-explore-info"><div class="yt-explore-title">${esc(decodeHtmlText(v.title||'Video'))}</div><div class="yt-explore-meta">${esc(decodeHtmlText(v.channelTitle||'YouTube'))}${v.publishedAt?' • '+new Date(v.publishedAt).toLocaleDateString('en-GB'):''}</div>${v.live?'<div class="yt-live-badge">● LIVE</div>':''}</div></article>`).join('');
+
+    if(!items.length){
+      grid.innerHTML='<div class="empty">No embeddable videos found.</div>';
+      status.textContent='No results';
+      return;
+    }
+
+    grid.innerHTML=items.map(v=>youtubeExploreCardHtml(v)).join('');
     status.textContent=`${items.length} videos • tap one to play`;
-  }catch(e){grid.innerHTML='';status.textContent=e.message||'Could not load Explore'}
+  }catch(e){
+    grid.innerHTML='';
+    status.textContent=e.message||'Could not load Explore';
+  }
 }
+
 function bindYoutubeExploreControls(){
   const grid=qs('#youtubeExploreGrid');
   if(grid&&!grid.dataset.bound){
     grid.dataset.bound='1';
-    grid.addEventListener('click',e=>{const card=e.target.closest('[data-youtube-video]');if(card){e.preventDefault();loadYoutubeVideo(card.dataset.youtubeVideo)}});
-    grid.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const card=e.target.closest('[data-youtube-video]');if(card){e.preventDefault();loadYoutubeVideo(card.dataset.youtubeVideo)}});
+
+    grid.addEventListener('click',e=>{
+      const hide=e.target.closest('[data-yt-hide]');
+      if(hide){
+        e.preventDefault();
+        e.stopPropagation();
+        hideYoutubeRecommendation(hide.dataset.ytHide);
+        return;
+      }
+
+      const card=e.target.closest('[data-youtube-video]');
+      if(card){
+        e.preventDefault();
+        loadYoutubeVideo(card.dataset.youtubeVideo);
+      }
+    });
+
+    grid.addEventListener('keydown',e=>{
+      if(e.key!=='Enter'&&e.key!==' ')return;
+      const card=e.target.closest('[data-youtube-video]');
+      if(card){
+        e.preventDefault();
+        loadYoutubeVideo(card.dataset.youtubeVideo);
+      }
+    });
   }
-  qsa('[data-ytexplore]').forEach(btn=>{if(btn.dataset.bound)return;btn.dataset.bound='1';btn.addEventListener('click',()=>loadYoutubeExplore(btn.dataset.ytexplore,true))});
+
+  qsa('[data-ytexplore]').forEach(btn=>{
+    if(btn.dataset.bound)return;
+    btn.dataset.bound='1';
+    btn.addEventListener('click',()=>loadYoutubeExplore(btn.dataset.ytexplore,true));
+  });
 }
 
 async function checkYoutubeApiSetup(){
@@ -6943,6 +7263,7 @@ async function searchYoutubeVideos(){
   const q=input?.value.trim();
   if(!q){toast('Enter something to search YouTube for');return}
 
+  recordYoutubeSearch(q);
   if(status)status.textContent='Searching YouTube…';
   if(results)results.innerHTML='<div class="empty">Searching…</div>';
 
@@ -7025,7 +7346,28 @@ function extractYoutubeId(value){
   }catch{}
   return '';
 }
-function recordYoutubeContinue(id){const m=youtubeMetaCache[id]||{},item={id,title:decodeHtmlText(m.title||`YouTube ${id}`),channelTitle:decodeHtmlText(m.channelTitle||'YouTube'),thumbnail:m.thumbnail||`https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqdefault.jpg`,updatedAt:nowIso()};const old=state.entertainment.youtubeHistoryDetailed||[];state.entertainment.youtubeHistoryDetailed=[item,...old.filter(x=>x.id!==id)].slice(0,12)}
+function recordYoutubeContinue(id){
+  const m=youtubeMetaCache[id]||{};
+  const item={
+    id,
+    title:decodeHtmlText(m.title||`YouTube ${id}`),
+    channelTitle:decodeHtmlText(m.channelTitle||'YouTube'),
+    thumbnail:m.thumbnail||`https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqdefault.jpg`,
+    updatedAt:nowIso()
+  };
+  const old=state.entertainment.youtubeHistoryDetailed||[];
+  state.entertainment.youtubeHistoryDetailed=[
+    item,
+    ...old.filter(x=>x.id!==id)
+  ].slice(0,24);
+
+  state.entertainment.youtubeForYouCache={
+    items:[],
+    seed:'',
+    reason:'',
+    updatedAt:''
+  };
+}
 function loadYoutubeVideo(value=null){const input=qs('#youtubeWatchInput'),id=extractYoutubeId(value??input?.value);if(!id){toast('Paste a valid YouTube link or 11-character video ID');return}if(input)input.value=value??input.value;const frame=qs('#youtubeWatchFrame');if(frame){frame.src=`https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1`;setTimeout(()=>frame.scrollIntoView({behavior:'smooth',block:'center'}),80)}const status=qs('#youtubeSearchStatus');if(status)status.textContent='Video loaded — playing below.';const history=state.entertainment.watchHistory||[];state.entertainment.watchHistory=[id,...history.filter(x=>x!==id)].slice(0,8);recordYoutubeContinue(id);saveState();renderWatchRecents();renderAllContinueWatching()}
 
 function loadTwitchChannel(value=null){
