@@ -1,0 +1,9 @@
+[
+  {
+    "AllowedOrigins": ["https://bcommand-center.wolvesgidaree.workers.dev"],
+    "AllowedMethods": ["GET", "HEAD", "PUT"],
+    "AllowedHeaders": ["Content-Type", "Content-MD5", "Range"],
+    "ExposeHeaders": ["ETag", "Content-Length", "Content-Type", "Content-Disposition"],
+    "MaxAgeSeconds": 3600
+  }
+]

@@ -9,6 +9,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         configuration.allowsInlineMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
         configuration.userContentController.add(context.coordinator, name: "nativeMirror")
+        configuration.userContentController.add(context.coordinator.transferHandler, name: "nativeTransfer")
 
         let bridgeScript = WKUserScript(
             source: """
@@ -23,6 +24,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         context.coordinator.webView = webView
+        context.coordinator.transferHandler.webView = webView
         NativeMirrorManager.shared.webView = webView
         webView.load(URLRequest(url: AppConfig.commandCentreURL))
         return webView
@@ -32,9 +34,11 @@ struct CommandCentreWebView: UIViewRepresentable {
 
     static func dismantleUIView(_ uiView: WKWebView, coordinator: Coordinator) {
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeMirror")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeTransfer")
     }
 
-    final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
+    @MainActor final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
+        let transferHandler = NativeTransferHandler()
         weak var webView: WKWebView?
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {

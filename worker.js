@@ -1,4 +1,5 @@
 import { sendPushNotification } from '@mmmike/web-push/send';
+import { handleTransfers, cleanTransfers, flushTransferPushes } from './transfers.js';
 
 function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json','access-control-allow-origin':'*','cache-control':'no-store'}})}
 function addDaysLocal(dateKey,n){const [y,m,d]=dateKey.split('-').map(Number);const dt=new Date(Date.UTC(y,m-1,d));dt.setUTCDate(dt.getUTCDate()+n);return dt.toISOString().slice(0,10)}
@@ -2923,8 +2924,9 @@ async function audiusStreamResponse(request,env,trackId){
 }
 
 export default {
-  async fetch(request,env){
+  async fetch(request,env,ctx){
     const url=new URL(request.url);
+    if(url.pathname.startsWith('/api/transfers/')) return handleTransfers(request,env,ctx,sendOne);
     if(request.method==='OPTIONS') return new Response(null,{headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET,POST,DELETE,OPTIONS','access-control-allow-headers':'content-type'}});
     try{
       if(url.pathname==='/api/push/public-key'&&request.method==='GET') return json({publicKey:env.VAPID_PUBLIC_KEY});
@@ -3269,6 +3271,8 @@ export default {
     }catch(e){console.error(e);return json({error:e?.message||String(e)},Number(e?.status)||500)}
   },
   async scheduled(_controller,env,ctx){
+    ctx.waitUntil(cleanTransfers(env));
+    ctx.waitUntil(flushTransferPushes(env,sendOne));
     const now=new Date().toISOString();
     const rows=await env.DB.prepare(`SELECT n.*,d.endpoint,d.p256dh,d.auth FROM notifications n JOIN devices d ON d.device_id=n.device_id WHERE n.sent=0 AND n.due_at<=? ORDER BY n.due_at LIMIT 100`).bind(now).all();
     for(const row of rows.results||[]){

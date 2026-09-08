@@ -1,0 +1,28 @@
+.app-theme-transfers{background:linear-gradient(145deg,#248dc5,#6164e8)}
+body:has(#transfersPage.active) #globalQuickAddBtn{display:none}
+/* Keep the existing 12-icon launcher fixed: Settings moves into its quick actions. */
+#transfersPage{--tr-accent:#89b7ff;font-size:14px}
+#transfersPage [hidden]{display:none!important}
+.tr-wrap{max-width:1080px;margin:auto;display:grid;gap:18px}
+.tr-hero{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:28px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(130deg,#183355,#181b39)}
+.tr-kicker{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#a7ccff;font-weight:700}
+.tr-hero h2{font-size:30px;letter-spacing:-1px;margin:6px 0}.tr-hero p{color:#bdd0e8;line-height:1.6;margin:0}
+.tr-symbol{font-size:40px;color:#c7deff;border:1px solid #ffffff25;background:#ffffff0b;width:76px;height:76px;display:grid;place-items:center;border-radius:23px;flex:none}
+.tr-panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;min-width:0}
+.tr-panel h3{margin:0 0 12px;font-size:18px}.tr-muted{color:var(--muted);line-height:1.6;font-size:13px}
+.tr-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.tr-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.tr-between{justify-content:space-between}
+#transfersPage input:not([type=file]),#transfersPage select,#transfersPage textarea{width:100%;box-sizing:border-box;background:#0b1425;color:var(--text);border:1px solid #344562;padding:11px 12px;border-radius:10px;font:inherit;min-height:44px}
+#transfersPage textarea{resize:vertical;min-height:115px}
+#transfersPage label{display:block;font-size:12px;color:var(--muted);margin:12px 0 6px}
+#transfersPage button{min-height:40px;font-size:13px}#transfersPage button:disabled{opacity:.5;cursor:wait}
+#transfersPage button:focus-visible,#transfersPage a:focus-visible{outline:2px solid #b8d6ff;outline-offset:3px}
+.tr-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.tr-divider{border:0;border-top:1px solid var(--line);margin:22px 0}
+.tr-status{border-radius:12px;padding:12px 16px;background:#162e46;color:#c6e4ff;line-height:1.5;overflow-wrap:anywhere}.tr-status:empty{display:none}.tr-status.error{background:#402435;color:#ffcbcf}
+.tr-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}.tr-tabs button{white-space:nowrap;background:transparent;border:1px solid transparent;color:var(--muted);border-radius:11px;padding:9px 14px}.tr-tabs button[aria-selected=true]{background:#203957;color:#d0e4ff;border-color:#365675}
+.tr-drop{border:1px dashed #536e98;border-radius:14px;padding:26px 18px;text-align:center;background:#14233a;margin-top:14px}.tr-drop.drag{background:#284a70;border-color:#a6cfff}.tr-drop strong{font-size:16px}.tr-drop input{max-width:100%;margin-top:15px;font-size:14px;color:var(--muted)}
+.tr-list{display:grid;gap:12px;margin-top:18px}.tr-item{border:1px solid var(--line);background:var(--panel2);border-radius:14px;padding:18px;min-width:0}.tr-item.unread{border-left:3px solid #83b5ff}.tr-item-head{display:flex;gap:12px;align-items:flex-start}.tr-item-icon{height:40px;width:40px;border-radius:12px;background:#233650;display:grid;place-items:center;font-size:21px;flex:none}.tr-item-main{min-width:0;flex:1}.tr-item h4{font-size:15px;margin:0 0 5px;overflow-wrap:anywhere}.tr-meta{font-size:12px;color:var(--muted);line-height:1.7}.tr-content{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;font-size:14px;max-height:220px;overflow:auto;margin-top:12px}.tr-item a{color:#acccff;overflow-wrap:anywhere}
+.tr-hash{font-family:monospace;font-size:11px;word-break:break-all;line-height:1.7;color:var(--muted);margin-top:12px}.tr-hash summary{cursor:pointer}.tr-empty{text-align:center;padding:44px 12px;color:var(--muted);line-height:1.7}.tr-empty strong{display:block;color:var(--text);font-size:17px;margin-bottom:7px}
+.tr-device{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.tr-code{font-family:monospace;color:#c4ddff;word-break:break-all;font-size:15px;line-height:1.8}.tr-progress{width:100%;height:7px;accent-color:#82b4fc;margin-top:12px}.tr-transfer-count{color:#a7c9f9;font-size:12px}
+#trQueue{display:grid;gap:8px;margin-top:14px}.tr-queue-item{padding:12px;background:#132139;border-radius:10px;overflow-wrap:anywhere;line-height:1.6}
+.tr-prepared{padding:16px;border:1px solid #42628b;border-radius:12px;background:#192c45;margin-top:14px}.tr-prepared p{margin:0 0 10px;line-height:1.6}
+@media(max-width:650px){.tr-grid{grid-template-columns:1fr}.tr-hero{padding:21px}.tr-hero h2{font-size:27px}.tr-symbol{width:57px;height:57px;font-size:30px}.tr-panel{padding:16px}.tr-hero p{font-size:12px}.tr-tabs button{padding:9px 11px}.tr-item{padding:14px}}

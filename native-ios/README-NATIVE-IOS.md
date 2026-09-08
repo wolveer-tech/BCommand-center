@@ -74,3 +74,20 @@ The iPhone screen should then be delivered over WebRTC.
   depends on that service's current signing/provisioning behaviour. If Signulous
   rejects or strips the Broadcast Upload Extension, Apple Developer signing will
   still be required.
+
+
+## Mirror v4 media changes
+
+- Corrects ReplayKit orientation mapping: `.right → 270°`, `.left → 90°`.
+- Sends ReplayKit `.audioApp` as mono Float32 PCM on the WebRTC data channel
+  `command-centre-audio`.
+- Responds to the receiver `ready` signal by re-posting or ICE-restarting the
+  offer so installed desktop PWAs can recover from startup races.
+
+
+## v4.3 audio extraction
+
+ReplayKit audio is now read directly from the CMSampleBuffer's AudioBufferList
+instead of being copied through AVAudioPCMBuffer. This handles the common
+interleaved signed Int16 stereo layout used by ReplayKit and adds one-shot
+diagnostic messages over the audio data channel.

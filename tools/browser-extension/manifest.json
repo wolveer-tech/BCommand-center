@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Command Centre Transfer",
+  "version": "1.0.0",
+  "description": "Send pages, links and selected text to your paired Command Centre devices.",
+  "permissions": ["contextMenus", "storage", "activeTab"],
+  "optional_host_permissions": ["https://*/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "options_page": "options.html",
+  "action": { "default_title": "Send to Command Centre", "default_popup": "popup.html" }
+}

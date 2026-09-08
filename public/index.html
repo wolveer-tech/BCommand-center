@@ -1973,6 +1973,8 @@ body:has(.modal.open) .back-to-top{
 }
 
 </style>
+<link rel="stylesheet" href="/transfers.css">
+<script defer src="/transfers.bundle.js"></script>
 </head>
 <body>
 <div class="layout">
@@ -1986,6 +1988,7 @@ body:has(.modal.open) .back-to-top{
       <button class="sidebar-item" data-page="reddit"><span class="sidebar-emoji">📱</span> Reddit</button>
       <button class="sidebar-item" data-page="entertainment"><span class="sidebar-emoji">🎮</span> Entertainment</button>
       <button class="sidebar-item" data-page="watch"><span class="sidebar-emoji">🎬</span> Watch</button>
+      <button class="sidebar-item" data-page="transfers"><span class="sidebar-emoji">⇄</span> Transfers</button>
       <button class="sidebar-item" data-page="mirror"><span class="sidebar-emoji">📺</span> Mirror</button>
       <button class="sidebar-item" data-page="football"><span class="sidebar-emoji">🏟️</span> Sport</button>
       <button class="sidebar-item" data-page="weather"><span class="sidebar-emoji">🌤️</span> Weather</button>
@@ -2103,6 +2106,7 @@ body:has(.modal.open) .back-to-top{
               </div>
               <div class="launcher-widget-foot">
                 <button class="launcher-chip" type="button" data-launch-action="quickadd">＋ Add</button>
+                <button class="launcher-chip" type="button" data-launch-action="settings">⚙ Settings</button>
                 <button class="launcher-chip" type="button" data-launch-page="notes">📝 Notes</button>
               </div>
             </div>
@@ -2120,7 +2124,7 @@ body:has(.modal.open) .back-to-top{
             <button class="iphone-app" type="button" data-launch-page="bible"><span class="iphone-app-icon app-theme-bible">📖</span><span class="iphone-app-label">Bible</span></button>
             <button class="iphone-app" type="button" data-launch-page="briefing"><span class="iphone-app-icon app-theme-briefing">📋</span><span class="iphone-app-label">Briefing</span></button>
             <button class="iphone-app" type="button" data-launch-page="music"><span class="iphone-app-icon app-theme-entertainment">🎵</span><span class="iphone-app-label">Music</span></button>
-            <button class="iphone-app" type="button" data-launch-action="settings"><span class="iphone-app-icon app-theme-settings">⚙️</span><span class="iphone-app-label">Settings</span></button>
+            <button class="iphone-app" type="button" data-launch-page="transfers"><span class="iphone-app-icon app-theme-transfers">⇄</span><span class="iphone-app-label">Transfers</span></button>
           </div>
 
           <div class="launcher-dock">
@@ -2135,6 +2139,30 @@ body:has(.modal.open) .back-to-top{
         <div class="home-pager-dots"><button class="home-page-dot active" type="button" data-home-slide-to="0" aria-label="Open dashboard panel"></button><button class="home-page-dot" type="button" data-home-slide-to="1" aria-label="Open launcher panel"></button></div>
       </div>
     </section>
+
+<section class="page" id="transfersPage">
+  <div class="tr-wrap">
+    <div class="tr-hero"><div><div class="tr-kicker">Your devices. Connected.</div><h2>Transfers</h2><p>Original files, quick notes and useful links.<br>Send between your phone and computer, wherever you are.</p></div><div class="tr-symbol" aria-hidden="true">⇄</div></div>
+    <div id="trStatus" class="tr-status" role="status" aria-live="polite"></div>
+    <div id="trConnect" class="tr-panel">
+      <h3>Connect this device</h3><p class="tr-muted">Choose a name so you can recognise it when sending.</p>
+      <label for="trDeviceName">Device name</label><input id="trDeviceName" maxlength="60" placeholder="e.g. My iPhone or Home PC" autocomplete="off">
+      <div class="tr-grid"><div><label for="trPairCode">Pairing code</label><input id="trPairCode" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Code from a paired device"><div class="tr-actions"><button class="btn primary" id="trClaim">Connect device</button></div><p class="tr-muted">On your other device, open Transfers → Devices → Pair a device. Each code works once and expires after 10 minutes.</p></div>
+      <div><details><summary style="margin-top:12px;cursor:pointer">First device or account recovery</summary><p class="tr-muted">Use the setup key you saved as a Cloudflare Worker secret. Setup instructions are included in the app ZIP.</p><label for="trSetupKey">Transfer setup key</label><input id="trSetupKey" type="password" autocomplete="off"><div class="tr-actions"><button class="btn" id="trBootstrap">Connect with setup key</button></div></details></div></div>
+    </div>
+    <div id="trConnected" hidden>
+      <div class="tr-row tr-between" style="margin-bottom:16px"><span id="trIdentity" class="tr-muted"></span><div class="tr-row"><button class="btn" id="trRefresh">↻ Refresh</button><button class="btn" id="trDevicesToggle" aria-expanded="false">Devices</button></div></div>
+      <div id="trDevicesPanel" class="tr-panel" hidden style="margin-bottom:18px"><h3>Your devices</h3><p class="tr-muted">Only paired devices can use your Transfers space. Removing a device revokes its access.</p><div id="trDeviceList"></div><div class="tr-actions"><button class="btn primary" id="trPair">Pair a device</button><button class="btn" id="trNotifications">Enable transfer notifications</button><button class="btn" id="trSignOut">Disconnect this device</button></div><div id="trPairOutput" class="tr-prepared" hidden></div><p id="trPushState" class="tr-muted"></p></div>
+      <div class="tr-panel"><h3>Send something</h3><div class="tr-grid"><div><label for="trRecipient">Send to</label><select id="trRecipient"><option value="all">All my other devices</option></select></div><div><label for="trExpiry">Delete after</label><select id="trExpiry"><option value="3600">1 hour</option><option value="86400" selected>1 day</option><option value="604800">7 days</option><option value="0">Never</option></select></div></div>
+        <div class="tr-tabs" role="tablist" aria-label="What to send" style="margin-top:16px"><button role="tab" data-tr-compose="file" aria-selected="true">↑ Files</button><button role="tab" data-tr-compose="link" aria-selected="false">↗ Link</button><button role="tab" data-tr-compose="message" aria-selected="false">☰ Message</button></div>
+        <div id="trFileCompose"><div class="tr-drop" id="trDrop"><strong>Drop files here</strong><div class="tr-muted">or choose from this device. Files keep their original bytes.</div><input type="file" id="trFiles" multiple aria-label="Choose files to send"></div><p class="tr-muted" id="trFileLimit"></p></div>
+        <div id="trTextCompose" hidden><label for="trTitle">Title (optional)</label><input id="trTitle" maxlength="160" placeholder="Give it a name"><label for="trText" id="trTextLabel">Link</label><textarea id="trText" maxlength="20000" placeholder="https://…"></textarea></div>
+        <div class="tr-actions"><button class="btn primary" id="trSend">Send files</button><button class="btn" id="trCancel" hidden>Cancel upload</button></div><div id="trQueue" aria-live="polite"></div>
+      </div>
+      <div class="tr-panel" style="margin-top:18px"><div class="tr-row tr-between"><h3 style="margin:0">Your transfers</h3><span id="trCount" class="tr-transfer-count"></span></div><div class="tr-tabs" role="tablist" aria-label="Transfer folders" style="margin-top:14px"><button role="tab" data-tr-view="inbox" aria-selected="true">Inbox</button><button role="tab" data-tr-view="sent" aria-selected="false">Sent</button><button role="tab" data-tr-view="files" aria-selected="false">Files</button><button role="tab" data-tr-view="links" aria-selected="false">Links</button><button role="tab" data-tr-view="messages" aria-selected="false">Messages</button></div><div id="trPrepared" class="tr-prepared" hidden></div><div id="trList" class="tr-list"></div><div class="tr-actions"><button class="btn" id="trMore" hidden>Load more</button></div></div>
+    </div>
+  </div>
+</section>
 
     <section class="page" id="todayPage">
       <div class="stack">
@@ -3299,6 +3327,7 @@ function renderAllContinueWatching(){renderContinueWatchingInto('homeContinueWat
 async function openContinueItem(index){const item=combinedContinueHistory()[Number(index)];if(!item)return;if(item.kind==='youtube'){openWatchPage('youtube');setTimeout(()=>loadYoutubeVideo(item.id),60);return}openWatchPage('movies');mediaEmbedState.results=[{id:item.id,type:item.type,title:item.title,year:item.year||'',posterUrl:item.posterUrl||'',overview:item.overview||'',backdropUrl:item.backdropUrl||''}];await selectMediaResult(0);if(item.type==='tv'){const s=qs('#mediaSeasonSelect');if(s&&item.season){s.value=String(item.season);await loadMediaEpisodes()}const e=qs('#mediaEpisodeSelect');if(e&&item.episode)e.value=String(item.episode)}}
 
 const SEARCH_PAGES=[
+  ['transfers','Transfers','⇄'],
   ['home','Home','🏠'],['today','Today','☀️'],['calendar','Calendar','🗓️'],
   ['notes','Notes','📝'],['music','Music','🎵'],['watch','Watch','🎬'],['entertainment','Entertainment','🍿'],
   ['mirror','Mirror','📺'],['football','Sport','🏟️'],['weather','Weather','🌤️'],
@@ -3693,6 +3722,7 @@ async function testNotification(){
 
 
 function applyLaunchRoute(){
+  if(location.hash==='#transfers'){switchPage('transfers',false);return;}
   // Normal launch / browser refresh starts at Home.
   // Notification deep links can intentionally open a relevant page.
   if(location.hash==='#briefing'){
@@ -4121,6 +4151,7 @@ function switchPage(page,persist=true,navMode='push'){
   qsa('.page').forEach(p=>p.classList.remove('active'));
   qsa('.sidebar-item').forEach(t=>t.classList.toggle('active',t.dataset.page===page));
   target.classList.add('active');
+  window.dispatchEvent(new CustomEvent('cc-pagechange',{detail:page}));
   syncMobileDock(page);
 
   const back=qs('#navBackBtn');
