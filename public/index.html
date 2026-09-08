@@ -1923,6 +1923,55 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
   opacity:1
 }
 
+
+/* v10.6.1 — Back to Top */
+.back-to-top{
+  position:fixed;
+  right:18px;
+  bottom:24px;
+  z-index:82;
+  width:42px;
+  height:42px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(10,16,27,.92);
+  color:var(--text);
+  box-shadow:0 10px 30px rgba(0,0,0,.32);
+  backdrop-filter:blur(16px);
+  display:grid;
+  place-items:center;
+  font-size:20px;
+  font-weight:850;
+  cursor:pointer;
+  opacity:0;
+  visibility:hidden;
+  transform:translateY(8px) scale(.94);
+  pointer-events:none;
+  transition:opacity .16s ease,transform .16s ease,visibility .16s ease;
+}
+.back-to-top.visible{
+  opacity:1;
+  visibility:visible;
+  transform:translateY(0) scale(1);
+  pointer-events:auto;
+}
+.back-to-top:active{transform:scale(.93)}
+body.home-fullscreen .back-to-top{display:none!important}
+
+/* If a modal is open, keep navigation controls out of its way. */
+body:has(.modal.open) .back-to-top{opacity:0!important;pointer-events:none!important}
+
+@media(max-width:760px){
+  .back-to-top{
+    left:10px;
+    right:auto;
+    bottom:calc(78px + env(safe-area-inset-bottom));
+    width:38px;
+    height:38px;
+    font-size:18px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -3664,6 +3713,9 @@ function init(){
     qsa('[data-page-jump]').forEach(b=>b.addEventListener('click',()=>switchPage(b.dataset.pageJump)));
     bindEntertainmentControls();
     bind('navBackBtn','click',goBack);
+    bind('backToTopBtn','click',backToTop);
+    window.addEventListener('scroll',updateBackToTopButton,{passive:true});
+    window.addEventListener('resize',updateBackToTopButton);
     bind('sidebarToggle','click',toggleSidebar);
     bind('sidebarOverlay','click',closeSidebar);
     document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSidebar()});
@@ -3938,6 +3990,27 @@ window.openWatchPage=openWatchPage;
 let appCurrentPage='home';
 const appNavigationStack=[];
 
+function updateBackToTopButton(){
+  const btn=qs('#backToTopBtn');
+  if(!btn)return;
+
+  const pageScrollable=
+    document.documentElement.scrollHeight >
+    window.innerHeight + 180;
+
+  const shouldShow=
+    !document.body.classList.contains('home-fullscreen') &&
+    pageScrollable &&
+    window.scrollY>450;
+
+  btn.classList.toggle('visible',shouldShow);
+}
+
+function backToTop(){
+  window.scrollTo({top:0,left:0,behavior:'smooth'});
+}
+window.backToTop=backToTop;
+
 function openHomeLauncher(){
   appNavigationStack.length=0;
   switchPage('home',false,'reset');
@@ -3983,6 +4056,7 @@ function switchPage(page,persist=true,navMode='push'){
 
   const back=qs('#navBackBtn');
   if(back)back.style.display=page==='home'?'none':'grid';
+  requestAnimationFrame(updateBackToTopButton);
 
   if(page==='portfolio')loadPortfolio();
   if(page==='manga')loadManga();
@@ -8450,5 +8524,14 @@ updateNotificationUI();
 loadNews(false);
 if(Notification.permission==='granted')syncNewsPreferences();
 </script>
+
+  <button
+    type="button"
+    id="backToTopBtn"
+    class="back-to-top"
+    aria-label="Back to top"
+    title="Back to top"
+  >↑</button>
+
 </body>
 </html>
