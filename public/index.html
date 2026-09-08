@@ -1881,6 +1881,35 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
   .music-provider-statuses{grid-template-columns:1fr}
 }
 
+
+.today-bible-card{
+  border-color:rgba(121,92,255,.22);
+  background:
+    radial-gradient(circle at 100% 0%,rgba(121,92,255,.08),transparent 36%),
+    var(--panel)
+}
+.today-bible-progress{margin:3px 0 9px}
+.today-bible-progress-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px
+}
+.today-bible-progress-head > div{min-width:0}
+.today-bible-progress-head strong{font-size:10px}
+.today-bible-progress-head span{
+  display:block;
+  font-size:8px;
+  color:var(--muted);
+  margin-top:3px
+}
+#todayBible .reading-checks{margin-top:8px}
+#todayBible .reading-check{padding:9px}
+@media(max-width:620px){
+  .today-bible-card .card-head{align-items:flex-start}
+  .today-bible-card .toolbar{gap:5px}
+}
+
 </style>
 </head>
 <body>
@@ -2078,6 +2107,21 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
             <div id="todaySchedule"></div>
           </article>
         </div>
+
+        <article class="card today-bible-card">
+          <div class="card-head">
+            <div>
+              <div class="title">📖 Today’s Bible Reading</div>
+              <div class="sub">Your daily recommendations and Bible completion progress.</div>
+            </div>
+            <div class="toolbar">
+              <button class="btn small" type="button" onclick="newBibleRecommendations()">New 3</button>
+              <button class="btn small" type="button" data-page-jump="bible">Full Checklist</button>
+            </div>
+          </div>
+          <div id="todayBibleProgress" class="today-bible-progress"></div>
+          <div id="todayBible"></div>
+        </article>
 
         <div class="today-grid">
           <article class="card">
@@ -3155,6 +3199,7 @@ function renderTodayPage(){
 
   renderContinueWatchingInto('todayContinueWatching',6);
   renderHomeTodaySummary();
+  renderBible();
   renderTodayExtra();
 
   if(typeof loadNews==='function'){
@@ -4223,21 +4268,46 @@ function newBibleRecommendations(){
   toast('New meaningful Bible recommendations chosen');
 }
 
-function renderBible(){
-  const el=qs('#bible');
-  if(!el)return;
+function bibleProgressSnapshot(){
+  const readCount=Object.keys(state.bibleRead||{}).filter(k=>state.bibleRead[k]).length;
+  const booksDone=BIBLE_BOOKS.filter(([book,count])=>
+    Array.from({length:count},(_,i)=>i+1).every(ch=>isBibleChapterRead(book,ch))
+  ).length;
+  const pctDone=Math.round(readCount/BIBLE_TOTAL_CHAPTERS*100);
+  return {readCount,booksDone,pctDone};
+}
 
+function renderTodayBibleProgress(){
+  const target=qs('#todayBibleProgress');
+  if(!target)return;
+
+  const {readCount,booksDone,pctDone}=bibleProgressSnapshot();
+  target.innerHTML=`
+    <div class="today-bible-progress-head">
+      <div>
+        <strong>${readCount.toLocaleString()} / ${BIBLE_TOTAL_CHAPTERS.toLocaleString()} chapters</strong>
+        <span>${booksDone} / ${BIBLE_BOOKS.length} books complete</span>
+      </div>
+      <strong>${pctDone}%</strong>
+    </div>
+    <div class="bible-progress" style="margin:7px 0 10px">
+      <div class="bible-progress-bar">
+        <div class="bible-progress-fill" style="width:${pctDone}%"></div>
+      </div>
+    </div>`;
+}
+
+function bibleRecommendationHtml(){
   const recs=todaysBibleRecommendation();
 
   if(!recs.length){
     const allDone=bibleUnreadChapters().length===0;
-    el.innerHTML=allDone
+    return allDone
       ? '<div class="positive" style="font-weight:800">✓ Every chapter is ticked off.</div><div class="sub" style="margin-top:5px">You have completed the full Bible checklist.</div>'
-      : '<div class="positive" style="font-weight:800">✓ Today’s three reading recommendations are complete.</div><div class="sub" style="margin-top:5px">A fresh set will appear tomorrow.</div>';
-    return;
+      : '<div class="positive" style="font-weight:800">✓ Today’s three reading recommendations are complete.</div><div class="sub" style="margin-top:5px">A fresh set will appear tomorrow, or tap New 3 for another set.</div>';
   }
 
-  el.innerHTML=`<div class="metric" style="font-size:18px">Today's reading guide</div>
+  return `<div class="metric" style="font-size:18px">Today's reading guide</div>
     <div class="reading-checks">
       ${recs.map((block,index)=>{
         const unread=blockUnreadChapters(block);
@@ -4255,7 +4325,14 @@ function renderBible(){
         </div>`;
       }).join('')}
     </div>
-    <div class="sub" style="margin-top:8px">Each recommendation is a connected section. Completing one removes it for today; it is not replaced until tomorrow.</div>`;
+    <div class="sub" style="margin-top:8px">Each recommendation is a connected section. Marking a range read also updates your full 66-book checklist.</div>`;
+}
+
+function renderBible(){
+  const markup=bibleRecommendationHtml();
+  const targets=[qs('#bible'),qs('#todayBible')].filter(Boolean);
+  targets.forEach(el=>{el.innerHTML=markup});
+  renderTodayBibleProgress();
 }
 
 window.completeBibleReadingBlock=completeBibleReadingBlock;
