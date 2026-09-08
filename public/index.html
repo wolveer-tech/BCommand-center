@@ -1975,6 +1975,8 @@ body:has(.modal.open) .back-to-top{
 </style>
 <link rel="stylesheet" href="/transfers.css">
 <script defer src="/transfers.bundle.js"></script>
+<link rel="stylesheet" href="/messages.css">
+<script defer src="/messages.bundle.js"></script>
 </head>
 <body>
 <div class="layout">
@@ -1988,6 +1990,7 @@ body:has(.modal.open) .back-to-top{
       <button class="sidebar-item" data-page="reddit"><span class="sidebar-emoji">📱</span> Reddit</button>
       <button class="sidebar-item" data-page="entertainment"><span class="sidebar-emoji">🎮</span> Entertainment</button>
       <button class="sidebar-item" data-page="watch"><span class="sidebar-emoji">🎬</span> Watch</button>
+      <button class="sidebar-item" data-page="messages"><span class="sidebar-emoji">☷</span> Messages</button>
       <button class="sidebar-item" data-page="transfers"><span class="sidebar-emoji">⇄</span> Transfers</button>
       <button class="sidebar-item" data-page="mirror"><span class="sidebar-emoji">📺</span> Mirror</button>
       <button class="sidebar-item" data-page="football"><span class="sidebar-emoji">🏟️</span> Sport</button>
@@ -2105,6 +2108,7 @@ body:has(.modal.open) .back-to-top{
                 <div class="launcher-stat-line"><span>Reminders</span><strong id="launcherRemindersCount">0</strong></div>
               </div>
               <div class="launcher-widget-foot">
+                <button class="launcher-chip" type="button" id="msgQuickHome" data-launch-action="quickmessage">☷ Message My PC</button>
                 <button class="launcher-chip" type="button" data-launch-action="quickadd">＋ Add</button>
                 <button class="launcher-chip" type="button" data-launch-action="settings">⚙ Settings</button>
                 <button class="launcher-chip" type="button" data-launch-page="notes">📝 Notes</button>
@@ -2128,7 +2132,7 @@ body:has(.modal.open) .back-to-top{
           </div>
 
           <div class="launcher-dock">
-            <button class="launcher-dock-app" type="button" data-launch-page="today"><span class="launcher-dock-icon">☀️</span><span class="launcher-dock-label">Today</span></button>
+            <button class="launcher-dock-app" type="button" data-launch-page="messages"><span class="launcher-dock-icon">☷</span><span class="launcher-dock-label">Messages</span></button>
             <button class="launcher-dock-app" type="button" data-launch-watch="youtube"><span class="launcher-dock-icon">▶️</span><span class="launcher-dock-label">YouTube</span></button>
             <button class="launcher-dock-app" type="button" data-launch-watch="movies"><span class="launcher-dock-icon">🎬</span><span class="launcher-dock-label">Movies & TV</span></button>
             <button class="launcher-dock-app" type="button" data-launch-page="music"><span class="launcher-dock-icon">🎵</span><span class="launcher-dock-label">Music</span></button>
@@ -2139,6 +2143,27 @@ body:has(.modal.open) .back-to-top{
         <div class="home-pager-dots"><button class="home-page-dot active" type="button" data-home-slide-to="0" aria-label="Open dashboard panel"></button><button class="home-page-dot" type="button" data-home-slide-to="1" aria-label="Open launcher panel"></button></div>
       </div>
     </section>
+
+<section class="page" id="messagesPage">
+  <div class="msg-wrap">
+    <header class="msg-heading"><div><div class="msg-kicker">A chat for every device</div><h2>Messages</h2><p id="msgIdentity">Connect once. Send in a tap.</p></div><button class="btn" id="msgNotifications" hidden>Enable alerts</button></header>
+    <div id="msgStatus" class="msg-status" role="status" aria-live="polite"></div>
+    <div id="msgWelcome" class="msg-welcome" hidden><h3>Your devices, one conversation away.</h3><p>On your PC, open Messages and choose <strong>Connect another device</strong>. Enter its 9-digit code here.</p><button class="btn primary" id="msgWelcomeConnect">Enter a code</button><p class="msg-muted">Setting up your first device? <button class="msg-text-button" data-msg-transfers>Connect it in Transfers</button>.</p></div>
+    <div class="msg-shell" id="msgShell" hidden>
+      <aside class="msg-sidebar" aria-label="Device conversations"><div class="msg-sidebar-head"><h3>Your chats</h3><label class="sr-only" for="msgSearch">Search devices</label><input id="msgSearch" type="search" placeholder="Find a device…" autocomplete="off"></div><div id="msgChats" class="msg-chats"></div><button class="msg-connect" id="msgConnect">＋ Connect another device</button></aside>
+      <div class="msg-conversation" id="msgConversation">
+        <div id="msgChoose" class="msg-choose"><div aria-hidden="true">☷</div><h3>Pick a device. Say something.</h3><p>Paste a link, leave yourself a note,<br>or carry on where you left off.</p></div>
+        <div id="msgThread" class="msg-thread" hidden>
+          <header class="msg-thread-head"><button class="msg-back btn small" id="msgBack" aria-label="Back to chats">‹ Chats</button><div class="msg-peer"><strong id="msgPeerName"></strong><span id="msgPeerDetail">Messages and links</span></div><button class="btn small" id="msgFavourite" aria-pressed="false" title="Use this device for the home shortcut">☆ Quick chat</button></header>
+          <div class="msg-history" id="msgHistory" tabindex="0" aria-label="Conversation history"><button class="btn small msg-older" id="msgOlder" hidden>Load older messages</button><div id="msgBubbles"></div><div id="msgEmpty" class="msg-empty" hidden>No messages yet. Send the first one below.</div></div>
+          <button class="msg-new" id="msgNew" hidden>New messages ↓</button>
+          <form id="msgCompose" class="msg-compose"><label class="sr-only" for="msgText">Message or link</label><textarea id="msgText" rows="2" maxlength="20000" placeholder="Message or paste a link…"></textarea><button class="btn primary" id="msgSend" type="submit">Send ↑</button><div class="msg-compose-note"><span id="msgKeyHint">Enter to send · Shift + Enter for a new line</span><button type="button" class="msg-text-button" data-msg-transfers>Send a file ⇄</button></div></form>
+        </div>
+      </div>
+    </div>
+    <dialog id="msgPairDialog" class="msg-dialog" aria-labelledby="msgPairTitle"><div class="msg-dialog-head"><h3 id="msgPairTitle">Connect another device</h3><button class="btn small" id="msgPairClose" aria-label="Close pairing">✕</button></div><p class="msg-muted">Pair your own devices once. They will appear in Messages and Transfers.</p><div id="msgGenerateArea"><button class="btn primary" id="msgGenerate">Show my 9-digit code</button><div id="msgCodeArea" hidden><p>On the other device, open Messages → Enter a code.</p><output id="msgCode" class="msg-code"></output><p class="msg-muted" id="msgCodeExpiry"></p><div class="msg-pair-actions"><button class="btn small" id="msgCopyCode">Copy code</button><button class="btn small" id="msgCancelCode">Cancel code</button></div></div><div class="msg-divider">or enter the other device’s code</div></div><form id="msgClaimForm"><div id="msgNameArea"><label for="msgDeviceName">Name this device</label><input id="msgDeviceName" maxlength="60" placeholder="My laptop" autocomplete="off"></div><label for="msgPairInput">9-digit code</label><input id="msgPairInput" inputmode="numeric" autocomplete="off" placeholder="123 456 789" maxlength="11" pattern="[0-9 ]{9,11}" required><button class="btn primary" id="msgClaim" type="submit">Connect</button></form><div class="msg-status" id="msgPairStatus" role="status" aria-live="polite"></div></dialog>
+  </div>
+</section>
 
 <section class="page" id="transfersPage">
   <div class="tr-wrap">
@@ -3327,6 +3352,7 @@ function renderAllContinueWatching(){renderContinueWatchingInto('homeContinueWat
 async function openContinueItem(index){const item=combinedContinueHistory()[Number(index)];if(!item)return;if(item.kind==='youtube'){openWatchPage('youtube');setTimeout(()=>loadYoutubeVideo(item.id),60);return}openWatchPage('movies');mediaEmbedState.results=[{id:item.id,type:item.type,title:item.title,year:item.year||'',posterUrl:item.posterUrl||'',overview:item.overview||'',backdropUrl:item.backdropUrl||''}];await selectMediaResult(0);if(item.type==='tv'){const s=qs('#mediaSeasonSelect');if(s&&item.season){s.value=String(item.season);await loadMediaEpisodes()}const e=qs('#mediaEpisodeSelect');if(e&&item.episode)e.value=String(item.episode)}}
 
 const SEARCH_PAGES=[
+  ['messages','Messages','☷'],
   ['transfers','Transfers','⇄'],
   ['home','Home','🏠'],['today','Today','☀️'],['calendar','Calendar','🗓️'],
   ['notes','Notes','📝'],['music','Music','🎵'],['watch','Watch','🎬'],['entertainment','Entertainment','🍿'],
@@ -3722,6 +3748,7 @@ async function testNotification(){
 
 
 function applyLaunchRoute(){
+  if(location.hash==='#messages'||location.hash.startsWith('#messages/')){switchPage('messages',false);return;}
   if(location.hash==='#transfers'){switchPage('transfers',false);return;}
   // Normal launch / browser refresh starts at Home.
   // Notification deep links can intentionally open a relevant page.
@@ -3978,6 +4005,7 @@ function runHomeLauncherAction(btn){
   const page=btn.dataset.launchPage;
   const action=btn.dataset.launchAction;
   if(watch){openWatchPage(watch);return;}
+  if(action==='quickmessage'){window.CCMessages?.openQuick();return;}
   if(action==='quickadd'){openQuickAdd();return;}
   if(action==='settings'){openSettings();return;}
   if(page){switchPage(page);return;}

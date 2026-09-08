@@ -1,0 +1,14 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+let html=readFileSync('public/index.html','utf8');
+const section=readFileSync('messages-ui.html','utf8');
+if(html.includes('id="messagesPage"'))html=html.replace(/<section class="page" id="messagesPage">[\s\S]*?<\/section>/,section.trim());
+else html=html.replace('<section class="page" id="transfersPage">',section+'\n<section class="page" id="transfersPage">');
+if(!html.includes('/messages.bundle.js'))html=html.replace('<script defer src="/transfers.bundle.js"></script>','<script defer src="/transfers.bundle.js"></script>\n<link rel="stylesheet" href="/messages.css">\n<script defer src="/messages.bundle.js"></script>');
+if(!html.includes('class="sidebar-item" data-page="messages"'))html=html.replace('      <button class="sidebar-item" data-page="transfers">','      <button class="sidebar-item" data-page="messages"><span class="sidebar-emoji">☷</span> Messages</button>\n      <button class="sidebar-item" data-page="transfers">');
+if(!html.includes("['messages','Messages'"))html=html.replace('const SEARCH_PAGES=[',"const SEARCH_PAGES=[\n  ['messages','Messages','☷'],");
+if(!html.includes("location.hash.startsWith('#messages/')"))html=html.replace('function applyLaunchRoute(){',"function applyLaunchRoute(){\n  if(location.hash==='#messages'||location.hash.startsWith('#messages/')){switchPage('messages',false);return;}");
+html=html.replace('<button class="launcher-dock-app" type="button" data-launch-page="today"><span class="launcher-dock-icon">☀️</span><span class="launcher-dock-label">Today</span></button>','<button class="launcher-dock-app" type="button" data-launch-page="messages"><span class="launcher-dock-icon">☷</span><span class="launcher-dock-label">Messages</span></button>');
+if(!html.includes('id="msgQuickHome"'))html=html.replace('<button class="launcher-chip" type="button" data-launch-action="quickadd">','<button class="launcher-chip" type="button" id="msgQuickHome" data-launch-action="quickmessage">☷ Message My PC</button>\n                <button class="launcher-chip" type="button" data-launch-action="quickadd">');
+if(!html.includes("action==='quickmessage'"))html=html.replace("  if(action==='quickadd')", "  if(action==='quickmessage'){window.CCMessages?.openQuick();return;}\n  if(action==='quickadd')");
+writeFileSync('public/index.html',html);
+console.log('Messages integrated into the existing app.');

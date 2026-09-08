@@ -73,6 +73,9 @@ async function makeDevice(env, name, pairingHash) {
   return { token, device: { id: deviceId, name } };
 }
 
+// Messages shares the same explicitly paired devices and credential storage.
+export { authenticate as authenticateTransferDevice, body as readTransferJSON, makeDevice as createTransferDevice };
+
 async function recipient(env, value, sender) {
   if (!value || value === 'all') return null;
   if (value === sender.id) fail(400, 'Choose another device.');

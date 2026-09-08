@@ -5,9 +5,11 @@ import { resolve, extname } from 'node:path';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { createHash, randomUUID } from 'node:crypto';
 import { handleTransfers } from '../transfers.js';
+import { handleMessages } from '../messages.js';
 const mf=new Miniflare(convertV4MiniflareOptions({name:'preview',modules:true,script:'export default {fetch(){return new Response("ok")}}',compatibilityDate:'2026-08-31',d1Databases:{DB:'preview'},r2Buckets:['TRANSFER_FILES']}));
 const env={DB:await mf.getD1Database('DB'),TRANSFER_FILES:await mf.getR2Bucket('TRANSFER_FILES'),TRANSFER_SETUP_KEY:'preview-key-for-local-test-only-123456',TRANSFER_R2_ENDPOINT:'https://preview.r2.cloudflarestorage.com',TRANSFER_R2_BUCKET:'preview',TRANSFER_R2_ACCESS_KEY_ID:'preview',TRANSFER_R2_SECRET_ACCESS_KEY:'preview'};
 for(const sql of (await readFile(new URL('../migrations/0008_transfers.sql',import.meta.url),'utf8')).split(';').map(s=>s.trim()).filter(Boolean))await env.DB.prepare(sql).run();
+for(const sql of (await readFile(new URL('../migrations/0009_messages.sql',import.meta.url),'utf8')).split(';').map(s=>s.trim()).filter(Boolean))await env.DB.prepare(sql).run();
 const ctx={waitUntil:p=>p.catch(()=>{})};
 const capabilities=new Map();
 const server=createServer(async(req,res)=>{
@@ -26,6 +28,11 @@ const server=createServer(async(req,res)=>{
         res.writeHead(200,{'Content-Type':object.httpMetadata.contentType,'Content-Disposition':object.httpMetadata.contentDisposition});for await(const chunk of object.body)res.write(chunk);res.end();return;
       }
       res.writeHead(405);res.end();return;
+    }
+    if(url.pathname.startsWith('/api/messages/')){
+      const chunks=[];for await(const chunk of req)chunks.push(chunk);
+      const response=await handleMessages(new Request(url,{method:req.method,headers:req.headers,body:chunks.length?Buffer.concat(chunks):undefined}),env,ctx,async()=>{});
+      res.writeHead(response.status,Object.fromEntries(response.headers));res.end(await response.text());return;
     }
     if(url.pathname.startsWith('/api/transfers/')){
       const chunks=[];for await(const chunk of req)chunks.push(chunk);

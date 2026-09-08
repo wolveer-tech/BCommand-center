@@ -7,10 +7,11 @@ const html=readFileSync('public/index.html','utf8');
 let scripts=0;
 for(const match of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)){if(match[1].trim()){new vm.Script(match[1]);scripts++;}}
 new vm.Script(readFileSync('public/transfers.bundle.js','utf8'));
+new vm.Script(readFileSync('public/messages.bundle.js','utf8'));
 JSON.parse(readFileSync('tools/browser-extension/manifest.json','utf8'));
 JSON.parse(readFileSync('wrangler.jsonc','utf8'));
 const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);
-const transferIds=ids.filter(id=>id.startsWith('tr')||id==='transfersPage');
+const transferIds=ids.filter(id=>id.startsWith('tr')||id.startsWith('msg')||id==='transfersPage'||id==='messagesPage');
 if(new Set(transferIds).size!==transferIds.length)throw new Error('Duplicate transfer HTML IDs');
 // Resolve/read through Node so this check also works in restricted Windows workspaces.
 const result=await build({stdin:{contents:"export { default } from './worker.js';",resolveDir:process.cwd()},bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',tsconfigRaw:{},plugins:[{name:'node-file-loader',setup(build){
@@ -18,4 +19,5 @@ const result=await build({stdin:{contents:"export { default } from './worker.js'
   build.onLoad({filter:/.*/,namespace:'node-file'},args=>({contents:readFileSync(args.path,'utf8'),loader:'js'}));
 }}]});
 if(!result.outputFiles[0].text.includes('handleTransfers'))throw new Error('Transfer routes missing from Worker bundle');
-console.log(`Validated ${scripts} inline script, Transfers bundle, unique transfer IDs, extension manifest and full Worker dependency bundle (${result.outputFiles[0].contents.length} bytes).`);
+if(!result.outputFiles[0].text.includes('handleMessages'))throw new Error('Message routes missing from Worker bundle');
+console.log(`Validated ${scripts} inline script, Messages and Transfers bundles, unique feature IDs, extension manifest and full Worker dependency bundle (${result.outputFiles[0].contents.length} bytes).`);

@@ -1,5 +1,7 @@
 # Command Centre setup
 
+**Messages v10.8:** Already using Transfers? Follow [MESSAGES-SETUP.md](MESSAGES-SETUP.md) for the chat update and its single new D1 migration. No new bucket or secrets are required. Validation: [MESSAGES-VALIDATION.md](MESSAGES-VALIDATION.md).
+
 **Transfers v10.7:** Start with [TRANSFERS-SETUP.md](TRANSFERS-SETUP.md) for the new file/message/link service, Cloudflare R2 and D1 setup, device pairing, Windows sender, browser extension and native iPhone download support. Local validation results are in [VALIDATION.md](VALIDATION.md).
 
 # Command Centre background notifications

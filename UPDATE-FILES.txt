@@ -1,0 +1,23 @@
+Command Centre Messages v10.8
+Upload these files and folders into the existing repository root.
+Run migrations/0009_messages.sql first. See MESSAGES-SETUP.md.
+
+client/messages-client.js
+client/transfers-client.js
+MESSAGES-SETUP.md
+messages-ui.html
+MESSAGES-VALIDATION.md
+messages.js
+migrations/0009_messages.sql
+public/index.html
+public/messages.bundle.js
+public/messages.css
+public/transfers.bundle.js
+README-SETUP.md
+scripts/build-transfers.mjs
+scripts/check-project.mjs
+scripts/integrate-messages.mjs
+tests/messages.test.mjs
+tests/preview-server.mjs
+transfers.js
+worker.js

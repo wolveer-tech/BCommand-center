@@ -13,7 +13,7 @@ async function api(path, data, method, signal) {
   const response=await fetch('/api/transfers'+path,{ method:method || (data === undefined ? 'GET':'POST'), headers:{'Content-Type':'application/json',...(session?.token ? {Authorization:'Bearer '+session.token}:{})},body:data===undefined ? undefined:JSON.stringify(data),signal });
   const result=await response.json().catch(()=>({error:'Unexpected server response.'}));
   if(!response.ok){
-    if(response.status===401 && path!='/bootstrap') { session=null;localStorage.removeItem(KEY); connection(); }
+    if(response.status===401 && path!='/bootstrap') { session=null;localStorage.removeItem(KEY); connection();window.dispatchEvent(new Event('cc-transfer-session')); }
     throw new Error(result.error || `Transfers returned ${response.status}.`);
   }
   return result;
@@ -25,7 +25,7 @@ async function connect(kind){
   try {
     const name=$('trDeviceName').value.trim(); if(!name) throw new Error('Give this device a name.');
     const result=await api('/'+kind,kind==='claim'?{name,code:$('trPairCode').value}:{name,key:$('trSetupKey').value});
-    localStorage.setItem(KEY,JSON.stringify(result));session=result;$('trPairCode').value='';$('trSetupKey').value='';connection();
+    localStorage.setItem(KEY,JSON.stringify(result));session=result;$('trPairCode').value='';$('trSetupKey').value='';connection();window.dispatchEvent(new Event('cc-transfer-session'));
     await open();status(`${result.device.name} is connected. Send a file, link or message to another paired device.`);
   } finally { button.disabled=false; }
 }
@@ -218,7 +218,7 @@ function bind(){
   $('trClaim').onclick=()=>notice(connect('claim'));$('trBootstrap').onclick=()=>notice(connect('bootstrap'));
   $('trRefresh').onclick=()=>notice(open());$('trPair').onclick=()=>notice(pair());$('trNotifications').onclick=()=>notice(notifications());
   $('trDevicesToggle').onclick=()=>{$('trDevicesPanel').hidden=!$('trDevicesPanel').hidden;$('trDevicesToggle').setAttribute('aria-expanded',String(!$('trDevicesPanel').hidden));};
-  $('trSignOut').onclick=()=>notice((async()=>{if(!confirm('Disconnect this device? You can pair it again later.'))return;await api('/devices/'+session.device.id,undefined,'DELETE');session=null;localStorage.removeItem(KEY);clearPrepared();connection();status('Device disconnected.');})());
+  $('trSignOut').onclick=()=>notice((async()=>{if(!confirm('Disconnect this device? You can pair it again later.'))return;await api('/devices/'+session.device.id,undefined,'DELETE');session=null;localStorage.removeItem(KEY);clearPrepared();connection();window.dispatchEvent(new Event('cc-transfer-session'));status('Device disconnected.');})());
   $('trDeviceList').onclick=e=>{const b=e.target.closest('[data-tr-revoke]');if(b)notice((async()=>{if(!confirm('Remove this device from Transfers?'))return;await api('/devices/'+b.dataset.trRevoke,undefined,'DELETE');await devices();})());};
   document.querySelectorAll('[data-tr-compose]').forEach(b=>b.onclick=()=>{compose=b.dataset.trCompose;document.querySelectorAll('[data-tr-compose]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));$('trFileCompose').hidden=compose!=='file';$('trTextCompose').hidden=compose==='file';$('trTextLabel').textContent=compose==='link'?'Link':'Message';$('trText').placeholder=compose==='link'?'https://…':'Write a message…';$('trSend').textContent='Send '+(compose==='file'?'files':compose);});
   document.querySelectorAll('[data-tr-view]').forEach(b=>b.onclick=()=>{view=b.dataset.trView;document.querySelectorAll('[data-tr-view]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));notice(load());});
@@ -229,6 +229,7 @@ function bind(){
   const verify=document.createElement('input');verify.type='file';verify.id='trVerifyFile';verify.hidden=true;$('transfersPage').append(verify);
   verify.onchange=()=>notice((async()=>{const file=verify.files[0],t=verifyItem;verify.value='';if(!file||!t)return;if(file.size!==t.size)throw new Error('Size does not match the original file.');status('Checking SHA-256…');const actual=await hashFile(file);status(actual===t.sha256?'✓ SHA-256 matches: the saved file is identical to the original.':'Checksum mismatch: this is not the original file.',actual!==t.sha256);})());
   window.addEventListener('cc-pagechange',e=>{if(e.detail==='transfers')notice(open());});
+  window.addEventListener('cc-transfer-session',()=>{let next;try{next=JSON.parse(localStorage.getItem(KEY));}catch{}if(next?.token===session?.token)return;session=next;connection();if(session&&$('transfersPage').classList.contains('active'))notice(open());});
   window.addEventListener('beforeunload',e=>{if(controller){e.preventDefault();e.returnValue='';}});
   window.addEventListener('cc-transfer-native',e=>status(e.detail.message,!!e.detail.error));
   window.addEventListener('storage',e=>{if(e.key===KEY){try{session=JSON.parse(e.newValue);}catch{session=null;}connection();if(session&&$('transfersPage').classList.contains('active'))notice(open());}});

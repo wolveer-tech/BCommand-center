@@ -7,3 +7,6 @@ const result=await transform(source,{format:'iife',target:['safari16','chrome110
 const hashes=readFileSync('node_modules/hash-wasm/dist/sha256.umd.min.js','utf8')+'\n'+readFileSync('node_modules/hash-wasm/dist/md5.umd.min.js','utf8');
 writeFileSync('public/transfers.bundle.js',hashes+'\n'+result.code);
 console.log('Transfers browser bundle built.');
+const messages=await transform(readFileSync('client/messages-client.js','utf8'),{format:'iife',target:['safari16','chrome110','edge110'],minify:true});
+writeFileSync('public/messages.bundle.js',messages.code);
+console.log('Messages browser bundle built.');
