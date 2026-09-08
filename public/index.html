@@ -1924,7 +1924,7 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
 }
 
 
-/* v10.6.1 — Back to Top */
+/* v10.6.2 — reliable Back to Top */
 .back-to-top{
   position:fixed;
   right:18px;
@@ -1934,7 +1934,7 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
   height:42px;
   border-radius:999px;
   border:1px solid rgba(255,255,255,.14);
-  background:rgba(10,16,27,.92);
+  background:rgba(10,16,27,.94);
   color:var(--text);
   box-shadow:0 10px 30px rgba(0,0,0,.32);
   backdrop-filter:blur(16px);
@@ -1957,10 +1957,10 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
 }
 .back-to-top:active{transform:scale(.93)}
 body.home-fullscreen .back-to-top{display:none!important}
-
-/* If a modal is open, keep navigation controls out of its way. */
-body:has(.modal.open) .back-to-top{opacity:0!important;pointer-events:none!important}
-
+body:has(.modal.open) .back-to-top{
+  opacity:0!important;
+  pointer-events:none!important;
+}
 @media(max-width:760px){
   .back-to-top{
     left:10px;
@@ -2966,6 +2966,16 @@ body:has(.modal.open) .back-to-top{opacity:0!important;pointer-events:none!impor
 <button class="global-quick-add" id="globalQuickAddBtn" aria-label="Quick add">+</button>
 <div class="toast" id="toast"></div>
 
+
+<button
+  type="button"
+  id="backToTopBtn"
+  class="back-to-top"
+  aria-label="Back to top"
+  title="Back to top"
+  onclick="backToTop()"
+>↑</button>
+
 <script>
 'use strict';
 
@@ -3715,6 +3725,7 @@ function init(){
     bind('navBackBtn','click',goBack);
     bind('backToTopBtn','click',backToTop);
     window.addEventListener('scroll',updateBackToTopButton,{passive:true});
+    document.addEventListener('scroll',updateBackToTopButton,{passive:true,capture:true});
     window.addEventListener('resize',updateBackToTopButton);
     bind('sidebarToggle','click',toggleSidebar);
     bind('sidebarOverlay','click',closeSidebar);
@@ -3990,24 +4001,82 @@ window.openWatchPage=openWatchPage;
 let appCurrentPage='home';
 const appNavigationStack=[];
 
+function commandCentreScrollCandidates(){
+  const active=qs('.page.active');
+  const candidates=[
+    document.scrollingElement,
+    document.documentElement,
+    document.body,
+    qs('.main-area'),
+    active,
+    active?.querySelector('.stack')
+  ].filter(Boolean);
+
+  // Include any actually scrollable descendants on the active page.
+  if(active){
+    active.querySelectorAll('*').forEach(el=>{
+      const style=getComputedStyle(el);
+      const oy=style.overflowY;
+      if((oy==='auto'||oy==='scroll') && el.scrollHeight>el.clientHeight+20){
+        candidates.push(el);
+      }
+    });
+  }
+
+  return [...new Set(candidates)];
+}
+
+function commandCentreCurrentScrollTop(){
+  let max=window.scrollY||0;
+  commandCentreScrollCandidates().forEach(el=>{
+    max=Math.max(max,Number(el.scrollTop)||0);
+  });
+  return max;
+}
+
 function updateBackToTopButton(){
   const btn=qs('#backToTopBtn');
   if(!btn)return;
 
-  const pageScrollable=
-    document.documentElement.scrollHeight >
-    window.innerHeight + 180;
+  const candidates=commandCentreScrollCandidates();
+  const hasScrollableArea=candidates.some(el=>
+    Number(el.scrollHeight||0) > Number(el.clientHeight||window.innerHeight) + 180
+  );
 
   const shouldShow=
     !document.body.classList.contains('home-fullscreen') &&
-    pageScrollable &&
-    window.scrollY>450;
+    hasScrollableArea &&
+    commandCentreCurrentScrollTop()>350;
 
   btn.classList.toggle('visible',shouldShow);
 }
 
 function backToTop(){
-  window.scrollTo({top:0,left:0,behavior:'smooth'});
+  // First use the browser/window scroll path.
+  try{window.scrollTo({top:0,left:0,behavior:'smooth'})}
+  catch{window.scrollTo(0,0)}
+
+  // Also reset any page-level/internal scroll container.
+  commandCentreScrollCandidates().forEach(el=>{
+    try{
+      if(typeof el.scrollTo==='function'){
+        el.scrollTo({top:0,left:0,behavior:'smooth'});
+      }else{
+        el.scrollTop=0;
+      }
+    }catch{
+      try{el.scrollTop=0}catch{}
+    }
+  });
+
+  // iOS/WKWebView fallback: force exact zero shortly after smooth scroll starts.
+  setTimeout(()=>{
+    try{window.scrollTo(0,0)}catch{}
+    commandCentreScrollCandidates().forEach(el=>{
+      try{el.scrollTop=0}catch{}
+    });
+    updateBackToTopButton();
+  },320);
 }
 window.backToTop=backToTop;
 
@@ -8524,14 +8593,5 @@ updateNotificationUI();
 loadNews(false);
 if(Notification.permission==='granted')syncNewsPreferences();
 </script>
-
-  <button
-    type="button"
-    id="backToTopBtn"
-    class="back-to-top"
-    aria-label="Back to top"
-    title="Back to top"
-  >↑</button>
-
 </body>
 </html>
