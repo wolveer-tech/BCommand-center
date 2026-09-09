@@ -4,6 +4,48 @@
 
 **Transfers v10.7:** Start with [TRANSFERS-SETUP.md](TRANSFERS-SETUP.md) for the new file/message/link service, Cloudflare R2 and D1 setup, device pairing, Windows sender, browser extension and native iPhone download support. Local validation results are in [VALIDATION.md](VALIDATION.md).
 
+# v10.14 — Shared-link and multi-tab freeze repair
+
+This update fixes the app becoming unresponsive when a shared link is opened on
+a fresh device or when Command Centre is open in more than one browser tab.
+
+## Cause
+
+The Worker remained healthy under simultaneous requests. The client had two
+separate sources of unnecessary work:
+
+- first launch rendered large hidden screens such as the complete Bible
+  checklist and 12-month calendar before showing Home;
+- the cross-tab storage listener reacted to every local storage change,
+  including frequent playback progress writes, by rebuilding multiple screens
+  and refetching portfolio and weather data.
+
+## Repair
+
+- First launch now renders only the components Home needs immediately.
+- Large screens initialise when the user opens them.
+- Sports-provider discovery waits until Sport is opened.
+- Briefing, Reddit, portfolio, weather and entertainment network work is no
+  longer started during initial page construction.
+- Cross-tab syncing listens only for the main Command Centre state key.
+- Multiple rapid state writes are combined into one refresh after 150 ms.
+- Cross-tab state updates no longer trigger network requests.
+
+The v10.14 update is cumulative and also contains the v10.13 in-app Flixer
+source.
+
+Files changed:
+
+    public/index.html
+    tests/ui-improvements.test.mjs
+    README-SETUP.md
+    VALIDATION.md
+
+Deploy the web project, then fully close and reopen the PWA/browser on each
+device. No D1 migration, Codemagic build, IPA rebuild, or Signulous reinstall is
+required.
+
+
 # v10.13 — Flixer in-app Movies & TV source
 
 The external-only Movy choice is replaced with **Flixer**:

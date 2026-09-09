@@ -41,6 +41,24 @@ test('Movies & TV exposes Flixer as an in-app provider source',()=>{
   assert.match(worker,/externalOnly:false/);
 });
 
+test('cold start defers hidden heavy screens and provider requests',()=>{
+  const start=html.indexOf('const startupJobs=[');
+  const end=html.indexOf('startupJobs.forEach',start);
+  const jobs=html.slice(start,end);
+  assert.doesNotMatch(jobs,/renderBibleChecklist|renderCalendar|loadWords|loadManga|loadPortfolio|loadWeather|loadReddit|renderEntertainmentHub/);
+  assert.doesNotMatch(html,/bindLiveFootball\(\);loadLiveFootballProviders\(\)/);
+  assert.match(html,/if\(page==='words'\)loadWords\(\)/);
+});
+
+test('cross-tab state sync ignores high-frequency progress keys',()=>{
+  const start=html.indexOf("window.addEventListener('storage',event=>");
+  assert.notEqual(start,-1);
+  const block=html.slice(start,start+1800);
+  assert.match(block,/event\.key!==STORAGE/);
+  assert.match(block,/setTimeout\(\(\)=>/);
+  assert.doesNotMatch(block,/loadPortfolio|loadWeather/);
+});
+
 test('mobile dock is fixed above embedded stream layers',()=>{
   const dockRule=html.match(/\.mobile-dock\{\s*position:fixed!important;[\s\S]*?\n\s*\}/)?.[0]||'';
   assert.match(dockRule,/z-index:2147482000/);

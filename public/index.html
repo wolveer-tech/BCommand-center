@@ -3981,7 +3981,7 @@ function init(){
     bindSportSwitcher();
     bind('liveFootballRefreshBtn','click',()=>loadLiveFootball(true));
     bind('closeLiveFootballBtn','click',closeLiveFootball);
-    bindLiveFootball();loadLiveFootballProviders();
+    bindLiveFootball();
     bind('saveFootballNotificationsBtn','click',saveFootballNotifications);
     bind('footballNotificationTestBtn','click',testFootballNotification);
     bind('runStatusChecksBtn','click',runStatusChecks);
@@ -4050,22 +4050,14 @@ function init(){
     });
     handleSpotifyRedirect();
     updateSpotifyConnectedUI();
-    applySettingsUI();const footballSel=qs('#footballCompetition');if(footballSel)footballSel.value=state.footballCompetition||'PL';calendarCursor=new Date();selectedCalendarDate=dayKey();updateClock();setInterval(updateClock,1000);registerNotificationSW();updateNotificationUI();if(state.notificationsEnabled&&Notification.permission==='granted')scheduleAllNotifications();generateBriefing();setTimeout(applyLaunchRoute,60);
+    applySettingsUI();const footballSel=qs('#footballCompetition');if(footballSel)footballSel.value=state.footballCompetition||'PL';calendarCursor=new Date();selectedCalendarDate=dayKey();updateClock();setInterval(updateClock,1000);registerNotificationSW();updateNotificationUI();if(state.notificationsEnabled&&Notification.permission==='granted')scheduleAllNotifications();setTimeout(applyLaunchRoute,60);
     const startupJobs=[
       ()=>renderBible(),
-      ()=>renderBibleChecklist(),
       ()=>renderReminders(),
-      ()=>renderCalendar(),
       ()=>renderNotes(),
       ()=>{applyHomeLayout();renderHomeTodaySummary();renderAllContinueWatching();renderTodayPage();bindHomeLauncher();renderHomeLauncher();setHomeSlide(1,false);setTimeout(syncHomePager,60)},
       ()=>renderMangaGrid(mangaPool.slice(0,9)),
-      ()=>renderDailyManga(),
-      ()=>loadWords(),
-      ()=>loadManga(),
-      ()=>loadPortfolio(),
-      ()=>loadWeather(),
-      ()=>loadReddit(),
-      ()=>renderEntertainmentHub()
+      ()=>renderDailyManga()
     ];
     startupJobs.forEach(job=>{
       try{job()}
@@ -4388,6 +4380,7 @@ function switchPage(page,persist=true,navMode='push'){
   if(page==='notes')renderNotes();
   if(page==='news')loadNews(false);
   if(page==='bible'){renderBible();renderBibleChecklist()}
+  if(page==='words')loadWords();
   if(page==='briefing')generateBriefing();
   if(page==='music')refreshMusicPage();
 }
@@ -9252,7 +9245,29 @@ function bindMusicPlayer(){
 }
 
 
-window.addEventListener('storage',()=>{state=loadState();state.noteFolders=Array.isArray(state.noteFolders)&&state.noteFolders.length?state.noteFolders:['Notes','Personal','Work'];state.homeLayout=Array.isArray(state.homeLayout)&&state.homeLayout.length?state.homeLayout:['today','continue','words','reading','markets','reminders','assistant'];state.homeHidden=state.homeHidden||{};state.notes=(state.notes||[]).map(n=>({...n,folder:n.folder||'Notes',pinned:!!n.pinned,deletedAt:n.deletedAt||''}));applySettingsUI();applyHomeLayout();renderReminders();renderCalendar();renderNotes();renderTodayPage();renderAllContinueWatching();loadPortfolio();loadWeather();updateNotificationUI();});
+let crossTabStateSyncTimer=null;
+window.addEventListener('storage',event=>{
+  // Ignore progress, provider-health and other high-frequency keys. Only the
+  // main state document requires a cross-tab refresh.
+  if(event.storageArea!==localStorage||event.key!==STORAGE)return;
+  clearTimeout(crossTabStateSyncTimer);
+  crossTabStateSyncTimer=setTimeout(()=>{
+    state=loadState();
+    state.noteFolders=Array.isArray(state.noteFolders)&&state.noteFolders.length?state.noteFolders:['Notes','Personal','Work'];
+    state.homeLayout=Array.isArray(state.homeLayout)&&state.homeLayout.length?state.homeLayout:['today','continue','words','reading','markets','reminders','assistant'];
+    state.homeHidden=state.homeHidden||{};
+    state.notes=(state.notes||[]).map(n=>({...n,folder:n.folder||'Notes',pinned:!!n.pinned,deletedAt:n.deletedAt||''}));
+    applySettingsUI();
+    applyHomeLayout();
+    renderReminders();
+    renderNotes();
+    renderTodayPage();
+    renderAllContinueWatching();
+    if(appCurrentPage==='calendar')renderCalendar();
+    if(appCurrentPage==='bible'){renderBible();renderBibleChecklist()}
+    updateNotificationUI();
+  },150);
+});
 init();
 updateNotificationUI();
 loadNews(false);

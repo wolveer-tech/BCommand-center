@@ -1,3 +1,31 @@
+# Shared-link freeze v10.14 validation — 9 September 2026
+
+## Server concurrency
+
+- Eight simultaneous home-page requests returned HTTP 200.
+- Eight simultaneous media-status requests returned HTTP 200.
+- Eight simultaneous live-provider requests returned HTTP 200.
+- The observed Worker response times did not indicate a multi-user server lock.
+
+## Client repair checks
+
+- Cold startup no longer renders the full Bible checklist or year calendar.
+- Cold startup no longer starts Words, Manga, Portfolio, Weather, Reddit,
+  Entertainment, Briefing, or live-provider network work.
+- Those features continue to initialise through their existing page-navigation
+  hooks when opened.
+- Cross-tab storage events ignore keys other than the main app-state document.
+- Main-state events are debounced by 150 ms.
+- Cross-tab refresh no longer starts portfolio or weather requests.
+- Dynamic-provider, media-provider, UI, playback, cold-start, and cross-tab
+  tests: 15/15 passed.
+
+## Deployment
+
+Deploy the cumulative v10.14 update and restart each installed PWA. No native
+iOS rebuild or database migration is required.
+
+
 # Flixer source v10.13 validation — 9 September 2026
 
 ## Provider behaviour
