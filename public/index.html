@@ -39,14 +39,19 @@
 .calendar-year-heading{text-align:center;margin-bottom:14px}.calendar-year-heading strong{font-size:19px;font-weight:800;letter-spacing:.5px}.calendar-year-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.mini-month{border:1px solid var(--line);border-radius:16px;background:var(--panel2);padding:11px;cursor:pointer;text-align:left;color:var(--text);font:inherit}.mini-month:hover{filter:brightness(1.12);border-color:#3a507a}.mini-month-title{font-size:11px;font-weight:800;margin-bottom:7px;text-align:center;color:var(--text)}.mini-month-title .mini-month-count{display:block;font-size:8px;font-weight:600;color:var(--muted);margin-top:2px}.mini-month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}.mini-day{font-size:8px;text-align:center;padding:3px 0;border-radius:4px;position:relative;color:var(--muted)}.mini-day.empty{visibility:hidden}.mini-day.today{background:var(--blue);color:#fff;font-weight:800}.mini-dot{position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--gold)}
 
 .notes-toolbar{display:flex;gap:8px;margin-bottom:12px}.notes-search{width:100%;background:#0b1220;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:11px 12px;font:inherit;font-size:11px}.notes-list{display:flex;flex-direction:column;gap:7px}.note-card{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--line);background:var(--panel2);border-radius:11px;cursor:pointer}.note-card:hover{border-color:#3d557c}.note-icon{width:30px;height:30px;border-radius:8px;background:#ffffff08;display:flex;align-items:center;justify-content:center;flex:none}.note-card-main{min-width:0;flex:1}.note-card-title{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.note-card-preview{font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.note-card-date{font-size:9px;color:var(--muted);white-space:nowrap}.note-editor-card{max-width:760px}.note-body-input{min-height:330px;resize:vertical;line-height:1.55}.notes-empty{padding:35px 15px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:11px}.notes-empty strong{display:block;color:var(--text);margin-bottom:5px}
-#noteModal.modal{padding:0;align-items:stretch;justify-content:stretch;background:var(--bg);z-index:60}
-#noteModal .modal-card.note-editor-card{width:100%;max-width:100%;height:100%;max-height:100%;margin:0;border:none;border-radius:0;display:flex;flex-direction:column;padding:16px;padding-top:max(16px,env(safe-area-inset-top));padding-bottom:max(16px,env(safe-area-inset-bottom));background:var(--bg);box-shadow:none;animation:noteSlideIn .28s cubic-bezier(.32,.72,.35,1)}
+#noteModal.modal{padding:0;align-items:stretch;justify-content:stretch;background:var(--bg);z-index:2147483200}
+#noteModal .modal-card.note-editor-card{width:100%;max-width:100%;height:100dvh;min-height:100dvh;max-height:100dvh;margin:0;border:none;border-radius:0;display:flex;flex-direction:column;overflow:hidden;padding:16px;padding-top:max(16px,env(safe-area-inset-top));padding-bottom:0;background:var(--bg);box-shadow:none;animation:noteSlideIn .28s cubic-bezier(.32,.72,.35,1)}
 #noteModal .modal-head{flex:none}
 #noteModal .field:has(.note-body-input){flex:1;display:flex;flex-direction:column;min-height:0}
 #noteModal #noteTitle{font-size:17px;font-weight:800;padding:12px 10px;background:transparent;border:none;border-bottom:1px solid var(--line);border-radius:0}
 #noteModal .note-body-input{flex:1;min-height:0;background:transparent;border:none;padding:12px 10px;font-size:14px;overflow:auto;outline:none}
 #noteModal .note-body-input[data-empty="true"]:before{content:attr(data-placeholder);color:var(--muted);pointer-events:none}
-#noteModal .modal-actions{flex:none;position:sticky;bottom:0;background:var(--bg);padding-top:10px}
+#noteModal .modal-actions{flex:none;position:sticky;bottom:0;z-index:3;min-height:58px;margin:0 -4px;padding:10px 4px max(10px,env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(7,11,20,.94),var(--bg) 25%);box-shadow:0 -10px 24px rgba(7,11,20,.72)}
+body:has(#noteModal.open){overflow:hidden}
+body:has(#noteModal.open) .mobile-dock,
+body:has(#noteModal.open) .global-quick-add,
+body:has(#noteModal.open) .music-mini-player,
+body:has(#noteModal.open) .back-to-top{visibility:hidden!important;pointer-events:none!important}
 @keyframes noteSlideIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 .note-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 4px;border-bottom:1px solid var(--line);flex:none}
 .note-toolbar select{background:#0b1220;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 7px;font:inherit;font-size:11px;outline:none}
@@ -75,7 +80,7 @@
 
 .game-status{margin-top:8px;min-height:18px;text-align:center;font-size:10px;color:var(--muted)}.game-status.over{color:var(--red);font-weight:800}.game-status.win{color:var(--green);font-weight:800}
 .wordle-board{display:grid;grid-template-rows:repeat(6,1fr);gap:5px;max-width:285px;margin:12px auto}.wordle-row{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.wordle-cell{aspect-ratio:1;display:grid;place-items:center;border:1px solid var(--line);border-radius:7px;background:#0a111d;font-size:18px;font-weight:900;text-transform:uppercase}.wordle-cell.filled{border-color:#ffffff55}.wordle-cell.correct{background:rgba(39,211,155,.34);border-color:rgba(39,211,155,.72)}.wordle-cell.present{background:rgba(242,201,76,.28);border-color:rgba(242,201,76,.68)}.wordle-cell.absent{background:#ffffff10;color:#8190a5}.wordle-keyboard{display:grid;gap:5px;margin-top:10px}.wordle-key-row{display:flex;gap:4px;justify-content:center}.wordle-key{min-width:26px;height:38px;padding:0 6px;border:1px solid var(--line);border-radius:7px;background:#ffffff0c;color:#e8eef8;font:inherit;font-size:10px;font-weight:850;cursor:pointer}.wordle-key.wide{min-width:48px}.wordle-key.correct{background:rgba(39,211,155,.3)}.wordle-key.present{background:rgba(242,201,76,.25)}.wordle-key.absent{background:#ffffff0a;color:#5d6a7d}
-.media-shell{display:grid;gap:10px}.media-toolbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.media-mode{padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:#0b1422;color:var(--text);font-size:10px;font-weight:800;cursor:pointer}.media-mode.active{background:linear-gradient(135deg,#4f6df5,#7a5ce5);border-color:transparent}.media-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px}.media-result{border:1px solid var(--line);border-radius:13px;background:#0a111d;overflow:hidden;cursor:pointer;transition:.15s}.media-result:hover{border-color:#ffffff3a;transform:translateY(-1px)}.media-result img{width:100%;aspect-ratio:2/3;object-fit:cover;background:#111827}.media-result-body{padding:8px}.media-result-title{font-size:10px;font-weight:800;line-height:1.25}.media-result-meta{font-size:8px;color:var(--muted);margin-top:4px}.media-player{width:100%;aspect-ratio:16/9;border:1px solid var(--line);border-radius:14px;background:#03060b}.media-selection{display:grid;gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#0a111d}.media-selection-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.media-selection .field{margin:0}.media-provider-note{font-size:9px;color:var(--muted);line-height:1.45}.media-empty-poster{display:grid;place-items:center;aspect-ratio:2/3;background:#111827;color:var(--muted);font-size:24px}@media(max-width:620px){.media-results{grid-template-columns:repeat(2,minmax(0,1fr))}.media-selection-grid{grid-template-columns:1fr}}.youtube-search-results{display:grid;gap:8px;margin-top:10px}.youtube-result{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:9px;border:1px solid var(--line);border-radius:12px;background:#0a111d;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:rgba(255,255,255,.08)}.youtube-result:hover{border-color:#ffffff40}.youtube-result img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px}.youtube-result-title{font-size:11px;font-weight:800;line-height:1.35}.youtube-result-meta{font-size:9px;color:var(--muted);margin-top:5px}.youtube-search-note{font-size:9px;color:var(--muted);margin-top:6px}.snake-canvas.running{outline:1px solid rgba(39,211,155,.45)}@media(max-width:520px){.youtube-result{grid-template-columns:95px minmax(0,1fr)}.wordle-key{min-width:22px;height:36px;padding:0 4px}}
+.media-shell{display:grid;gap:10px}.media-toolbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.media-mode{padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:#0b1422;color:var(--text);font-size:10px;font-weight:800;cursor:pointer}.media-mode.active{background:linear-gradient(135deg,#4f6df5,#7a5ce5);border-color:transparent}.media-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px}.media-result{border:1px solid var(--line);border-radius:13px;background:#0a111d;overflow:hidden;cursor:pointer;transition:.15s}.media-result:hover{border-color:#ffffff3a;transform:translateY(-1px)}.media-result img{width:100%;aspect-ratio:2/3;object-fit:cover;background:#111827}.media-result-body{padding:8px}.media-result-title{font-size:10px;font-weight:800;line-height:1.25}.media-result-meta{font-size:8px;color:var(--muted);margin-top:4px}.media-player-stage{position:relative;width:100%;background:#03060b;border-radius:14px;overflow:hidden}.media-player{display:block;width:100%;aspect-ratio:16/9;border:1px solid var(--line);border-radius:14px;background:#03060b}.media-fullscreen-exit{display:none;position:absolute;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));z-index:3;min-width:44px;min-height:44px;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(7,11,20,.88);color:#fff;font:inherit;font-size:13px;font-weight:850;box-shadow:0 8px 28px rgba(0,0,0,.45);backdrop-filter:blur(14px);cursor:pointer}.media-player-stage.is-expanded,.media-player-stage:fullscreen,.media-player-stage:-webkit-full-screen{position:fixed!important;inset:0!important;z-index:2147483100!important;width:100vw!important;height:100dvh!important;max-width:none!important;border-radius:0!important;background:#000}.media-player-stage.is-expanded .media-player,.media-player-stage:fullscreen .media-player,.media-player-stage:-webkit-full-screen .media-player{width:100%!important;height:100%!important;max-width:none!important;aspect-ratio:auto!important;border:0!important;border-radius:0!important;background:#000}.media-player-stage.is-expanded .media-fullscreen-exit,.media-player-stage:fullscreen .media-fullscreen-exit,.media-player-stage:-webkit-full-screen .media-fullscreen-exit{display:block}body.media-player-expanded{overflow:hidden!important;overscroll-behavior:none}.media-selection{display:grid;gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#0a111d}.media-selection-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.media-selection .field{margin:0}.media-provider-note{font-size:9px;color:var(--muted);line-height:1.45}.media-empty-poster{display:grid;place-items:center;aspect-ratio:2/3;background:#111827;color:var(--muted);font-size:24px}@media(max-width:620px){.media-results{grid-template-columns:repeat(2,minmax(0,1fr))}.media-selection-grid{grid-template-columns:1fr}}.youtube-search-results{display:grid;gap:8px;margin-top:10px}.youtube-result{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:9px;border:1px solid var(--line);border-radius:12px;background:#0a111d;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:rgba(255,255,255,.08)}.youtube-result:hover{border-color:#ffffff40}.youtube-result img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px}.youtube-result-title{font-size:11px;font-weight:800;line-height:1.35}.youtube-result-meta{font-size:9px;color:var(--muted);margin-top:5px}.youtube-search-note{font-size:9px;color:var(--muted);margin-top:6px}.snake-canvas.running{outline:1px solid rgba(39,211,155,.45)}@media(max-width:520px){.youtube-result{grid-template-columns:95px minmax(0,1fr)}.wordle-key{min-width:22px;height:36px;padding:0 4px}}
 
 
 .football-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.football-toolbar .field{min-width:180px;flex:1}.football-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.football-match{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:9px;padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2)}.football-team{display:flex;align-items:center;gap:7px;min-width:0;font-size:11px;font-weight:750}.football-team.away{justify-content:flex-end;text-align:right}.football-team img,.standing-team img{width:22px;height:22px;object-fit:contain;flex:0 0 auto}.football-score{text-align:center;font-size:13px;font-weight:850;min-width:58px}.football-score small{display:block;font-size:8px;font-weight:650;color:var(--muted);margin-top:3px}.football-competition{font-size:9px;color:var(--muted);margin-top:3px}.standing-table{display:grid;gap:3px}.standing-row{display:grid;grid-template-columns:28px minmax(0,1fr) 35px 35px 42px 30px;gap:6px;align-items:center;padding:8px;border-radius:10px;font-size:10px}.standing-row:nth-child(even){background:#ffffff05}.standing-row.favorite{background:rgba(242,201,76,.10);border:1px solid rgba(242,201,76,.2)}.standing-head{color:var(--muted);font-size:8px;font-weight:800;text-transform:uppercase}.standing-team{display:flex;gap:7px;align-items:center;min-width:0;font-weight:750}.standing-team span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.star-btn{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:15px;padding:2px}.star-btn.active{color:var(--gold)}.football-favourite{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;border:1px solid rgba(242,201,76,.22);background:rgba(242,201,76,.06);border-radius:15px}.football-favourite-main{display:flex;align-items:center;gap:10px;min-width:0}.football-favourite-main img{width:36px;height:36px;object-fit:contain}.football-favourite strong{font-size:13px}.football-favourites-list{display:grid;gap:8px}.football-favourite{min-width:0}.football-favourite-actions{display:flex;gap:6px;align-items:center}.football-favourite-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;border-radius:999px;background:rgba(242,201,76,.10);color:var(--gold);font-size:8px;font-weight:800}.football-access-note{font-size:9px;color:var(--muted);margin-top:8px;line-height:1.45}.service-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.service-card{border:1px solid var(--line);border-radius:15px;background:var(--panel2);padding:12px}.service-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.service-name{font-size:11px;font-weight:800}.service-state{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:800;padding:5px 8px;border-radius:999px;background:#ffffff08}.service-state.ok{color:var(--green);background:rgba(39,211,155,.10)}.service-state.warn{color:var(--gold);background:rgba(242,201,76,.10)}.service-state.bad{color:var(--red);background:rgba(255,104,118,.10)}.service-state.info{color:var(--cyan);background:rgba(71,214,232,.10)}.service-detail{font-size:9px;color:var(--muted);line-height:1.45;margin-top:7px;word-break:break-word}.status-summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.status-summary .mini{flex:1 1 100px}.status-section-title{font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.45px;color:var(--muted);margin:14px 0 8px}
@@ -484,7 +489,7 @@ html,body{
     left:10px;
     right:10px;
     bottom:calc(8px + env(safe-area-inset-bottom));
-    z-index:100;
+    z-index:2147482000;
     width:auto;
     margin:0;
     padding:6px;
@@ -494,10 +499,10 @@ html,body{
     backdrop-filter:blur(26px) saturate(150%);
     -webkit-backdrop-filter:blur(26px) saturate(150%);
     box-shadow:0 14px 45px rgba(0,0,0,.40);
-    transform:translateZ(0);
-    -webkit-transform:translateZ(0);
-    will-change:transform;
-    contain:layout paint;
+    transform:none!important;
+    -webkit-transform:none!important;
+    isolation:isolate;
+    touch-action:manipulation;
   }
   .mobile-dock-btn{
     display:grid;place-items:center;gap:2px;
@@ -2506,13 +2511,17 @@ body:has(.modal.open) .back-to-top{
                       <div class="toolbar">
                         <button class="btn primary" id="mediaPlayBtn">▶ Play</button>
                         <button class="btn" id="mediaOpenExternalBtn">↗ Open provider</button>
+                        <button class="btn" id="mediaFullscreenBtn" type="button" aria-pressed="false" disabled>⛶ Full screen</button>
                       </div>
                     </div>
 
-                    <iframe id="mediaWatchFrame" class="media-player"
-                      allow="autoplay; fullscreen; picture-in-picture"
-                      allowfullscreen
-                      referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                    <div class="media-player-stage" id="mediaPlayerStage">
+                      <iframe id="mediaWatchFrame" class="media-player"
+                        allow="autoplay; fullscreen; picture-in-picture"
+                        allowfullscreen
+                        referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                      <button class="media-fullscreen-exit" id="mediaFullscreenExit" type="button" aria-label="Exit full screen">✕ Close</button>
+                    </div>
                   </div>
                 </div>
               </article>
@@ -3085,7 +3094,7 @@ const DEFAULT_STATE = {
     watchHistory:[],
     youtubeSearchHistory:[],
     youtubeRecommendationHidden:[],
-    youtubeForYouCache:{items:[],seed:'',reason:'',updatedAt:''},
+    youtubeForYouCache:{version:2,items:[],signals:[],reason:'',updatedAt:''},
     twitchHistory:[],
     gameStats:{best2048:0,bestSnake:0,bestReaction:null,triviaStreak:0,triviaBest:0,triviaLastDate:'',triviaLastCorrect:null,triviaLastAnswer:null,wordleStreak:0,wordleBest:0,wordleDate:'',wordleGuesses:[],wordleCurrent:'',wordleFinished:false,wordleWon:false},
     visit:{lastDate:'',streak:0}
@@ -3138,7 +3147,7 @@ state.entertainment={
   youtubeRecommendationHidden:Array.isArray(state.entertainment?.youtubeRecommendationHidden)?state.entertainment.youtubeRecommendationHidden.map(String).filter(Boolean).slice(0,100):[],
   youtubeForYouCache:(state.entertainment?.youtubeForYouCache&&typeof state.entertainment.youtubeForYouCache==='object')
     ?state.entertainment.youtubeForYouCache
-    :{items:[],seed:'',reason:'',updatedAt:''},
+    :{version:2,items:[],signals:[],reason:'',updatedAt:''},
   mediaHistory:Array.isArray(state.entertainment?.mediaHistory)?state.entertainment.mediaHistory:[],
   twitchHistory:Array.isArray(state.entertainment?.twitchHistory)?state.entertainment.twitchHistory:[],
   gameStats:{...DEFAULT_STATE.entertainment.gameStats,...(state.entertainment?.gameStats||{})},
@@ -3786,7 +3795,11 @@ function init(){
     window.addEventListener('resize',updateBackToTopButton);
     bind('sidebarToggle','click',toggleSidebar);
     bind('sidebarOverlay','click',closeSidebar);
-    document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSidebar()});
+    document.addEventListener('keydown',e=>{
+      if(e.key!=='Escape')return;
+      if(mediaFullscreenActive()){exitMediaFullscreen();return}
+      closeSidebar();
+    });
     bind('watchQuickBtn','click',openWatchPage);
     bind('mobileWatchFab','click',openWatchPage);
     qsa('[data-mobile-page]').forEach(btn=>btn.addEventListener('click',()=>{
@@ -5500,6 +5513,7 @@ async function selectMediaResult(index){
   if(!item)return;
   mediaEmbedState.selected=item;
   mediaEmbedState.currentEmbedUrl='';
+  const fullscreenBtn=qs('#mediaFullscreenBtn');if(fullscreenBtn)fullscreenBtn.disabled=true;
   const selection=qs('#mediaSelection');
   if(selection)selection.style.display='grid';
   if(qs('#mediaSelectedTitle'))qs('#mediaSelectedTitle').textContent=item.title||'Selected title';
@@ -5513,12 +5527,14 @@ async function selectMediaResult(index){
 }
 
 function clearSelectedMedia(){
+  exitMediaFullscreen();
   mediaEmbedState.selected=null;
   mediaEmbedState.seasons=[];
   mediaEmbedState.episodes=[];
   mediaEmbedState.currentEmbedUrl='';
   const selection=qs('#mediaSelection');if(selection)selection.style.display='none';
   const frame=qs('#mediaWatchFrame');if(frame)frame.src='about:blank';
+  const fullscreenBtn=qs('#mediaFullscreenBtn');if(fullscreenBtn)fullscreenBtn.disabled=true;
   const empty=qs('#mediaPlayerEmpty');if(empty)empty.style.display='block';
   mediaStatus('Selection cleared.');
 }
@@ -5591,6 +5607,72 @@ function recordMediaContinue(){const item=mediaEmbedState.selected;if(!item)retu
 function renderMediaContinueWatching(){const el=qs('#mediaExploreContinue');if(!el)return;const items=state.entertainment.mediaHistory||[];if(!items.length){el.classList.remove('visible');el.innerHTML='';return}el.classList.add('visible');el.innerHTML=`<div class="media-personal-title"><strong>Continue Watching</strong><span>${items.length} recent</span></div><div class="media-recommend-grid">${items.slice(0,5).map((x,i)=>`<button class="media-recommend-card" data-media-history-index="${i}">${x.posterUrl?`<img src="${esc(x.posterUrl)}" alt="">`:'<span class="media-recommend-placeholder">🎬</span>'}<div class="media-recommend-title">${esc(x.title||'Untitled')}</div></button>`).join('')}</div>`}
 async function loadMediaRecommendations(){const el=qs('#mediaExploreBecause');if(!el)return;const last=(state.entertainment.mediaHistory||[])[0];if(!last){el.classList.remove('visible');el.innerHTML='';return}try{const r=await fetch(`/api/media/recommendations?type=${encodeURIComponent(last.type)}&id=${encodeURIComponent(last.id)}`,{cache:'no-store'}),data=await r.json().catch(()=>({}));if(!r.ok)throw new Error();const items=Array.isArray(data.results)?data.results.slice(0,5):[];if(!items.length){el.classList.remove('visible');el.innerHTML='';return}mediaEmbedState.recommendations=items;el.classList.add('visible');el.innerHTML=`<div class="media-personal-title"><strong>Because you watched ${esc(last.title||'this')}</strong><span>Recommended</span></div><div class="media-recommend-grid">${items.map((x,i)=>`<button class="media-recommend-card" data-media-recommend-index="${i}">${x.posterUrl?`<img src="${esc(x.posterUrl)}" alt="">`:'<span class="media-recommend-placeholder">🎬</span>'}<div class="media-recommend-title">${esc(x.title||'Untitled')}</div></button>`).join('')}</div>`}catch{el.classList.remove('visible');el.innerHTML=''}}
 
+function mediaFullscreenActive(){
+  const stage=qs('#mediaPlayerStage');
+  return !!stage&&(
+    stage.classList.contains('is-expanded')||
+    document.fullscreenElement===stage||
+    document.webkitFullscreenElement===stage
+  );
+}
+
+function setMediaFullscreenUi(active){
+  const stage=qs('#mediaPlayerStage'),button=qs('#mediaFullscreenBtn');
+  if(stage)stage.classList.toggle('is-expanded',!!active);
+  document.body.classList.toggle('media-player-expanded',!!active);
+  if(button){
+    button.setAttribute('aria-pressed',String(!!active));
+    button.textContent=active?'✕ Exit full screen':'⛶ Full screen';
+  }
+}
+
+async function enterMediaFullscreen(){
+  const stage=qs('#mediaPlayerStage'),frame=qs('#mediaWatchFrame');
+  if(!stage||!frame||!mediaEmbedState.currentEmbedUrl){
+    toast('Play the title before opening full screen');
+    return;
+  }
+
+  // Expand immediately so iPhone/WKWebView has a reliable app-level fallback.
+  setMediaFullscreenUi(true);
+  const request=stage.requestFullscreen||stage.webkitRequestFullscreen;
+  if(!request)return;
+  try{
+    const pending=request.call(stage,{navigationUI:'hide'});
+    if(pending&&typeof pending.then==='function')await pending;
+    stage.dataset.nativeFullscreen='1';
+  }catch{
+    // CSS full-screen remains active when the browser does not expose the API.
+    delete stage.dataset.nativeFullscreen;
+  }
+}
+
+async function exitMediaFullscreen(){
+  const stage=qs('#mediaPlayerStage');
+  try{
+    if(document.fullscreenElement&&document.exitFullscreen)await document.exitFullscreen();
+    else if(document.webkitFullscreenElement&&document.webkitExitFullscreen)document.webkitExitFullscreen();
+  }catch{}
+  if(stage)delete stage.dataset.nativeFullscreen;
+  setMediaFullscreenUi(false);
+}
+
+function toggleMediaFullscreen(){
+  return mediaFullscreenActive()?exitMediaFullscreen():enterMediaFullscreen();
+}
+
+function syncMediaFullscreenState(){
+  const stage=qs('#mediaPlayerStage');
+  if(stage?.dataset.nativeFullscreen==='1'&&document.fullscreenElement!==stage&&document.webkitFullscreenElement!==stage){
+    delete stage.dataset.nativeFullscreen;
+    setMediaFullscreenUi(false);
+  }
+}
+document.addEventListener('fullscreenchange',syncMediaFullscreenState);
+document.addEventListener('webkitfullscreenchange',syncMediaFullscreenState);
+window.toggleMediaFullscreen=toggleMediaFullscreen;
+window.exitMediaFullscreen=exitMediaFullscreen;
+
 async function playSelectedMedia(openExternal=false){
   mediaStatus(openExternal?'Opening authorised provider…':'Loading player…');
   try{
@@ -5603,7 +5685,8 @@ async function playSelectedMedia(openExternal=false){
     }
     const frame=qs('#mediaWatchFrame');
     if(frame)frame.src=url;
-    mediaStatus('Player loaded from your configured provider.','ok');
+    const fullscreenBtn=qs('#mediaFullscreenBtn');if(fullscreenBtn)fullscreenBtn.disabled=false;
+    mediaStatus('Player loaded. Use Full screen for a phone-sized player with accessible controls.','ok');
   }catch(e){
     mediaStatus(e.message||'Could not load the provider.','bad');
   }
@@ -6586,6 +6669,8 @@ function bindEntertainmentControls(){
     if(e.target.closest('#mediaSearchBtn')){searchMediaCatalogue();return}
     if(e.target.closest('#mediaPlayBtn')){playSelectedMedia(false);return}
     if(e.target.closest('#mediaOpenExternalBtn')){playSelectedMedia(true);return}
+    if(e.target.closest('#mediaFullscreenBtn')){toggleMediaFullscreen();return}
+    if(e.target.closest('#mediaFullscreenExit')){exitMediaFullscreen();return}
     if(e.target.closest('#mediaClearBtn')){clearSelectedMedia();return}
     const mediaView=e.target.closest('[data-media-view]');
     if(mediaView){showMediaView(mediaView.dataset.mediaView,true);return}
@@ -7161,6 +7246,7 @@ function youtubeRecommendationSeeds(){
   // Recent searches are the strongest explicit signal.
   searches.slice(0,6).forEach((q,i)=>{
     rows.push({
+      kind:'search',
       query:String(q).trim(),
       label:String(q).trim(),
       reason:`Because you searched for “${String(q).trim()}”`,
@@ -7185,6 +7271,7 @@ function youtubeRecommendationSeeds(){
     .slice(0,5)
     .forEach((c,i)=>{
       rows.push({
+        kind:'channel',
         query:c.name,
         label:c.name,
         reason:c.count>1
@@ -7199,6 +7286,7 @@ function youtubeRecommendationSeeds(){
     const keywords=youtubeTitleKeywords(item.title);
     if(!keywords)return;
     rows.push({
+      kind:'topic',
       query:keywords,
       label:keywords,
       reason:`Based on “${decodeHtmlText(item.title||'a recent video').slice(0,70)}”`,
@@ -7221,15 +7309,16 @@ function youtubeRecommendationSeeds(){
 function youtubeForYouCacheValid(){
   const cache=state.entertainment.youtubeForYouCache||{};
   const updated=Date.parse(cache.updatedAt||'');
-  return Array.isArray(cache.items)
+  return Number(cache.version)===2
+    &&Array.isArray(cache.items)
     &&cache.items.length
     &&Number.isFinite(updated)
-    &&Date.now()-updated<30*60*1000;
+    &&Date.now()-updated<60*60*1000;
 }
 
-function youtubeForYouSeed(force=false){
+function youtubeForYouPlan(force=false){
   const seeds=youtubeRecommendationSeeds();
-  if(!seeds.length)return null;
+  if(!seeds.length)return [];
 
   let index=Number(localStorage.getItem('ccYoutubeForYouSeedIndex')||'0');
   if(!Number.isFinite(index)||index<0)index=0;
@@ -7237,11 +7326,65 @@ function youtubeForYouSeed(force=false){
   if(force){
     index=(index+1)%seeds.length;
     localStorage.setItem('ccYoutubeForYouSeedIndex',String(index));
-  }else{
-    index=index%seeds.length;
+  }else index=index%seeds.length;
+
+  const rotated=[...seeds.slice(index),...seeds.slice(0,index)];
+  const selected=[];
+
+  // Prefer two different signal types (for example a search plus a watched
+  // channel) so one creator cannot take over the whole recommendation feed.
+  for(const seed of rotated){
+    if(selected.length>=2)break;
+    if(selected.some(x=>x.kind===seed.kind))continue;
+    selected.push(seed);
+  }
+  for(const seed of rotated){
+    if(selected.length>=2)break;
+    if(selected.some(x=>x.query.toLowerCase()===seed.query.toLowerCase()))continue;
+    selected.push(seed);
   }
 
-  return seeds[index];
+  return selected;
+}
+
+function youtubeDiversifyRecommendationGroups(groups,maxItems=14){
+  const watchedIds=new Set((state.entertainment.youtubeHistoryDetailed||[]).map(x=>String(x.id)));
+  const hiddenIds=new Set(state.entertainment.youtubeRecommendationHidden||[]);
+  const candidates=[];
+  const maxGroupLength=Math.max(0,...groups.map(group=>group.items.length));
+
+  // Round-robin mixing preserves every interest instead of appending one
+  // search after another and letting the first result set dominate.
+  for(let row=0;row<maxGroupLength;row++){
+    groups.forEach(group=>{
+      const item=group.items[row];
+      if(item)candidates.push({...item,recommendationReason:group.reason||''});
+    });
+  }
+
+  const result=[],seenIds=new Set(),channelCounts=new Map();
+  const addWithChannelLimit=limit=>{
+    for(const item of candidates){
+      const id=String(item?.videoId||'');
+      if(!id||seenIds.has(id)||watchedIds.has(id)||hiddenIds.has(id))continue;
+      const channel=decodeHtmlText(item.channelTitle||'YouTube').trim().toLowerCase()||'youtube';
+      if((channelCounts.get(channel)||0)>=limit)continue;
+      seenIds.add(id);
+      channelCounts.set(channel,(channelCounts.get(channel)||0)+1);
+      result.push(item);
+      if(result.length>=maxItems)return;
+    }
+  };
+
+  addWithChannelLimit(2);
+  if(result.length<maxItems)addWithChannelLimit(4);
+  return result;
+}
+
+function youtubeRecommendationSummary(plan,hasDiscovery){
+  const labels=plan.map(seed=>`“${seed.label}”`).slice(0,2);
+  const personal=labels.length?`Based on ${labels.join(' + ')}`:'Based on your activity';
+  return `${personal}${hasDiscovery?' • mixed with new discoveries':''}`;
 }
 
 function youtubeExploreCardHtml(v,{forYou=false}={}){
@@ -7307,29 +7450,50 @@ async function loadYoutubeForYou(force=false){
     return;
   }
 
-  const seed=youtubeForYouSeed(force);
-  if(!seed)return;
+  const plan=youtubeForYouPlan(force);
+  if(!plan.length)return;
 
-  status.textContent=`Building For You • ${seed.reason}`;
-  grid.innerHTML='<div class="empty">Finding videos based on what you actually watch…</div>';
+  status.textContent=`Building a varied For You mix from ${plan.length} personal signal${plan.length===1?'':'s'}…`;
+  grid.innerHTML='<div class="empty">Mixing interests, channels and new discoveries…</div>';
 
   try{
-    // One search request per refresh keeps YouTube API quota usage sensible.
-    const data=await fetchJson(`/api/youtube/search?q=${encodeURIComponent(seed.query)}`,{},15000);
-    const watchedIds=new Set((state.entertainment.youtubeHistoryDetailed||[]).map(x=>String(x.id)));
-    const hiddenIds=new Set(state.entertainment.youtubeRecommendationHidden||[]);
+    // Two cached searches provide personal relevance without making a request
+    // for every history item. Trending is a low-cost discovery lane.
+    const requests=[
+      ...plan.map(seed=>fetchJson(`/api/youtube/search?q=${encodeURIComponent(seed.query)}`,{},15000)),
+      fetchJson('/api/youtube/explore?section=trending',{},15000)
+    ];
+    const settled=await Promise.allSettled(requests);
+    const groups=[];
 
-    const items=(Array.isArray(data.items)?data.items:[])
-      .filter(v=>v?.videoId&&!watchedIds.has(String(v.videoId))&&!hiddenIds.has(String(v.videoId)));
+    plan.forEach((seed,index)=>{
+      const result=settled[index];
+      const items=result?.status==='fulfilled'&&Array.isArray(result.value?.items)?result.value.items:[];
+      if(items.length)groups.push({items,reason:seed.reason});
+    });
 
+    const discoveryResult=settled[plan.length];
+    const discoveryItems=discoveryResult?.status==='fulfilled'&&Array.isArray(discoveryResult.value?.items)
+      ?discoveryResult.value.items
+      :[];
+    if(discoveryItems.length)groups.push({items:discoveryItems,reason:'New discovery'});
+
+    if(!groups.length){
+      const rejected=settled.find(result=>result.status==='rejected');
+      throw rejected?.reason||new Error('YouTube returned no recommendations.');
+    }
+
+    const items=youtubeDiversifyRecommendationGroups(groups,14);
+    const reason=youtubeRecommendationSummary(plan,discoveryItems.length>0);
     state.entertainment.youtubeForYouCache={
+      version:2,
       items,
-      seed:seed.query,
-      reason:seed.reason,
+      signals:plan.map(seed=>({kind:seed.kind,query:seed.query,label:seed.label})),
+      reason,
       updatedAt:nowIso()
     };
     saveState();
-    renderYoutubeForYouItems(items,seed.reason);
+    renderYoutubeForYouItems(items,reason);
   }catch(e){
     const cached=Array.isArray(cache.items)?cache.items:[];
     if(cached.length){
@@ -7564,8 +7728,9 @@ function recordYoutubeContinue(id){
   ].slice(0,24);
 
   state.entertainment.youtubeForYouCache={
+    version:2,
     items:[],
-    seed:'',
+    signals:[],
     reason:'',
     updatedAt:''
   };
