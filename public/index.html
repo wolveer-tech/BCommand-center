@@ -3696,16 +3696,20 @@ const PUSH_API = '/api/push';
 function notificationSupported(){
   return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
 }
+function notificationPermission(){
+  return 'Notification' in window ? Notification.permission : 'unsupported';
+}
 function notificationStatusText(){
   if(!notificationSupported()) return 'This browser does not support Web Push notifications.';
-  if(Notification.permission==='granted' && state.notificationsEnabled) return 'Background notifications are enabled on this device.';
-  if(Notification.permission==='denied') return 'Notifications are blocked. Allow them in iPhone Settings/Safari site settings.';
+  if(notificationPermission()==='granted' && state.notificationsEnabled) return 'Background notifications are enabled on this device.';
+  if(notificationPermission()==='denied') return 'Notifications are blocked. Allow them in iPhone Settings/Safari site settings.';
   return 'Notifications are available — tap Enable.';
 }
 function updateNotificationUI(){
   const status=qs('#notificationStatus'),btn=qs('#enableNotificationsBtn');
   if(status)status.textContent=notificationStatusText();
-  if(btn){btn.textContent=(Notification.permission==='granted'&&state.notificationsEnabled)?'Enabled':'Enable';btn.disabled=Notification.permission==='denied';}
+  const permission=notificationPermission();
+  if(btn){btn.textContent=(permission==='granted'&&state.notificationsEnabled)?'Enabled':'Enable';btn.disabled=permission==='denied'||permission==='unsupported';}
 }
 async function registerNotificationSW(){
   if(!('serviceWorker' in navigator)) return null;
@@ -3775,7 +3779,7 @@ async function repairNotifications(){
     if(oldSub){try{await oldSub.unsubscribe()}catch{}}
     state.notificationsEnabled=false;saveState();updateNotificationUI();
     await enableNotifications();
-    if(Notification.permission==='granted'&&state.notificationsEnabled)toast('Push subscription repaired');
+    if(notificationPermission()==='granted'&&state.notificationsEnabled)toast('Push subscription repaired');
   }catch(e){console.error(e);toast(e.message||'Could not repair notifications')}
 }
 
@@ -3805,7 +3809,7 @@ function morningBriefingBibleText(){
   return recs.length ? recs.map(formatReadingRange).join(' • ') : 'Bible complete';
 }
 async function syncMorningBriefingPreferences(){
-  if(!state.notificationsEnabled||Notification.permission!=='granted')return;
+  if(!state.notificationsEnabled||notificationPermission()!=='granted')return;
   try{
     await fetch('/api/briefing/preferences',{
       method:'POST',
@@ -3823,9 +3827,9 @@ async function syncMorningBriefingPreferences(){
 }
 async function testMorningBriefing(){
   if(!notificationSupported()){toast('Web Push is not supported');return}
-  if(Notification.permission!=='granted'||!state.notificationsEnabled){
+  if(notificationPermission()!=='granted'||!state.notificationsEnabled){
     await enableNotifications();
-    if(Notification.permission!=='granted'||!state.notificationsEnabled)return;
+    if(notificationPermission()!=='granted'||!state.notificationsEnabled)return;
   }
   try{
     await syncMorningBriefingPreferences();
@@ -3863,7 +3867,7 @@ function collectPushSchedule(days=400){
   return items;
 }
 async function syncPushSchedule(){
-  if(!state.notificationsEnabled||Notification.permission!=='granted')return;
+  if(!state.notificationsEnabled||notificationPermission()!=='granted')return;
   try{
     const sub=await getPushSubscription();
     const response=await fetch(PUSH_API+'/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:pushDeviceId(),subscription:subscriptionJson(sub),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,items:collectPushSchedule(400)})});
@@ -3871,14 +3875,14 @@ async function syncPushSchedule(){
   }catch(e){console.warn('Push schedule sync failed',e);}
 }
 function scheduleNotificationAt(id,title,body,when,url){
-  if(!state.notificationsEnabled||Notification.permission!=='granted')return;
+  if(!state.notificationsEnabled||notificationPermission()!=='granted')return;
   const delay=when-Date.now(); if(delay<=0||delay>2147483647)return;
   const timer=setTimeout(async()=>{notificationTimers.delete(id);try{const reg=notificationSWRegistration||await registerNotificationSW();if(reg)await reg.showNotification(title,{body,tag:id,renotify:true,data:{url:url||location.href},icon:'./icon-192.png',badge:'./icon-192.png'});else new Notification(title,{body,tag:id})}catch(e){try{new Notification(title,{body,tag:id})}catch{}}},delay);
   notificationTimers.set(id,timer);
 }
 function scheduleAllNotifications(){
   clearNotificationTimers();
-  if(!state.notificationsEnabled||Notification.permission!=='granted')return;
+  if(!state.notificationsEnabled||notificationPermission()!=='granted')return;
   const now=new Date();
   for(let offset=0;offset<7;offset++){
     const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+offset),key=dayKey(d);
@@ -3891,7 +3895,7 @@ function scheduleAllNotifications(){
 }
 async function testNotification(){
   if(!notificationSupported()){toast('Web Push is not supported');return}
-  if(Notification.permission!=='granted'||!state.notificationsEnabled){await enableNotifications();if(Notification.permission!=='granted'||!state.notificationsEnabled)return}
+  if(notificationPermission()!=='granted'||!state.notificationsEnabled){await enableNotifications();if(notificationPermission()!=='granted'||!state.notificationsEnabled)return}
   try{const response=await fetch(PUSH_API+'/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:pushDeviceId()})});if(!response.ok)throw new Error('Test push failed');toast('Test notification sent')}catch(e){toast(e.message||'Could not send test notification')}
 }
 
@@ -3916,6 +3920,16 @@ function applyLaunchRoute(){
 }
 window.addEventListener('hashchange',applyLaunchRoute);
 
+const initWarnings=[];
+function runInitStep(label,task){
+  try{return task()}
+  catch(error){
+    initWarnings.push({label,message:error?.message||String(error)});
+    console.error(`Command Center startup step failed: ${label}`,error);
+    return null;
+  }
+}
+
 function init(){
   try{
     qsa('.sidebar-item').forEach(btn=>btn.addEventListener('click',()=>{
@@ -3927,7 +3941,7 @@ function init(){
       switchPage(btn.dataset.page);closeSidebar()
     }));
     qsa('[data-page-jump]').forEach(b=>b.addEventListener('click',()=>switchPage(b.dataset.pageJump)));
-    bindEntertainmentControls();
+    runInitStep('entertainment controls',bindEntertainmentControls);
     bind('navBackBtn','click',goBack);
     bind('backToTopBtn','click',backToTop);
     window.addEventListener('scroll',updateBackToTopButton,{passive:true});
@@ -3978,14 +3992,14 @@ function init(){
     bind('redditRetry','click',loadReddit);
     bind('footballRefreshBtn','click',refreshSelectedSport);
     bind('footballCompetition','change',()=>loadFootball(false));
-    bindSportSwitcher();
+    runInitStep('sport controls',bindSportSwitcher);
     bind('liveFootballRefreshBtn','click',()=>loadLiveFootball(true));
     bind('closeLiveFootballBtn','click',closeLiveFootball);
-    bindLiveFootball();
+    runInitStep('live sport controls',bindLiveFootball);
     bind('saveFootballNotificationsBtn','click',saveFootballNotifications);
     bind('footballNotificationTestBtn','click',testFootballNotification);
     bind('runStatusChecksBtn','click',runStatusChecks);
-    bindMirrorControls();
+    runInitStep('screen mirror controls',bindMirrorControls);
     bind('weatherRefresh','click',()=>loadWeather());
     bind('weatherFullRefresh','click',()=>loadWeather());
     bind('generateBriefing','click',generateBriefing);
@@ -4004,7 +4018,7 @@ function init(){
      bind('saveCalendarEvent','click',saveCalendarEvent);
      bind('deleteCalendarEventBtn','click',deleteEditingCalendarEvent);
      bind('addNoteBtn','click',()=>openNote());
-     bindNoteToolbar();
+     runInitStep('note editor controls',bindNoteToolbar);
      bind('saveNote','click',saveNote);
      bind('deleteNoteBtn','click',deleteEditingNote);
      bind('notesSearch','input',renderNotes);
@@ -4032,8 +4046,7 @@ function init(){
 
     bind('saveHolding','click',saveHolding);
     bind('deleteHoldingBtn','click',deleteEditingHolding);
-    try{bindMusicPlayer()}
-    catch(e){console.error('Music player init failed',e)}
+    runInitStep('music player',bindMusicPlayer);
     bind('sendChat','click',sendChat);
     const chat=qs('#chatInput');if(chat)chat.addEventListener('keydown',e=>{if(e.key==='Enter')sendChat()});
     // Legacy Spotify settings are optional. Keep the settings helpers safe,
@@ -4048,9 +4061,16 @@ function init(){
         .then(()=>toast('Redirect URI copied'))
         .catch(()=>document.execCommand('copy'));
     });
-    handleSpotifyRedirect();
-    updateSpotifyConnectedUI();
-    applySettingsUI();const footballSel=qs('#footballCompetition');if(footballSel)footballSel.value=state.footballCompetition||'PL';calendarCursor=new Date();selectedCalendarDate=dayKey();updateClock();setInterval(updateClock,1000);registerNotificationSW();updateNotificationUI();if(state.notificationsEnabled&&Notification.permission==='granted')scheduleAllNotifications();setTimeout(applyLaunchRoute,60);
+    handleSpotifyRedirect().catch(e=>console.error('Spotify redirect init failed',e));
+    runInitStep('Spotify status',updateSpotifyConnectedUI);
+    runInitStep('settings',applySettingsUI);
+    const footballSel=qs('#footballCompetition');if(footballSel)footballSel.value=state.footballCompetition||'PL';
+    calendarCursor=new Date();selectedCalendarDate=dayKey();
+    runInitStep('clock',updateClock);setInterval(()=>runInitStep('clock',updateClock),1000);
+    registerNotificationSW();
+    runInitStep('notification controls',updateNotificationUI);
+    if(state.notificationsEnabled&&notificationPermission()==='granted')scheduleAllNotifications();
+    setTimeout(()=>runInitStep('launch route',applyLaunchRoute),60);
     const startupJobs=[
       ()=>renderBible(),
       ()=>renderReminders(),
@@ -4073,7 +4093,13 @@ function init(){
       }
       else mediaPlaybackRuntime.lastTick=Date.now();
     });
-  }catch(err){console.error('Command Center init error',err);toast('App started with limited features — reload if needed');}
+    if(initWarnings.length)toast('App ready — some optional features are unavailable in this browser');
+  }catch(err){
+    console.error('Command Center init error',err);
+    runInitStep('fallback home route',()=>switchPage('home',false));
+    runInitStep('fallback home content',()=>{applyHomeLayout();renderHomeTodaySummary();renderAllContinueWatching();renderTodayPage()});
+    toast(`App recovered from a startup error${err?.message?`: ${err.message}`:''}`);
+  }
 }
 function updateClock(){const d=new Date();qs('#clock').textContent=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' • '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
 function syncMobileDock(page){
@@ -6567,7 +6593,7 @@ function updateFootballNotificationStatus(text=''){
     el.textContent=`Football alerts are off for your ${teams.length} favourite team${teams.length===1?'':'s'}.`;
     return;
   }
-  if(!state.notificationsEnabled||!('Notification'in window)||Notification.permission!=='granted'){
+  if(!state.notificationsEnabled||notificationPermission()!=='granted'){
     el.textContent=`${teams.length} favourite team${teams.length===1?'':'s'} selected, but background notifications are not enabled on this device.`;
     return;
   }
@@ -6624,9 +6650,9 @@ async function saveFootballNotifications(){
 
   if(state.footballNotificationsEnabled){
     if(!notificationSupported()){toast('Web Push is not supported on this device');return}
-    if(Notification.permission!=='granted'||!state.notificationsEnabled){
+    if(notificationPermission()!=='granted'||!state.notificationsEnabled){
       await enableNotifications();
-      if(Notification.permission!=='granted'||!state.notificationsEnabled){
+      if(notificationPermission()!=='granted'||!state.notificationsEnabled){
         updateFootballNotificationStatus();return;
       }
     }
@@ -6636,9 +6662,9 @@ async function saveFootballNotifications(){
 async function testFootballNotification(){
   if(!footballFavouriteTeams().length){toast('Favourite at least one football team first');return}
   if(!notificationSupported()){toast('Web Push is not supported');return}
-  if(Notification.permission!=='granted'||!state.notificationsEnabled){
+  if(notificationPermission()!=='granted'||!state.notificationsEnabled){
     await enableNotifications();
-    if(Notification.permission!=='granted'||!state.notificationsEnabled)return;
+    if(notificationPermission()!=='granted'||!state.notificationsEnabled)return;
   }
   await syncFootballNotificationPreferences(false);
   try{
@@ -6797,7 +6823,7 @@ async function deviceStatusData(){
   rows.push({name:'Service Worker',state:swState,kind:swKind,detail:swDetail});
 
   if('Notification'in window){
-    const perm=Notification.permission;
+    const perm=notificationPermission();
     rows.push({name:'Notification permission',state:perm==='granted'?'Granted':perm==='denied'?'Denied':'Not granted',kind:perm==='granted'?'ok':perm==='denied'?'bad':'warn',detail:perm==='granted'?'This device allows Command Centre notifications.':'Enable notifications from Settings if you want push alerts.'});
   }else rows.push({name:'Notification permission',state:'Unsupported',kind:'bad',detail:'Notifications are not supported by this browser.'});
 
@@ -9271,7 +9297,7 @@ window.addEventListener('storage',event=>{
 init();
 updateNotificationUI();
 loadNews(false);
-if(Notification.permission==='granted')syncNewsPreferences();
+if(notificationPermission()==='granted')syncNewsPreferences();
 </script>
 </body>
 </html>

@@ -4,6 +4,23 @@
 
 **Transfers v10.7:** Start with [TRANSFERS-SETUP.md](TRANSFERS-SETUP.md) for the new file/message/link service, Cloudflare R2 and D1 setup, device pairing, Windows sender, browser extension and native iPhone download support. Local validation results are in [VALIDATION.md](VALIDATION.md).
 
+# v10.15 — Shared-link browser compatibility repair
+
+This update fixes the startup freeze that could still happen after v10.14 when
+someone opened a shared link inside a browser without the Web Notifications API
+(a common limitation of embedded/in-app browsers). The app now treats
+notifications as unsupported instead of throwing during startup.
+
+Startup for optional entertainment, sport, mirroring, note-editor, music,
+Spotify, settings, clock and notification features is also isolated. If one of
+those browser-specific features fails, Home and the main navigation continue to
+load. A final fallback restores the Home route and core Home content if an
+unexpected startup error occurs.
+
+Deployment is the same as before: open PowerShell in this folder, run
+`npm run deploy`, then test the shared link in a private/incognito window or an
+in-app browser. A normal browser refresh is sufficient after the deployment.
+
 # v10.14 — Shared-link and multi-tab freeze repair
 
 This update fixes the app becoming unresponsive when a shared link is opened on

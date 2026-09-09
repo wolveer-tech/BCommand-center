@@ -59,6 +59,14 @@ test('cross-tab state sync ignores high-frequency progress keys',()=>{
   assert.doesNotMatch(block,/loadPortfolio|loadWeather/);
 });
 
+test('shared-link startup works when browser notifications are unavailable',()=>{
+  assert.match(html,/function notificationPermission\(\)/);
+  assert.match(html,/return 'Notification' in window \? Notification\.permission : 'unsupported'/);
+  assert.equal((inlineScript.match(/Notification\.permission/g)||[]).length,1);
+  assert.match(html,/runInitStep\('notification controls',updateNotificationUI\)/);
+  assert.match(html,/runInitStep\('fallback home route'/);
+});
+
 test('mobile dock is fixed above embedded stream layers',()=>{
   const dockRule=html.match(/\.mobile-dock\{\s*position:fixed!important;[\s\S]*?\n\s*\}/)?.[0]||'';
   assert.match(dockRule,/z-index:2147482000/);
