@@ -1,5 +1,19 @@
 # Command Centre iOS 26 Mirror — Signulous-friendly build
 
+## v1.3.0 background media
+
+The containing app now configures `AVAudioSession` with the playback category,
+declares the iOS `audio` background mode, and enables WKWebView Picture in
+Picture. These settings allow compatible HTML audio to continue when the phone
+locks or the app moves to the background, and allow compatible provider video
+players to offer Apple's system PiP.
+
+Provider restrictions still apply. Embedded YouTube is intentionally paused
+when the app is backgrounded; YouTube API policy does not permit this app to
+offer background playback or isolate a video's audio. Force-quitting the app
+ends every kind of playback. The web app's in-app mini-player is separate from
+system PiP and works only while Command Centre itself is open.
+
 This native build targets iOS 26 and uses ReplayKit to capture the iPhone display.
 
 ## Why this revision is easier to re-sign

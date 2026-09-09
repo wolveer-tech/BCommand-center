@@ -4,6 +4,81 @@
 
 **Transfers v10.7:** Start with [TRANSFERS-SETUP.md](TRANSFERS-SETUP.md) for the new file/message/link service, Cloudflare R2 and D1 setup, device pairing, Windows sender, browser extension and native iPhone download support. Local validation results are in [VALIDATION.md](VALIDATION.md).
 
+# v10.10 — Persistent playback and watch progress
+
+This release adds the playback behaviour used throughout the installed app:
+
+- A playing YouTube or Movies & TV iframe stays mounted when you leave its app
+  page and becomes a small in-app Picture in Picture player above the mobile
+  dock. **Return** restores the full player and **Close** ends it.
+- YouTube watch progress now comes from the official IFrame Player API, saves
+  every ten seconds, appears as a progress bar in Continue Watching and resumes
+  from the saved point. Items at least 90% complete leave Continue Watching.
+- Movies & TV accepts exact progress events from a configured authorised
+  provider. When a cross-origin provider does not expose progress, Command
+  Centre records a clearly labelled estimate of time watched instead. A
+  **Mark watched** button lets you complete the item manually.
+- YouTube Music no longer creates a second floating video iframe. One official
+  YouTube embed remains the playback source while a compact artwork, title,
+  progress, play/pause and skip module follows you while searching or scrolling
+  inside Music. Leaving Music pauses YouTube; Audius remains the true audio-only
+  and background-capable option.
+- Music now publishes Media Session metadata, play/pause, previous/next, seek
+  and progress state for supported lock-screen and headset controls.
+
+## Background and closed-app behaviour
+
+The native iOS wrapper is now version **1.3.0 (build 5)**. It enables the
+playback audio session, iOS background audio mode and WKWebView Picture in
+Picture. Rebuild and reinstall the native IPA for those capabilities.
+
+- Switching to another app or locking the phone can keep compatible Audius
+  audio playing while iOS keeps Command Centre alive.
+- Compatible video providers can expose Apple's system Picture in Picture;
+  the app also has its own mini-player while navigating inside Command Centre.
+- YouTube is intentionally paused when Command Centre is backgrounded or when
+  you leave Music, because YouTube API policy prohibits an app from providing
+  background playback or separating the audio track.
+- Swiping Command Centre away from the iOS app switcher is a force quit and
+  ends playback. No web or native app can continue executing after iOS has
+  terminated it.
+
+## v10.10 deployment
+
+For the website/PWA, replace:
+
+    public/index.html
+
+For background audio and system PiP in the installed native build, rebuild the
+IPA from `native-ios/` and install version 1.3.0 (build 5). No Cloudflare
+variable or D1 migration is required.
+
+# v10.9 — Mobile playback, notes, dock and YouTube fixes
+
+This release addresses the four mobile issues reported from the iPhone app:
+
+- Movies & TV now has its own **Full screen** button. It first expands the
+  complete player to the device viewport and also requests native browser full
+  screen where supported, so it does not depend on the provider's small
+  embedded control. A persistent **Close** control is included in the fallback.
+- The note editor now sits above all app chrome, hides the mobile dock while
+  open and keeps **Cancel** / **Save note** inside the visible safe area.
+- The five-button mobile dock is kept in a dedicated fixed top layer without
+  the transformed/contained layer that could drift while scrolling past live
+  sports iframes.
+- YouTube **For You** now combines up to two different personal signals with a
+  discovery lane, mixes their results round-robin, excludes watched/hidden
+  videos and caps repeated channels. Results remain cached for one hour to keep
+  YouTube API quota bounded; a manual refresh rotates the personal signals.
+
+## Deployment
+
+Replace:
+
+    public/index.html
+
+No Cloudflare variable, D1 migration or native iOS rebuild is required.
+
 # Command Centre background notifications
 
 This package converts the existing Command Centre reminder notifications to real Web Push notifications delivered by the same Cloudflare Worker.

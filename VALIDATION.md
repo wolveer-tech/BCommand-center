@@ -1,3 +1,33 @@
+# Playback v10.10 validation — 9 September 2026
+
+## Passed locally
+
+- Project validation compiled the complete inline app script, Messages and
+  Transfers bundles, extension manifest and bundled Cloudflare Worker.
+- All 27 automated tests passed, including the new in-app mini-player,
+  controls-only YouTube Music module, progress/resume storage and native iOS
+  background-media configuration checks.
+- In a 655 × 552 mobile browser viewport, a real YouTube embed stayed mounted
+  after navigating from Watch to Today and became a 360 × 203 floating player.
+  Its lower edge was 12 px above the mobile dock, and the overlapping global
+  quick-add control was hidden while the mini-player was open.
+- The floating player's Return control restored the normal YouTube Watch view
+  without reloading the iframe; Close reset the iframe and removed the hidden
+  playback page.
+- No browser console errors appeared during the playback navigation check.
+
+## Device/provider checks still required
+
+- Build and sign native iOS 1.3.0 (build 5) on macOS/Codemagic; this Windows
+  environment cannot compile an IPA or inspect the generated Info.plist.
+- Confirm Audius lock-screen/background playback and Media Session controls on
+  a physical iPhone.
+- Confirm system PiP and exact progress messages with the configured authorised
+  Movies & TV provider. Providers that do not expose progress intentionally use
+  an estimated time-watched fallback.
+- YouTube is intentionally paused when the app is backgrounded; only the
+  visible in-app Watch mini-player continues during Command Centre navigation.
+
 # Transfers validation — 8 September 2026
 
 ## Passed locally

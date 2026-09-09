@@ -7,6 +7,7 @@ struct CommandCentreWebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
+        configuration.allowsPictureInPictureMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
         configuration.userContentController.add(context.coordinator, name: "nativeMirror")
         configuration.userContentController.add(context.coordinator.transferHandler, name: "nativeTransfer")
