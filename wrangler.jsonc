@@ -11,7 +11,13 @@
   },
   "r2_buckets": [{ "binding": "TRANSFER_FILES", "bucket_name": "command-centre-transfers" }],
   "vars": {
-    "TRANSFER_R2_BUCKET": "command-centre-transfers"
+    "TRANSFER_R2_BUCKET": "command-centre-transfers",
+    "LIVE_PROVIDER_2_MODE": "dynamic",
+    "LIVE_PROVIDER_2_BASE_URL": "https://timst.cfd",
+    "LIVE_PROVIDER_2_DYNAMIC_PATH": "/api/live-upcoming",
+    "LIVE_PROVIDER_2_DYNAMIC_ROOT": "events",
+    "LIVE_PROVIDER_2_ALLOWED_DATA_HOSTS": "timst.cfd",
+    "LIVE_PROVIDER_2_ALLOWED_EMBED_HOSTS": "epiembeds.online"
   },
   "triggers": {
     "crons": [

@@ -50,6 +50,7 @@ correct.
 Files changed for this repair:
 
     worker.js
+    wrangler.jsonc
     tests/dynamic-provider.test.mjs
     README-SETUP.md
     VALIDATION.md
