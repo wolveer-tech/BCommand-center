@@ -1307,14 +1307,32 @@ function mediaPathForMode(env,mode){
   if(mode==='agg')return String(env.MEDIA_EMBED_PATH_AGG||'/embed/agg').trim()||'/embed/agg';
   return String(env.MEDIA_EMBED_PATH_STANDARD||'/embed').trim()||'/embed';
 }
+function buildFlixerEmbedUrl(env,{type,id,season,episode}){
+  const raw=String(env.MEDIA_FLIXER_BASE_URL||'https://flixer.gd').trim().replace(/\/$/,'');
+  const base=new URL(raw);
+  if(base.protocol!=='https:'){const e=new Error('MEDIA_FLIXER_BASE_URL must use HTTPS.');e.status=500;throw e}
+  const configured=String(env.MEDIA_FLIXER_ALLOWED_HOSTS||'')
+    .split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+  const hosts=configured.length?configured:[base.hostname.toLowerCase()];
+  if(!hosts.includes(base.hostname.toLowerCase())){const e=new Error('Flixer host is not in MEDIA_FLIXER_ALLOWED_HOSTS.');e.status=500;throw e}
+  const u=new URL(base.toString());
+  const root=base.pathname.replace(/\/$/,'');
+  u.pathname=type==='tv'
+    ?`${root}/watch/tv/${id}/${Number(season)}/${Number(episode)}`
+    :`${root}/watch/movie/${id}`;
+  u.search='';
+  u.searchParams.set('embed','1');
+  return u.toString();
+}
 function buildMediaEmbedUrl(env,{type,id,season,episode,mode='standard'}){
   if(!['movie','tv'].includes(type)){const e=new Error('type must be movie or tv.');e.status=400;throw e}
   if(!/^\d+$/.test(String(id||''))){const e=new Error('A numeric TMDB id is required.');e.status=400;throw e}
-  if(!['standard','torrent','agg'].includes(mode)){const e=new Error('Unsupported provider mode.');e.status=400;throw e}
+  if(!['standard','torrent','agg','flixer'].includes(mode)){const e=new Error('Unsupported provider mode.');e.status=400;throw e}
   if(type==='tv'){
     if(!Number.isInteger(Number(season))||Number(season)<1){const e=new Error('A valid season is required for TV.');e.status=400;throw e}
     if(!Number.isInteger(Number(episode))||Number(episode)<1){const e=new Error('A valid episode is required for TV.');e.status=400;throw e}
   }
+  if(mode==='flixer')return buildFlixerEmbedUrl(env,{type,id,season,episode});
   const base=mediaBaseUrl(env);
   const u=new URL(base.toString());
   const path=mediaPathForMode(env,mode);
@@ -3179,9 +3197,10 @@ export default {
           providerConfigured,
           tmdbConfigured,
           routes:{
-            standard:env.MEDIA_EMBED_PATH_STANDARD||'/embed',
-            alternate:env.MEDIA_EMBED_PATH_TORRENT||'/embed/torrent',
-            aggregator:env.MEDIA_EMBED_PATH_AGG||'/embed/agg'
+           standard:env.MEDIA_EMBED_PATH_STANDARD||'/embed',
+           alternate:env.MEDIA_EMBED_PATH_TORRENT||'/embed/torrent',
+            aggregator:env.MEDIA_EMBED_PATH_AGG||'/embed/agg',
+            flixer:'/watch/{type}/{tmdbId}'
           }
         },providerConfigured&&tmdbConfigured?200:503);
       }
@@ -3215,14 +3234,16 @@ export default {
       }
 
       if(url.pathname==='/api/media/embed-url'&&request.method==='GET'){
+        const mode=url.searchParams.get('mode')||'standard';
         return json({
           embedUrl:buildMediaEmbedUrl(env,{
             type:url.searchParams.get('type')||'',
             id:url.searchParams.get('id')||'',
             season:url.searchParams.get('season')||'',
             episode:url.searchParams.get('episode')||'',
-            mode:url.searchParams.get('mode')||'standard'
-          })
+            mode
+          }),
+          externalOnly:false
         });
       }
 

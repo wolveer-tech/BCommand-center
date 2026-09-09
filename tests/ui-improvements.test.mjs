@@ -4,6 +4,7 @@ import test from 'node:test';
 import vm from 'node:vm';
 
 const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+const worker=readFileSync(new URL('../worker.js',import.meta.url),'utf8');
 const nativeApp=readFileSync(new URL('../native-ios/CommandCentreNative/CommandCentreNativeApp.swift',import.meta.url),'utf8');
 const nativeWebView=readFileSync(new URL('../native-ios/CommandCentreNative/CommandCentreWebView.swift',import.meta.url),'utf8');
 const nativeProject=readFileSync(new URL('../native-ios/project.yml',import.meta.url),'utf8');
@@ -30,6 +31,14 @@ test('Movies & TV has an app-controlled fullscreen stage',()=>{
   assert.match(html,/function enterMediaFullscreen\(\)/);
   assert.match(html,/stage\.requestFullscreen\|\|stage\.webkitRequestFullscreen/);
   assert.match(html,/media-player-stage\.is-expanded[^}]*position:fixed!important/);
+});
+
+test('Movies & TV exposes Flixer as an in-app provider source',()=>{
+  assert.match(html,/data-media-mode="flixer">Flixer<\/button>/);
+  assert.match(html,/\['standard','torrent','agg','flixer'\]/);
+  assert.match(worker,/buildFlixerEmbedUrl/);
+  assert.match(worker,/MEDIA_FLIXER_ALLOWED_HOSTS/);
+  assert.match(worker,/externalOnly:false/);
 });
 
 test('mobile dock is fixed above embedded stream layers',()=>{

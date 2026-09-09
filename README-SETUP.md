@@ -4,6 +4,83 @@
 
 **Transfers v10.7:** Start with [TRANSFERS-SETUP.md](TRANSFERS-SETUP.md) for the new file/message/link service, Cloudflare R2 and D1 setup, device pairing, Windows sender, browser extension and native iPhone download support. Local validation results are in [VALIDATION.md](VALIDATION.md).
 
+# v10.13 — Flixer in-app Movies & TV source
+
+The external-only Movy choice is replaced with **Flixer**:
+
+    Primary   Alternate   Aggregator   Flixer
+
+Flixer uses the TMDB selection already made in Command Centre:
+
+    Movie: https://flixer.gd/watch/movie/{tmdbId}?embed=1
+    TV:    https://flixer.gd/watch/tv/{tmdbId}/{season}/{episode}?embed=1
+
+Unlike Movy, Flixer's current watch routes do not send `X-Frame-Options` or a
+CSP `frame-ancestors` restriction. It can therefore load in the existing
+Command Centre player instead of opening a separate page.
+
+The included `wrangler.jsonc` sets:
+
+    MEDIA_FLIXER_BASE_URL=https://flixer.gd
+    MEDIA_FLIXER_ALLOWED_HOSTS=flixer.gd
+
+Deploy the update, select a movie or TV episode, choose **Flixer**, and press
+**Play**. Full screen, the in-app floating player, and Command Centre's progress
+tracking continue to use the existing player flow.
+
+Files changed:
+
+    worker.js
+    public/index.html
+    wrangler.jsonc
+    tests/media-provider.test.mjs
+    tests/ui-improvements.test.mjs
+    README-SETUP.md
+    VALIDATION.md
+
+No D1 migration, Codemagic build, IPA rebuild, or Signulous reinstall is
+required. Only use a provider where you have permission to access its content.
+
+
+# v10.12 — Movy Movies & TV source
+
+Movies & TV now shows a fourth provider choice:
+
+    Primary   Alternate   Aggregator   Movy ↗
+
+Movy title pages use the same TMDB IDs already selected in Command Centre:
+
+    Movie: https://www.movy.sx/movie/{tmdbId}
+    TV:    https://www.movy.sx/tv/{tmdbId}/{season}/{episode}
+
+Movy currently sends `X-Frame-Options: DENY`, so browsers and the iOS web view
+will reject it inside Command Centre's iframe. The Movy button therefore opens
+the exact selected movie or episode in a separate page. The existing Primary,
+Alternate and Aggregator providers continue to play inside the app.
+
+The included `wrangler.jsonc` sets:
+
+    MEDIA_MOVY_BASE_URL=https://www.movy.sx
+    MEDIA_MOVY_ALLOWED_HOSTS=www.movy.sx
+
+Deploy the update, select a movie or TV episode, choose **Movy ↗**, and press
+**Play**. The app opens the matching Movy page. If the browser blocks the new
+page, allow pop-ups for Command Centre and try again.
+
+Files changed:
+
+    worker.js
+    public/index.html
+    wrangler.jsonc
+    tests/media-provider.test.mjs
+    tests/ui-improvements.test.mjs
+    README-SETUP.md
+    VALIDATION.md
+
+No D1 migration, Codemagic build, IPA rebuild, or Signulous reinstall is
+required. Only use a provider where you have permission to access its content.
+
+
 # v10.11 — Provider 2 dynamic-feed repair
 
 Provider 2's homepage is now a JavaScript application. HTML/scrape mode only

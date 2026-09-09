@@ -1,3 +1,58 @@
+# Flixer source v10.13 validation — 9 September 2026
+
+## Provider behaviour
+
+- The Flixer movie route with `embed=1` returned HTTP 200.
+- The Flixer TV episode route with `embed=1` returned HTTP 200.
+- Neither route returned `X-Frame-Options`.
+- Neither route declared a CSP `frame-ancestors` restriction.
+- The application bundle recognises `/watch/movie/:tmdbId` and
+  `/watch/tv/:tmdbId/:seasonId/:episodeId`.
+
+## Application checks
+
+- Movy is replaced by Flixer in the Movies & TV provider row.
+- Movie and TV selections generate the matching Flixer watch route.
+- Flixer is loaded into the existing in-app iframe rather than an external tab.
+- Season and episode numbers, HTTPS, and the host allowlist are validated.
+- Existing in-app fullscreen, floating player and progress tracking remain
+  connected to the media iframe.
+- Worker syntax and `wrangler.jsonc` validation passed.
+- Dynamic-provider, media-provider and UI/playback tests: 13/13 passed.
+
+## Deployment
+
+Replace `worker.js`, `public/index.html`, and `wrangler.jsonc`, then deploy the
+Worker. No native iOS rebuild or database migration is required.
+
+
+# Movy source v10.12 validation — 9 September 2026
+
+## Provider behaviour
+
+- `https://www.movy.sx/movie/{tmdbId}` returned the matching movie page.
+- `https://www.movy.sx/tv/{tmdbId}/{season}/{episode}` returned the matching
+  episode page.
+- The provider returned `X-Frame-Options: DENY`; v10.12 therefore treats Movy
+  as external-only instead of displaying a broken iframe.
+
+## Application checks
+
+- Movie and TV TMDB selections generate their exact Movy routes.
+- Season and episode numbers are validated before generating a TV route.
+- HTTPS and hostname allowlist enforcement remain active.
+- Pressing Play with Movy selected opens a window immediately, then navigates it
+  after the Worker validates the URL. This avoids common mobile popup blocking.
+- Existing embedded providers keep their in-app player and mini-player flow.
+- Worker syntax check passed.
+- Dynamic-provider, media-provider and UI/playback tests: 13/13 passed.
+
+## Deployment
+
+Replace `worker.js`, `public/index.html`, and `wrangler.jsonc`, then deploy the
+Worker. No native iOS rebuild or database migration is required.
+
+
 # Provider 2 v10.11 validation — 9 September 2026
 
 ## Confirmed cause

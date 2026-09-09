@@ -2539,10 +2539,11 @@ body:has(.modal.open) .back-to-top{
                       <button class="media-mode active" data-media-mode="standard">Primary</button>
                       <button class="media-mode" data-media-mode="torrent">Alternate</button>
                       <button class="media-mode" data-media-mode="agg">Aggregator</button>
+                      <button class="media-mode" data-media-mode="flixer">Flixer</button>
                     </div>
 
                     <div class="media-provider-note">
-                      The provider hostname is configured privately in Cloudflare.
+                      Primary, Alternate, Aggregator and Flixer play inside Command Centre.
                     </div>
 
                     <div id="mediaPlayerEmpty" class="media-player-empty">
@@ -5467,6 +5468,7 @@ let mediaEmbedState={
   exploreItems:[],
   exploreSection:'trending',
   exploreLoaded:false,
+  currentExternalOnly:false,
   view:'explore'
 };
 const mediaPlaybackRuntime={
@@ -5610,10 +5612,10 @@ async function selectMediaExplore(index){
 
 
 function setMediaMode(mode){
-  if(!['standard','torrent','agg'].includes(mode))mode='standard';
+  if(!['standard','torrent','agg','flixer'].includes(mode))mode='standard';
   mediaEmbedState.mode=mode;
   qsa('[data-media-mode]').forEach(btn=>btn.classList.toggle('active',btn.dataset.mediaMode===mode));
-  const labels={standard:'Primary provider route',torrent:'Alternate provider route',agg:'Aggregator provider route'};
+  const labels={standard:'Primary provider route',torrent:'Alternate provider route',agg:'Aggregator provider route',flixer:'Flixer in-app provider'};
   mediaStatus(`${labels[mode]}. Select a title to play.`);
 }
 
@@ -5676,6 +5678,7 @@ async function selectMediaResult(index){
   if(!item)return;
   mediaEmbedState.selected=item;
   mediaEmbedState.currentEmbedUrl='';
+  mediaEmbedState.currentExternalOnly=false;
   const fullscreenBtn=qs('#mediaFullscreenBtn');if(fullscreenBtn)fullscreenBtn.disabled=true;
   const watchedBtn=qs('#mediaMarkWatchedBtn');if(watchedBtn)watchedBtn.disabled=true;
   const selection=qs('#mediaSelection');
@@ -5697,6 +5700,7 @@ function clearSelectedMedia(){
   mediaEmbedState.seasons=[];
   mediaEmbedState.episodes=[];
   mediaEmbedState.currentEmbedUrl='';
+  mediaEmbedState.currentExternalOnly=false;
   const selection=qs('#mediaSelection');if(selection)selection.style.display='none';
   const frame=qs('#mediaWatchFrame');if(frame)frame.src='about:blank';
   const fullscreenBtn=qs('#mediaFullscreenBtn');if(fullscreenBtn)fullscreenBtn.disabled=true;
@@ -5766,6 +5770,7 @@ async function resolveSelectedMediaUrl(){
   if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);
   if(!data.embedUrl)throw new Error('Provider did not return an embed URL.');
   mediaEmbedState.currentEmbedUrl=data.embedUrl;
+  mediaEmbedState.currentExternalOnly=!!data.externalOnly;
   return data.embedUrl;
 }
 
@@ -5919,12 +5924,16 @@ window.toggleMediaFullscreen=toggleMediaFullscreen;
 window.exitMediaFullscreen=exitMediaFullscreen;
 
 async function playSelectedMedia(openExternal=false){
-  mediaStatus(openExternal?'Opening authorised provider…':'Loading player…');
+  const shouldOpenExternal=openExternal;
+  const pendingWindow=shouldOpenExternal?window.open('about:blank','_blank'):null;
+  if(pendingWindow)try{pendingWindow.opener=null}catch{}
+  mediaStatus(shouldOpenExternal?'Opening provider…':'Loading player…');
   try{
     const url=await resolveSelectedMediaUrl();
     recordMediaContinue({},true);
-    if(openExternal){
-      window.open(url,'_blank','noopener,noreferrer');
+    if(shouldOpenExternal||mediaEmbedState.currentExternalOnly){
+      if(pendingWindow&&!pendingWindow.closed)pendingWindow.location.replace(url);
+      else window.open(url,'_blank','noopener,noreferrer');
       mediaStatus('Opened provider in a new window.','ok');
       return;
     }
@@ -5936,6 +5945,7 @@ async function playSelectedMedia(openExternal=false){
     setActiveVideoPlayback('media',mediaEmbedState.selected?.title||'Movies & TV');
     mediaStatus('Player loaded. It moves into a mini-player when you navigate elsewhere. Progress is exact when the provider reports it; otherwise time watched is estimated.','ok');
   }catch(e){
+    if(pendingWindow&&!pendingWindow.closed)pendingWindow.close();
     mediaStatus(e.message||'Could not load the provider.','bad');
   }
 }

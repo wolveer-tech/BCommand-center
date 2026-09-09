@@ -17,7 +17,9 @@
     "LIVE_PROVIDER_2_DYNAMIC_PATH": "/api/live-upcoming",
     "LIVE_PROVIDER_2_DYNAMIC_ROOT": "events",
     "LIVE_PROVIDER_2_ALLOWED_DATA_HOSTS": "timst.cfd",
-    "LIVE_PROVIDER_2_ALLOWED_EMBED_HOSTS": "epiembeds.online"
+    "LIVE_PROVIDER_2_ALLOWED_EMBED_HOSTS": "epiembeds.online",
+    "MEDIA_FLIXER_BASE_URL": "https://flixer.gd",
+    "MEDIA_FLIXER_ALLOWED_HOSTS": "flixer.gd"
   },
   "triggers": {
     "crons": [
