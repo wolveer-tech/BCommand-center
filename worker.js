@@ -741,7 +741,11 @@ function dynamicItemCategory(item,cfg){
   const explicit=cfg.dynamicCategoryField?valueAtPath(item,cfg.dynamicCategoryField):undefined;
   return firstUseful(
     {explicit,item},
-    ['explicit','item.category','item.sport','item.sport_name','item.type','item.group','item.section']
+    [
+      'explicit','item.__providerCategory','item.category','item.category_name',
+      'item.genre_name','item.genreName','item.sport','item.sport_name',
+      'item.type','item.group','item.section'
+    ]
   );
 }
 function dynamicCategoryMatches(item,cfg,requestedCategory){
@@ -764,6 +768,47 @@ function dynamicRootItems(data,cfg){
     data?.matches
   ];
   return candidates.find(Array.isArray)||[];
+}
+function dynamicCategoryMetadata(data){
+  const groups=[data?.genres,data?.categories,data?.sports].find(Array.isArray)||[];
+  const categories=new Map();
+  const subcategories=new Map();
+
+  groups.forEach(group=>{
+    if(!group||typeof group!=='object')return;
+    const id=firstUseful(group,['id','key','value','slug']);
+    const name=firstUseful(group,['name','title','label','category','sport']);
+    if(id!==''&&id!==undefined&&id!==null&&name){
+      categories.set(String(id),String(name));
+    }
+
+    const children=[group.sub_categories,group.subCategories,group.subgenres,group.children]
+      .find(Array.isArray)||[];
+    children.forEach(child=>{
+      if(!child||typeof child!=='object')return;
+      const childId=firstUseful(child,['id','key','value','slug']);
+      const childName=firstUseful(child,['name','title','label']);
+      if(id!==''&&childId!==''&&childId!==undefined&&childId!==null&&childName){
+        subcategories.set(`${id}:${childId}`,String(childName));
+      }
+    });
+  });
+
+  return {categories,subcategories};
+}
+function annotateDynamicItems(data,items){
+  const rows=Array.isArray(items)?items:[];
+  const metadata=dynamicCategoryMetadata(data);
+  if(!metadata.categories.size&&!metadata.subcategories.size)return rows;
+
+  return rows.map(item=>{
+    if(!item||typeof item!=='object'||Array.isArray(item))return item;
+    const categoryId=firstUseful(item,['genre','genre_id','genreId','category_id','categoryId','sport_id','sportId']);
+    const subcategoryId=firstUseful(item,['sub_genre','subGenre','sub_genre_id','subGenreId','subcategory_id','subcategoryId']);
+    const category=metadata.categories.get(String(categoryId))||'';
+    const league=metadata.subcategories.get(`${categoryId}:${subcategoryId}`)||'';
+    return category||league?{...item,__providerCategory:category,__providerLeague:league}:item;
+  });
 }
 function dynamicNestedItems(group,cfg){
   if(!group||typeof group!=='object')return [];
@@ -795,7 +840,15 @@ function dynamicExpandItems(rootItems,cfg,requestedCategory){
   //     {"category":"Tennis","streams":[...]}
   //   ]
   // }
-  const matchingGroups=rows.filter(group=>dynamicCategoryMatches(group,cfg,requestedCategory));
+  // Event rows commonly contain a `streams` source array too. Do not mistake
+  // those rows for category groups and flatten away the event title/metadata.
+  const looksLikeEvent=row=>!!firstUseful(row,[
+    'isevent','match_timestamp','timestamp','starts_at','startTime','start_time',
+    'time','url','embed_url','embedUrl','player_url','playerUrl','viewers'
+  ]);
+  const matchingGroups=rows
+    .filter(group=>!looksLikeEvent(group))
+    .filter(group=>dynamicCategoryMatches(group,cfg,requestedCategory));
   const nested=matchingGroups.flatMap(group=>dynamicNestedItems(group,cfg));
 
   if(nested.length){
@@ -999,18 +1052,21 @@ function normaliseDynamicStream(item,index,requestedCategory){
   const thumbnail=firstUseful(item,[
     'thumbnail_url','thumbnail','image','poster','cover'
   ]);
-  const timestamp=firstUseful(item,[
+  const timestampValue=firstUseful(item,[
     'match_timestamp','timestamp','start_timestamp','starts_at','startTime','start_time'
   ]);
-  const id=firstUseful(item,['id','stream_key','key','slug'])||`${requestedCategory}-${index+1}`;
+  const numericTimestamp=Number(timestampValue);
+  const parsedDate=Date.parse(String(timestampValue||item?.time||''));
+  const parsedTimestamp=numericTimestamp||(Number.isFinite(parsedDate)?Math.floor(parsedDate/1000):NaN);
+  const id=firstUseful(item,['id','stream_key','key','slug','url'])||`${requestedCategory}-${index+1}`;
   const tag=String(firstUseful(item,['tag','status','state'])||'').trim();
 
   return {
     id:String(id).slice(0,200),
     name:String(title).slice(0,180),
     category:String(requestedCategory).slice(0,80),
-    league:String(league||item.__groupCategory||'').slice(0,120),
-    match_timestamp:Number(timestamp)||null,
+    league:String(league||item.__providerLeague||item.__groupCategory||'').slice(0,120),
+    match_timestamp:Number.isFinite(parsedTimestamp)?parsedTimestamp:null,
     embed_url:typeof embed==='string'?embed:'',
     sources:dynamicSourceList(item),
     source_refs:dynamicSourceRefs(item),
@@ -1090,7 +1146,7 @@ async function fetchDynamicProvider(cfg,base,category){
     throw err;
   }
 
-  const rootItems=dynamicRootItems(data,cfg);
+  const rootItems=annotateDynamicItems(data,dynamicRootItems(data,cfg));
   const matching=dynamicExpandItems(rootItems,cfg,category);
 
   return {

@@ -1,3 +1,34 @@
+# Provider 2 v10.11 validation — 9 September 2026
+
+## Confirmed cause
+
+- The deployed Provider 2 configuration reported `mode: "scrape"` and hostname
+  `timst.cfd`.
+- Its homepage returned only a JavaScript app shell with an empty `#root` node,
+  so the scrape adapter correctly found zero server-rendered events.
+- Its current `/api/live-upcoming` JSON response returned 21 total live/upcoming
+  events during diagnosis, including four Soccer events with 20 player sources.
+- The configured player allowlist already included the current player hostname.
+
+## Repair verification
+
+- Dynamic event rows are no longer mistaken for category groups merely because
+  they contain a `streams` array.
+- Numeric genre IDs are resolved from the response's `genres` metadata.
+- Soccer, Basketball and Tennis are filtered independently.
+- Sub-category names are preserved as leagues.
+- ISO event times are converted to Unix seconds for the existing UI.
+- Live response sample produced four Soccer events and 20 source choices.
+- New deterministic dynamic-provider tests: 2/2 passed.
+- Existing UI/playback tests: 8/8 passed.
+
+## Deployment requirement
+
+Deploy `worker.js` and change Provider 2 from scrape mode to the dynamic settings
+listed at the top of `README-SETUP.md`. No web UI or native iOS rebuild is
+required.
+
+
 # Playback v10.10 validation — 9 September 2026
 
 ## Passed locally

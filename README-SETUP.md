@@ -4,6 +4,60 @@
 
 **Transfers v10.7:** Start with [TRANSFERS-SETUP.md](TRANSFERS-SETUP.md) for the new file/message/link service, Cloudflare R2 and D1 setup, device pairing, Windows sender, browser extension and native iPhone download support. Local validation results are in [VALIDATION.md](VALIDATION.md).
 
+# v10.11 — Provider 2 dynamic-feed repair
+
+Provider 2's homepage is now a JavaScript application. HTML/scrape mode only
+sees its empty app mount element, so it reports zero streams even when the
+provider's JSON feed contains live events.
+
+This update adds support for dynamic event feeds where:
+
+- events contain their own `streams` source arrays;
+- a numeric `genre` refers to a separate `genres` metadata array;
+- sub-category metadata supplies the league name; and
+- event times are ISO date strings rather than Unix timestamps.
+
+The parser keeps the event intact, maps its genre, filters Football,
+Basketball and Tennis independently, and preserves every allowed player
+source.
+
+## Required Cloudflare Provider 2 settings
+
+In **Cloudflare → Workers & Pages → bcommand-center → Settings → Variables and
+Secrets**, update/add these text variables:
+
+    LIVE_PROVIDER_2_MODE=dynamic
+    LIVE_PROVIDER_2_DYNAMIC_PATH=/api/live-upcoming
+    LIVE_PROVIDER_2_DYNAMIC_ROOT=events
+    LIVE_PROVIDER_2_ALLOWED_DATA_HOSTS=timst.cfd
+
+Keep the existing values:
+
+    LIVE_PROVIDER_2_BASE_URL=https://timst.cfd
+    LIVE_PROVIDER_2_ALLOWED_EMBED_HOSTS=epiembeds.online
+
+Remove `LIVE_PROVIDER_2_DYNAMIC_CATEGORY_FIELD` if it has an old numeric genre
+value. The v10.11 parser now resolves the feed's genre metadata automatically.
+
+After saving the variables, deploy the updated `worker.js`, then test:
+
+    /api/live-content?category=soccer&provider=2&refresh=1
+
+The response should report `mode: "dynamic"`, a non-zero `count` whenever
+matching events are live, and `rejectedCount: 0` when the embed allowlist is
+correct.
+
+Files changed for this repair:
+
+    worker.js
+    tests/dynamic-provider.test.mjs
+    README-SETUP.md
+    VALIDATION.md
+
+No `public/index.html` replacement, D1 migration, Codemagic build, IPA rebuild,
+or Signulous reinstall is required.
+
+
 # v10.10 — Persistent playback and watch progress
 
 This release adds the playback behaviour used throughout the installed app:
