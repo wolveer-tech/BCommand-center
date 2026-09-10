@@ -2001,6 +2001,28 @@ body:has(.modal.open) .back-to-top{
   }
 }
 
+/* v10.17 foundation and visual consistency */
+:root{--radius-card:18px;--radius-control:12px;--surface-soft:rgba(255,255,255,.045);--focus-ring:0 0 0 3px rgba(91,140,255,.32)}
+button,input,select,textarea,[role="button"]{font-family:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[role="button"]:focus-visible{outline:2px solid #8eb0ff;outline-offset:2px;box-shadow:var(--focus-ring)}
+.card,.game-card,.feed-card,.service-card,.football-match-wrap{border-radius:var(--radius-card)}
+.btn{min-height:36px;border-radius:var(--radius-control);display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.small{min-height:30px}.card-head{align-items:flex-start}.title{letter-spacing:-.01em}.sub,.setting-note{line-height:1.5}
+.connectivity-banner{display:none;position:fixed;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:120;padding:8px 12px;border-radius:999px;background:#322914;border:1px solid rgba(242,201,76,.35);color:#ffe49b;font-size:10px;font-weight:800;box-shadow:var(--shadow)}
+.connectivity-banner.show{display:block}
+.foundation-status{display:flex;align-items:center;gap:7px;margin-top:9px;padding:9px 10px;border-radius:12px;background:var(--surface-soft);color:var(--muted);font-size:9px;line-height:1.45}
+.foundation-status strong{color:var(--text)}
+.youtube-library{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.025)}
+.youtube-library-tabs,.match-centre-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:3px}.youtube-library-tabs::-webkit-scrollbar,.match-centre-tabs::-webkit-scrollbar{display:none}
+.youtube-library-tab,.match-centre-tab{flex:0 0 auto;border:1px solid var(--line);background:#ffffff06;color:var(--muted);border-radius:999px;padding:7px 10px;font-size:9px;font-weight:850;cursor:pointer}
+.youtube-library-tab.active,.match-centre-tab.active{color:#fff;border-color:transparent;background:linear-gradient(135deg,#3568e8,#7658db)}
+.youtube-library-list{display:grid;gap:7px;margin-top:10px}.youtube-library-row{display:grid;grid-template-columns:88px minmax(0,1fr);gap:9px;padding:8px;border:1px solid var(--line);border-radius:13px;background:#0a111d}.youtube-library-row img{width:88px;aspect-ratio:16/9;object-fit:cover;border-radius:9px;background:#05080e}.youtube-library-title{font-size:10px;font-weight:850;line-height:1.3}.youtube-library-meta{font-size:8px;color:var(--muted);margin-top:3px}.youtube-library-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.yt-card-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.yt-card-actions .btn{position:relative;z-index:2}
+.match-centre-hero{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;padding:15px;margin-bottom:12px;border-radius:17px;background:linear-gradient(135deg,rgba(53,104,232,.2),rgba(118,88,219,.14));border:1px solid rgba(91,140,255,.24)}
+.match-centre-team{text-align:center;min-width:0;font-size:12px;font-weight:850}.match-centre-team img{width:44px;height:44px;display:block;object-fit:contain;margin:0 auto 6px}.match-centre-score{text-align:center;font-size:25px;font-weight:900;white-space:nowrap}.match-centre-score small{display:block;font-size:8px;color:var(--muted);margin-top:4px}.match-centre-panel{display:none;margin-top:11px}.match-centre-panel.active{display:block}.match-centre-overview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.match-centre-fact{padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface-soft)}.match-centre-fact strong{display:block;font-size:10px}.match-centre-fact span{display:block;color:var(--muted);font-size:8px;margin-top:4px}.match-timeline{display:grid;gap:7px}.match-event{display:grid;grid-template-columns:42px minmax(0,1fr);gap:8px;padding:9px;border:1px solid var(--line);border-radius:12px;background:var(--surface-soft)}.match-event-time{font-size:10px;font-weight:900;color:var(--cyan)}.match-event-title{font-size:10px;font-weight:800}.match-event-meta{font-size:8px;color:var(--muted);margin-top:3px}.match-stats-grid{display:grid;gap:7px}.match-stat{display:grid;grid-template-columns:minmax(0,1fr) 80px minmax(0,1fr);align-items:center;gap:8px;padding:8px;border-bottom:1px solid #ffffff08;font-size:9px}.match-stat span:nth-child(2){text-align:center;color:var(--muted);font-size:8px}.match-centre-actions{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
+.football-match-wrap{transition:transform .16s ease,border-color .16s ease}.football-match-wrap:hover{transform:translateY(-1px);border-color:#385279}
+@media(max-width:520px){.btn{min-height:42px}.btn.small{min-height:36px}.youtube-library-row{grid-template-columns:78px minmax(0,1fr)}.youtube-library-row img{width:78px}.match-centre-hero{gap:7px;padding:12px}.match-centre-team img{width:36px;height:36px}.match-centre-score{font-size:20px}.match-centre-overview{grid-template-columns:1fr}.match-stat{grid-template-columns:minmax(0,1fr) 66px minmax(0,1fr)}}
+
 </style>
 <link rel="stylesheet" href="/transfers.css">
 <script defer src="/transfers.bundle.js"></script>
@@ -2008,6 +2030,7 @@ body:has(.modal.open) .back-to-top{
 <script defer src="/messages.bundle.js"></script>
 </head>
 <body>
+<div class="connectivity-banner" id="connectivityBanner" role="status">Offline — showing saved information</div>
 <div class="layout">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand"><div class="brand-icon">🎛️</div><div><h1 style="font-size:15px;margin:0">Command Center</h1><p style="font-size:10px;color:var(--muted);margin:3px 0 0">Personal dashboard</p></div></div>
@@ -2431,6 +2454,16 @@ body:has(.modal.open) .back-to-top{
                 </div>
                 <div id="youtubeExploreStatus" class="sub">For You learns from what you watch and search inside Command Centre.</div>
                 <div id="youtubeExploreGrid" class="yt-explore-grid" style="margin-top:9px"></div>
+                <section class="youtube-library">
+                  <div class="card-head"><div><div class="title">▤ Your YouTube library</div><div class="sub" id="youtubeLibraryStatus">Continue watching, save videos and manage history.</div></div></div>
+                  <div class="youtube-library-tabs" aria-label="YouTube library">
+                    <button class="youtube-library-tab active" type="button" data-yt-library="continue">Continue</button>
+                    <button class="youtube-library-tab" type="button" data-yt-library="later">Watch later</button>
+                    <button class="youtube-library-tab" type="button" data-yt-library="history">History</button>
+                    <button class="youtube-library-tab" type="button" data-yt-library="hidden">Hidden channels</button>
+                  </div>
+                  <div class="youtube-library-list" id="youtubeLibraryList"></div>
+                </section>
                 <div class="section-note">Player</div>
                 <div class="app-video-stage" id="youtubePlayerStage">
                   <iframe id="youtubeWatchFrame" class="watch-frame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
@@ -2444,7 +2477,7 @@ body:has(.modal.open) .back-to-top{
                   <div class="field" style="margin-top:8px"><input id="youtubeWatchInput" placeholder="https://youtube.com/watch?v=… or video ID" /></div>
                   <div class="toolbar" style="margin:8px 0"><button class="btn" id="loadYoutubeBtn" onclick="loadYoutubeVideo()">Play link</button></div>
                 </details>
-                <div class="section-note">Recent videos</div><div class="watch-recent" id="youtubeRecents"></div>
+                <div id="youtubeRecents" hidden></div>
               </article>
             </div>
 
@@ -2949,6 +2982,12 @@ body:has(.modal.open) .back-to-top{
     <div class="settings-description">Move notes, reminders, calendar events and their folders/categories between the Home Screen app and the IPA. Restoring merges data without deleting items already on this device.</div>
     <div class="backup-actions"><button class="btn" id="exportBackupBtn" type="button">Export backup</button><button class="btn primary" id="importBackupBtn" type="button">Restore backup</button><input id="backupFileInput" type="file" accept="application/json,.json" hidden /></div>
     <div class="setting-note" id="backupStatus">Backups exclude API keys and device notification identifiers.</div>
+  </article>
+  <article class="card settings-card-clean">
+    <div class="title">🛡 Local safety snapshots</div>
+    <div class="settings-description">Command Centre keeps five rolling on-device snapshots in a transactional database, separate from the live settings record.</div>
+    <div class="backup-actions"><button class="btn" id="createSafetySnapshotBtn" type="button">Create snapshot</button><button class="btn" id="restoreSafetySnapshotBtn" type="button">Restore latest</button></div>
+    <div class="foundation-status" id="foundationStorageStatus"><span>●</span><span>Checking durable storage…</span></div>
   </article></section>
 
   <section class="settings-section" data-settings-panel="home"><article class="card settings-card-clean">
@@ -2993,9 +3032,12 @@ body:has(.modal.open) .back-to-top{
 </div>
 <div class="modal-actions"><button class="btn" data-close="settingsModal">Cancel</button><button class="btn primary" id="saveSettings">Save</button></div>
 </div></div>
-<div class="modal" id="footballLineupModal"><div class="modal-card" style="max-width:760px">
-<div class="modal-head"><div><div class="title" id="footballLineupTitle">Team lineups</div><div class="sub" id="footballLineupStatus">Loading…</div></div><button class="icon-btn" data-close="footballLineupModal">×</button></div>
-<div id="footballLineupContent"><div class="empty">Choose Lineups on a football match.</div></div>
+<div class="modal" id="footballLineupModal"><div class="modal-card" style="max-width:780px">
+<div class="modal-head"><div><div class="title" id="footballLineupTitle">Match Centre</div><div class="sub" id="footballLineupStatus">Loading…</div></div><button class="icon-btn" data-close="footballLineupModal">×</button></div>
+<div id="footballMatchHero"></div>
+<div class="match-centre-actions"><button class="btn primary" id="footballMatchFollowBtn" type="button">☆ Follow match</button><button class="btn" id="footballMatchCalendarBtn" type="button">＋ Add to calendar</button><button class="btn" id="footballMatchRefreshBtn" type="button">↻ Refresh</button></div>
+<div class="match-centre-tabs"><button class="match-centre-tab active" data-match-centre-tab="overview">Overview</button><button class="match-centre-tab" data-match-centre-tab="lineups">Team lineups</button><button class="match-centre-tab" data-match-centre-tab="timeline">Timeline</button><button class="match-centre-tab" data-match-centre-tab="stats">Stats</button></div>
+<div id="footballLineupContent"><div class="empty">Choose Match Centre on a football fixture.</div></div>
 </div></div>
 <div class="modal" id="universalSearchModal"><div class="modal-card search-modal-card">
 <div class="modal-head"><div><div class="title">⌕ Search Command Centre</div><div class="sub">Pages, notes, calendar, sport, news, YouTube and Movies & TV.</div></div><button class="icon-btn" data-close="universalSearchModal">×</button></div>
@@ -3086,6 +3128,7 @@ body:has(.modal.open) .back-to-top{
 'use strict';
 
 const STORAGE = 'commandCenterV3';
+const SAFETY_DB_NAME='command-centre-safety-v1',SAFETY_STORE='snapshots';
 const DEFAULT_STATE = {
   city:'London',
   deepSeekKey:'',
@@ -3133,13 +3176,16 @@ const DEFAULT_STATE = {
   footballNotify1h:true,
   footballNotifyKickoff:true,
   footballNotifyFinal:true,
+  footballFollowedMatches:[],
   entertainment:{
     likes:{},
     hidden:{},
     watchHistory:[],
     youtubeSearchHistory:[],
     youtubeRecommendationHidden:[],
-    youtubeForYouCache:{version:3,items:[],signals:[],reason:'',updatedAt:''},
+    youtubeHiddenChannels:[],
+    youtubeWatchLater:[],
+    youtubeForYouCache:{version:4,items:[],signals:[],reason:'',updatedAt:''},
     twitchHistory:[],
     gameStats:{best2048:0,bestSnake:0,bestReaction:null,triviaStreak:0,triviaBest:0,triviaLastDate:'',triviaLastCorrect:null,triviaLastAnswer:null,wordleStreak:0,wordleBest:0,wordleDate:'',wordleGuesses:[],wordleCurrent:'',wordleFinished:false,wordleWon:false},
     visit:{lastDate:'',streak:0}
@@ -3178,6 +3224,7 @@ state.footballFavouriteTeams=state.footballFavouriteTeams
   .filter(t=>Number(t?.id)!==0)
   .map(t=>({id:Number(t.id),name:String(t.name||'Team'),crest:String(t.crest||'')}))
   .filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i);
+state.footballFollowedMatches=Array.isArray(state.footballFollowedMatches)?state.footballFollowedMatches.map(Number).filter(Boolean).slice(0,30):[];
 
 state.notes=(Array.isArray(state.notes)?state.notes:[]).map(n=>({...n,folder:n.folder||'Notes',pinned:!!n.pinned,deletedAt:n.deletedAt||''}));
 
@@ -3190,9 +3237,11 @@ state.entertainment={
   youtubeHistoryDetailed:Array.isArray(state.entertainment?.youtubeHistoryDetailed)?state.entertainment.youtubeHistoryDetailed:[],
   youtubeSearchHistory:Array.isArray(state.entertainment?.youtubeSearchHistory)?state.entertainment.youtubeSearchHistory.map(String).filter(Boolean).slice(0,20):[],
   youtubeRecommendationHidden:Array.isArray(state.entertainment?.youtubeRecommendationHidden)?state.entertainment.youtubeRecommendationHidden.map(String).filter(Boolean).slice(0,100):[],
+  youtubeHiddenChannels:Array.isArray(state.entertainment?.youtubeHiddenChannels)?state.entertainment.youtubeHiddenChannels.map(String).filter(Boolean).slice(0,100):[],
+  youtubeWatchLater:Array.isArray(state.entertainment?.youtubeWatchLater)?state.entertainment.youtubeWatchLater.filter(x=>x&&x.id).slice(0,100):[],
   youtubeForYouCache:(state.entertainment?.youtubeForYouCache&&typeof state.entertainment.youtubeForYouCache==='object')
     ?state.entertainment.youtubeForYouCache
-    :{version:3,items:[],signals:[],reason:'',updatedAt:''},
+    :{version:4,items:[],signals:[],reason:'',updatedAt:''},
   mediaHistory:Array.isArray(state.entertainment?.mediaHistory)?state.entertainment.mediaHistory:[],
   twitchHistory:Array.isArray(state.entertainment?.twitchHistory)?state.entertainment.twitchHistory:[],
   gameStats:{...DEFAULT_STATE.entertainment.gameStats,...(state.entertainment?.gameStats||{})},
@@ -3225,7 +3274,47 @@ const pct = n => Number.isFinite(n) ? `${n>=0?'+':''}${n.toFixed(2)}%` : '—';
 const nowIso = () => new Date().toISOString();
 function cloneDefault(){return JSON.parse(JSON.stringify(DEFAULT_STATE))}
 function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE)||'{}');const merged={...cloneDefault(),...saved,holdings:Array.isArray(saved.holdings)?saved.holdings:cloneDefault().holdings,reminders:Array.isArray(saved.reminders)?saved.reminders:[],reminderCategories:Array.isArray(saved.reminderCategories)&&saved.reminderCategories.length?saved.reminderCategories:cloneDefault().reminderCategories};merged.reminders=merged.reminders.map(r=>({...r,id:r.id||makeId('rem'),text:r.text,category:r.category||'General',createdAt:r.createdAt||new Date().toISOString(),startDate:r.startDate||dayKey(new Date(r.createdAt||Date.now())),time:r.time||'',frequency:r.frequency||'none'}));merged.events=Array.isArray(saved.events)?saved.events.map(e=>({...e,id:e.id||makeId('event'),title:e.title||'Event',date:e.date||dayKey(),time:e.time||'',notes:e.notes||''})):[];merged.notes=Array.isArray(saved.notes)?saved.notes.map(n=>({...n,id:n.id||makeId('note'),title:n.title||'Untitled note',body:n.body||'',createdAt:n.createdAt||nowIso(),updatedAt:n.updatedAt||n.createdAt||nowIso()})):[];if(!merged.reminderCategories.includes('General'))merged.reminderCategories.unshift('General');return merged}catch{return cloneDefault()}}
-function saveState(){localStorage.setItem(STORAGE,JSON.stringify(state))}
+let safetyDbPromise=null,safetySnapshotTimer=null;
+function openSafetyDb(){
+  if(!('indexedDB' in window))return Promise.reject(new Error('Durable browser storage is unavailable.'));
+  if(safetyDbPromise)return safetyDbPromise;
+  safetyDbPromise=new Promise((resolve,reject)=>{
+    const request=indexedDB.open(SAFETY_DB_NAME,1);
+    request.onupgradeneeded=()=>{const db=request.result;if(!db.objectStoreNames.contains(SAFETY_STORE))db.createObjectStore(SAFETY_STORE,{keyPath:'id'})};
+    request.onsuccess=()=>resolve(request.result);
+    request.onerror=()=>reject(request.error||new Error('Could not open durable storage.'));
+  });
+  return safetyDbPromise;
+}
+function safetyRequest(request){return new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error||new Error('Storage request failed.'))})}
+function safetyTransaction(transaction){return new Promise((resolve,reject)=>{transaction.oncomplete=()=>resolve();transaction.onerror=()=>reject(transaction.error||new Error('Storage transaction failed.'));transaction.onabort=()=>reject(transaction.error||new Error('Storage transaction was cancelled.'))})}
+async function safetySnapshots(){const db=await openSafetyDb(),tx=db.transaction(SAFETY_STORE,'readonly'),done=safetyTransaction(tx),rows=await safetyRequest(tx.objectStore(SAFETY_STORE).getAll());await done;return (Array.isArray(rows)?rows:[]).sort((a,b)=>Number(b.savedAt)-Number(a.savedAt))}
+async function writeSafetySnapshot(reason='automatic'){
+  const db=await openSafetyDb(),savedAt=Date.now(),snapshot={id:`snapshot-${savedAt}`,savedAt,reason,state:JSON.parse(JSON.stringify(state))};
+  const writeTx=db.transaction(SAFETY_STORE,'readwrite'),writeDone=safetyTransaction(writeTx);writeTx.objectStore(SAFETY_STORE).put(snapshot);await writeDone;
+  const rows=await safetySnapshots();
+  if(rows.length>5){const pruneTx=db.transaction(SAFETY_STORE,'readwrite'),pruneDone=safetyTransaction(pruneTx),store=pruneTx.objectStore(SAFETY_STORE);rows.slice(5).forEach(row=>store.delete(row.id));await pruneDone}
+  updateSafetySnapshotStatus();return snapshot;
+}
+function queueSafetySnapshot(reason='automatic'){clearTimeout(safetySnapshotTimer);safetySnapshotTimer=setTimeout(()=>writeSafetySnapshot(reason).catch(error=>console.warn('Safety snapshot skipped',error)),600)}
+async function updateSafetySnapshotStatus(){
+  const el=qs('#foundationStorageStatus');if(!el)return;
+  try{const rows=await safetySnapshots(),latest=rows[0];el.innerHTML=latest?`<span>●</span><span><strong>${rows.length} safety snapshot${rows.length===1?'':'s'}</strong> • latest ${new Date(latest.savedAt).toLocaleString('en-GB')}</span>`:'<span>●</span><span>Durable storage is ready. A snapshot will be created after your next change.</span>';}
+  catch(error){el.innerHTML=`<span>●</span><span>${esc(error.message||'Durable storage is unavailable.')}</span>`}
+}
+async function createSafetySnapshot(){try{await writeSafetySnapshot('manual');toast('Safety snapshot created')}catch(error){toast(error.message||'Could not create a snapshot')}}
+async function restoreLatestSafetySnapshot(){
+  try{
+    const latest=(await safetySnapshots())[0];if(!latest){toast('No safety snapshot is available yet');return}
+    if(!confirm(`Restore the snapshot from ${new Date(latest.savedAt).toLocaleString('en-GB')}? Your current local state will be replaced.`))return;
+    localStorage.setItem(STORAGE,JSON.stringify(latest.state));location.reload();
+  }catch(error){toast(error.message||'Could not restore the safety snapshot')}
+}
+function saveState(){
+  try{localStorage.setItem(STORAGE,JSON.stringify(state))}
+  catch(error){console.error('Primary state save failed',error);toast('This device is running out of app storage. Export a backup now.');}
+  queueSafetySnapshot();
+}
 function commandCentreBackupPayload(){
   return {
     format:'command-centre-backup',schemaVersion:1,exportedAt:nowIso(),
@@ -3746,7 +3835,7 @@ function notificationPermission(){
 }
 function notificationStatusText(){
   if(nativeNotificationsSupported()){
-    if(notificationPermission()==='granted'&&state.notificationsEnabled)return 'Native IPA notifications are enabled for reminders and calendar events.';
+    if(notificationPermission()==='granted'&&state.notificationsEnabled)return 'Native IPA notifications are enabled for schedules plus background Messages and Transfers checks.';
     if(notificationPermission()==='denied')return 'Native notifications are blocked. Allow Command Centre notifications in iPhone Settings.';
     return 'Native iPhone notifications are available — tap Enable.';
   }
@@ -3934,13 +4023,14 @@ function collectPushSchedule(days=400){
 function collectNativeFootballNotifications(){
   if(state.footballNotificationsEnabled===false)return [];
   const favouriteIds=new Set(footballFavouriteTeams().map(team=>Number(team.id)));
-  if(!favouriteIds.size)return [];
+  const followedIds=new Set((state.footballFollowedMatches||[]).map(Number));
+  if(!favouriteIds.size&&!followedIds.size)return [];
   const now=Date.now(),items=[];
   footballAllScheduleMatches().forEach(match=>{
-    if(!favouriteIds.has(Number(match.homeTeam?.id))&&!favouriteIds.has(Number(match.awayTeam?.id)))return;
+    if(!favouriteIds.has(Number(match.homeTeam?.id))&&!favouriteIds.has(Number(match.awayTeam?.id))&&!followedIds.has(Number(match.id)))return;
     const kickoff=Date.parse(match.utcDate||'');if(!Number.isFinite(kickoff)||kickoff<=now)return;
     const fixture=`${footballTeamName(match.homeTeam)} vs ${footballTeamName(match.awayTeam)}`;
-    const add=(suffix,offset,body)=>{const due=kickoff-offset;if(due>now)items.push({id:`football-${match.id}-${suffix}`,kind:'football',dueAt:new Date(due).toISOString(),title:'⚽ Football',body,url:'#football'})};
+    const add=(suffix,offset,body)=>{const due=kickoff-offset;if(due>now)items.push({id:`football-${match.id}-${suffix}`,matchId:Number(match.id),offsetMinutes:Math.round(offset/60000),kind:'football',dueAt:new Date(due).toISOString(),title:'⚽ Football',body,url:'#football'})};
     if(state.footballNotify24h!==false)add('24h',24*60*60*1000,`${fixture} starts tomorrow.`);
     if(state.footballNotify1h!==false)add('1h',60*60*1000,`${fixture} starts in one hour.`);
     if(state.footballNotifyKickoff!==false)add('kickoff',0,`${fixture} is kicking off now.`);
@@ -3999,6 +4089,7 @@ async function testNotification(){
 window.addEventListener('cc-native-notification-status',event=>{
   const permission=String(event.detail?.permission||'default');
   state.nativeNotificationPermission=['granted','denied'].includes(permission)?permission:'default';
+  if(permission==='granted')state.notificationsEnabled=true;
   if(permission==='denied')state.notificationsEnabled=false;
   saveState();updateNotificationUI();
   if(event.detail?.message)toast(String(event.detail.message));
@@ -4085,6 +4176,8 @@ function init(){
     bind('resetHomeLayoutBtn','click',resetHomeLayout);
     bind('exportBackupBtn','click',exportCommandCentreBackup);
     bind('importBackupBtn','click',chooseCommandCentreBackup);
+    bind('createSafetySnapshotBtn','click',createSafetySnapshot);
+    bind('restoreSafetySnapshotBtn','click',restoreLatestSafetySnapshot);
     bind('backupFileInput','change',async event=>{
       const file=event.target.files?.[0];event.target.value='';if(!file)return;
       if(file.size>10*1024*1024){toast('Backup file is too large');return}
@@ -4099,7 +4192,7 @@ function init(){
      bind('testMorningBriefingBtn','click',testMorningBriefing);
      bind('rescheduleNotificationsBtn','click',()=>{scheduleAllNotifications();toast('Notifications rescheduled')});
     qsa('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
-    ['settingsModal','universalSearchModal','quickAddModal','holdingModal','reminderModal','calendarEventModal','noteModal'].forEach(id=>{const el=qs('#'+id);if(el)el.addEventListener('click',e=>{if(e.target.id===id)closeModal(id)})});
+    ['settingsModal','universalSearchModal','quickAddModal','holdingModal','reminderModal','calendarEventModal','noteModal','footballLineupModal'].forEach(id=>{const el=qs('#'+id);if(el)el.addEventListener('click',e=>{if(e.target.id===id)closeModal(id)})});
     bind('saveSettings','click',saveSettings);
     bind('settingsMarketProvider','change',updateProviderFieldsUI);
     bind('addHoldingBtn','click',()=>openHolding());
@@ -4109,6 +4202,7 @@ function init(){
     bind('footballRefreshBtn','click',refreshSelectedSport);
     bind('footballCompetition','change',()=>loadFootball(false));
     runInitStep('sport controls',bindSportSwitcher);
+    runInitStep('football match centre',bindFootballMatchCentre);
     bind('liveFootballRefreshBtn','click',()=>loadLiveFootball(true));
     bind('closeLiveFootballBtn','click',closeLiveFootball);
     runInitStep('live sport controls',bindLiveFootball);
@@ -4116,8 +4210,8 @@ function init(){
     bind('footballNotificationTestBtn','click',testFootballNotification);
     bind('runStatusChecksBtn','click',runStatusChecks);
     runInitStep('screen mirror controls',bindMirrorControls);
-    bind('weatherRefresh','click',()=>loadWeather());
-    bind('weatherFullRefresh','click',()=>loadWeather());
+    bind('weatherRefresh','click',()=>loadWeather(true));
+    bind('weatherFullRefresh','click',()=>loadWeather(true));
     bind('generateBriefing','click',generateBriefing);
      bind('addReminderBtn','click',()=>openReminder());
      bind('addReminderBtn2','click',()=>openReminder());
@@ -4182,6 +4276,7 @@ function init(){
     calendarCursor=new Date();selectedCalendarDate=dayKey();
     runInitStep('clock',updateClock);setInterval(()=>runInitStep('clock',updateClock),1000);
     registerNotificationSW();
+    runInitStep('foundation refresh',bindFoundationRefresh);
     runInitStep('notification controls',updateNotificationUI);
     if(state.notificationsEnabled&&notificationPermission()==='granted')scheduleAllNotifications();
     setTimeout(()=>runInitStep('launch route',applyLaunchRoute),60);
@@ -4197,7 +4292,9 @@ function init(){
       try{job()}
       catch(e){console.error('Startup component failed',e)}
     });
-    const startHomeWeather=()=>loadWeather();
+    queueSafetySnapshot('startup');
+    updateSafetySnapshotStatus();
+    const startHomeWeather=()=>refreshAppFreshness(false);
     if('requestIdleCallback' in window)window.requestIdleCallback(startHomeWeather,{timeout:1200});
     else setTimeout(startHomeWeather,250);
     setInterval(()=>{const fw=qs('#featuredWord');if(fw)fw.textContent=yourWords[Math.floor(Math.random()*yourWords.length)]},30000);
@@ -4586,7 +4683,7 @@ function saveSettings(){
   if(qs('#settingsContentDefault'))state.contentDefault=qs('#settingsContentDefault').value||'movies';
   saveState();applySettingsUI();applyHomeLayout();syncNewsPreferences();syncMorningBriefingPreferences();closeModal('settingsModal');
   qs('#weatherPlace').textContent=state.city;qs('#weatherFullPlace').textContent=state.city;
-  loadWeather();loadPortfolio(true);toast('Settings saved')
+  loadWeather(true);loadPortfolio(true);toast('Settings saved')
 }
 
 const BIBLE_BOOKS=[
@@ -6652,7 +6749,10 @@ const FOOTBALL_COMPETITIONS={
   FLC:'League Cup'
 };
 let footballCache={competition:'',matches:[],standings:[],competitionName:'',updatedAt:''};
-let footballScheduleCache={matches:[],competitions:[],provider:'',updatedAt:'',warning:''};
+const FOOTBALL_SCHEDULE_CACHE_KEY='command-centre-football-schedule-v1';
+function loadStoredFootballSchedule(){try{const cached=JSON.parse(localStorage.getItem(FOOTBALL_SCHEDULE_CACHE_KEY)||'null');return Array.isArray(cached?.matches)?cached:{matches:[],competitions:[],provider:'',updatedAt:'',warning:''}}catch{return{matches:[],competitions:[],provider:'',updatedAt:'',warning:''}}}
+function persistFootballSchedule(){try{localStorage.setItem(FOOTBALL_SCHEDULE_CACHE_KEY,JSON.stringify(footballScheduleCache))}catch{}}
+let footballScheduleCache=loadStoredFootballSchedule();
 let footballScheduleFilter=dayKey();
 
 function footballDateTime(iso){
@@ -6678,7 +6778,7 @@ function footballMatchCard(m){
       <div class="football-score">${esc(footballScoreText(m))}<small>${esc(statusLabel)}</small></div>
       <div class="football-team away"><span>${esc(away)}</span>${m.awayTeam?.crest?`<img src="${esc(m.awayTeam.crest)}" alt="">`:''}</div>
     </div>
-    <div class="football-match-actions"><span class="football-competition">${esc(competition)} • ${esc(footballDateTime(m.utcDate))}</span><button class="btn small" type="button" onclick="openFootballLineups(${Number(m.id)||0})">Team lineups</button></div>
+    <div class="football-match-actions"><span class="football-competition">${esc(competition)} • ${esc(footballDateTime(m.utcDate))}</span><button class="btn small" type="button" onclick="openFootballMatchCentre(${Number(m.id)||0})">${(state.footballFollowedMatches||[]).includes(Number(m.id))?'★ Following':'Match Centre'}</button></div>
   </div>`;
 }
 function footballLocalDay(iso){const d=new Date(iso);return Number.isNaN(d.getTime())?'':dayKey(d)}
@@ -6699,18 +6799,56 @@ function footballAllScheduleMatches(){
 }
 function footballLineupPlayerHtml(player){return `<div class="football-player"><span class="football-player-number">${player.number==null?'—':esc(player.number)}</span><span>${esc(player.name||'Player')}${player.position?`<small class="football-player-position">${esc(player.position)}</small>`:''}</span></div>`}
 function footballLineupTeamHtml(team){return `<section class="football-lineup-team"><div class="football-lineup-team-head">${team.crest?`<img src="${esc(team.crest)}" alt="">`:''}<div><strong>${esc(team.name||'Team')}</strong><div class="sub">${esc([team.formation?`Formation ${team.formation}`:'',team.coach?`Coach ${team.coach}`:''].filter(Boolean).join(' • ')||'Team sheet')}</div></div></div><div class="section-note">Starting XI</div>${team.starting?.length?team.starting.map(footballLineupPlayerHtml).join(''):'<div class="empty">Not announced</div>'}<div class="section-note" style="margin-top:8px">Bench</div>${team.bench?.length?team.bench.map(footballLineupPlayerHtml).join(''):'<div class="empty">Not announced</div>'}</section>`}
-async function openFootballLineups(matchId,force=false){
-  const match=footballAllScheduleMatches().find(item=>Number(item.id)===Number(matchId));
-  const title=match?`${footballTeamName(match.homeTeam)} vs ${footballTeamName(match.awayTeam)}`:'Team lineups';
-  qs('#footballLineupTitle').textContent=title;qs('#footballLineupStatus').textContent='Loading official team sheets…';qs('#footballLineupContent').innerHTML='<div class="empty">Loading lineups…</div>';openModal('footballLineupModal');
-  try{
-    const params=new URLSearchParams({matchId:String(matchId)});if(force)params.set('refresh','1');
-    const data=await fetchJson(`/api/football/lineups?${params.toString()}`,{},16000);
-    qs('#footballLineupStatus').textContent=`${data.provider||'Football provider'} • ${data.available?'lineups available':'awaiting announcement'}`;
-    qs('#footballLineupContent').innerHTML=data.available?`<div class="football-lineup-grid">${(data.teams||[]).map(footballLineupTeamHtml).join('')}</div>`:`<div class="empty">${esc(data.message||'Lineups have not been announced yet. Check again closer to kick-off.')}</div>`;
-  }catch(e){qs('#footballLineupStatus').textContent='Lineups unavailable';qs('#footballLineupContent').innerHTML=`<div class="danger">${esc(e.message||'Could not load team lineups.')}</div>`}
+const footballMatchRuntime={matchId:0,data:null,tab:'overview'};
+function footballMatchCentreHero(match){
+  const status=footballMatchIsLive(match)?`${Number(match.minute)||'LIVE'}${Number(match.minute)?"′":''}`:match.status==='FINISHED'?'Full time':footballDateTime(match.utcDate);
+  return `<div class="match-centre-hero"><div class="match-centre-team">${match.homeTeam?.crest?`<img src="${esc(match.homeTeam.crest)}" alt="">`:''}${esc(footballTeamName(match.homeTeam))}</div><div class="match-centre-score">${esc(footballScoreText(match))}<small>${esc(status)}</small></div><div class="match-centre-team">${match.awayTeam?.crest?`<img src="${esc(match.awayTeam.crest)}" alt="">`:''}${esc(footballTeamName(match.awayTeam))}</div></div>`;
 }
-window.openFootballLineups=openFootballLineups;
+function footballMatchEventHtml(event){
+  const extra=Number(event.extra)>0?`+${Number(event.extra)}`:'',who=[event.player,event.playerOut?`for ${event.playerOut}`:'',event.assist?`Assist: ${event.assist}`:''].filter(Boolean).join(' • ');
+  const glyph=String(event.type).toLowerCase().includes('goal')?'⚽':String(event.type).toLowerCase().includes('card')?'🟨':String(event.type).toLowerCase().includes('sub')?'↔':'•';
+  return `<div class="match-event"><div class="match-event-time">${Number(event.minute)||0}${extra}′</div><div><div class="match-event-title">${glyph} ${esc(event.detail||event.type||'Match event')} ${event.team?.name?`• ${esc(event.team.name)}`:''}</div>${who?`<div class="match-event-meta">${esc(who)}</div>`:''}</div></div>`;
+}
+function footballMatchStatsHtml(data){
+  const teams=data.statistics||[];if(!teams.length)return '<div class="empty">Match statistics are not available from this provider yet.</div>';
+  const labels=[...new Set(teams.flatMap(team=>(team.items||[]).map(item=>item.label)).filter(Boolean))];
+  return `<div class="match-stats-grid">${labels.map(label=>{const left=(teams[0]?.items||[]).find(item=>item.label===label)?.value??'—',right=(teams[1]?.items||[]).find(item=>item.label===label)?.value??'—';return `<div class="match-stat"><strong>${esc(left)}</strong><span>${esc(label)}</span><strong style="text-align:right">${esc(right)}</strong></div>`}).join('')}</div>`;
+}
+function renderFootballMatchCentre(){
+  const data=footballMatchRuntime.data,match=data?.match,content=qs('#footballLineupContent');if(!data||!match||!content)return;
+  qs('#footballLineupTitle').textContent=`${footballTeamName(match.homeTeam)} vs ${footballTeamName(match.awayTeam)}`;
+  qs('#footballLineupStatus').textContent=`${match.competition?.name||'Football'} • ${data.provider||'football provider'} • updated ${new Date(data.updatedAt||Date.now()).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`;
+  qs('#footballMatchHero').innerHTML=footballMatchCentreHero(match);
+  qsa('[data-match-centre-tab]').forEach(button=>button.classList.toggle('active',button.dataset.matchCentreTab===footballMatchRuntime.tab));
+  const referees=(match.referees||[]).map(ref=>typeof ref==='string'?ref:ref?.name).filter(Boolean).join(', ')||'Not listed';
+  if(footballMatchRuntime.tab==='overview')content.innerHTML=`<section class="match-centre-panel active"><div class="match-centre-overview"><div class="match-centre-fact"><strong>Kick-off</strong><span>${esc(footballDateTime(match.utcDate))}</span></div><div class="match-centre-fact"><strong>Status</strong><span>${esc(String(match.status||'Scheduled').replaceAll('_',' '))}</span></div><div class="match-centre-fact"><strong>Venue</strong><span>${esc(match.venue||'Not listed')}</span></div><div class="match-centre-fact"><strong>Referee</strong><span>${esc(referees)}</span></div></div></section>`;
+  else if(footballMatchRuntime.tab==='lineups')content.innerHTML=`<section class="match-centre-panel active">${data.available?.lineups?`<div class="football-lineup-grid">${(data.teams||[]).map(footballLineupTeamHtml).join('')}</div>`:'<div class="empty">Lineups have not been announced yet. Check again closer to kick-off.</div>'}</section>`;
+  else if(footballMatchRuntime.tab==='timeline')content.innerHTML=`<section class="match-centre-panel active"><div class="match-timeline">${data.available?.timeline?(data.events||[]).map(footballMatchEventHtml).join(''):'<div class="empty">The match timeline will appear when events are available.</div>'}</div></section>`;
+  else content.innerHTML=`<section class="match-centre-panel active">${footballMatchStatsHtml(data)}</section>`;
+  const following=(state.footballFollowedMatches||[]).includes(Number(match.id)),follow=qs('#footballMatchFollowBtn');if(follow)follow.textContent=following?'★ Following':'☆ Follow match';
+}
+async function openFootballMatchCentre(matchId,force=false,tab='overview'){
+  const id=Number(matchId)||0;if(!id)return;
+  footballMatchRuntime.matchId=id;footballMatchRuntime.tab=tab;
+  const known=footballAllScheduleMatches().find(item=>Number(item.id)===id);
+  qs('#footballLineupTitle').textContent=known?`${footballTeamName(known.homeTeam)} vs ${footballTeamName(known.awayTeam)}`:'Match Centre';qs('#footballLineupStatus').textContent='Loading match details…';qs('#footballLineupContent').innerHTML='<div class="empty">Loading Match Centre…</div>';qs('#footballMatchHero').innerHTML=known?footballMatchCentreHero(known):'';openModal('footballLineupModal');
+  try{const params=new URLSearchParams({matchId:String(id)});if(force)params.set('refresh','1');footballMatchRuntime.data=await fetchJson(`/api/football/match?${params.toString()}`,{},18000);renderFootballMatchCentre()}
+  catch(e){qs('#footballLineupStatus').textContent='Match Centre unavailable';qs('#footballLineupContent').innerHTML=`<div class="danger">${esc(e.message||'Could not load match details.')}</div>`}
+}
+function followFootballMatch(){
+  const id=Number(footballMatchRuntime.matchId)||0;if(!id)return;const current=state.footballFollowedMatches||[],following=current.includes(id);
+  state.footballFollowedMatches=following?current.filter(item=>item!==id):[id,...current].slice(0,30);saveState();renderFootballMatchCentre();renderFootball();if(state.notificationsEnabled)syncNativeNotifications();toast(following?'Match unfollowed':'Match followed — fixture alerts will stay scheduled');
+}
+function addFootballMatchToCalendar(){
+  const match=footballMatchRuntime.data?.match;if(!match?.utcDate)return;const date=new Date(match.utcDate);closeModal('footballLineupModal');openCalendarEvent(dayKey(date));
+  qs('#calendarEventTitle').value=`${footballTeamName(match.homeTeam)} vs ${footballTeamName(match.awayTeam)}`;qs('#calendarEventTime').value=`${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;qs('#calendarEventNotes').value=[match.competition?.name,match.venue].filter(Boolean).join(' • ');
+}
+function bindFootballMatchCentre(){
+  qsa('[data-match-centre-tab]').forEach(button=>button.addEventListener('click',()=>{footballMatchRuntime.tab=button.dataset.matchCentreTab;renderFootballMatchCentre()}));
+  bind('footballMatchFollowBtn','click',followFootballMatch);bind('footballMatchCalendarBtn','click',addFootballMatchToCalendar);bind('footballMatchRefreshBtn','click',()=>openFootballMatchCentre(footballMatchRuntime.matchId,true,footballMatchRuntime.tab));
+}
+function openFootballLineups(matchId,force=false){return openFootballMatchCentre(matchId,force,'lineups')}
+window.openFootballLineups=openFootballLineups;window.openFootballMatchCentre=openFootballMatchCentre;
 
 function footballFavouriteTeams(){
   return Array.isArray(state.footballFavouriteTeams)?state.footballFavouriteTeams:[];
@@ -6977,6 +7115,7 @@ async function loadFootball(force=false){
     }else{
       footballScheduleCache={matches:data.matches||[],competitions:[data.competition].filter(Boolean),provider:data.provider||'football data',updatedAt:data.updatedAt||new Date().toISOString(),warning:scheduleResult.error||''};
     }
+    persistFootballSchedule();
     renderFootball();
     if(nativeNotificationsSupported()&&state.notificationsEnabled)syncNativeNotifications();
     const note=data.warning?` • ${esc(data.warning)}`:(data.cache==='hit'?' • cached':'');
@@ -6987,6 +7126,36 @@ async function loadFootball(force=false){
     if(qs('#footballResults'))qs('#footballResults').innerHTML='<div class="empty">Could not load results.</div>';
     if(qs('#footballStandings'))qs('#footballStandings').innerHTML='<div class="empty">Could not load standings.</div>';
   }
+}
+
+let foundationRefreshPromise=null,lastFoundationRefresh=0;
+function updateConnectivityBanner(){const banner=qs('#connectivityBanner');if(banner)banner.classList.toggle('show',navigator.onLine===false)}
+async function refreshFootballScheduleInBackground(force=false){
+  try{
+    const params=new URLSearchParams();if(force)params.set('refresh','1');
+    const data=await fetchJson(`/api/football/schedule?${params.toString()}`,{},18000);
+    if(!Array.isArray(data.matches))return false;
+    footballScheduleCache={matches:data.matches,competitions:Array.isArray(data.competitions)?data.competitions:[],provider:data.provider||'football data',updatedAt:data.updatedAt||nowIso(),warning:data.warning||''};
+    persistFootballSchedule();
+    if(appCurrentPage==='football')renderFootball();
+    if(nativeNotificationsSupported()&&state.notificationsEnabled)syncNativeNotifications();
+    return true;
+  }catch(error){console.warn('Background fixture refresh failed',error);return false}
+}
+function refreshAppFreshness(force=false){
+  updateConnectivityBanner();if(navigator.onLine===false)return Promise.resolve(false);
+  if(foundationRefreshPromise)return foundationRefreshPromise;
+  if(!force&&Date.now()-lastFoundationRefresh<15*60*1000)return Promise.resolve(true);
+  lastFoundationRefresh=Date.now();
+  foundationRefreshPromise=Promise.allSettled([loadWeather(false),refreshFootballScheduleInBackground(force)]).then(()=>{scheduleAllNotifications();return true}).finally(()=>{foundationRefreshPromise=null});
+  return foundationRefreshPromise;
+}
+function bindFoundationRefresh(){
+  updateConnectivityBanner();
+  window.addEventListener('online',()=>refreshAppFreshness(true));window.addEventListener('offline',updateConnectivityBanner);
+  window.addEventListener('pageshow',()=>refreshAppFreshness(false));
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshAppFreshness(false)});
+  setInterval(()=>{if(document.visibilityState==='visible')refreshAppFreshness(false)},15*60*1000);
 }
 
 function serviceCard(name,stateText,detail,kind='info'){
@@ -7665,6 +7834,78 @@ function decodeHtmlText(value){
 
 let youtubeExploreSection='foryou';
 const youtubeMetaCache={};
+let youtubeLibraryView='continue';
+function youtubeLibraryItem(videoId){
+  const id=String(videoId||'').trim(),history=(state.entertainment.youtubeHistoryDetailed||[]).find(item=>String(item.id)===id)||{},meta=youtubeMetaCache[id]||{};
+  return {
+    ...history,...meta,id,
+    title:decodeHtmlText(meta.title||history.title||`YouTube ${id}`),
+    channelTitle:decodeHtmlText(meta.channelTitle||history.channelTitle||'YouTube'),
+    thumbnail:meta.thumbnail||history.thumbnail||`https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqdefault.jpg`,
+    updatedAt:history.updatedAt||meta.updatedAt||nowIso()
+  };
+}
+function youtubeChannelHidden(channel){
+  const key=decodeHtmlText(channel||'').trim().toLowerCase();
+  return !!key&&(state.entertainment.youtubeHiddenChannels||[]).some(item=>String(item).trim().toLowerCase()===key);
+}
+function youtubeWatchLaterContains(id){return (state.entertainment.youtubeWatchLater||[]).some(item=>String(item.id)===String(id))}
+function toggleYoutubeWatchLater(videoId){
+  const id=String(videoId||'').trim();if(!id)return;
+  const current=state.entertainment.youtubeWatchLater||[],saved=current.some(item=>String(item.id)===id);
+  state.entertainment.youtubeWatchLater=saved?current.filter(item=>String(item.id)!==id):[{...youtubeLibraryItem(id),savedAt:nowIso()},...current].slice(0,100);
+  saveState();renderYoutubeLibrary();toast(saved?'Removed from Watch later':'Saved to Watch later');
+}
+function hideYoutubeChannel(channel){
+  const name=decodeHtmlText(channel||'').trim();if(!name)return;
+  state.entertainment.youtubeHiddenChannels=[name,...(state.entertainment.youtubeHiddenChannels||[]).filter(item=>String(item).trim().toLowerCase()!==name.toLowerCase())].slice(0,100);
+  const cache=state.entertainment.youtubeForYouCache||{};
+  if(Array.isArray(cache.items))cache.items=cache.items.filter(item=>!youtubeChannelHidden(item?.channelTitle));
+  saveState();renderYoutubeLibrary();renderYoutubeForYouItems(cache.items||[],cache.reason||'based on your recent activity');toast(`${name} hidden from recommendations`);
+}
+function unhideYoutubeChannel(channel){
+  const name=decodeHtmlText(channel||'').trim();
+  state.entertainment.youtubeHiddenChannels=(state.entertainment.youtubeHiddenChannels||[]).filter(item=>String(item).trim().toLowerCase()!==name.toLowerCase());
+  state.entertainment.youtubeForYouCache={version:4,items:[],signals:[],reason:'',updatedAt:''};
+  saveState();renderYoutubeLibrary();toast(`${name} can appear again`);
+}
+function youtubeLibraryRowHtml(item,view){
+  const progress=playbackProgressDetails(item),saved=youtubeWatchLaterContains(item.id);
+  return `<article class="youtube-library-row">
+    <img src="${esc(item.thumbnail||'')}" alt="">
+    <div><div class="youtube-library-title">${esc(item.title||item.id)}</div><div class="youtube-library-meta">${esc(item.channelTitle||'YouTube')}${progress.label?` • ${esc(progress.label)}`:''}</div>
+    <div class="youtube-library-actions"><button class="btn small primary" data-yt-library-action="play" data-video-id="${esc(item.id)}">▶ ${progress.percent>0&&!item.completed?'Resume':'Watch'}</button>${view!=='later'?`<button class="btn small" data-yt-library-action="later" data-video-id="${esc(item.id)}">${saved?'✓ Saved':'+ Watch later'}</button>`:''}${view==='history'?`<button class="btn small" data-yt-library-action="watched" data-video-id="${esc(item.id)}">${item.completed?'Mark unwatched':'Mark watched'}</button><button class="btn small red" data-yt-library-action="remove-history" data-video-id="${esc(item.id)}">Remove</button>`:''}${view==='later'?`<button class="btn small red" data-yt-library-action="later" data-video-id="${esc(item.id)}">Remove</button>`:''}</div></div>
+  </article>`;
+}
+function renderYoutubeLibrary(){
+  const list=qs('#youtubeLibraryList'),status=qs('#youtubeLibraryStatus');if(!list)return;
+  qsa('[data-yt-library]').forEach(button=>button.classList.toggle('active',button.dataset.ytLibrary===youtubeLibraryView));
+  if(youtubeLibraryView==='hidden'){
+    const channels=state.entertainment.youtubeHiddenChannels||[];
+    list.innerHTML=channels.length?channels.map(channel=>`<div class="youtube-library-row" style="grid-template-columns:minmax(0,1fr) auto"><div><div class="youtube-library-title">${esc(channel)}</div><div class="youtube-library-meta">Excluded from For You recommendations</div></div><button class="btn small" data-yt-library-action="unhide" data-channel="${esc(channel)}">Unhide</button></div>`).join(''):'<div class="empty">No hidden channels.</div>';
+    if(status)status.textContent=`${channels.length} hidden channel${channels.length===1?'':'s'}`;return;
+  }
+  const history=state.entertainment.youtubeHistoryDetailed||[];
+  const items=youtubeLibraryView==='later'?(state.entertainment.youtubeWatchLater||[]):youtubeLibraryView==='history'?history:history.filter(item=>!item.completed&&youtubeResumeSeconds(item.id)>0);
+  list.innerHTML=items.length?items.map(item=>youtubeLibraryRowHtml(youtubeLibraryItem(item.id),youtubeLibraryView)).join(''):`<div class="empty">${youtubeLibraryView==='continue'?'Videos you partly watch will appear here.':youtubeLibraryView==='later'?'Save a video to build your Watch later list.':'No YouTube history yet.'}</div>`;
+  if(status)status.textContent=`${items.length} video${items.length===1?'':'s'} • saved only on this device`;
+}
+function bindYoutubeLibraryControls(){
+  qsa('[data-yt-library]').forEach(button=>{if(button.dataset.bound)return;button.dataset.bound='1';button.addEventListener('click',()=>{youtubeLibraryView=button.dataset.ytLibrary;renderYoutubeLibrary()})});
+  const list=qs('#youtubeLibraryList');if(!list||list.dataset.bound)return;list.dataset.bound='1';
+  list.addEventListener('click',event=>{
+    const button=event.target.closest('[data-yt-library-action]');if(!button)return;
+    const action=button.dataset.ytLibraryAction,id=button.dataset.videoId;
+    if(action==='play')loadYoutubeVideo(id);
+    else if(action==='later')toggleYoutubeWatchLater(id);
+    else if(action==='unhide')unhideYoutubeChannel(button.dataset.channel);
+    else if(action==='remove-history'){state.entertainment.youtubeHistoryDetailed=(state.entertainment.youtubeHistoryDetailed||[]).filter(item=>String(item.id)!==String(id));saveState();renderYoutubeLibrary();renderAllContinueWatching()}
+    else if(action==='watched'){
+      const item=youtubeSavedItem(id);if(!item)return;
+      recordYoutubeContinue(id,{progressSeconds:item.completed?0:(Number(item.durationSeconds)||Number(item.progressSeconds)||0),durationSeconds:item.durationSeconds,completed:!item.completed},false);
+    }
+  });
+}
 
 const YT_REC_STOP_WORDS=new Set([
   'the','and','for','with','from','this','that','your','you','are','was','were','have','has','had',
@@ -7777,7 +8018,7 @@ function youtubeRecommendationSeeds(){
 function youtubeForYouCacheValid(){
   const cache=state.entertainment.youtubeForYouCache||{};
   const updated=Date.parse(cache.updatedAt||'');
-  return Number(cache.version)===3
+  return Number(cache.version)===4
     &&Array.isArray(cache.items)
     &&cache.items.length
     &&Number.isFinite(updated)
@@ -7835,7 +8076,7 @@ function youtubeDiversifyRecommendationGroups(groups,maxItems=14){
   const addWithChannelLimit=limit=>{
     for(const item of candidates){
       const id=String(item?.videoId||'');
-      if(!id||seenIds.has(id)||watchedIds.has(id)||hiddenIds.has(id))continue;
+      if(!id||seenIds.has(id)||watchedIds.has(id)||hiddenIds.has(id)||(typeof youtubeChannelHidden==='function'&&youtubeChannelHidden(item?.channelTitle)))continue;
       const channel=decodeHtmlText(item.channelTitle||'YouTube').trim().toLowerCase()||'youtube';
       if((channelCounts.get(channel)||0)>=limit)continue;
       seenIds.add(id);
@@ -7858,7 +8099,7 @@ function youtubeRecommendationSummary(plan){
 
 function youtubeExploreCardHtml(v,{forYou=false}={}){
   const hidden=(state.entertainment.youtubeRecommendationHidden||[]).includes(String(v.videoId));
-  if(hidden)return '';
+  if(hidden||youtubeChannelHidden(v.channelTitle))return '';
 
   return `<article class="yt-explore-card" data-youtube-video="${esc(v.videoId)}" role="button" tabindex="0">
     <img src="${esc(v.thumbnail||'')}" alt="">
@@ -7866,7 +8107,7 @@ function youtubeExploreCardHtml(v,{forYou=false}={}){
       <div class="yt-explore-title">${esc(decodeHtmlText(v.title||'Video'))}</div>
       <div class="yt-explore-meta">${esc(decodeHtmlText(v.channelTitle||'YouTube'))}${v.publishedAt?' • '+new Date(v.publishedAt).toLocaleDateString('en-GB'):''}</div>
       ${v.live?'<div class="yt-live-badge">● LIVE</div>':''}
-      ${forYou?`<div class="yt-recommend-actions"><button type="button" class="btn small yt-not-interested" data-yt-hide="${esc(v.videoId)}">Not interested</button></div>`:''}
+      <div class="yt-card-actions"><button type="button" class="btn small" data-yt-later="${esc(v.videoId)}">${youtubeWatchLaterContains(v.videoId)?'✓ Saved':'+ Watch later'}</button><button type="button" class="btn small" data-yt-hide-channel="${esc(decodeHtmlText(v.channelTitle||'YouTube'))}">Hide channel</button>${forYou?`<button type="button" class="btn small yt-not-interested" data-yt-hide="${esc(v.videoId)}">Not interested</button>`:''}</div>
     </div>
   </article>`;
 }
@@ -7877,7 +8118,7 @@ function renderYoutubeForYouItems(items,reason=''){
   if(!grid||!status)return;
 
   const hidden=new Set(state.entertainment.youtubeRecommendationHidden||[]);
-  const visible=(Array.isArray(items)?items:[]).filter(v=>v?.videoId&&!hidden.has(String(v.videoId)));
+  const visible=(Array.isArray(items)?items:[]).filter(v=>v?.videoId&&!hidden.has(String(v.videoId))&&!youtubeChannelHidden(v.channelTitle));
 
   visible.forEach(v=>{
     if(v?.videoId)youtubeMetaCache[v.videoId]={...v};
@@ -7946,7 +8187,7 @@ async function loadYoutubeForYou(force=false){
     const items=youtubeDiversifyRecommendationGroups(groups,16);
     const reason=youtubeRecommendationSummary(plan);
     state.entertainment.youtubeForYouCache={
-      version:3,
+      version:4,
       items,
       signals:plan.map(seed=>({kind:seed.kind,query:seed.query,label:seed.label})),
       reason,
@@ -8066,6 +8307,10 @@ function bindYoutubeExploreControls(){
     grid.dataset.bound='1';
 
     grid.addEventListener('click',e=>{
+      const later=e.target.closest('[data-yt-later]');
+      if(later){e.preventDefault();e.stopPropagation();toggleYoutubeWatchLater(later.dataset.ytLater);later.textContent=youtubeWatchLaterContains(later.dataset.ytLater)?'✓ Saved':'+ Watch later';return}
+      const channel=e.target.closest('[data-yt-hide-channel]');
+      if(channel){e.preventDefault();e.stopPropagation();hideYoutubeChannel(channel.dataset.ytHideChannel);return}
       const hide=e.target.closest('[data-yt-hide]');
       if(hide){
         e.preventDefault();
@@ -8167,12 +8412,12 @@ async function searchYoutubeVideos(){
       return;
     }
 
-    if(results)results.innerHTML=items.map(v=>`<article class="youtube-result" data-youtube-video="${esc(v.videoId)}" role="button" tabindex="0">
+    if(results)results.innerHTML=items.filter(v=>!youtubeChannelHidden(v.channelTitle)).map(v=>`<article class="youtube-result" data-youtube-video="${esc(v.videoId)}" role="button" tabindex="0">
       <img src="${esc(v.thumbnail||'')}" alt="">
       <div>
         <div class="youtube-result-title">${esc(decodeHtmlText(v.title||'Video'))}</div>
         <div class="youtube-result-meta">${esc(decodeHtmlText(v.channelTitle||'YouTube'))}${v.publishedAt?' • '+new Date(v.publishedAt).toLocaleDateString('en-GB'):''}</div>
-        <div class="feed-actions"><button class="btn small youtube-watch-result" data-video-id="${esc(v.videoId)}">▶ Watch</button></div>
+        <div class="feed-actions"><button class="btn small youtube-watch-result" data-video-id="${esc(v.videoId)}">▶ Watch</button><button class="btn small" data-yt-later="${esc(v.videoId)}">${youtubeWatchLaterContains(v.videoId)?'✓ Saved':'+ Watch later'}</button><button class="btn small" data-yt-hide-channel="${esc(decodeHtmlText(v.channelTitle||'YouTube'))}">Hide channel</button></div>
       </div>
     </article>`).join('');
 
@@ -8181,6 +8426,8 @@ async function searchYoutubeVideos(){
     if(!results.dataset.youtubeBound){
       results.dataset.youtubeBound='1';
       results.addEventListener('click',e=>{
+        const later=e.target.closest('[data-yt-later]');if(later){e.preventDefault();e.stopPropagation();toggleYoutubeWatchLater(later.dataset.ytLater);later.textContent=youtubeWatchLaterContains(later.dataset.ytLater)?'✓ Saved':'+ Watch later';return}
+        const channel=e.target.closest('[data-yt-hide-channel]');if(channel){e.preventDefault();e.stopPropagation();hideYoutubeChannel(channel.dataset.ytHideChannel);return}
         const button=e.target.closest('[data-video-id]');
         const card=e.target.closest('[data-youtube-video]');
         const id=button?.dataset.videoId||card?.dataset.youtubeVideo;
@@ -8257,9 +8504,9 @@ function recordYoutubeContinue(id,progress={},invalidateRecommendations=false){
   };
   state.entertainment.youtubeHistoryDetailed=[item,...old.filter(x=>x.id!==id)].slice(0,50);
   if(invalidateRecommendations){
-    state.entertainment.youtubeForYouCache={version:3,items:[],signals:[],reason:'',updatedAt:''};
+    state.entertainment.youtubeForYouCache={version:4,items:[],signals:[],reason:'',updatedAt:''};
   }
-  saveState();renderAllContinueWatching();
+  saveState();renderAllContinueWatching();renderYoutubeLibrary();
 }
 function captureYoutubeProgress(force=false){
   const id=youtubeWatchRuntime.id;if(!id)return;
@@ -8342,8 +8589,9 @@ function renderWatchRecents(){
     yt.innerHTML=detailed.length?detailed.map(item=>{const progress=playbackProgressDetails(item);return `<button class="btn small" onclick="window.loadYoutubeVideo('${esc(item.id)}')">${esc(item.title||item.id)}${progress.label?` • ${esc(progress.label)}`:''}</button>`}).join(''):'<span class="sub">No recent videos</span>';
   }
   if(tw)tw.innerHTML=(state.entertainment.twitchHistory||[]).length?state.entertainment.twitchHistory.map(ch=>`<button class="btn small" onclick="window.loadTwitchChannel('${esc(ch)}')">${esc(ch)}</button>`).join(''):'<span class="sub">No recent channels</span>';
+  renderYoutubeLibrary();
 }
-function renderEntertainmentHub(){updateEntertainmentVisit();renderEntertainmentStats();renderForYouFeed();renderEntertainmentCommunity();renderWatchRecents();bindEntertainmentControls()}
+function renderEntertainmentHub(){updateEntertainmentVisit();renderEntertainmentStats();renderForYouFeed();renderEntertainmentCommunity();renderWatchRecents();bindEntertainmentControls();bindYoutubeLibraryControls()}
 window.showEntertainmentPanel=showEntertainmentPanel;
 window.new2048=new2048;
 window.move2048=move2048;
@@ -8383,28 +8631,48 @@ async function loadReddit(){
 }
 
 function weatherInfo(code){if(code===0)return['☀️','Clear'];if([1,2].includes(code))return['🌤️','Partly cloudy'];if(code===3)return['☁️','Overcast'];if([45,48].includes(code))return['🌫️','Fog'];if([51,53,55,56,57].includes(code))return['🌦️','Drizzle'];if([61,63,65,66,67,80,81,82].includes(code))return['🌧️','Rain'];if([71,73,75,77,85,86].includes(code))return['❄️','Snow'];if([95,96,99].includes(code))return['⛈️','Thunderstorm'];return['🌤️','Unknown']}
-let weatherCache=null,weatherSelectedDay=0,weatherLoadPromise=null;
-function loadWeather(){
+const WEATHER_CACHE_KEY='command-centre-weather-v1',WEATHER_FRESH_MS=15*60*1000,WEATHER_STALE_MS=24*60*60*1000;
+function loadStoredWeatherCache(){
+  try{
+    const cached=JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY)||'null');
+    const saved=Date.parse(cached?.updatedAt||'');
+    return cached?.loc&&cached?.data&&Number.isFinite(saved)&&Date.now()-saved<WEATHER_STALE_MS?cached:null;
+  }catch{return null}
+}
+function persistWeatherCache(){try{if(weatherCache)localStorage.setItem(WEATHER_CACHE_KEY,JSON.stringify(weatherCache))}catch{}}
+let weatherCache=loadStoredWeatherCache(),weatherSelectedDay=0,weatherLoadPromise=null;
+function renderWeatherSnapshot(){
+  if(!weatherCache?.data?.current)return;
+  const c=weatherCache.data.current,wi=weatherInfo(c.weather_code);
+  qs('#weatherSnapshot').innerHTML=`<div class="metric" style="font-size:22px">${Math.round(c.temperature_2m)}°C</div><div class="sub" style="margin-top:4px">${wi[0]} ${wi[1]} • feels ${Math.round(c.apparent_temperature)}°C</div>`;
+  renderWeatherFull();renderHomeLauncher();
+}
+function loadWeather(force=false){
   if(weatherLoadPromise)return weatherLoadPromise;
-  weatherLoadPromise=loadWeatherNow().finally(()=>{weatherLoadPromise=null});
+  weatherLoadPromise=loadWeatherNow(force).finally(()=>{weatherLoadPromise=null});
   return weatherLoadPromise;
 }
-async function loadWeatherNow(){
+async function loadWeatherNow(force=false){
   qs('#weatherPlace').textContent=state.city;qs('#weatherFullPlace').textContent=state.city;
-  qs('#weatherSnapshot').innerHTML='<div class="skeleton"></div>';qs('#weatherFull').innerHTML='<div class="empty">Loading…</div>';
+  const cachedCity=String(weatherCache?.city||weatherCache?.loc?.name||'').trim().toLowerCase();
+  const wantedCity=String(state.city||'London').trim().toLowerCase();
+  const cachedAt=Date.parse(weatherCache?.updatedAt||'');
+  const usableCache=cachedCity===wantedCity&&weatherCache?.data?.current;
+  if(usableCache)renderWeatherSnapshot();
+  else{qs('#weatherSnapshot').innerHTML='<div class="skeleton"></div>';qs('#weatherFull').innerHTML='<div class="empty">Loading…</div>'}
   const launcherValue=qs('#launcherWeatherValue'),launcherMeta=qs('#launcherWeatherMeta');
   if(!weatherCache&&launcherValue)launcherValue.textContent='…°';
   if(!weatherCache&&launcherMeta)launcherMeta.textContent=`Loading weather for ${state.city}…`;
-  weatherCache=null;weatherSelectedDay=0;
+  if(!force&&usableCache&&Number.isFinite(cachedAt)&&Date.now()-cachedAt<WEATHER_FRESH_MS)return weatherCache;
+  weatherSelectedDay=0;
   try{
     const geo=await fetchJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(state.city)}&count=1&language=en&format=json`);if(!geo.results?.length)throw new Error('City not found');const loc=geo.results[0];
     const data=await fetchJson(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation&hourly=temperature_2m,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7`);
-    weatherCache={loc,data};
-    const c=data.current,wi=weatherInfo(c.weather_code);
-    qs('#weatherSnapshot').innerHTML=`<div class="metric" style="font-size:22px">${Math.round(c.temperature_2m)}°C</div><div class="sub" style="margin-top:4px">${wi[0]} ${wi[1]} • feels ${Math.round(c.apparent_temperature)}°C</div>`;
-    renderWeatherFull();
-    renderHomeLauncher();
-  }catch(e){qs('#weatherSnapshot').innerHTML='<div class="danger">Weather could not be loaded. Check the city name or your connection.</div>';qs('#weatherFull').innerHTML='<div class="danger">Weather could not be loaded.</div>';renderHomeLauncher()}
+    weatherCache={city:state.city,loc,data,updatedAt:nowIso()};persistWeatherCache();renderWeatherSnapshot();return weatherCache;
+  }catch(e){
+    if(usableCache){renderWeatherSnapshot();return weatherCache}
+    qs('#weatherSnapshot').innerHTML='<div class="danger">Weather could not be loaded. Check the city name or your connection.</div>';qs('#weatherFull').innerHTML='<div class="danger">Weather could not be loaded.</div>';renderHomeLauncher();return null;
+  }
 }
 function selectWeatherDay(i){weatherSelectedDay=i;renderWeatherFull()}
 function renderWeatherFull(){
@@ -8608,7 +8876,10 @@ async function generateBriefing(){
   const el=qs('#briefingContent'),requestedDate=dayKey();el.innerHTML='<div class="skeleton"></div>';
   if(qs('#briefingDateLabel'))qs('#briefingDateLabel').textContent=`Today, ${dateFromKey(requestedDate).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}`;
   const manga=getDailyMangaLocal();let weather='Unavailable';
-  try{const geo=await fetchJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(state.city)}&count=1&language=en&format=json`);if(geo.results?.[0]){const l=geo.results[0],w=await fetchJson(`https://api.open-meteo.com/v1/forecast?latitude=${l.latitude}&longitude=${l.longitude}&current=temperature_2m,weather_code&timezone=auto`);const wi=weatherInfo(w.current.weather_code);weather=`${Math.round(w.current.temperature_2m)}°C ${wi[1]}`}}catch{}
+  try{
+    const currentWeather=await loadWeather(false),c=currentWeather?.data?.current;
+    if(c){const wi=weatherInfo(c.weather_code);weather=`${Math.round(c.temperature_2m)}°C ${wi[1]}`}
+  }catch{}
   await loadNews(false);
   const bible=todaysBibleRecommendation(),bibleText=bible.length?bible.map(formatReadingRange).join(' • '):'All recommendations complete';
   const due=getBriefingItems(requestedDate),schedule=[...due.events,...due.reminders];

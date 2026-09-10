@@ -7,6 +7,10 @@ final class NativeNotificationHandler: NSObject, WKScriptMessageHandler, UNUserN
     static let shared = NativeNotificationHandler()
     weak var webView: WKWebView?
     private let storedIdentifiersKey = "CommandCentreNativeNotificationIdentifiers"
+    private let storedScheduleKey = "CommandCentreNativeNotificationSchedule"
+    private let nativeInboxTokenKey = "CommandCentreNativeInboxToken"
+    private let lastInboxMessageKey = "CommandCentreNativeLastInboxMessage"
+    private let lastTransferReadyKey = "CommandCentreNativeLastTransferReady"
 
     private override init() {
         super.init()
@@ -35,6 +39,9 @@ final class NativeNotificationHandler: NSObject, WKScriptMessageHandler, UNUserN
                     url: body["url"] as? String ?? "#today"
                 )
             }
+        case "registerInboxAlerts":
+            let token = body["token"] as? String ?? ""
+            Task { await registerInboxAlerts(token: token) }
         default:
             break
         }
@@ -68,6 +75,10 @@ final class NativeNotificationHandler: NSObject, WKScriptMessageHandler, UNUserN
     }
 
     private func replaceSchedule(_ items: [[String: Any]]) async {
+        if JSONSerialization.isValidJSONObject(items),
+           let data = try? JSONSerialization.data(withJSONObject: items) {
+            UserDefaults.standard.set(data, forKey: storedScheduleKey)
+        }
         let center = UNUserNotificationCenter.current()
         let oldIdentifiers = UserDefaults.standard.stringArray(forKey: storedIdentifiersKey) ?? []
         if !oldIdentifiers.isEmpty { center.removePendingNotificationRequests(withIdentifiers: oldIdentifiers) }
@@ -107,6 +118,144 @@ final class NativeNotificationHandler: NSObject, WKScriptMessageHandler, UNUserN
             }
         }
         UserDefaults.standard.set(identifiers, forKey: storedIdentifiersKey)
+    }
+
+    func refreshSavedScheduleFromNetwork() async -> Bool {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional || settings.authorizationStatus == .ephemeral,
+              let data = UserDefaults.standard.data(forKey: storedScheduleKey),
+              let stored = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+              !stored.isEmpty else { return false }
+
+        do {
+            let url = AppConfig.commandCentreURL.appendingPathComponent("api/football/schedule")
+            var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            let (responseData, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+                  let payload = try JSONSerialization.jsonObject(with: responseData) as? [String: Any],
+                  let matches = payload["matches"] as? [[String: Any]] else { return false }
+
+            let refreshed = stored.map { original -> [String: Any] in
+                guard original["kind"] as? String == "football",
+                      let matchID = number(original["matchId"]),
+                      let match = matches.first(where: { number($0["id"]) == matchID }),
+                      let rawKickoff = match["utcDate"] as? String,
+                      let kickoff = isoDate(rawKickoff) else { return original }
+
+                var item = original
+                let offsetMinutes = number(original["offsetMinutes"]) ?? 0
+                item["dueAt"] = ISO8601DateFormatter().string(from: kickoff.addingTimeInterval(-Double(offsetMinutes) * 60))
+                if let home = teamName(match["homeTeam"]), let away = teamName(match["awayTeam"]) {
+                    let fixture = "\(home) vs \(away)"
+                    item["body"] = offsetMinutes >= 1_440 ? "\(fixture) starts tomorrow." : offsetMinutes >= 60 ? "\(fixture) starts in one hour." : "\(fixture) is kicking off now."
+                }
+                return item
+            }
+
+            await replaceSchedule(refreshed)
+            return true
+        } catch {
+            print("Background fixture schedule refresh failed: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func performBackgroundRefresh() async -> Bool {
+        let scheduleRefreshed = await refreshSavedScheduleFromNetwork()
+        let inboxRefreshed = await refreshNativeInboxAlerts()
+        return scheduleRefreshed || inboxRefreshed
+    }
+
+    private func registerInboxAlerts(token: String) async {
+        guard !token.isEmpty else {
+            notifyWeb(permission: "default", message: "Connect this device in Transfers or Messages before enabling its alerts.")
+            return
+        }
+        do {
+            let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+            guard granted else {
+                notifyWeb(permission: "denied", message: "Notifications were not allowed. You can enable them in iPhone Settings.")
+                return
+            }
+            UserDefaults.standard.set(token, forKey: nativeInboxTokenKey)
+            _ = await refreshNativeInboxAlerts(primeOnly: true)
+            BackgroundRefreshManager.shared.scheduleNext()
+            notifyWeb(permission: "granted", message: "Native Messages and Transfers alerts are registered. iOS runs closed-app checks opportunistically.")
+        } catch {
+            notifyWeb(permission: "default", message: "Could not enable inbox alerts: \(error.localizedDescription)")
+        }
+    }
+
+    private func refreshNativeInboxAlerts(primeOnly: Bool = false) async -> Bool {
+        guard let token = UserDefaults.standard.string(forKey: nativeInboxTokenKey), !token.isEmpty else { return false }
+        do {
+            let messages = try await authenticatedJSON(path: "api/messages/chats", token: token)
+            let chats = messages["chats"] as? [[String: Any]] ?? []
+            let unreadChats = chats.filter { (number($0["unread"]) ?? 0) > 0 }
+            let latestMessage = unreadChats.compactMap { number($0["last_id"]) }.max() ?? 0
+            let previousMessage = UserDefaults.standard.integer(forKey: lastInboxMessageKey)
+            if !primeOnly && latestMessage > previousMessage {
+                let unreadCount = unreadChats.reduce(0) { $0 + (number($1["unread"]) ?? 0) }
+                await scheduleInboxNotification(identifier: "messages-\(latestMessage)", title: "New Command Centre message", body: unreadCount == 1 ? "You have one unread message." : "You have \(unreadCount) unread messages.", url: "#messages")
+            }
+            UserDefaults.standard.set(max(previousMessage, latestMessage), forKey: lastInboxMessageKey)
+
+            let transfers = try await authenticatedJSON(path: "api/transfers/items?view=inbox", token: token)
+            let items = (transfers["items"] as? [[String: Any]] ?? []).filter { $0["read_at"] == nil || $0["read_at"] is NSNull }
+            let latestTransfer = items.compactMap { number($0["ready_at"]) }.max() ?? 0
+            let previousTransfer = UserDefaults.standard.integer(forKey: lastTransferReadyKey)
+            if !primeOnly && latestTransfer > previousTransfer {
+                await scheduleInboxNotification(identifier: "transfers-\(latestTransfer)", title: "New Command Centre transfer", body: items.count == 1 ? "A transfer is ready on this iPhone." : "\(items.count) unread transfers are ready on this iPhone.", url: "#transfers")
+            }
+            UserDefaults.standard.set(max(previousTransfer, latestTransfer), forKey: lastTransferReadyKey)
+            return true
+        } catch {
+            print("Background Messages/Transfers refresh failed: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    private func authenticatedJSON(path: String, token: String) async throws -> [String: Any] {
+        guard let url = URL(string: path, relativeTo: AppConfig.commandCentreURL)?.absoluteURL else { throw URLError(.badURL) }
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { throw URLError(.userAuthenticationRequired) }
+        guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { throw URLError(.cannotParseResponse) }
+        return payload
+    }
+
+    private func scheduleInboxNotification(identifier: String, title: String, body: String, url: String) async {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        content.userInfo["url"] = url
+        do {
+            try await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "cc-native-\(identifier)", content: content, trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)))
+        } catch {
+            print("Could not schedule inbox notification: \(error.localizedDescription)")
+        }
+    }
+
+    private func number(_ value: Any?) -> Int? {
+        if let number = value as? NSNumber { return number.intValue }
+        if let number = value as? Int { return number }
+        if let text = value as? String { return Int(text) }
+        return nil
+    }
+
+    private func isoDate(_ value: String) -> Date? {
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return fractional.date(from: value) ?? ISO8601DateFormatter().date(from: value)
+    }
+
+    private func teamName(_ value: Any?) -> String? {
+        guard let team = value as? [String: Any] else { return nil }
+        return (team["shortName"] as? String) ?? (team["name"] as? String) ?? (team["tla"] as? String)
     }
 
     private func sendTest(title: String, body: String, url: String) async {

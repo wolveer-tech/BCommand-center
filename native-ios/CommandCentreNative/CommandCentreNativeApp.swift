@@ -3,8 +3,11 @@ import AVFAudio
 
 @main
 struct CommandCentreNativeApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+
     init() {
         _ = NativeNotificationHandler.shared
+        BackgroundRefreshManager.shared.register()
         configureBackgroundPlayback()
     }
 
@@ -12,6 +15,11 @@ struct CommandCentreNativeApp: App {
         WindowGroup {
             CommandCentreWebView()
                 .ignoresSafeArea(.container, edges: .bottom)
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background {
+                BackgroundRefreshManager.shared.scheduleNext()
+            }
         }
     }
 

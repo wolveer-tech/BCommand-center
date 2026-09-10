@@ -42,7 +42,8 @@ async function open(){
   try {
     config=await api('/status');$('trIdentity').textContent='Connected as '+config.device.name;
     $('trFileLimit').textContent=config.files?`Up to ${formatBytes(config.maxFileBytes)} per file. Keep the app open while sending. On iPhone, choose a file from Files to avoid Photos export conversions.`:config.storageError;
-    $('trPushState').textContent=config.push?'Transfer notifications are connected on this device.':config.pushConfigured?'Enable notifications to receive alerts when the app is closed.':'Add the existing VAPID push secrets to enable background alerts.';
+    const nativeAlerts=window.CommandCentreNative?.nativeNotifications&&localStorage.getItem('cc_native_inbox_alerts')==='1';
+    $('trPushState').textContent=nativeAlerts?'Native transfer alerts are registered for iOS background checks.':config.push?'Transfer notifications are connected on this device.':config.pushConfigured?'Enable notifications to receive alerts when the app is closed.':'Add the existing VAPID push secrets to enable background alerts.';
     await devices();await load();
     const registration=await navigator.serviceWorker?.getRegistration();const sub=await registration?.pushManager?.getSubscription();
     if(sub && config.push) await api('/push',{subscription:sub.toJSON()});
@@ -198,6 +199,13 @@ async function action(name,itemId){
 }
 
 async function notifications(){
+  const native=window.CommandCentreNative?.nativeNotifications&&window.webkit?.messageHandlers?.nativeNotifications;
+  if(native){
+    native.postMessage({action:'registerInboxAlerts',token:session?.token||''});
+    localStorage.setItem('cc_native_inbox_alerts','1');
+    config.push=true;$('trPushState').textContent='Native transfer alerts are registered for iOS background checks.';status('Allow iPhone notifications when prompted. Transfers refresh while open and during iOS background checks when closed.');
+    return;
+  }
   if(!('Notification'in window)||!('PushManager'in window)||!navigator.serviceWorker)throw new Error('On iPhone, open this site in Safari, add it to the Home Screen, then enable notifications there. The native wrapper does not support Web Push.');
   if(!config.pushConfigured)throw new Error('Add the VAPID push secrets in Cloudflare first.');
   const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('Allow notifications in your device settings to receive transfer alerts.');
@@ -232,6 +240,7 @@ function bind(){
   window.addEventListener('cc-transfer-session',()=>{let next;try{next=JSON.parse(localStorage.getItem(KEY));}catch{}if(next?.token===session?.token)return;session=next;connection();if(session&&$('transfersPage').classList.contains('active'))notice(open());});
   window.addEventListener('beforeunload',e=>{if(controller){e.preventDefault();e.returnValue='';}});
   window.addEventListener('cc-transfer-native',e=>status(e.detail.message,!!e.detail.error));
+  window.addEventListener('cc-native-notification-status',e=>{if(e.detail?.permission==='granted'){localStorage.setItem('cc_native_inbox_alerts','1');$('trPushState').textContent='Native transfer alerts are registered for iOS background checks.';}else if(e.detail?.permission==='denied'){localStorage.removeItem('cc_native_inbox_alerts');$('trPushState').textContent='Enable alerts after allowing Command Centre notifications in iPhone Settings.';}});
   window.addEventListener('storage',e=>{if(e.key===KEY){try{session=JSON.parse(e.newValue);}catch{session=null;}connection();if(session&&$('transfersPage').classList.contains('active'))notice(open());}});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('transfersPage').classList.contains('active'))notice(load(false,true));});
   setInterval(()=>{if(!document.hidden&&session&&$('transfersPage').classList.contains('active')&&!controller)notice(load(false,true));},15000);

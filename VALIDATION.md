@@ -1,3 +1,27 @@
+# Stability and flow v10.17 validation — 10 September 2026
+
+- Weather uses a 15-minute fresh cache and a 24-hour offline fallback, starts
+  after Home's critical render, and is reused by the daily briefing.
+- The service worker precaches the app shell but deliberately leaves `/api/`
+  requests network-only so live data is never mistaken for a cached response.
+- YouTube library state, hidden channels and followed matches are normalised
+  during startup and covered by static regression tests.
+- Match Centre combines match overview, lineups, timeline and available
+  statistics behind one Worker route.
+- iOS 1.5.0 registers the permitted background task identifier, saves the
+  native notification schedule and recalculates football alert times from a
+  refreshed fixture list.
+- Messages and Transfers detect the IPA notification bridge, register the
+  paired-device credential for privacy-preserving native inbox checks and keep
+  Safari/PWA Web Push as the browser fallback.
+- Transfers, Messages, data restore, Apple PiP and the mirror extension are not
+  replaced or given new entitlements.
+- Native WidgetKit/Lock Screen widgets and ActivityKit were deferred to keep
+  this build compatible with the entitlement-light Signulous flow.
+- This Windows environment can parse and test the web/Worker code but cannot
+  compile or sign Swift; the physical-device check remains required.
+- Project validation and the serial full automated suite pass: **47/47 tests**.
+
 # IPA restore crash hotfix v10.16.2 validation — 10 September 2026
 
 - Restore uses WKWebView's standard file input rather than sending the complete

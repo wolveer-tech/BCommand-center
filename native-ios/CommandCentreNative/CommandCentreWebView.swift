@@ -16,7 +16,7 @@ struct CommandCentreWebView: UIViewRepresentable {
 
         let bridgeScript = WKUserScript(
             source: """
-            window.CommandCentreNative = { replayKit: true, nativeScreenMirror: true, nativeNotifications: true, dataBridge: true, platform: 'ios', minimumRuntime: 'iOS 26' };
+            window.CommandCentreNative = { replayKit: true, nativeScreenMirror: true, nativeNotifications: true, backgroundRefresh: true, dataBridge: true, platform: 'ios', minimumRuntime: 'iOS 26' };
             """,
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true

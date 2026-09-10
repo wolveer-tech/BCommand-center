@@ -157,6 +157,14 @@ async function claim(){
   }finally{$('msgClaim').disabled=false;}
 }
 async function notifications(){
+  const native=window.CommandCentreNative?.nativeNotifications&&window.webkit?.messageHandlers?.nativeNotifications;
+  if(native){
+    native.postMessage({action:'registerInboxAlerts',token:session?.token||''});
+    localStorage.setItem('cc_native_inbox_alerts','1');
+    $('msgNotifications').textContent='Native alerts requested';
+    status('Allow iPhone notifications when prompted. Messages refresh instantly while open and during iOS background checks when closed.');
+    return;
+  }
   if(!('Notification'in window)||!('PushManager'in window)||!navigator.serviceWorker)throw new Error('On iPhone, add the site to your Home Screen from Safari and enable alerts there. The native wrapper does not support Web Push.');
   const config=await api('/status',undefined,'/api/transfers');if(!config.pushConfigured)throw new Error('Add the existing VAPID push secrets in Cloudflare to enable alerts. Messages still refresh while open.');
   if(await Notification.requestPermission()!=='granted')throw new Error('Allow notifications in browser settings to receive alerts.');
@@ -172,6 +180,7 @@ async function open(){
 window.CCMessages={openQuick:()=>notice((async()=>{window.switchPage?.('messages');if(!session){pairing();return;}await contacts();const peer=quickPeer();if(peer)await choose(peer.id);else pairing();})())};
 function bind(){
   if(!$('messagesPage'))return;personal();connection();
+  if(window.CommandCentreNative?.nativeNotifications&&localStorage.getItem('cc_native_inbox_alerts')==='1')$('msgNotifications').textContent='Native alerts enabled';
   $('msgDeviceName').value=/iPhone|iPad|iPod/.test(navigator.userAgent)?'My iPhone':'My laptop';
   $('msgConnect').onclick=pairing;$('msgWelcomeConnect').onclick=pairing;$('msgPairClose').onclick=()=>$('msgPairDialog').close();
   $('msgGenerate').onclick=()=>pairNotice(generate());$('msgClaimForm').onsubmit=e=>{e.preventDefault();pairNotice(claim());};
@@ -188,6 +197,7 @@ function bind(){
   let scrollTimer;$('msgHistory').onscroll=()=>{clearTimeout(scrollTimer);scrollTimer=setTimeout(()=>{if(nearBottom()){$('msgNew').hidden=true;notice(markRead());}},150);};
   document.querySelectorAll('[data-msg-transfers]').forEach(b=>b.onclick=()=>window.switchPage?.('transfers'));
   window.addEventListener('cc-transfer-session',syncSession);window.addEventListener('storage',e=>{if(e.key===KEY)syncSession();});
+  window.addEventListener('cc-native-notification-status',e=>{if(e.detail?.permission==='granted'){$('msgNotifications').textContent='Native alerts enabled';localStorage.setItem('cc_native_inbox_alerts','1');}else if(e.detail?.permission==='denied'){localStorage.removeItem('cc_native_inbox_alerts');$('msgNotifications').textContent='Enable alerts';}});
   window.addEventListener('cc-pagechange',e=>{if(e.detail==='messages')notice(open());});
   document.addEventListener('visibilitychange',()=>{if(active())notice(refresh());});window.addEventListener('focus',()=>notice(refresh()));window.addEventListener('online',()=>notice(refresh()));
   function viewport(){if(window.visualViewport){$('messagesPage').style.setProperty('--msg-vh',window.visualViewport.height+'px');$('messagesPage').classList.toggle('msg-keyboard',matchMedia('(max-width:700px)').matches&&window.visualViewport.height<window.innerHeight*0.75);}}

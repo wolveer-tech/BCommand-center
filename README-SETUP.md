@@ -4,6 +4,41 @@
 
 **Transfers v10.7:** Start with [TRANSFERS-SETUP.md](TRANSFERS-SETUP.md) for the new file/message/link service, Cloudflare R2 and D1 setup, device pairing, Windows sender, browser extension and native iPhone download support. Local validation results are in [VALIDATION.md](VALIDATION.md).
 
+# v10.17 — Stability and flow foundations
+
+This cumulative release improves the existing foundations without changing the
+Transfers or Messages protocols:
+
+- Home weather displays a saved result immediately, refreshes stale data after
+  launch, and shares that result with the daily briefing instead of repeating
+  the geocoding and forecast requests.
+- The app shell is available offline, an offline status banner is shown, and
+  rolling local safety snapshots keep the five latest copies of app state.
+- YouTube now has Continue, Watch later, History and Hidden channels views.
+  Saved playback progress still resumes at the exact cached point.
+- Football fixtures open a Match Centre with overview, team lineups, timeline,
+  statistics, follow/unfollow and Add to calendar actions.
+- iOS **1.5.0 (build 7)** registers an opportunistic background refresh task.
+  It refreshes the kickoff times already stored in the native notification
+  schedule and checks the paired Messages and Transfers inboxes without
+  changing their send, pairing or download flows. Their Enable alerts buttons
+  now use the native bridge inside the IPA instead of showing Safari Web Push
+  instructions.
+- Shared cards, controls, keyboard focus, spacing and mobile tap targets use a
+  more consistent visual system.
+
+Deploy the Worker/web project normally, then build and install the new IPA for
+the native background task. There is no D1 migration and no new Cloudflare
+secret. iOS decides when background refresh runs; saved local notifications do
+not rely on the app remaining open.
+
+Native Home/Lock Screen widgets and a football Live Activity are intentionally
+not included in this Signulous-friendly release. Widgets need a widget extension
+and shared App Group container, while genuinely useful remote Live Activity
+updates need ActivityKit push tokens and an APNs server path. Adding those here
+would reintroduce the signing dependency previously removed from the portable
+IPA.
+
 # v10.16.2 — IPA restore crash hotfix
 
 Restore now opens iOS's document chooser through the standard HTML file input

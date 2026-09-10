@@ -1,5 +1,33 @@
 # Command Centre iOS 26 Mirror — Signulous-friendly build
 
+## v1.5.0 stability and fixture refresh
+
+Version **1.5.0 (build 7)** adds an iOS `BGAppRefreshTask` for the native
+notification schedule. When iOS grants background time, the app fetches the
+latest fixture calendar and recalculates the saved 24-hour, 1-hour and kickoff
+alerts. Background execution is opportunistic, so iOS—not the app—chooses the
+exact run time. Local notifications already scheduled with iOS continue to work
+when Command Centre is closed.
+
+The same task can check the already-paired Messages and Transfers inboxes. Tap
+**Enable alerts** in either screen once; the web view passes the existing device
+credential to the native bridge, which primes its read markers and then posts a
+generic local alert only for newer unread items. Content is not placed in the
+notification body. Messages and Transfers still refresh immediately while the
+app is open; closed-app delivery follows iOS's opportunistic background timing
+and is not equivalent to instant APNs delivery.
+
+The task uses the existing public fixture endpoint and stores no API key. It
+does not change the native Transfer download handler, Messages web flow,
+ReplayKit mirror extension, backup bridge, notification permission or bundle
+entitlements. `audio` remains enabled and `fetch` is added to the app background
+modes.
+
+Home/Lock widgets and Live Activities are deferred because this portable build
+does not use an App Group or APNs ActivityKit update service. Build this version
+after deploying the v10.17 Worker so the refreshed schedule has the matching
+endpoint and fields.
+
 ## v1.4.0 native notifications, backup and Apple PiP
 
 Version **1.4.0 (build 6)** adds two main-frame, same-origin JavaScript bridges:

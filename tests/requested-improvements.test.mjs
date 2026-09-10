@@ -8,11 +8,12 @@ const webView=readFileSync(new URL('../native-ios/CommandCentreNative/CommandCen
 const nativeNotifications=readFileSync(new URL('../native-ios/CommandCentreNative/NativeNotificationHandler.swift',import.meta.url),'utf8');
 const nativeData=readFileSync(new URL('../native-ios/CommandCentreNative/NativeDataHandler.swift',import.meta.url),'utf8');
 
-test('football has an all-competition dated schedule and match lineup route',()=>{
+test('football has an all-competition dated schedule and Match Centre route',()=>{
   assert.match(worker,/function getFootballSchedule/);
   assert.match(worker,/\/matches\?dateFrom=\$\{dateFrom\}&dateTo=\$\{dateTo\}&limit=500/);
   assert.match(worker,/url\.pathname==='\/api\/football\/schedule'/);
   assert.match(worker,/url\.pathname==='\/api\/football\/lineups'/);
+  assert.match(worker,/url\.pathname==='\/api\/football\/match'/);
   assert.match(worker,/'X-Unfold-Lineups':'true'/);
   assert.match(worker,/apiFootballFetch\('fixtures\/lineups'/);
   assert.match(html,/id="footballScheduleTabs"/);
@@ -35,7 +36,7 @@ test('trained YouTube For You contains no Trending filler',()=>{
   const source=html.slice(start,end);
   assert.match(source,/Trending remains a separate tab/);
   assert.doesNotMatch(source,/requests=\[[\s\S]*section=trending/);
-  assert.match(html,/youtubeForYouCache:\{version:3/);
+  assert.match(html,/youtubeForYouCache:\{version:4/);
 });
 
 test('YouTube progress cache resumes the embed from its saved timestamp',()=>{

@@ -1833,6 +1833,74 @@ async function getFootballLineups(env,matchId,force=false,requestUrl='https://lo
   return payload;
 }
 
+function footballDataMatchEvent(kind,row){
+  const minute=Number(row?.minute)||0,injury=Number(row?.injuryTime)||0;
+  return {
+    type:kind,detail:String(row?.type||row?.card||kind),minute,extra:injury,
+    team:{id:Number(row?.team?.id)||0,name:String(row?.team?.shortName||row?.team?.name||'')},
+    player:String(row?.scorer?.name||row?.player?.name||row?.playerIn?.name||''),
+    assist:String(row?.assist?.name||''),playerOut:String(row?.playerOut?.name||''),
+    score:row?.score||null
+  };
+}
+
+async function getFootballMatchCentre(env,matchId,force=false,requestUrl='https://local/api/football/match'){
+  const id=Number(matchId)||0;
+  if(!id){const err=new Error('A valid football match ID is required.');err.status=400;throw err}
+  let cache=null,cacheKey=null;
+  try{
+    cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
+    if(cache){
+      const u=new URL(requestUrl);u.pathname='/__cache/football-match-centre-v1';u.search=new URLSearchParams({matchId:String(id)}).toString();
+      cacheKey=new Request(u.toString(),{method:'GET'});
+      if(!force){const hit=await cache.match(cacheKey);if(hit)return hit.json()}
+    }
+  }catch{cache=null;cacheKey=null}
+
+  let payload;
+  if(id>0){
+    const match=await footballFetch(`/matches/${encodeURIComponent(id)}`,env,{
+      'X-Unfold-Lineups':'true','X-Unfold-Goals':'true','X-Unfold-Bookings':'true','X-Unfold-Subs':'true'
+    });
+    const events=[
+      ...(Array.isArray(match?.goals)?match.goals.map(row=>footballDataMatchEvent('Goal',row)):[]),
+      ...(Array.isArray(match?.bookings)?match.bookings.map(row=>footballDataMatchEvent('Card',row)):[]),
+      ...(Array.isArray(match?.substitutions)?match.substitutions.map(row=>footballDataMatchEvent('Substitution',row)):[])
+    ].sort((a,b)=>(a.minute+a.extra/100)-(b.minute+b.extra/100));
+    const teams=[cleanFootballDataLineupTeam(match.homeTeam),cleanFootballDataLineupTeam(match.awayTeam)];
+    payload={
+      match:{id,utcDate:match.utcDate||'',status:match.status||'',minute:Number(match.minute)||null,venue:String(match.venue||''),competition:match.competition||{},homeTeam:match.homeTeam||{},awayTeam:match.awayTeam||{},score:match.score||{},referees:Array.isArray(match.referees)?match.referees:[]},
+      teams,events,statistics:[],provider:'football-data.org',updatedAt:new Date().toISOString()
+    };
+  }else{
+    const fixtureId=Math.abs(id);
+    const settled=await Promise.allSettled([
+      apiFootballFetch('fixtures',{id:fixtureId},env),
+      apiFootballFetch('fixtures/events',{fixture:fixtureId},env),
+      apiFootballFetch('fixtures/statistics',{fixture:fixtureId},env),
+      apiFootballFetch('fixtures/lineups',{fixture:fixtureId},env)
+    ]);
+    if(settled[0].status!=='fulfilled')throw settled[0].reason;
+    const fixtureRow=settled[0].value?.response?.[0];
+    if(!fixtureRow){const err=new Error('The football provider returned no match details.');err.status=404;throw err}
+    const cleaned=cleanApiFootballFixture(fixtureRow);
+    cleaned.venue=String(fixtureRow?.fixture?.venue?.name||'');
+    cleaned.referees=Array.isArray(fixtureRow?.fixture?.referee)?fixtureRow.fixture.referee:[fixtureRow?.fixture?.referee].filter(Boolean);
+    const rawEvents=settled[1].status==='fulfilled'&&Array.isArray(settled[1].value?.response)?settled[1].value.response:[];
+    const events=rawEvents.map(row=>({
+      type:String(row?.type||'Event'),detail:String(row?.detail||''),minute:Number(row?.time?.elapsed)||0,extra:Number(row?.time?.extra)||0,
+      team:apiFootballTeam(row?.team),player:String(row?.player?.name||''),assist:String(row?.assist?.name||''),playerOut:'',score:null
+    }));
+    const rawStats=settled[2].status==='fulfilled'&&Array.isArray(settled[2].value?.response)?settled[2].value.response:[];
+    const statistics=rawStats.map(row=>({team:apiFootballTeam(row?.team),items:(Array.isArray(row?.statistics)?row.statistics:[]).map(stat=>({label:String(stat?.type||''),value:stat?.value??'—'}))}));
+    const rawLineups=settled[3].status==='fulfilled'&&Array.isArray(settled[3].value?.response)?settled[3].value.response:[];
+    payload={match:cleaned,teams:rawLineups.map(cleanApiFootballLineupTeam),events,statistics,provider:'API-Football',updatedAt:new Date().toISOString()};
+  }
+  payload.available={lineups:payload.teams.some(team=>team.starting?.length||team.bench?.length),timeline:payload.events.length>0,statistics:payload.statistics.length>0};
+  if(cache&&cacheKey){try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=60'}}))}catch{}}
+  return payload;
+}
+
 function apiSportsKey(env){
   // API-SPORTS uses one account API key across the sports APIs that are
   // active on the dashboard. Prefer the new shared variable, while keeping
@@ -3267,6 +3335,15 @@ export default {
 
       if(url.pathname==='/api/football/lineups'&&request.method==='GET'){
         return json(await getFootballLineups(
+          env,
+          url.searchParams.get('matchId')||'',
+          url.searchParams.get('refresh')==='1',
+          request.url
+        ));
+      }
+
+      if(url.pathname==='/api/football/match'&&request.method==='GET'){
+        return json(await getFootballMatchCentre(
           env,
           url.searchParams.get('matchId')||'',
           url.searchParams.get('refresh')==='1',
