@@ -1,5 +1,28 @@
 # Command Centre iOS 26 Mirror — Signulous-friendly build
 
+## v1.4.0 native notifications, backup and Apple PiP
+
+Version **1.4.0 (build 6)** adds two main-frame, same-origin JavaScript bridges:
+
+- `nativeNotifications` requests iPhone notification permission, replaces the
+  app's pending local schedule, sends a test alert and returns notification taps
+  to the requested Command Centre section.
+- `nativeData` exports the web app's JSON backup through the iOS share sheet and
+  imports a selected JSON backup through the document picker.
+
+The web app schedules up to 60 future native alerts to stay below iOS pending
+notification limits. The backup contains notes, reminders, calendar events,
+folders and categories; it excludes API keys and notification identifiers.
+
+Command Centre's own bottom floating-video overlay has been removed. WKWebView
+still enables compatible media Picture in Picture, so Apple's system PiP remains
+the video overlay used outside the app.
+
+After deploying the v10.16 Worker, rebuild this native target before creating the
+Signulous IPA. No new Apple entitlement, APNs key or Cloudflare database
+migration is required for local reminder/calendar notifications and backup file
+transfer.
+
 ## v1.3.0 background media
 
 The containing app now configures `AVAudioSession` with the playback category,

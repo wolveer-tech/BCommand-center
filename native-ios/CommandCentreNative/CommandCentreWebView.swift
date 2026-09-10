@@ -11,10 +11,12 @@ struct CommandCentreWebView: UIViewRepresentable {
         configuration.mediaTypesRequiringUserActionForPlayback = []
         configuration.userContentController.add(context.coordinator, name: "nativeMirror")
         configuration.userContentController.add(context.coordinator.transferHandler, name: "nativeTransfer")
+        configuration.userContentController.add(context.coordinator.notificationHandler, name: "nativeNotifications")
+        configuration.userContentController.add(context.coordinator.dataHandler, name: "nativeData")
 
         let bridgeScript = WKUserScript(
             source: """
-            window.CommandCentreNative = { replayKit: true, nativeScreenMirror: true, platform: 'ios', minimumRuntime: 'iOS 26' };
+            window.CommandCentreNative = { replayKit: true, nativeScreenMirror: true, nativeNotifications: true, dataBridge: true, platform: 'ios', minimumRuntime: 'iOS 26' };
             """,
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
@@ -26,6 +28,8 @@ struct CommandCentreWebView: UIViewRepresentable {
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         context.coordinator.webView = webView
         context.coordinator.transferHandler.webView = webView
+        context.coordinator.notificationHandler.webView = webView
+        context.coordinator.dataHandler.webView = webView
         NativeMirrorManager.shared.webView = webView
         webView.load(URLRequest(url: AppConfig.commandCentreURL))
         return webView
@@ -36,10 +40,14 @@ struct CommandCentreWebView: UIViewRepresentable {
     static func dismantleUIView(_ uiView: WKWebView, coordinator: Coordinator) {
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeMirror")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeTransfer")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeNotifications")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeData")
     }
 
     @MainActor final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         let transferHandler = NativeTransferHandler()
+        let notificationHandler = NativeNotificationHandler.shared
+        let dataHandler = NativeDataHandler()
         weak var webView: WKWebView?
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {

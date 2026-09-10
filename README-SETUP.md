@@ -4,6 +4,62 @@
 
 **Transfers v10.7:** Start with [TRANSFERS-SETUP.md](TRANSFERS-SETUP.md) for the new file/message/link service, Cloudflare R2 and D1 setup, device pairing, Windows sender, browser extension and native iPhone download support. Local validation results are in [VALIDATION.md](VALIDATION.md).
 
+# v10.16.1 — Home weather auto-load
+
+The Home weather widget now starts its weather request automatically just after
+the critical Home render finishes. The request uses an idle callback where the
+browser supports it and a short delayed fallback on Safari/iOS, so weather no
+longer has to be opened manually without putting the network request back into
+the startup-critical job list. Concurrent taps and refreshes share one in-flight
+request instead of duplicating the two weather API calls.
+
+Deploy the Worker/web project normally. This small follow-up needs no native IPA
+rebuild and no database migration.
+
+# v10.16 — Sport, YouTube and IPA improvements
+
+This cumulative update implements the requested mobile improvements:
+
+- Sport now loads a date-based schedule across every competition returned by
+  the football provider, with Live/today/upcoming day filters, broader recent
+  results, and per-match team lineup sheets when the provider has lineup data.
+- YouTube now has comments with pagination, a more personal For You feed that
+  does not use Trending as filler after personal signals exist, and Continue
+  Watching/recent-video progress that resumes at the saved timestamp.
+- The app-made floating video overlay has been removed. Apple's native system
+  Picture in Picture remains enabled in the iOS wrapper.
+- The IPA can request and schedule native local iPhone notifications for saved
+  reminders, calendar events, the morning briefing and loaded favourite-team
+  fixtures.
+- Settings → General can export and restore a JSON backup of notes, reminders,
+  calendar events, folders and categories. Restore merges the backup with data
+  already on the destination device. Secrets and notification device IDs are
+  deliberately excluded.
+
+## Deploy v10.16
+
+1. Deploy the Cloudflare project as usual with `npm run deploy`. There is no new
+   D1 migration for this update.
+2. Keep `YOUTUBE_API_KEY` configured for video search, recommendations and the
+   new comments endpoint.
+3. Configure `FOOTBALL_DATA_API_KEY` for the cross-competition match schedule
+   and football-data.org lineups. `API_SPORTS_KEY` remains a supported fallback
+   for competitions and lineups that use API-Football.
+4. Build and install native iOS **1.4.0 (build 6)** to receive the new native
+   notification and backup-file bridges. The web/PWA improvements work after
+   the Worker deployment, but they do not add those native Swift bridges to an
+   already-installed older IPA.
+
+Native reminder, calendar and briefing alerts are local notifications, so they
+do not require APNs keys. Football alerts can be scheduled for fixtures already
+loaded by the app at 24 hours, 1 hour and kick-off. Live/full-time server-driven
+alerts still use the existing Home Screen Web Push path until an APNs server
+path is added.
+
+To move personal data into the IPA, open Settings → General on the source
+device, choose **Export backup**, save the JSON file, then choose **Restore
+backup** in the IPA and select that file.
+
 # v10.15 — Shared-link browser compatibility repair
 
 This update fixes the startup freeze that could still happen after v10.14 when

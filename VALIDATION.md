@@ -1,3 +1,47 @@
+# Home weather auto-load v10.16.1 validation — 10 September 2026
+
+- Home schedules weather after its critical render rather than inside the
+  startup job list.
+- Safari/iOS receives the 250 ms fallback when `requestIdleCallback` is absent.
+- A shared in-flight promise prevents an automatic request and a user tap from
+  loading weather twice.
+- The launcher reports that weather is loading until the result is rendered.
+- Full automated suite: **41/41 passed**.
+- No native build or database migration is required for this follow-up.
+
+
+# Requested mobile improvements v10.16 validation — 10 September 2026
+
+## Automated checks
+
+- `node --check worker.js`: passed.
+- Inline JavaScript in `public/index.html`: parsed successfully.
+- `node --test tests/*.test.mjs`: **40/40 passed**.
+- Static coverage checks the all-competition football schedule and lineup
+  routes, YouTube comments, non-Trending personalised feed, exact timestamp
+  resume/Continue Watching, removal of the custom video mini-player, native IPA
+  notification bridge and backup/restore bridge.
+
+## Mobile visual check
+
+The local app was exercised at a 390 × 844 viewport. Home, YouTube, Sport,
+Settings → General and Settings → Notifications remained usable without
+horizontal overflow. A video could be opened from its ID, the comments card and
+recent-video entry appeared, and no custom floating-video controls or mini mode
+were present. The Sport schedule, backup card and notification settings fit the
+phone layout.
+
+## Remaining device checks
+
+This Windows environment cannot compile or sign the Swift project. Build native
+iOS **1.4.0 (build 6)** with Codemagic/Xcode and verify notification permission,
+a scheduled test alert, JSON export/import, notification deep links and Apple's
+system PiP on a physical iPhone. Provider availability also depends on the
+configured API keys and subscription coverage.
+
+No database migration is required for v10.16.
+
+
 # Shared-link freeze v10.14 validation — 9 September 2026
 
 ## Server concurrency

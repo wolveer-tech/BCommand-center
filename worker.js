@@ -1596,6 +1596,65 @@ async function searchYouTube(env,query,requestUrl){
   return payload;
 }
 
+async function youtubeComments(env,videoId,pageToken='',requestUrl='https://local/api/youtube/comments',force=false){
+  if(!env.YOUTUBE_API_KEY){
+    const err=new Error('YOUTUBE_API_KEY is missing. Add it in Cloudflare before loading YouTube comments.');
+    err.status=503;throw err;
+  }
+  const id=String(videoId||'').trim();
+  if(!/^[A-Za-z0-9_-]{11}$/.test(id)){
+    const err=new Error('A valid YouTube video ID is required.');err.status=400;throw err;
+  }
+  const token=String(pageToken||'').trim().slice(0,500);
+  let cache=null,cacheKey=null;
+  try{
+    cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
+    if(cache){
+      const cacheUrl=new URL(requestUrl);
+      cacheUrl.pathname='/__cache/youtube-comments';
+      cacheUrl.search=new URLSearchParams({videoId:id,pageToken:token}).toString();
+      cacheKey=new Request(cacheUrl.toString(),{method:'GET'});
+      if(!force){const hit=await cache.match(cacheKey);if(hit)return hit.json()}
+    }
+  }catch{cache=null;cacheKey=null}
+
+  const u=new URL('https://www.googleapis.com/youtube/v3/commentThreads');
+  u.searchParams.set('part','snippet');
+  u.searchParams.set('videoId',id);
+  u.searchParams.set('maxResults','20');
+  u.searchParams.set('order','relevance');
+  u.searchParams.set('textFormat','plainText');
+  if(token)u.searchParams.set('pageToken',token);
+  u.searchParams.set('key',env.YOUTUBE_API_KEY);
+
+  const r=await fetch(u.toString(),{headers:{accept:'application/json'}});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok){
+    const reason=data?.error?.errors?.[0]?.reason||'';
+    if(reason==='commentsDisabled')return {videoId:id,items:[],disabled:true,message:'Comments are turned off for this video.'};
+    const err=new Error(data?.error?.message||`YouTube comments HTTP ${r.status}`);
+    err.status=r.status>=400&&r.status<500?r.status:502;throw err;
+  }
+
+  const items=(Array.isArray(data.items)?data.items:[]).map(thread=>{
+    const snippet=thread?.snippet?.topLevelComment?.snippet||{};
+    return {
+      id:String(thread?.id||''),
+      author:String(snippet.authorDisplayName||'YouTube user').slice(0,120),
+      authorImage:String(snippet.authorProfileImageUrl||''),
+      text:String(snippet.textOriginal||snippet.textDisplay||'').slice(0,5000),
+      likeCount:Math.max(0,Number(snippet.likeCount)||0),
+      publishedAt:String(snippet.publishedAt||''),
+      replyCount:Math.max(0,Number(thread?.snippet?.totalReplyCount)||0)
+    };
+  }).filter(item=>item.id&&item.text);
+  const payload={videoId:id,items,nextPageToken:String(data.nextPageToken||''),disabled:false};
+  if(cache&&cacheKey){
+    try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=300'}}))}catch{}
+  }
+  return payload;
+}
+
 
 async function youtubeStatus(env){
   if(!env.YOUTUBE_API_KEY){
@@ -1655,13 +1714,13 @@ const API_FOOTBALL_COMPETITIONS={
 function isoDayOffset(n){
   const d=new Date();d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);
 }
-async function footballFetch(path,env){
+async function footballFetch(path,env,extraHeaders={}){
   if(!env.FOOTBALL_DATA_API_KEY){
     const err=new Error('Football is not configured. Add FOOTBALL_DATA_API_KEY as a Cloudflare Worker secret.');
     err.status=503;throw err;
   }
   const r=await fetch(`https://api.football-data.org/v4${path}`,{
-    headers:{'X-Auth-Token':env.FOOTBALL_DATA_API_KEY,accept:'application/json'}
+    headers:{'X-Auth-Token':env.FOOTBALL_DATA_API_KEY,accept:'application/json',...extraHeaders}
   });
   const data=await r.json().catch(()=>({}));
   if(!r.ok){
@@ -1676,6 +1735,102 @@ async function footballFetch(path,env){
     throw err;
   }
   return data;
+}
+
+async function getFootballSchedule(env,force=false,requestUrl='https://local/api/football/schedule'){
+  let cache=null,cacheKey=null,cachedPayload=null;
+  try{
+    cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
+    if(cache){
+      const u=new URL(requestUrl);u.pathname='/__cache/football-schedule-v1';u.search='';
+      cacheKey=new Request(u.toString(),{method:'GET'});
+      const hit=await cache.match(cacheKey);if(hit){try{cachedPayload=await hit.json()}catch{}}
+    }
+  }catch{cache=null;cacheKey=null}
+  if(cachedPayload&&!force)return {...cachedPayload,cache:'hit'};
+  if(cachedPayload&&force&&Date.now()-Date.parse(cachedPayload.updatedAt||0)<60*1000){
+    return {...cachedPayload,cache:'refresh-cooldown'};
+  }
+
+  try{
+    const dateFrom=isoDayOffset(-1),dateTo=isoDayOffset(14);
+    let matches=[],provider='football-data.org';
+    if(env.FOOTBALL_DATA_API_KEY){
+      const data=await footballFetch(`/matches?dateFrom=${dateFrom}&dateTo=${dateTo}&limit=500`,env);
+      matches=Array.isArray(data.matches)?data.matches:[];
+    }else{
+      const data=await apiFootballFetch('fixtures',{from:dateFrom,to:dateTo,timezone:'UTC'},env);
+      matches=(Array.isArray(data?.response)?data.response:[]).map(cleanApiFootballFixture);
+      provider='API-Football';
+    }
+    matches.sort((a,b)=>Date.parse(a.utcDate||0)-Date.parse(b.utcDate||0));
+    const competitions=[...new Map(matches.map(match=>{
+      const comp=match?.competition||{};
+      return [String(comp.id||comp.code||comp.name||''),{id:comp.id||0,code:comp.code||'',name:comp.name||'Competition',emblem:comp.emblem||''}];
+    }).filter(([key])=>key)).values()];
+    const payload={matches,competitions,provider,dateFrom,dateTo,updatedAt:new Date().toISOString()};
+    if(cache&&cacheKey){
+      try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=600'}}))}catch{}
+    }
+    return {...payload,cache:'fresh'};
+  }catch(e){
+    if(cachedPayload)return {...cachedPayload,cache:'stale',warning:e?.message||'Showing the last saved football schedule.'};
+    throw e;
+  }
+}
+
+function cleanFootballDataLineupTeam(team){
+  const players=list=>(Array.isArray(list)?list:[]).map(player=>({
+    id:Number(player?.id)||0,
+    name:String(player?.name||'Player').slice(0,120),
+    number:player?.shirtNumber==null?null:Number(player.shirtNumber),
+    position:String(player?.position||'').slice(0,80)
+  }));
+  return {
+    id:Number(team?.id)||0,name:String(team?.shortName||team?.name||'Team'),crest:String(team?.crest||''),
+    formation:String(team?.formation||''),coach:String(team?.coach?.name||''),
+    starting:players(team?.lineup),bench:players(team?.bench)
+  };
+}
+function cleanApiFootballLineupTeam(entry){
+  const players=list=>(Array.isArray(list)?list:[]).map(row=>{
+    const player=row?.player||row||{};
+    return {id:Number(player.id)||0,name:String(player.name||'Player').slice(0,120),number:player.number==null?null:Number(player.number),position:String(player.pos||player.position||'').slice(0,80)};
+  });
+  return {
+    id:-(Math.abs(Number(entry?.team?.id)||0)),name:String(entry?.team?.name||'Team'),crest:String(entry?.team?.logo||''),
+    formation:String(entry?.formation||''),coach:String(entry?.coach?.name||''),
+    starting:players(entry?.startXI),bench:players(entry?.substitutes)
+  };
+}
+async function getFootballLineups(env,matchId,force=false,requestUrl='https://local/api/football/lineups'){
+  const id=Number(matchId)||0;
+  if(!id){const err=new Error('A valid football match ID is required.');err.status=400;throw err}
+  let cache=null,cacheKey=null;
+  try{
+    cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
+    if(cache){
+      const u=new URL(requestUrl);u.pathname='/__cache/football-lineups-v1';u.search=new URLSearchParams({matchId:String(id)}).toString();
+      cacheKey=new Request(u.toString(),{method:'GET'});
+      if(!force){const hit=await cache.match(cacheKey);if(hit)return hit.json()}
+    }
+  }catch{cache=null;cacheKey=null}
+
+  let teams=[],provider='football-data.org';
+  if(id>0){
+    const match=await footballFetch(`/matches/${encodeURIComponent(id)}`,env,{'X-Unfold-Lineups':'true'});
+    teams=[cleanFootballDataLineupTeam(match.homeTeam),cleanFootballDataLineupTeam(match.awayTeam)];
+  }else{
+    const data=await apiFootballFetch('fixtures/lineups',{fixture:Math.abs(id)},env);
+    teams=(Array.isArray(data?.response)?data.response:[]).map(cleanApiFootballLineupTeam);
+    provider='API-Football';
+  }
+  const available=teams.some(team=>team.starting.length||team.bench.length);
+  const payload={matchId:id,teams,available,provider,updatedAt:new Date().toISOString(),message:available?'':'Lineups have not been announced for this match yet.'};
+  if(cache&&cacheKey){
+    try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=120'}}))}catch{}
+  }
+  return payload;
 }
 
 function apiSportsKey(env){
@@ -3106,6 +3261,19 @@ export default {
         return json(await getFootballBundle(env,competition,force,request.url));
       }
 
+      if(url.pathname==='/api/football/schedule'&&request.method==='GET'){
+        return json(await getFootballSchedule(env,url.searchParams.get('refresh')==='1',request.url));
+      }
+
+      if(url.pathname==='/api/football/lineups'&&request.method==='GET'){
+        return json(await getFootballLineups(
+          env,
+          url.searchParams.get('matchId')||'',
+          url.searchParams.get('refresh')==='1',
+          request.url
+        ));
+      }
+
       if(url.pathname==='/api/sports'&&request.method==='GET'){
         const sport=url.searchParams.get('sport')||'tennis';
         const force=url.searchParams.get('refresh')==='1';
@@ -3294,6 +3462,16 @@ export default {
       if(url.pathname==='/api/youtube/search'&&request.method==='GET'){
         const q=url.searchParams.get('q')||'';
         return json(await searchYouTube(env,q,request.url));
+      }
+
+      if(url.pathname==='/api/youtube/comments'&&request.method==='GET'){
+        return json(await youtubeComments(
+          env,
+          url.searchParams.get('videoId')||'',
+          url.searchParams.get('pageToken')||'',
+          request.url,
+          url.searchParams.get('refresh')==='1'
+        ));
       }
 
       if(url.pathname==='/api/news'&&request.method==='GET'){

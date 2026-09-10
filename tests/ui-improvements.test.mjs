@@ -50,6 +50,16 @@ test('cold start defers hidden heavy screens and provider requests',()=>{
   assert.match(html,/if\(page==='words'\)loadWords\(\)/);
 });
 
+test('home weather loads after the critical startup path and deduplicates requests',()=>{
+  const start=html.indexOf('const startupJobs=[');
+  const end=html.indexOf('startupJobs.forEach',start);
+  assert.doesNotMatch(html.slice(start,end),/loadWeather/);
+  assert.match(html,/requestIdleCallback' in window/);
+  assert.match(html,/setTimeout\(startHomeWeather,250\)/);
+  assert.match(html,/if\(weatherLoadPromise\)return weatherLoadPromise/);
+  assert.match(html,/Loading weather for \$\{state\.city\}/);
+});
+
 test('cross-tab state sync ignores high-frequency progress keys',()=>{
   const start=html.indexOf("window.addEventListener('storage',event=>");
   assert.notEqual(start,-1);
@@ -122,16 +132,16 @@ test('For You mixes result groups and caps channel dominance',()=>{
   );
 });
 
-test('playing video stays mounted in an in-app mini-player across navigation',()=>{
+test('app-made floating video is removed while Apple system PiP remains available',()=>{
   assert.match(html,/id="youtubePlayerStage"/);
   assert.match(html,/class="media-player-stage app-video-stage" id="mediaPlayerStage"/);
-  assert.match(html,/\.app-video-stage\.is-mini\{[^}]*position:fixed!important/);
+  assert.doesNotMatch(html,/\.app-video-stage\.is-mini/);
+  assert.doesNotMatch(html,/app-video-mini-chrome/);
+  assert.doesNotMatch(html,/data-video-return|data-video-close/);
   assert.match(html,/function updateFloatingVideoPlayer\(\)/);
   assert.match(html,/requestAnimationFrame\(updateFloatingVideoPlayer\)/);
-  assert.match(html,/width:min\(360px,calc\(100vw - 16px\)\)!important;\s*min-height:200px!important/);
-  assert.match(html,/body:has\(\.app-video-stage\.is-mini\) \.global-quick-add/);
-  assert.match(html,/data-video-return="youtube"/);
-  assert.match(html,/data-video-close="media"/);
+  assert.match(html,/iOS supplies the only PiP UI/);
+  assert.match(html,/allow="[^\"]*picture-in-picture/);
 });
 
 test('YouTube Music uses one official iframe and a controls-only mini module',()=>{
@@ -163,5 +173,5 @@ test('native iOS wrapper enables background audio and system PiP',()=>{
   assert.match(nativeApp,/setCategory\(\.playback/);
   assert.match(nativeWebView,/allowsPictureInPictureMediaPlayback = true/);
   assert.match(nativeProject,/INFOPLIST_KEY_UIBackgroundModes: audio/);
-  assert.match(nativeProject,/MARKETING_VERSION: 1\.3\.0/);
+  assert.match(nativeProject,/MARKETING_VERSION: 1\.4\.0/);
 });

@@ -1816,44 +1816,9 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
   .music-mini-player.youtube-mode .music-mini-info{max-width:none}
 }
 
-/* In-app Picture in Picture. The playing iframe stays mounted while app pages change. */
+/* Keep a playing iframe mounted when Apple system PiP owns playback. There is
+   intentionally no app-made floating player: iOS supplies the only PiP UI. */
 .app-video-stage{position:relative}
-.app-video-mini-chrome{display:none}
-.app-video-stage.is-mini{
-  position:fixed!important;
-  z-index:2147481900!important;
-  right:12px!important;
-  bottom:12px!important;
-  width:min(390px,calc(100vw - 24px))!important;
-  aspect-ratio:16/9!important;
-  border:1px solid rgba(255,255,255,.18)!important;
-  border-radius:15px!important;
-  overflow:hidden!important;
-  background:#000!important;
-  box-shadow:0 18px 52px rgba(0,0,0,.58)!important;
-  pointer-events:auto!important
-}
-.app-video-stage.is-mini iframe{
-  display:block!important;width:100%!important;height:100%!important;
-  min-width:0!important;min-height:0!important;max-width:none!important;
-  aspect-ratio:auto!important;border:0!important;border-radius:0!important
-}
-.app-video-stage.is-mini .app-video-mini-chrome{
-  position:absolute;display:flex;align-items:center;gap:5px;
-  top:7px;left:7px;right:7px;z-index:5;pointer-events:none
-}
-.app-video-mini-title{
-  min-width:0;flex:1;padding:5px 8px;border-radius:999px;
-  background:rgba(4,7,13,.78);backdrop-filter:blur(12px);
-  color:#fff;font-size:8px;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
-}
-.app-video-mini-chrome button{
-  pointer-events:auto;width:30px;height:30px;display:grid;place-items:center;
-  border:1px solid rgba(255,255,255,.22);border-radius:999px;
-  background:rgba(4,7,13,.82);color:#fff;font:inherit;font-size:11px;font-weight:900;cursor:pointer
-}
-.app-video-mini-progress{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.12);z-index:6}
-.app-video-mini-progress>span{display:block;width:0;height:100%;background:linear-gradient(90deg,#5b8cff,#8b5cf6)}
 .page.video-background-page{
   display:block!important;position:fixed!important;left:-200vw!important;top:0!important;
   width:1px!important;height:1px!important;overflow:visible!important;pointer-events:none!important
@@ -1861,24 +1826,30 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
 .ent-panel.video-background-panel,
 .watch-subpanel.video-background-panel,
 .media-view.video-background-panel{display:block!important;overflow:visible!important}
-body:has(#musicMiniPlayer.open) .app-video-stage.is-mini{bottom:80px!important}
-body:has(#noteModal.open) .app-video-stage.is-mini{visibility:hidden!important;pointer-events:none!important}
-body:has(.app-video-stage.is-mini) .global-quick-add,
-body:has(.app-video-stage.is-mini) .mobile-watch-fab,
-body:has(.app-video-stage.is-mini) .back-to-top{display:none!important}
-@media(max-width:760px){
-  .app-video-stage.is-mini{
-    right:8px!important;
-    bottom:calc(76px + env(safe-area-inset-bottom))!important;
-    width:min(360px,calc(100vw - 16px))!important;
-    min-height:200px!important;
-    border-radius:13px!important
-  }
-  body:has(#musicMiniPlayer.open) .app-video-stage.is-mini{
-    bottom:calc(128px + env(safe-area-inset-bottom))!important
-  }
-}
 
+.youtube-comments{display:grid;gap:9px;margin-top:11px}
+.youtube-comment{display:grid;grid-template-columns:34px minmax(0,1fr);gap:9px;padding:10px;border:1px solid var(--line);border-radius:13px;background:#0a111d}
+.youtube-comment-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;background:#172237}
+.youtube-comment-author{font-size:10px;font-weight:850}
+.youtube-comment-date{font-size:8px;color:var(--muted);margin-left:5px}
+.youtube-comment-text{font-size:10px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:4px}
+.youtube-comment-meta{font-size:8px;color:var(--muted);margin-top:6px}
+.football-schedule-tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none}
+.football-schedule-tab{flex:0 0 auto;border:1px solid var(--line);border-radius:999px;background:var(--panel2);color:var(--muted);padding:7px 10px;font:inherit;font-size:9px;font-weight:800;cursor:pointer}
+.football-schedule-tab.active{color:#fff;background:linear-gradient(135deg,#3568e8,#7658db);border-color:transparent}
+.football-match-wrap{display:grid;gap:6px;padding:9px;border:1px solid var(--line);border-radius:14px;background:var(--panel2)}
+.football-match-wrap .football-match{padding:2px;border:0;border-radius:0;background:transparent}
+.football-match-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #ffffff0a;padding-top:7px}
+.football-lineup-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-height:62vh;overflow:auto}
+.football-lineup-team{border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:11px}
+.football-lineup-team-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.football-lineup-team-head img{width:32px;height:32px;object-fit:contain}
+.football-player{display:grid;grid-template-columns:24px minmax(0,1fr);gap:6px;padding:6px 0;border-bottom:1px solid #ffffff08;font-size:9px}
+.football-player:last-child{border-bottom:0}
+.football-player-number{color:var(--muted);font-weight:850}
+.football-player-position{display:block;color:var(--muted);font-size:8px;margin-top:2px}
+.backup-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+@media(max-width:620px){.football-lineup-grid{grid-template-columns:1fr;max-height:68vh}}
 
 .music-search-provider-head{
   display:flex;
@@ -2463,12 +2434,11 @@ body:has(.modal.open) .back-to-top{
                 <div class="section-note">Player</div>
                 <div class="app-video-stage" id="youtubePlayerStage">
                   <iframe id="youtubeWatchFrame" class="watch-frame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                  <div class="app-video-mini-chrome">
-                    <span class="app-video-mini-title" id="youtubeMiniTitle">YouTube</span>
-                    <button type="button" data-video-return="youtube" aria-label="Return to YouTube player">↗</button>
-                    <button type="button" data-video-close="youtube" aria-label="Close YouTube player">×</button>
-                  </div>
-                  <div class="app-video-mini-progress"><span id="youtubeMiniProgress"></span></div>
+                </div>
+                <div class="card" id="youtubeCommentsCard" style="margin-top:10px;display:none">
+                  <div class="card-head"><div><div class="title">💬 Comments</div><div class="sub" id="youtubeCommentsStatus">Choose a video to load comments.</div></div><button class="btn small" id="youtubeCommentsRefreshBtn" type="button">↻ Refresh</button></div>
+                  <div id="youtubeCommentsList" class="youtube-comments"></div>
+                  <div class="toolbar" style="margin-top:9px"><button class="btn small" id="youtubeCommentsMoreBtn" type="button" style="display:none">Load more</button></div>
                 </div>
                 <details style="margin-top:9px"><summary class="sub" style="cursor:pointer">Or paste a YouTube link / video ID</summary>
                   <div class="field" style="margin-top:8px"><input id="youtubeWatchInput" placeholder="https://youtube.com/watch?v=… or video ID" /></div>
@@ -2582,14 +2552,8 @@ body:has(.modal.open) .back-to-top{
                       <iframe id="mediaWatchFrame" class="media-player"
                         allow="autoplay; fullscreen; picture-in-picture"
                         allowfullscreen
-                        referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                      referrerpolicy="strict-origin-when-cross-origin"></iframe>
                       <button class="media-fullscreen-exit" id="mediaFullscreenExit" type="button" aria-label="Exit full screen">✕ Close</button>
-                      <div class="app-video-mini-chrome">
-                        <span class="app-video-mini-title" id="mediaMiniTitle">Movies &amp; TV</span>
-                        <button type="button" data-video-return="media" aria-label="Return to Movies and TV player">↗</button>
-                        <button type="button" data-video-close="media" aria-label="Close Movies and TV player">×</button>
-                      </div>
-                      <div class="app-video-mini-progress"><span id="mediaMiniProgress"></span></div>
                     </div>
                   </div>
                 </div>
@@ -2623,7 +2587,7 @@ body:has(.modal.open) .back-to-top{
           <div id="footballCompetitionWrap">
             <div class="football-toolbar" style="margin-top:10px">
               <div class="field">
-                <label>Competition</label>
+                <label>Standings competition</label>
                 <select id="footballCompetition">
                   <optgroup label="Top European leagues">
                     <option value="PL">Premier League</option>
@@ -2680,11 +2644,12 @@ body:has(.modal.open) .back-to-top{
 
         <div class="football-grid">
           <article class="card">
-            <div class="card-head"><div><div class="title">🗓️ Upcoming fixtures</div><div class="sub">Next two weeks</div></div></div>
+            <div class="card-head"><div><div class="title">🗓️ Match schedule</div><div class="sub" id="footballScheduleSub">All available competitions • choose a day</div></div></div>
+            <div id="footballScheduleTabs" class="football-schedule-tabs"></div>
             <div id="footballFixtures" class="list"><div class="empty">Loading…</div></div>
           </article>
           <article class="card">
-            <div class="card-head"><div><div class="title">🏁 Recent results</div><div class="sub">Previous week</div></div></div>
+            <div class="card-head"><div><div class="title">🏁 Recent results</div><div class="sub">Across available competitions</div></div></div>
             <div id="footballResults" class="list"><div class="empty">Loading…</div></div>
           </article>
         </div>
@@ -2978,6 +2943,12 @@ body:has(.modal.open) .back-to-top{
   <section class="settings-section active" data-settings-panel="general"><article class="card settings-card-clean">
     <div class="title">⚙️ General</div><div class="settings-description">Basic Command Centre behaviour.</div>
     <div class="field"><label>Weather city</label><input id="settingsCity" value="London" /></div>
+  </article>
+  <article class="card settings-card-clean">
+    <div class="title">↗ Data backup & restore</div>
+    <div class="settings-description">Move notes, reminders, calendar events and their folders/categories between the Home Screen app and the IPA. Restoring merges data without deleting items already on this device.</div>
+    <div class="backup-actions"><button class="btn" id="exportBackupBtn" type="button">Export backup</button><button class="btn primary" id="importBackupBtn" type="button">Restore backup</button><input id="backupFileInput" type="file" accept="application/json,.json" hidden /></div>
+    <div class="setting-note" id="backupStatus">Backups exclude API keys and device notification identifiers.</div>
   </article></section>
 
   <section class="settings-section" data-settings-panel="home"><article class="card settings-card-clean">
@@ -2986,7 +2957,7 @@ body:has(.modal.open) .back-to-top{
   </article></section>
 
   <section class="settings-section" data-settings-panel="notifications">
-    <article class="card settings-card-clean"><div class="card-head"><div><div class="title">🔔 Mobile notifications</div><div class="sub" id="notificationStatus">Checking notification support…</div></div><button class="btn primary" id="enableNotificationsBtn">Enable</button></div><div class="toolbar"><button class="btn" id="testNotificationBtn">Send test</button><button class="btn" id="repairNotificationsBtn">Repair push</button><button class="btn" id="rescheduleNotificationsBtn">Reschedule</button></div><div class="setting-note" style="margin-top:8px">Background reminders use iPhone Web Push when Command Centre is installed to the Home Screen.</div></article>
+    <article class="card settings-card-clean"><div class="card-head"><div><div class="title">🔔 Mobile notifications</div><div class="sub" id="notificationStatus">Checking notification support…</div></div><button class="btn primary" id="enableNotificationsBtn">Enable</button></div><div class="toolbar"><button class="btn" id="testNotificationBtn">Send test</button><button class="btn" id="repairNotificationsBtn">Repair</button><button class="btn" id="rescheduleNotificationsBtn">Reschedule</button></div><div class="setting-note" style="margin-top:8px">The IPA schedules native iPhone alerts for reminders and calendar events. The Home Screen version continues to use Web Push.</div></article>
     <article class="card settings-card-clean"><div class="title">☀️ Morning briefing</div><div class="form"><div class="field"><label>Morning briefing</label><select id="settingsMorningBriefing"><option value="on">On</option><option value="off">Off</option></select></div><div class="field"><label>Delivery time</label><input id="settingsMorningBriefingTime" type="time" value="07:30" /></div></div><div class="toolbar"><button class="btn" id="testMorningBriefingBtn">Send briefing test</button></div></article>
   </section>
 
@@ -3021,6 +2992,10 @@ body:has(.modal.open) .back-to-top{
   </div>
 </div>
 <div class="modal-actions"><button class="btn" data-close="settingsModal">Cancel</button><button class="btn primary" id="saveSettings">Save</button></div>
+</div></div>
+<div class="modal" id="footballLineupModal"><div class="modal-card" style="max-width:760px">
+<div class="modal-head"><div><div class="title" id="footballLineupTitle">Team lineups</div><div class="sub" id="footballLineupStatus">Loading…</div></div><button class="icon-btn" data-close="footballLineupModal">×</button></div>
+<div id="footballLineupContent"><div class="empty">Choose Lineups on a football match.</div></div>
 </div></div>
 <div class="modal" id="universalSearchModal"><div class="modal-card search-modal-card">
 <div class="modal-head"><div><div class="title">⌕ Search Command Centre</div><div class="sub">Pages, notes, calendar, sport, news, YouTube and Movies & TV.</div></div><button class="icon-btn" data-close="universalSearchModal">×</button></div>
@@ -3138,6 +3113,7 @@ const DEFAULT_STATE = {
   bibleRead:{},
   bibleRecommendations:{date:'',items:[]},
   notificationsEnabled:false,
+  nativeNotificationPermission:'default',
   notificationLeadMinutes:0,
   morningBriefingEnabled:true,
   morningBriefingTime:'07:30',
@@ -3163,7 +3139,7 @@ const DEFAULT_STATE = {
     watchHistory:[],
     youtubeSearchHistory:[],
     youtubeRecommendationHidden:[],
-    youtubeForYouCache:{version:2,items:[],signals:[],reason:'',updatedAt:''},
+    youtubeForYouCache:{version:3,items:[],signals:[],reason:'',updatedAt:''},
     twitchHistory:[],
     gameStats:{best2048:0,bestSnake:0,bestReaction:null,triviaStreak:0,triviaBest:0,triviaLastDate:'',triviaLastCorrect:null,triviaLastAnswer:null,wordleStreak:0,wordleBest:0,wordleDate:'',wordleGuesses:[],wordleCurrent:'',wordleFinished:false,wordleWon:false},
     visit:{lastDate:'',streak:0}
@@ -3199,7 +3175,7 @@ if(!state.footballFavouriteTeams.length&&state.footballFavouriteTeamId){
   }];
 }
 state.footballFavouriteTeams=state.footballFavouriteTeams
-  .filter(t=>Number(t?.id)>0)
+  .filter(t=>Number(t?.id)!==0)
   .map(t=>({id:Number(t.id),name:String(t.name||'Team'),crest:String(t.crest||'')}))
   .filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i);
 
@@ -3216,7 +3192,7 @@ state.entertainment={
   youtubeRecommendationHidden:Array.isArray(state.entertainment?.youtubeRecommendationHidden)?state.entertainment.youtubeRecommendationHidden.map(String).filter(Boolean).slice(0,100):[],
   youtubeForYouCache:(state.entertainment?.youtubeForYouCache&&typeof state.entertainment.youtubeForYouCache==='object')
     ?state.entertainment.youtubeForYouCache
-    :{version:2,items:[],signals:[],reason:'',updatedAt:''},
+    :{version:3,items:[],signals:[],reason:'',updatedAt:''},
   mediaHistory:Array.isArray(state.entertainment?.mediaHistory)?state.entertainment.mediaHistory:[],
   twitchHistory:Array.isArray(state.entertainment?.twitchHistory)?state.entertainment.twitchHistory:[],
   gameStats:{...DEFAULT_STATE.entertainment.gameStats,...(state.entertainment?.gameStats||{})},
@@ -3250,6 +3226,70 @@ const nowIso = () => new Date().toISOString();
 function cloneDefault(){return JSON.parse(JSON.stringify(DEFAULT_STATE))}
 function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE)||'{}');const merged={...cloneDefault(),...saved,holdings:Array.isArray(saved.holdings)?saved.holdings:cloneDefault().holdings,reminders:Array.isArray(saved.reminders)?saved.reminders:[],reminderCategories:Array.isArray(saved.reminderCategories)&&saved.reminderCategories.length?saved.reminderCategories:cloneDefault().reminderCategories};merged.reminders=merged.reminders.map(r=>({...r,id:r.id||makeId('rem'),text:r.text,category:r.category||'General',createdAt:r.createdAt||new Date().toISOString(),startDate:r.startDate||dayKey(new Date(r.createdAt||Date.now())),time:r.time||'',frequency:r.frequency||'none'}));merged.events=Array.isArray(saved.events)?saved.events.map(e=>({...e,id:e.id||makeId('event'),title:e.title||'Event',date:e.date||dayKey(),time:e.time||'',notes:e.notes||''})):[];merged.notes=Array.isArray(saved.notes)?saved.notes.map(n=>({...n,id:n.id||makeId('note'),title:n.title||'Untitled note',body:n.body||'',createdAt:n.createdAt||nowIso(),updatedAt:n.updatedAt||n.createdAt||nowIso()})):[];if(!merged.reminderCategories.includes('General'))merged.reminderCategories.unshift('General');return merged}catch{return cloneDefault()}}
 function saveState(){localStorage.setItem(STORAGE,JSON.stringify(state))}
+function commandCentreBackupPayload(){
+  return {
+    format:'command-centre-backup',schemaVersion:1,exportedAt:nowIso(),
+    data:{
+      notes:state.notes||[],noteFolders:state.noteFolders||[],
+      reminders:state.reminders||[],reminderCategories:state.reminderCategories||[],
+      events:state.events||[]
+    }
+  };
+}
+function backupFileName(){return `command-centre-backup-${dayKey()}.json`}
+function exportCommandCentreBackup(){
+  const contents=JSON.stringify(commandCentreBackupPayload(),null,2),filename=backupFileName();
+  if(window.CommandCentreNative?.dataBridge&&nativeMessageHandler('nativeData')){
+    nativeMessageHandler('nativeData').postMessage({action:'export',filename,contents});
+  }else{
+    const url=URL.createObjectURL(new Blob([contents],{type:'application/json'}));
+    const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  const status=qs('#backupStatus');if(status)status.textContent='Backup created. Save the JSON file, then restore it inside the IPA.';
+  toast('Backup exported');
+}
+function sanitizeImportedNoteHtml(value){
+  const doc=new DOMParser().parseFromString(String(value||'').slice(0,250000),'text/html');
+  doc.querySelectorAll('script,style,iframe,object,embed,link,meta,form').forEach(node=>node.remove());
+  doc.querySelectorAll('*').forEach(node=>[...node.attributes].forEach(attr=>{
+    const name=attr.name.toLowerCase(),val=String(attr.value||'').trim().toLowerCase();
+    if(name.startsWith('on')||name==='srcdoc'||((name==='href'||name==='src')&&val.startsWith('javascript:')))node.removeAttribute(attr.name);
+  }));
+  return doc.body.innerHTML;
+}
+function mergeBackupRows(current,incoming,normalise){
+  const map=new Map((Array.isArray(current)?current:[]).map(item=>[String(item?.id||makeId('item')),item]));
+  (Array.isArray(incoming)?incoming:[]).slice(0,5000).forEach(raw=>{const item=normalise(raw);if(item)map.set(String(item.id),item)});
+  return [...map.values()];
+}
+function importCommandCentreBackup(raw){
+  let payload;
+  try{payload=typeof raw==='string'?JSON.parse(raw):raw}catch{throw new Error('That file is not valid JSON.')}
+  if(payload?.format!=='command-centre-backup'||Number(payload?.schemaVersion)!==1||!payload?.data)throw new Error('Choose a Command Centre backup JSON file.');
+  const data=payload.data,frequencies=new Set(['none','daily','every2days','weekly','monthly','yearly']);
+  state.notes=mergeBackupRows(state.notes,data.notes,n=>n&&typeof n==='object'?{
+    id:String(n.id||makeId('note')).slice(0,140),title:String(n.title||'Untitled note').slice(0,300),body:sanitizeImportedNoteHtml(n.body),
+    folder:String(n.folder||'Notes').slice(0,80),pinned:!!n.pinned,deletedAt:String(n.deletedAt||''),createdAt:String(n.createdAt||nowIso()),updatedAt:String(n.updatedAt||n.createdAt||nowIso())
+  }:null);
+  state.reminders=mergeBackupRows(state.reminders,data.reminders,r=>r&&typeof r==='object'?{
+    id:String(r.id||makeId('rem')).slice(0,140),text:String(r.text||'Reminder').slice(0,1000),category:String(r.category||'General').slice(0,80),
+    startDate:/^\d{4}-\d{2}-\d{2}$/.test(r.startDate)?r.startDate:dayKey(),time:/^\d{2}:\d{2}$/.test(r.time||'')?r.time:'',frequency:frequencies.has(r.frequency)?r.frequency:'none',createdAt:String(r.createdAt||nowIso())
+  }:null);
+  state.events=mergeBackupRows(state.events,data.events,e=>e&&typeof e==='object'?{
+    id:String(e.id||makeId('event')).slice(0,140),title:String(e.title||'Event').slice(0,500),date:/^\d{4}-\d{2}-\d{2}$/.test(e.date)?e.date:dayKey(),time:/^\d{2}:\d{2}$/.test(e.time||'')?e.time:'',notes:String(e.notes||'').slice(0,5000)
+  }:null);
+  state.noteFolders=[...new Set(['Notes',...(state.noteFolders||[]),...(Array.isArray(data.noteFolders)?data.noteFolders:[])].map(x=>String(x).slice(0,80)).filter(Boolean))].slice(0,100);
+  state.reminderCategories=[...new Set(['General',...(state.reminderCategories||[]),...(Array.isArray(data.reminderCategories)?data.reminderCategories:[])].map(x=>String(x).slice(0,80)).filter(Boolean))].slice(0,100);
+  saveState();renderNotes();renderReminders();renderCalendar();renderTodayPage();renderHomeTodaySummary();scheduleAllNotifications();
+  const status=qs('#backupStatus');if(status)status.textContent=`Restored ${state.notes.length} notes, ${state.reminders.length} reminders and ${state.events.length} calendar events on this device.`;
+  toast('Backup restored and merged');
+}
+window.CommandCentreReceiveBackup=raw=>{try{importCommandCentreBackup(raw)}catch(e){const status=qs('#backupStatus');if(status)status.textContent=e.message||'Could not restore backup.';toast(e.message||'Could not restore backup')}};
+window.CommandCentreNativeDataError=message=>{const text=String(message||'Could not open that backup.');const status=qs('#backupStatus');if(status)status.textContent=text;toast(text)};
+function chooseCommandCentreBackup(){
+  if(window.CommandCentreNative?.dataBridge&&nativeMessageHandler('nativeData'))nativeMessageHandler('nativeData').postMessage({action:'import'});
+  else qs('#backupFileInput')?.click();
+}
 function makeId(prefix='item'){return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,9)}`}
 function toast(msg){const el=qs('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2400)}
 function openModal(id){qs('#'+id).classList.add('open')}
@@ -3452,14 +3492,10 @@ function videoPrimarySurfaceVisible(kind){
 }
 function updateFloatingVideoPlayer(){
   clearVideoBackgroundPath();
-  qsa('.app-video-stage.is-mini').forEach(el=>el.classList.remove('is-mini'));
   const kind=videoPlaybackState.kind;
   if(!kind)return;
-  const stage=qs(kind==='youtube'?'#youtubePlayerStage':'#mediaPlayerStage');
-  if(!stage)return;
-  const mini=!videoPrimarySurfaceVisible(kind)&&!(kind==='media'&&mediaFullscreenActive());
-  stage.classList.toggle('is-mini',mini);
-  if(!mini)return;
+  const background=!videoPrimarySurfaceVisible(kind)&&!(kind==='media'&&mediaFullscreenActive());
+  if(!background)return;
   const page=qs('#entertainmentPage'),watch=qs('[data-ent-panel="watch"]');
   const sub=qs(`[data-watch-panel="${kind==='media'?'movies':'youtube'}"]`);
   if(!page?.classList.contains('active'))page?.classList.add('video-background-page');
@@ -3474,8 +3510,6 @@ function setActiveVideoPlayback(kind,title=''){
   if(videoPlaybackState.kind&&videoPlaybackState.kind!==kind)stopVideoPlayback(videoPlaybackState.kind);
   videoPlaybackState.kind=kind;
   videoPlaybackState.title=title||'';
-  const label=qs(kind==='youtube'?'#youtubeMiniTitle':'#mediaMiniTitle');
-  if(label)label.textContent=title||(kind==='youtube'?'YouTube':'Movies & TV');
   requestAnimationFrame(updateFloatingVideoPlayer);
 }
 function stopVideoPlayback(kind=videoPlaybackState.kind){
@@ -3693,13 +3727,26 @@ let notificationTimers = new Map();
 let notificationSWRegistration = null;
 const PUSH_API = '/api/push';
 
+function nativeMessageHandler(name){return window.webkit?.messageHandlers?.[name]||null}
+function nativeNotificationsSupported(){return !!(window.CommandCentreNative?.nativeNotifications&&nativeMessageHandler('nativeNotifications'))}
+function postNativeNotification(action,extra={}){
+  const handler=nativeMessageHandler('nativeNotifications');
+  if(!handler)return false;
+  handler.postMessage({action,...extra});return true;
+}
 function notificationSupported(){
-  return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+  return nativeNotificationsSupported()||('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window);
 }
 function notificationPermission(){
+  if(nativeNotificationsSupported())return ['granted','denied'].includes(state.nativeNotificationPermission)?state.nativeNotificationPermission:'default';
   return 'Notification' in window ? Notification.permission : 'unsupported';
 }
 function notificationStatusText(){
+  if(nativeNotificationsSupported()){
+    if(notificationPermission()==='granted'&&state.notificationsEnabled)return 'Native IPA notifications are enabled for reminders and calendar events.';
+    if(notificationPermission()==='denied')return 'Native notifications are blocked. Allow Command Centre notifications in iPhone Settings.';
+    return 'Native iPhone notifications are available — tap Enable.';
+  }
   if(!notificationSupported()) return 'This browser does not support Web Push notifications.';
   if(notificationPermission()==='granted' && state.notificationsEnabled) return 'Background notifications are enabled on this device.';
   if(notificationPermission()==='denied') return 'Notifications are blocked. Allow them in iPhone Settings/Safari site settings.';
@@ -3771,6 +3818,10 @@ function subscriptionJson(sub){
   return {endpoint:j.endpoint,keys:{p256dh:j.keys?.p256dh,auth:j.keys?.auth}};
 }
 async function repairNotifications(){
+  if(nativeNotificationsSupported()){
+    if(notificationPermission()==='denied'){toast('Allow Command Centre notifications in iPhone Settings, then return and tap Enable');return}
+    state.notificationsEnabled=true;saveState();postNativeNotification('requestPermission',{items:collectNativeNotificationSchedule()});toast('Native notification schedule refreshed');updateNotificationUI();return;
+  }
   if(!notificationSupported()){toast('This browser does not support Web Push notifications');return}
   try{
     const reg=notificationSWRegistration||await registerNotificationSW();
@@ -3785,6 +3836,13 @@ async function repairNotifications(){
 
 async function enableNotifications(){
   if(!notificationSupported()){toast('This browser does not support Web Push notifications');return}
+  if(nativeNotificationsSupported()){
+    state.notificationsEnabled=true;
+    if(state.nativeNotificationPermission!=='denied')state.nativeNotificationPermission='granted';
+    saveState();
+    postNativeNotification('requestPermission',{items:collectNativeNotificationSchedule()});
+    updateNotificationUI();toast('Native iPhone notifications enabled');return;
+  }
   try{
     const permission=await Notification.requestPermission();
     if(permission==='granted'){
@@ -3810,6 +3868,7 @@ function morningBriefingBibleText(){
 }
 async function syncMorningBriefingPreferences(){
   if(!state.notificationsEnabled||notificationPermission()!=='granted')return;
+  if(nativeNotificationsSupported()){syncNativeNotifications();return}
   try{
     await fetch('/api/briefing/preferences',{
       method:'POST',
@@ -3830,6 +3889,9 @@ async function testMorningBriefing(){
   if(notificationPermission()!=='granted'||!state.notificationsEnabled){
     await enableNotifications();
     if(notificationPermission()!=='granted'||!state.notificationsEnabled)return;
+  }
+  if(nativeNotificationsSupported()){
+    postNativeNotification('test',{title:'☀️ Morning briefing','body':'Your Command Centre morning briefing notifications are ready.','url':'#briefing'});return;
   }
   try{
     await syncMorningBriefingPreferences();
@@ -3866,8 +3928,38 @@ function collectPushSchedule(days=400){
   }
   return items;
 }
+function collectNativeFootballNotifications(){
+  if(state.footballNotificationsEnabled===false)return [];
+  const favouriteIds=new Set(footballFavouriteTeams().map(team=>Number(team.id)));
+  if(!favouriteIds.size)return [];
+  const now=Date.now(),items=[];
+  footballAllScheduleMatches().forEach(match=>{
+    if(!favouriteIds.has(Number(match.homeTeam?.id))&&!favouriteIds.has(Number(match.awayTeam?.id)))return;
+    const kickoff=Date.parse(match.utcDate||'');if(!Number.isFinite(kickoff)||kickoff<=now)return;
+    const fixture=`${footballTeamName(match.homeTeam)} vs ${footballTeamName(match.awayTeam)}`;
+    const add=(suffix,offset,body)=>{const due=kickoff-offset;if(due>now)items.push({id:`football-${match.id}-${suffix}`,kind:'football',dueAt:new Date(due).toISOString(),title:'⚽ Football',body,url:'#football'})};
+    if(state.footballNotify24h!==false)add('24h',24*60*60*1000,`${fixture} starts tomorrow.`);
+    if(state.footballNotify1h!==false)add('1h',60*60*1000,`${fixture} starts in one hour.`);
+    if(state.footballNotifyKickoff!==false)add('kickoff',0,`${fixture} is kicking off now.`);
+  });
+  return items;
+}
+function collectNativeNotificationSchedule(){
+  const scheduled=[...collectPushSchedule(180),...collectNativeFootballNotifications()]
+    .map(item=>({...item,url:['reminder','event'].includes(item.kind)?'#today':item.url}))
+    .sort((a,b)=>Date.parse(a.dueAt||0)-Date.parse(b.dueAt||0)).slice(0,59);
+  if(state.morningBriefingEnabled!==false){
+    const [hour,minute]=(state.morningBriefingTime||'07:30').split(':').map(Number);
+    scheduled.unshift({id:'morning-briefing',kind:'briefing',repeatingDaily:true,hour:Number(hour)||7,minute:Number(minute)||0,title:'☀️ Command Centre',body:'Your morning briefing is ready.',url:'#briefing'});
+  }
+  return scheduled;
+}
+function syncNativeNotifications(){
+  if(nativeNotificationsSupported()&&state.notificationsEnabled)postNativeNotification('schedule',{items:collectNativeNotificationSchedule()});
+}
 async function syncPushSchedule(){
   if(!state.notificationsEnabled||notificationPermission()!=='granted')return;
+  if(nativeNotificationsSupported()){syncNativeNotifications();return}
   try{
     const sub=await getPushSubscription();
     const response=await fetch(PUSH_API+'/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:pushDeviceId(),subscription:subscriptionJson(sub),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,items:collectPushSchedule(400)})});
@@ -3883,6 +3975,7 @@ function scheduleNotificationAt(id,title,body,when,url){
 function scheduleAllNotifications(){
   clearNotificationTimers();
   if(!state.notificationsEnabled||notificationPermission()!=='granted')return;
+  if(nativeNotificationsSupported()){syncNativeNotifications();return}
   const now=new Date();
   for(let offset=0;offset<7;offset++){
     const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+offset),key=dayKey(d);
@@ -3896,8 +3989,17 @@ function scheduleAllNotifications(){
 async function testNotification(){
   if(!notificationSupported()){toast('Web Push is not supported');return}
   if(notificationPermission()!=='granted'||!state.notificationsEnabled){await enableNotifications();if(notificationPermission()!=='granted'||!state.notificationsEnabled)return}
+  if(nativeNotificationsSupported()){postNativeNotification('test',{title:'🔔 Command Centre','body':'Native IPA notifications are working.','url':'#today'});return}
   try{const response=await fetch(PUSH_API+'/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:pushDeviceId()})});if(!response.ok)throw new Error('Test push failed');toast('Test notification sent')}catch(e){toast(e.message||'Could not send test notification')}
 }
+
+window.addEventListener('cc-native-notification-status',event=>{
+  const permission=String(event.detail?.permission||'default');
+  state.nativeNotificationPermission=['granted','denied'].includes(permission)?permission:'default';
+  if(permission==='denied')state.notificationsEnabled=false;
+  saveState();updateNotificationUI();
+  if(event.detail?.message)toast(String(event.detail.message));
+});
 
 
 function applyLaunchRoute(){
@@ -3911,6 +4013,10 @@ function applyLaunchRoute(){
   }
   if(location.hash==='#football'){
     switchPage('football',false);
+    return;
+  }
+  if(location.hash==='#today'||location.hash.startsWith('#reminder-')||location.hash.startsWith('#event-')){
+    switchPage('today',false);
     return;
   }
 
@@ -3974,6 +4080,13 @@ function init(){
     bind('addNoteFolderBtn','click',addNoteFolder);
     bind('restoreNoteBtn','click',restoreEditingNote);
     bind('resetHomeLayoutBtn','click',resetHomeLayout);
+    bind('exportBackupBtn','click',exportCommandCentreBackup);
+    bind('importBackupBtn','click',chooseCommandCentreBackup);
+    bind('backupFileInput','change',async event=>{
+      const file=event.target.files?.[0];event.target.value='';if(!file)return;
+      if(file.size>10*1024*1024){toast('Backup file is too large');return}
+      try{importCommandCentreBackup(await file.text())}catch(e){const status=qs('#backupStatus');if(status)status.textContent=e.message||'Could not restore backup.';toast(e.message||'Could not restore backup')}
+    });
     bind('clearContinueWatchingBtn','click',()=>{if(confirm('Clear Continue Watching?')){state.entertainment.youtubeHistoryDetailed=[];state.entertainment.mediaHistory=[];saveState();renderAllContinueWatching();toast('Continue Watching cleared')}});
     bind('openContentSettingsBtn','click',()=>{closeModal('settingsModal');openWatchPage()});
     bind('universalSearchInput','input',e=>runUniversalSearch(e.target.value));
@@ -4025,8 +4138,6 @@ function init(){
      qs('#universalSearchResults')?.addEventListener('click',e=>{const b=e.target.closest('[data-search-type]');if(b)handleUniversalSearchAction(b.dataset.searchType,Number(b.dataset.searchIndex))});
      qs('#notesNavigation')?.addEventListener('click',e=>{const b=e.target.closest('[data-notes-filter]');if(b)setNotesFilter(b.dataset.notesFilter)});
      document.addEventListener('click',e=>{
-       const videoReturn=e.target.closest('[data-video-return]');if(videoReturn){returnToVideoPlayback(videoReturn.dataset.videoReturn);return}
-       const videoClose=e.target.closest('[data-video-close]');if(videoClose){stopVideoPlayback(videoClose.dataset.videoClose);return}
        const q=e.target.closest('[data-quick-add]');if(q){runQuickAdd(q.dataset.quickAdd);return}
        const m=e.target.closest('[data-home-move]');if(m){moveHomeWidget(m.dataset.homeMove,Number(m.dataset.direction));return}
        const v=e.target.closest('[data-home-visible]');if(v){state.homeHidden[v.dataset.homeVisible]=!v.checked;saveState();applyHomeLayout();renderHomeCustomizer();return}
@@ -4083,6 +4194,9 @@ function init(){
       try{job()}
       catch(e){console.error('Startup component failed',e)}
     });
+    const startHomeWeather=()=>loadWeather();
+    if('requestIdleCallback' in window)window.requestIdleCallback(startHomeWeather,{timeout:1200});
+    else setTimeout(startHomeWeather,250);
     setInterval(()=>{const fw=qs('#featuredWord');if(fw)fw.textContent=yourWords[Math.floor(Math.random()*yourWords.length)]},30000);
     window.addEventListener('pagehide',()=>{captureYoutubeProgress(true);captureMediaProgress(true)});
     document.addEventListener('visibilitychange',()=>{
@@ -5822,18 +5936,13 @@ function recordMediaContinue(progress={},refreshRecommendations=false){
 function renderMediaContinueWatching(){const el=qs('#mediaExploreContinue');if(!el)return;const all=state.entertainment.mediaHistory||[],items=all.filter(x=>!x.completed);if(!items.length){el.classList.remove('visible');el.innerHTML='';return}el.classList.add('visible');el.innerHTML=`<div class="media-personal-title"><strong>Continue Watching</strong><span>${items.length} in progress</span></div><div class="media-recommend-grid">${items.slice(0,5).map(x=>{const i=all.indexOf(x),p=playbackProgressDetails(x);return `<button class="media-recommend-card" data-media-history-index="${i}">${x.posterUrl?`<img src="${esc(x.posterUrl)}" alt="">`:'<span class="media-recommend-placeholder">🎬</span>'}<div class="media-recommend-title">${esc(x.title||'Untitled')}</div>${p.label?`<div class="continue-meta">${esc(p.label)}</div>`:''}${p.showBar?`<div class="continue-progress"><span style="width:${p.percent.toFixed(2)}%"></span></div>`:''}</button>`}).join('')}</div>`}
 async function loadMediaRecommendations(){const el=qs('#mediaExploreBecause');if(!el)return;const last=(state.entertainment.mediaHistory||[])[0];if(!last){el.classList.remove('visible');el.innerHTML='';return}try{const r=await fetch(`/api/media/recommendations?type=${encodeURIComponent(last.type)}&id=${encodeURIComponent(last.id)}`,{cache:'no-store'}),data=await r.json().catch(()=>({}));if(!r.ok)throw new Error();const items=Array.isArray(data.results)?data.results.slice(0,5):[];if(!items.length){el.classList.remove('visible');el.innerHTML='';return}mediaEmbedState.recommendations=items;el.classList.add('visible');el.innerHTML=`<div class="media-personal-title"><strong>Because you watched ${esc(last.title||'this')}</strong><span>Recommended</span></div><div class="media-recommend-grid">${items.map((x,i)=>`<button class="media-recommend-card" data-media-recommend-index="${i}">${x.posterUrl?`<img src="${esc(x.posterUrl)}" alt="">`:'<span class="media-recommend-placeholder">🎬</span>'}<div class="media-recommend-title">${esc(x.title||'Untitled')}</div></button>`).join('')}</div>`}catch{el.classList.remove('visible');el.innerHTML=''}}
 
-function updateMediaMiniProgress(){
-  const fill=qs('#mediaMiniProgress');if(!fill)return;
-  const pct=mediaPlaybackRuntime.durationSeconds?Math.min(100,mediaPlaybackRuntime.progressSeconds/mediaPlaybackRuntime.durationSeconds*100):0;
-  fill.style.width=`${Math.max(0,pct)}%`;
-}
 function captureMediaProgress(force=false){
   if(!mediaPlaybackRuntime.playing||!mediaEmbedState.selected)return;
   const now=Date.now();
   if(!mediaPlaybackRuntime.paused&&document.visibilityState!=='hidden'&&mediaPlaybackRuntime.lastTick){
     mediaPlaybackRuntime.progressSeconds+=Math.min(5,Math.max(0,(now-mediaPlaybackRuntime.lastTick)/1000));
   }
-  mediaPlaybackRuntime.lastTick=now;updateMediaMiniProgress();
+  mediaPlaybackRuntime.lastTick=now;
   if(force||now-mediaPlaybackRuntime.lastSavedAt>=15000){
     mediaPlaybackRuntime.lastSavedAt=now;
     recordMediaContinue({
@@ -6540,6 +6649,8 @@ const FOOTBALL_COMPETITIONS={
   FLC:'League Cup'
 };
 let footballCache={competition:'',matches:[],standings:[],competitionName:'',updatedAt:''};
+let footballScheduleCache={matches:[],competitions:[],provider:'',updatedAt:'',warning:''};
+let footballScheduleFilter=dayKey();
 
 function footballDateTime(iso){
   if(!iso)return 'TBC';
@@ -6553,15 +6664,50 @@ function footballScoreText(m){
   if(['IN_PLAY','PAUSED','LIVE'].includes(m?.status))return 'LIVE';
   return footballDateTime(m?.utcDate).split(' • ').pop();
 }
+function footballMatchIsLive(m){return ['IN_PLAY','PAUSED','LIVE','EXTRA_TIME','PENALTY_SHOOTOUT'].includes(String(m?.status||''))}
 function footballMatchCard(m){
   const home=footballTeamName(m.homeTeam),away=footballTeamName(m.awayTeam);
   const statusLabel=m.status==='FINISHED'?'FT':(['IN_PLAY','PAUSED','LIVE'].includes(m.status)?m.status.replace('_',' '):footballDateTime(m.utcDate).split(' • ')[0]);
-  return `<div class="football-match">
-    <div class="football-team">${m.homeTeam?.crest?`<img src="${esc(m.homeTeam.crest)}" alt="">`:''}<span>${esc(home)}</span></div>
-    <div class="football-score">${esc(footballScoreText(m))}<small>${esc(statusLabel)}</small></div>
-    <div class="football-team away"><span>${esc(away)}</span>${m.awayTeam?.crest?`<img src="${esc(m.awayTeam.crest)}" alt="">`:''}</div>
+  const competition=m?.competition?.name||footballCache.competitionName||'Football';
+  return `<div class="football-match-wrap">
+    <div class="football-match">
+      <div class="football-team">${m.homeTeam?.crest?`<img src="${esc(m.homeTeam.crest)}" alt="">`:''}<span>${esc(home)}</span></div>
+      <div class="football-score">${esc(footballScoreText(m))}<small>${esc(statusLabel)}</small></div>
+      <div class="football-team away"><span>${esc(away)}</span>${m.awayTeam?.crest?`<img src="${esc(m.awayTeam.crest)}" alt="">`:''}</div>
+    </div>
+    <div class="football-match-actions"><span class="football-competition">${esc(competition)} • ${esc(footballDateTime(m.utcDate))}</span><button class="btn small" type="button" onclick="openFootballLineups(${Number(m.id)||0})">Team lineups</button></div>
   </div>`;
 }
+function footballLocalDay(iso){const d=new Date(iso);return Number.isNaN(d.getTime())?'':dayKey(d)}
+function setFootballScheduleFilter(value){footballScheduleFilter=String(value||dayKey());renderFootball()}
+window.setFootballScheduleFilter=setFootballScheduleFilter;
+function renderFootballScheduleTabs(){
+  const el=qs('#footballScheduleTabs');if(!el)return;
+  const now=new Date(),tabs=[{value:'live',label:'🔴 Live'}];
+  for(let offset=-1;offset<=7;offset++){
+    const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+offset);
+    tabs.push({value:dayKey(d),label:offset===-1?'Yesterday':offset===0?'Today':offset===1?'Tomorrow':d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric'})});
+  }
+  el.innerHTML=tabs.map(tab=>`<button class="football-schedule-tab ${footballScheduleFilter===tab.value?'active':''}" type="button" onclick="setFootballScheduleFilter('${esc(tab.value)}')">${esc(tab.label)}</button>`).join('');
+}
+function footballAllScheduleMatches(){
+  const rows=[...(footballScheduleCache.matches||[]),...(footballCache.matches||[])];
+  return [...new Map(rows.map(match=>[String(match.id),match])).values()];
+}
+function footballLineupPlayerHtml(player){return `<div class="football-player"><span class="football-player-number">${player.number==null?'—':esc(player.number)}</span><span>${esc(player.name||'Player')}${player.position?`<small class="football-player-position">${esc(player.position)}</small>`:''}</span></div>`}
+function footballLineupTeamHtml(team){return `<section class="football-lineup-team"><div class="football-lineup-team-head">${team.crest?`<img src="${esc(team.crest)}" alt="">`:''}<div><strong>${esc(team.name||'Team')}</strong><div class="sub">${esc([team.formation?`Formation ${team.formation}`:'',team.coach?`Coach ${team.coach}`:''].filter(Boolean).join(' • ')||'Team sheet')}</div></div></div><div class="section-note">Starting XI</div>${team.starting?.length?team.starting.map(footballLineupPlayerHtml).join(''):'<div class="empty">Not announced</div>'}<div class="section-note" style="margin-top:8px">Bench</div>${team.bench?.length?team.bench.map(footballLineupPlayerHtml).join(''):'<div class="empty">Not announced</div>'}</section>`}
+async function openFootballLineups(matchId,force=false){
+  const match=footballAllScheduleMatches().find(item=>Number(item.id)===Number(matchId));
+  const title=match?`${footballTeamName(match.homeTeam)} vs ${footballTeamName(match.awayTeam)}`:'Team lineups';
+  qs('#footballLineupTitle').textContent=title;qs('#footballLineupStatus').textContent='Loading official team sheets…';qs('#footballLineupContent').innerHTML='<div class="empty">Loading lineups…</div>';openModal('footballLineupModal');
+  try{
+    const params=new URLSearchParams({matchId:String(matchId)});if(force)params.set('refresh','1');
+    const data=await fetchJson(`/api/football/lineups?${params.toString()}`,{},16000);
+    qs('#footballLineupStatus').textContent=`${data.provider||'Football provider'} • ${data.available?'lineups available':'awaiting announcement'}`;
+    qs('#footballLineupContent').innerHTML=data.available?`<div class="football-lineup-grid">${(data.teams||[]).map(footballLineupTeamHtml).join('')}</div>`:`<div class="empty">${esc(data.message||'Lineups have not been announced yet. Check again closer to kick-off.')}</div>`;
+  }catch(e){qs('#footballLineupStatus').textContent='Lineups unavailable';qs('#footballLineupContent').innerHTML=`<div class="danger">${esc(e.message||'Could not load team lineups.')}</div>`}
+}
+window.openFootballLineups=openFootballLineups;
 
 function footballFavouriteTeams(){
   return Array.isArray(state.footballFavouriteTeams)?state.footballFavouriteTeams:[];
@@ -6605,6 +6751,18 @@ function updateFootballNotificationStatus(text=''){
   el.textContent=`Alerts active for ${teams.length} favourite team${teams.length===1?'':'s'}: ${parts.length?parts.join(', '):'no alert types selected'}.`;
 }
 async function syncFootballNotificationPreferences(showToast=false){
+  if(nativeNotificationsSupported()){
+    if(!state.notificationsEnabled||notificationPermission()!=='granted'){
+      updateFootballNotificationStatus();
+      if(showToast)toast('Enable native notifications first');
+      return false;
+    }
+    syncNativeNotifications();
+    const teams=footballFavouriteTeams(),count=collectNativeFootballNotifications().length;
+    updateFootballNotificationStatus(`${state.footballNotificationsEnabled!==false?'Native football alerts saved':'Football alerts disabled'} • ${count} upcoming alerts scheduled from the loaded match calendar across ${teams.length} team${teams.length===1?'':'s'}.`);
+    if(showToast)toast(state.footballNotificationsEnabled!==false?'Native football alerts saved':'Football alerts turned off');
+    return true;
+  }
   try{
     const teams=footballFavouriteTeams();
     const enabled=state.footballNotificationsEnabled!==false&&teams.length>0;
@@ -6666,6 +6824,9 @@ async function testFootballNotification(){
     await enableNotifications();
     if(notificationPermission()!=='granted'||!state.notificationsEnabled)return;
   }
+  if(nativeNotificationsSupported()){
+    postNativeNotification('test',{title:'⚽ Football alerts are working',body:'Native match notifications are ready for your favourite teams.','url':'#football'});return;
+  }
   await syncFootballNotificationPreferences(false);
   try{
     const r=await fetch('/api/football/notifications/test',{
@@ -6718,7 +6879,7 @@ function renderFootballFavourite(){
   }
   el.innerHTML=`<div class="football-favourites-list">${teams.map(team=>{
     const id=Number(team.id);
-    const matches=(footballCache.matches||[]).filter(m=>Number(m.homeTeam?.id)===id||Number(m.awayTeam?.id)===id);
+    const matches=footballAllScheduleMatches().filter(m=>Number(m.homeTeam?.id)===id||Number(m.awayTeam?.id)===id);
     const next=matches.filter(m=>!['FINISHED','CANCELLED'].includes(m.status)&&new Date(m.utcDate)>=new Date()).sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate))[0];
     const last=matches.filter(m=>m.status==='FINISHED').sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate))[0];
     return `<div class="football-favourite">
@@ -6767,18 +6928,21 @@ function renderFootballStandings(){
 function renderFootball(){
   const fixtureEl=qs('#footballFixtures'),resultEl=qs('#footballResults');
   if(!fixtureEl||!resultEl)return;
-  const now=Date.now(),matches=footballCache.matches||[];
-  const upcoming=matches.filter(m=>!['FINISHED','CANCELLED'].includes(m.status)&&new Date(m.utcDate).getTime()>=now-3*60*60*1000)
-    .sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate)).slice(0,12);
+  const matches=footballAllScheduleMatches();
+  const upcoming=matches.filter(m=>footballScheduleFilter==='live'?footballMatchIsLive(m):footballLocalDay(m.utcDate)===footballScheduleFilter)
+    .sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate)).slice(0,60);
   const results=matches.filter(m=>m.status==='FINISHED')
-    .sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate)).slice(0,12);
+    .sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate)).slice(0,24);
 
-  fixtureEl.innerHTML=upcoming.length?upcoming.map(footballMatchCard).join(''):'<div class="empty">No upcoming fixtures in the current window.</div>';
+  renderFootballScheduleTabs();
+  fixtureEl.innerHTML=upcoming.length?upcoming.map(footballMatchCard).join(''):`<div class="empty">No matches found for ${footballScheduleFilter==='live'?'Live':footballScheduleFilter}. Try another day.</div>`;
   resultEl.innerHTML=results.length?results.map(footballMatchCard).join(''):'<div class="empty">No recent results in the current window.</div>';
   renderFootballStandings();renderFootballFavourite();applyFootballNotificationUI();
 
   const sub=qs('#footballStandingsSub');
   if(sub)sub.textContent=footballCache.competitionName?`${footballCache.competitionName} • current season`:'Current season';
+  const scheduleSub=qs('#footballScheduleSub');
+  if(scheduleSub)scheduleSub.textContent=`${footballScheduleCache.competitions?.length||new Set(matches.map(m=>m?.competition?.name).filter(Boolean)).size} competitions • ${footballScheduleCache.provider||'football data'} • up to 60 matches per day`;
 }
 async function loadFootball(force=false){
   const status=qs('#footballStatus'),sel=qs('#footballCompetition');
@@ -6787,7 +6951,11 @@ async function loadFootball(force=false){
   if(status)status.innerHTML='<span class="status"><span class="dot loading"></span>Loading football data…</span>';
   try{
     const params=new URLSearchParams({competition});if(force)params.set('refresh','1');
-    const data=await fetchJson(`/api/football?${params.toString()}`,{},16000);
+    const scheduleParams=new URLSearchParams();if(force)scheduleParams.set('refresh','1');
+    const [data,scheduleResult]=await Promise.all([
+      fetchJson(`/api/football?${params.toString()}`,{},18000),
+      fetchJson(`/api/football/schedule?${scheduleParams.toString()}`,{},22000).catch(error=>({error:error?.message||'Expanded schedule unavailable'}))
+    ]);
     footballCache={
       competition,
       matches:Array.isArray(data.matches)?data.matches:[],
@@ -6795,7 +6963,19 @@ async function loadFootball(force=false){
       competitionName:data.competition?.name||FOOTBALL_COMPETITIONS[competition]||competition,
       updatedAt:data.updatedAt||new Date().toISOString()
     };
+    if(Array.isArray(scheduleResult.matches)){
+      footballScheduleCache={
+        matches:scheduleResult.matches,
+        competitions:Array.isArray(scheduleResult.competitions)?scheduleResult.competitions:[],
+        provider:scheduleResult.provider||'football data',
+        updatedAt:scheduleResult.updatedAt||new Date().toISOString(),
+        warning:scheduleResult.warning||''
+      };
+    }else{
+      footballScheduleCache={matches:data.matches||[],competitions:[data.competition].filter(Boolean),provider:data.provider||'football data',updatedAt:data.updatedAt||new Date().toISOString(),warning:scheduleResult.error||''};
+    }
     renderFootball();
+    if(nativeNotificationsSupported()&&state.notificationsEnabled)syncNativeNotifications();
     const note=data.warning?` • ${esc(data.warning)}`:(data.cache==='hit'?' • cached':'');
     if(status)status.innerHTML=`<span class="status"><span class="dot live"></span>${esc(footballCache.competitionName)} • updated ${new Date(footballCache.updatedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}${note}</span>`;
   }catch(e){
@@ -6822,14 +7002,19 @@ async function deviceStatusData(){
   }catch(e){swState='Error';swKind='bad';swDetail=e.message||'Service worker check failed.'}
   rows.push({name:'Service Worker',state:swState,kind:swKind,detail:swDetail});
 
-  if('Notification'in window){
+  if(nativeNotificationsSupported()){
+    const perm=notificationPermission();
+    rows.push({name:'Native notification permission',state:perm==='granted'?'Granted':perm==='denied'?'Denied':'Not granted',kind:perm==='granted'?'ok':perm==='denied'?'bad':'warn',detail:perm==='granted'?'The IPA can schedule iPhone reminders and calendar alerts.':'Enable notifications from Settings in the IPA.'});
+  }else if('Notification'in window){
     const perm=notificationPermission();
     rows.push({name:'Notification permission',state:perm==='granted'?'Granted':perm==='denied'?'Denied':'Not granted',kind:perm==='granted'?'ok':perm==='denied'?'bad':'warn',detail:perm==='granted'?'This device allows Command Centre notifications.':'Enable notifications from Settings if you want push alerts.'});
   }else rows.push({name:'Notification permission',state:'Unsupported',kind:'bad',detail:'Notifications are not supported by this browser.'});
 
   let pushState='Not subscribed',pushKind='warn',pushDetail='No active push subscription found.';
   try{
-    if('serviceWorker'in navigator&&'PushManager'in window){
+    if(nativeNotificationsSupported()){
+      pushState=state.notificationsEnabled?'Native schedule active':'Not enabled';pushKind=state.notificationsEnabled?'ok':'warn';pushDetail='The IPA uses iOS local notifications; Web Push remains for the Home Screen app.';
+    }else if('serviceWorker'in navigator&&'PushManager'in window){
       const reg=await navigator.serviceWorker.getRegistration();
       const sub=reg?await reg.pushManager.getSubscription():null;
       if(sub){pushState='Subscribed';pushKind='ok';pushDetail='This device has an active Web Push subscription.'}
@@ -7589,7 +7774,7 @@ function youtubeRecommendationSeeds(){
 function youtubeForYouCacheValid(){
   const cache=state.entertainment.youtubeForYouCache||{};
   const updated=Date.parse(cache.updatedAt||'');
-  return Number(cache.version)===2
+  return Number(cache.version)===3
     &&Array.isArray(cache.items)
     &&cache.items.length
     &&Number.isFinite(updated)
@@ -7611,15 +7796,16 @@ function youtubeForYouPlan(force=false){
   const rotated=[...seeds.slice(index),...seeds.slice(0,index)];
   const selected=[];
 
-  // Prefer two different signal types (for example a search plus a watched
-  // channel) so one creator cannot take over the whole recommendation feed.
+  // Prefer several different personal signal types, then fill from the most
+  // relevant remaining interests. Trending is deliberately not part of this
+  // plan once the user has supplied any history.
   for(const seed of rotated){
-    if(selected.length>=2)break;
+    if(selected.length>=3)break;
     if(selected.some(x=>x.kind===seed.kind))continue;
     selected.push(seed);
   }
   for(const seed of rotated){
-    if(selected.length>=2)break;
+    if(selected.length>=4)break;
     if(selected.some(x=>x.query.toLowerCase()===seed.query.toLowerCase()))continue;
     selected.push(seed);
   }
@@ -7656,15 +7842,15 @@ function youtubeDiversifyRecommendationGroups(groups,maxItems=14){
     }
   };
 
-  addWithChannelLimit(2);
-  if(result.length<maxItems)addWithChannelLimit(4);
+  addWithChannelLimit(1);
+  if(result.length<maxItems)addWithChannelLimit(2);
   return result;
 }
 
-function youtubeRecommendationSummary(plan,hasDiscovery){
-  const labels=plan.map(seed=>`“${seed.label}”`).slice(0,2);
+function youtubeRecommendationSummary(plan){
+  const labels=plan.map(seed=>`“${seed.label}”`).slice(0,3);
   const personal=labels.length?`Based on ${labels.join(' + ')}`:'Based on your activity';
-  return `${personal}${hasDiscovery?' • mixed with new discoveries':''}`;
+  return `${personal} • no Trending filler`;
 }
 
 function youtubeExploreCardHtml(v,{forYou=false}={}){
@@ -7737,12 +7923,9 @@ async function loadYoutubeForYou(force=false){
   grid.innerHTML='<div class="empty">Mixing interests, channels and new discoveries…</div>';
 
   try{
-    // Two cached searches provide personal relevance without making a request
-    // for every history item. Trending is a low-cost discovery lane.
-    const requests=[
-      ...plan.map(seed=>fetchJson(`/api/youtube/search?q=${encodeURIComponent(seed.query)}`,{},15000)),
-      fetchJson('/api/youtube/explore?section=trending',{},15000)
-    ];
+    // Every lane comes from explicit searches or watched topics/channels.
+    // Trending remains a separate tab and never fills a trained For You feed.
+    const requests=plan.map(seed=>fetchJson(`/api/youtube/search?q=${encodeURIComponent(seed.query)}`,{},15000));
     const settled=await Promise.allSettled(requests);
     const groups=[];
 
@@ -7752,21 +7935,15 @@ async function loadYoutubeForYou(force=false){
       if(items.length)groups.push({items,reason:seed.reason});
     });
 
-    const discoveryResult=settled[plan.length];
-    const discoveryItems=discoveryResult?.status==='fulfilled'&&Array.isArray(discoveryResult.value?.items)
-      ?discoveryResult.value.items
-      :[];
-    if(discoveryItems.length)groups.push({items:discoveryItems,reason:'New discovery'});
-
     if(!groups.length){
       const rejected=settled.find(result=>result.status==='rejected');
       throw rejected?.reason||new Error('YouTube returned no recommendations.');
     }
 
-    const items=youtubeDiversifyRecommendationGroups(groups,14);
-    const reason=youtubeRecommendationSummary(plan,discoveryItems.length>0);
+    const items=youtubeDiversifyRecommendationGroups(groups,16);
+    const reason=youtubeRecommendationSummary(plan);
     state.entertainment.youtubeForYouCache={
-      version:2,
+      version:3,
       items,
       signals:plan.map(seed=>({kind:seed.kind,query:seed.query,label:seed.label})),
       reason,
@@ -7840,6 +8017,46 @@ async function loadYoutubeExplore(section='foryou',force=false){
   }
 }
 
+const youtubeCommentsRuntime={videoId:'',items:[],nextPageToken:'',loading:false};
+function youtubeCommentHtml(comment){
+  const date=comment.publishedAt?new Date(comment.publishedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
+  const details=[comment.likeCount?`👍 ${Number(comment.likeCount).toLocaleString()}`:'',comment.replyCount?`${Number(comment.replyCount).toLocaleString()} replies`:''].filter(Boolean).join(' • ');
+  return `<article class="youtube-comment">
+    ${comment.authorImage?`<img class="youtube-comment-avatar" src="${esc(comment.authorImage)}" alt="">`:'<span class="youtube-comment-avatar"></span>'}
+    <div><div><span class="youtube-comment-author">${esc(comment.author||'YouTube user')}</span>${date?`<span class="youtube-comment-date">${esc(date)}</span>`:''}</div><div class="youtube-comment-text">${esc(comment.text||'')}</div>${details?`<div class="youtube-comment-meta">${esc(details)}</div>`:''}</div>
+  </article>`;
+}
+function renderYoutubeComments(message=''){
+  const card=qs('#youtubeCommentsCard'),list=qs('#youtubeCommentsList'),status=qs('#youtubeCommentsStatus'),more=qs('#youtubeCommentsMoreBtn');
+  if(card)card.style.display=youtubeCommentsRuntime.videoId?'block':'none';
+  if(list)list.innerHTML=youtubeCommentsRuntime.items.length?youtubeCommentsRuntime.items.map(youtubeCommentHtml).join(''):`<div class="empty">${esc(message||'No comments to show.')}</div>`;
+  if(status)status.textContent=message||`${youtubeCommentsRuntime.items.length} top comment${youtubeCommentsRuntime.items.length===1?'':'s'}`;
+  if(more){more.style.display=youtubeCommentsRuntime.nextPageToken?'inline-flex':'none';more.disabled=youtubeCommentsRuntime.loading}
+}
+async function loadYoutubeComments(videoId=youtubeCommentsRuntime.videoId,{more=false,force=false}={}){
+  const id=String(videoId||'').trim();
+  if(!id||youtubeCommentsRuntime.loading)return;
+  if(!more||youtubeCommentsRuntime.videoId!==id){youtubeCommentsRuntime.videoId=id;youtubeCommentsRuntime.items=[];youtubeCommentsRuntime.nextPageToken=''}
+  youtubeCommentsRuntime.loading=true;renderYoutubeComments('Loading comments…');
+  try{
+    const params=new URLSearchParams({videoId:id});
+    if(more&&youtubeCommentsRuntime.nextPageToken)params.set('pageToken',youtubeCommentsRuntime.nextPageToken);
+    if(force)params.set('refresh','1');
+    const data=await fetchJson(`/api/youtube/comments?${params.toString()}`,{},15000);
+    if(youtubeCommentsRuntime.videoId!==id)return;
+    const incoming=Array.isArray(data.items)?data.items:[];
+    const merged=more?[...youtubeCommentsRuntime.items,...incoming]:incoming;
+    youtubeCommentsRuntime.items=[...new Map(merged.map(item=>[String(item.id),item])).values()];
+    youtubeCommentsRuntime.nextPageToken=String(data.nextPageToken||'');
+    renderYoutubeComments(data.disabled?(data.message||'Comments are turned off for this video.'):(youtubeCommentsRuntime.items.length?'':'No comments have been posted yet.'));
+  }catch(e){
+    if(youtubeCommentsRuntime.videoId===id)renderYoutubeComments(e?.message||'Could not load comments.');
+  }finally{
+    youtubeCommentsRuntime.loading=false;
+    const moreBtn=qs('#youtubeCommentsMoreBtn');if(moreBtn)moreBtn.disabled=false;
+  }
+}
+
 function bindYoutubeExploreControls(){
   const grid=qs('#youtubeExploreGrid');
   if(grid&&!grid.dataset.bound){
@@ -7876,6 +8093,10 @@ function bindYoutubeExploreControls(){
     btn.dataset.bound='1';
     btn.addEventListener('click',()=>loadYoutubeExplore(btn.dataset.ytexplore,true));
   });
+  const refreshComments=qs('#youtubeCommentsRefreshBtn');
+  if(refreshComments&&!refreshComments.dataset.bound){refreshComments.dataset.bound='1';refreshComments.addEventListener('click',()=>loadYoutubeComments(youtubeCommentsRuntime.videoId,{force:true}))}
+  const moreComments=qs('#youtubeCommentsMoreBtn');
+  if(moreComments&&!moreComments.dataset.bound){moreComments.dataset.bound='1';moreComments.addEventListener('click',()=>loadYoutubeComments(youtubeCommentsRuntime.videoId,{more:true}))}
 }
 
 async function checkYoutubeApiSetup(){
@@ -8033,14 +8254,9 @@ function recordYoutubeContinue(id,progress={},invalidateRecommendations=false){
   };
   state.entertainment.youtubeHistoryDetailed=[item,...old.filter(x=>x.id!==id)].slice(0,50);
   if(invalidateRecommendations){
-    state.entertainment.youtubeForYouCache={version:2,items:[],signals:[],reason:'',updatedAt:''};
+    state.entertainment.youtubeForYouCache={version:3,items:[],signals:[],reason:'',updatedAt:''};
   }
   saveState();renderAllContinueWatching();
-}
-function updateYoutubeMiniProgress(){
-  const fill=qs('#youtubeMiniProgress');if(!fill)return;
-  const pct=youtubeWatchRuntime.durationSeconds?Math.min(100,youtubeWatchRuntime.progressSeconds/youtubeWatchRuntime.durationSeconds*100):0;
-  fill.style.width=`${Math.max(0,pct)}%`;
 }
 function captureYoutubeProgress(force=false){
   const id=youtubeWatchRuntime.id;if(!id)return;
@@ -8050,7 +8266,6 @@ function captureYoutubeProgress(force=false){
       youtubeWatchRuntime.durationSeconds=Math.max(0,Number(youtubeWatchPlayer.getDuration?.())||0);
     }catch{}
   }
-  updateYoutubeMiniProgress();
   const now=Date.now();
   if(force||now-youtubeWatchRuntime.lastSavedAt>=10000){
     youtubeWatchRuntime.lastSavedAt=now;
@@ -8093,7 +8308,8 @@ function loadYoutubeVideo(value=null){
   if(frame){
     const origin=location.origin&&location.origin!=='null'?`&origin=${encodeURIComponent(location.origin)}`:'';
     frame.dataset.videoId=id;
-    frame.src=`https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&enablejsapi=1${origin}`;
+    const start=resumeAt>0?`&start=${Math.floor(resumeAt)}`:'';
+    frame.src=`https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&enablejsapi=1${start}${origin}`;
     setTimeout(()=>frame.scrollIntoView({behavior:'smooth',block:'center'}),80);
     attachYoutubeWatchPlayer(id,resumeAt);
   }
@@ -8103,6 +8319,7 @@ function loadYoutubeVideo(value=null){
   const history=state.entertainment.watchHistory||[];state.entertainment.watchHistory=[id,...history.filter(x=>x!==id)].slice(0,8);
   recordYoutubeContinue(id,{progressSeconds:resumeAt,completed:false},true);
   renderWatchRecents();
+  loadYoutubeComments(id);
 }
 
 function loadTwitchChannel(value=null){
@@ -8117,7 +8334,10 @@ window.loadYoutubeVideo=loadYoutubeVideo;
 window.loadTwitchChannel=loadTwitchChannel;
 function renderWatchRecents(){
   const yt=qs('#youtubeRecents'),tw=qs('#twitchRecents');
-  if(yt)yt.innerHTML=(state.entertainment.watchHistory||[]).length?state.entertainment.watchHistory.map(id=>`<button class="btn small" onclick="window.loadYoutubeVideo('${esc(id)}')">${esc(id)}</button>`).join(''):'<span class="sub">No recent videos</span>';
+  if(yt){
+    const detailed=(state.entertainment.youtubeHistoryDetailed||[]).slice(0,8);
+    yt.innerHTML=detailed.length?detailed.map(item=>{const progress=playbackProgressDetails(item);return `<button class="btn small" onclick="window.loadYoutubeVideo('${esc(item.id)}')">${esc(item.title||item.id)}${progress.label?` • ${esc(progress.label)}`:''}</button>`}).join(''):'<span class="sub">No recent videos</span>';
+  }
   if(tw)tw.innerHTML=(state.entertainment.twitchHistory||[]).length?state.entertainment.twitchHistory.map(ch=>`<button class="btn small" onclick="window.loadTwitchChannel('${esc(ch)}')">${esc(ch)}</button>`).join(''):'<span class="sub">No recent channels</span>';
 }
 function renderEntertainmentHub(){updateEntertainmentVisit();renderEntertainmentStats();renderForYouFeed();renderEntertainmentCommunity();renderWatchRecents();bindEntertainmentControls()}
@@ -8160,10 +8380,18 @@ async function loadReddit(){
 }
 
 function weatherInfo(code){if(code===0)return['☀️','Clear'];if([1,2].includes(code))return['🌤️','Partly cloudy'];if(code===3)return['☁️','Overcast'];if([45,48].includes(code))return['🌫️','Fog'];if([51,53,55,56,57].includes(code))return['🌦️','Drizzle'];if([61,63,65,66,67,80,81,82].includes(code))return['🌧️','Rain'];if([71,73,75,77,85,86].includes(code))return['❄️','Snow'];if([95,96,99].includes(code))return['⛈️','Thunderstorm'];return['🌤️','Unknown']}
-let weatherCache=null,weatherSelectedDay=0;
-async function loadWeather(){
+let weatherCache=null,weatherSelectedDay=0,weatherLoadPromise=null;
+function loadWeather(){
+  if(weatherLoadPromise)return weatherLoadPromise;
+  weatherLoadPromise=loadWeatherNow().finally(()=>{weatherLoadPromise=null});
+  return weatherLoadPromise;
+}
+async function loadWeatherNow(){
   qs('#weatherPlace').textContent=state.city;qs('#weatherFullPlace').textContent=state.city;
   qs('#weatherSnapshot').innerHTML='<div class="skeleton"></div>';qs('#weatherFull').innerHTML='<div class="empty">Loading…</div>';
+  const launcherValue=qs('#launcherWeatherValue'),launcherMeta=qs('#launcherWeatherMeta');
+  if(!weatherCache&&launcherValue)launcherValue.textContent='…°';
+  if(!weatherCache&&launcherMeta)launcherMeta.textContent=`Loading weather for ${state.city}…`;
   weatherCache=null;weatherSelectedDay=0;
   try{
     const geo=await fetchJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(state.city)}&count=1&language=en&format=json`);if(!geo.results?.length)throw new Error('City not found');const loc=geo.results[0];
@@ -8358,6 +8586,7 @@ async function loadNews(force=false){
   }
 }
 async function syncNewsPreferences(){
+  if(nativeNotificationsSupported())return;
   try{
     await fetch('/api/news/preferences',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       deviceId:pushDeviceId(),

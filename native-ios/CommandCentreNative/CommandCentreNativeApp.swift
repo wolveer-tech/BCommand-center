@@ -4,6 +4,7 @@ import AVFAudio
 @main
 struct CommandCentreNativeApp: App {
     init() {
+        _ = NativeNotificationHandler.shared
         configureBackgroundPlayback()
     }
 
