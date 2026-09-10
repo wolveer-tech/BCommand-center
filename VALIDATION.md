@@ -1,3 +1,14 @@
+# IPA restore crash hotfix v10.16.2 validation — 10 September 2026
+
+- Restore uses WKWebView's standard file input rather than sending the complete
+  selected JSON through a Swift-to-JavaScript bridge.
+- The restored state refreshes Home plus only the active heavy data page.
+- Notes, reminders and calendar data retain the existing merge and validation
+  rules.
+- Full automated suite: **42/42 passed**.
+- No IPA rebuild or database migration is required for this hotfix.
+
+
 # Home weather auto-load v10.16.1 validation — 10 September 2026
 
 - Home schedules weather after its critical render rather than inside the

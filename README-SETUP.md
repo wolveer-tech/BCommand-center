@@ -4,6 +4,19 @@
 
 **Transfers v10.7:** Start with [TRANSFERS-SETUP.md](TRANSFERS-SETUP.md) for the new file/message/link service, Cloudflare R2 and D1 setup, device pairing, Windows sender, browser extension and native iPhone download support. Local validation results are in [VALIDATION.md](VALIDATION.md).
 
+# v10.16.2 — IPA restore crash hotfix
+
+Restore now opens iOS's document chooser through the standard HTML file input
+provided by WKWebView. The JSON remains inside the web content process instead
+of being read in Swift and injected back as a potentially large JavaScript
+string. After merging, the app refreshes only the currently visible data page
+instead of rebuilding the hidden year calendar, notes and Today screens at the
+same time.
+
+Deploy the Worker/web project and fully close and reopen the IPA. The installed
+v1.4.0 IPA does not need to be rebuilt for this hotfix. No database migration is
+required.
+
 # v10.16.1 — Home weather auto-load
 
 The Home weather widget now starts its weather request automatically just after

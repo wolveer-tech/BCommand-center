@@ -3280,15 +3280,18 @@ function importCommandCentreBackup(raw){
   }:null);
   state.noteFolders=[...new Set(['Notes',...(state.noteFolders||[]),...(Array.isArray(data.noteFolders)?data.noteFolders:[])].map(x=>String(x).slice(0,80)).filter(Boolean))].slice(0,100);
   state.reminderCategories=[...new Set(['General',...(state.reminderCategories||[]),...(Array.isArray(data.reminderCategories)?data.reminderCategories:[])].map(x=>String(x).slice(0,80)).filter(Boolean))].slice(0,100);
-  saveState();renderNotes();renderReminders();renderCalendar();renderTodayPage();renderHomeTodaySummary();scheduleAllNotifications();
+  saveState();renderHomeTodaySummary();renderHomeLauncher();
+  if(qs('#notesPage')?.classList.contains('active'))renderNotes();
+  if(qs('#todayPage')?.classList.contains('active'))renderTodayPage();
+  if(qs('#calendarPage')?.classList.contains('active'))renderCalendar();
+  scheduleAllNotifications();
   const status=qs('#backupStatus');if(status)status.textContent=`Restored ${state.notes.length} notes, ${state.reminders.length} reminders and ${state.events.length} calendar events on this device.`;
   toast('Backup restored and merged');
 }
 window.CommandCentreReceiveBackup=raw=>{try{importCommandCentreBackup(raw)}catch(e){const status=qs('#backupStatus');if(status)status.textContent=e.message||'Could not restore backup.';toast(e.message||'Could not restore backup')}};
 window.CommandCentreNativeDataError=message=>{const text=String(message||'Could not open that backup.');const status=qs('#backupStatus');if(status)status.textContent=text;toast(text)};
 function chooseCommandCentreBackup(){
-  if(window.CommandCentreNative?.dataBridge&&nativeMessageHandler('nativeData'))nativeMessageHandler('nativeData').postMessage({action:'import'});
-  else qs('#backupFileInput')?.click();
+  qs('#backupFileInput')?.click();
 }
 function makeId(prefix='item'){return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,9)}`}
 function toast(msg){const el=qs('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2400)}

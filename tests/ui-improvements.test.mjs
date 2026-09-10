@@ -60,6 +60,16 @@ test('home weather loads after the critical startup path and deduplicates reques
   assert.match(html,/Loading weather for \$\{state\.city\}/);
 });
 
+test('backup restore uses the WKWebView file input without rebuilding hidden heavy pages',()=>{
+  const chooser=html.slice(html.indexOf('function chooseCommandCentreBackup'),html.indexOf('function makeId',html.indexOf('function chooseCommandCentreBackup')));
+  assert.match(chooser,/backupFileInput/);
+  assert.doesNotMatch(chooser,/nativeData|postMessage/);
+  const importer=html.slice(html.indexOf('function importCommandCentreBackup'),html.indexOf('window.CommandCentreReceiveBackup'));
+  assert.match(importer,/if\(qs\('#notesPage'\)\?\.classList\.contains\('active'\)\)renderNotes\(\)/);
+  assert.match(importer,/if\(qs\('#calendarPage'\)\?\.classList\.contains\('active'\)\)renderCalendar\(\)/);
+  assert.doesNotMatch(importer,/saveState\(\);renderNotes\(\);renderReminders\(\);renderCalendar\(\)/);
+});
+
 test('cross-tab state sync ignores high-frequency progress keys',()=>{
   const start=html.indexOf("window.addEventListener('storage',event=>");
   assert.notEqual(start,-1);
