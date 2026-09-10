@@ -108,7 +108,10 @@ test('Transfers with real local D1 and R2 bindings',async t=>{
   });
   await t.test('revocation removes access and invalidates invitations',async()=>{
     const invite=await call('/pair',{token:third.token,body:{}});
-    await call('/devices/'+third.device.id,{token:pc.token,method:'DELETE'});
+    const removed=await call('/devices/'+third.device.id,{token:pc.token,method:'DELETE'});
+    assert.equal(removed.removed.id,third.device.id);assert.equal(removed.removed.name,'Third device');assert.ok(removed.updatedAt);
+    assert.ok(!(await call('/devices',{token:pc.token})).devices.some(device=>device.id===third.device.id));
+    await call('/devices/'+third.device.id,{token:pc.token,method:'DELETE',status:404});
     await call('/devices',{token:third.token,status:401});
     await call('/claim',{body:{name:'Late join',code:invite.code},status:400});
   });

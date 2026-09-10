@@ -10,6 +10,7 @@ const project=read('../native-ios/project.yml');
 const nativeApp=read('../native-ios/CommandCentreNative/CommandCentreNativeApp.swift');
 const background=read('../native-ios/CommandCentreNative/BackgroundRefreshManager.swift');
 const notifications=read('../native-ios/CommandCentreNative/NativeNotificationHandler.swift');
+const webView=read('../native-ios/CommandCentreNative/CommandCentreWebView.swift');
 const messagesClient=read('../client/messages-client.js');
 const transfersClient=read('../client/transfers-client.js');
 
@@ -40,7 +41,7 @@ test('Match Centre exposes overview, lineups, timeline, stats and following',()=
 });
 
 test('app shell and fixture schedules refresh safely in foreground and background',()=>{
-  assert.match(serviceWorker,/command-centre-shell-v10\.17/);
+  assert.match(serviceWorker,/command-centre-shell-v10\.17\.1/);
   assert.match(serviceWorker,/request\.mode === 'navigate'/);
   assert.match(serviceWorker,/url\.pathname\.startsWith\('\/api\/'\)/);
   assert.match(html,/function refreshAppFreshness/);
@@ -61,4 +62,26 @@ test('IPA Messages and Transfers alerts use native background inbox checks',()=>
   assert.match(notifications,/api\/messages\/chats/);
   assert.match(notifications,/api\/transfers\/items\?view=inbox/);
   assert.match(notifications,/performBackgroundRefresh/);
+});
+
+test('paired devices stay aligned and removal works without a JavaScript dialog',()=>{
+  assert.match(transfersClient,/DEVICE_SYNC_KEY = 'cc_transfer_devices_changed_v1'/);
+  assert.match(transfersClient,/Tap again to remove/);
+  assert.match(transfersClient,/async function removeDevice/);
+  assert.match(transfersClient,/cc-transfer-devices-changed/);
+  assert.match(messagesClient,/cc-transfer-devices-changed/);
+  assert.match(messagesClient,/DEVICE_SYNC_KEY='cc_transfer_devices_changed_v1'/);
+  assert.match(webView,/webView\.uiDelegate = context\.coordinator/);
+  assert.match(webView,/WKUIDelegate/);
+  assert.match(webView,/runJavaScriptConfirmPanelWithMessage/);
+});
+
+test('portable backups include validated Bible progress and recommendations',()=>{
+  const backup=html.slice(html.indexOf('function commandCentreBackupPayload'),html.indexOf('function backupFileName'));
+  const restore=html.slice(html.indexOf('function importCommandCentreBackup'),html.indexOf('window.CommandCentreReceiveBackup'));
+  assert.match(backup,/bibleRead:state\.bibleRead/);
+  assert.match(backup,/bibleRecommendations:state\.bibleRecommendations/);
+  assert.match(restore,/validBibleKeys/);
+  assert.match(restore,/validReadingBlocks/);
+  assert.match(restore,/renderBible\(\);renderBibleChecklist\(\)/);
 });

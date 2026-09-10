@@ -165,6 +165,10 @@ test('YouTube Music uses one official iframe and a controls-only mini module',()
   assert.match(html,/navigator\.mediaSession\.setActionHandler/);
   assert.match(html,/page!==['"]music['"][^\n]*musicTogglePlay\(false\)/);
   assert.match(html,/visibilityState===['"]hidden['"][\s\S]*musicTogglePlay\(false\)/);
+  assert.match(html,/bind\('musicPlayPauseBtn','click',\(\)=>musicTogglePlay\(\)\)/);
+  assert.match(html,/bind\('musicMiniPlay','click',\(\)=>musicTogglePlay\(\)\)/);
+  assert.doesNotMatch(html,/bind\('music(?:PlayPauseBtn|MiniPlay)','click',musicTogglePlay\)/);
+  assert.match(html,/\.music-now-actions\{[^}]*pointer-events:auto/);
 });
 
 test('watch progress is persisted, resumed and shown in Continue Watching',()=>{
@@ -183,5 +187,6 @@ test('native iOS wrapper enables background audio and system PiP',()=>{
   assert.match(nativeApp,/setCategory\(\.playback/);
   assert.match(nativeWebView,/allowsPictureInPictureMediaPlayback = true/);
   assert.match(nativeProject,/INFOPLIST_KEY_UIBackgroundModes:[\s\S]*- audio[\s\S]*- fetch/);
-  assert.match(nativeProject,/MARKETING_VERSION: 1\.5\.0/);
+  assert.match(nativeProject,/MARKETING_VERSION: 1\.5\.1/);
+  assert.match(nativeProject,/CURRENT_PROJECT_VERSION: 8/);
 });

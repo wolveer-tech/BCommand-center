@@ -1,5 +1,5 @@
 // Messages and Transfers share the same per-device credential.
-const $=id=>document.getElementById(id),KEY='cc_transfer_device_v1';
+const $=id=>document.getElementById(id),KEY='cc_transfer_device_v1',DEVICE_SYNC_KEY='cc_transfer_devices_changed_v1';
 const read=(key,fallback=null)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
 const save=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));}catch{status('Browser storage is full. Keep this tab open to retain unsent messages.',true);}};
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -196,7 +196,8 @@ function bind(){
   $('msgOlder').onclick=()=>notice(olderMessages());$('msgNew').onclick=bottom;
   let scrollTimer;$('msgHistory').onscroll=()=>{clearTimeout(scrollTimer);scrollTimer=setTimeout(()=>{if(nearBottom()){$('msgNew').hidden=true;notice(markRead());}},150);};
   document.querySelectorAll('[data-msg-transfers]').forEach(b=>b.onclick=()=>window.switchPage?.('transfers'));
-  window.addEventListener('cc-transfer-session',syncSession);window.addEventListener('storage',e=>{if(e.key===KEY)syncSession();});
+  window.addEventListener('cc-transfer-session',syncSession);window.addEventListener('cc-transfer-devices-changed',()=>{if(session)notice(contacts());});
+  window.addEventListener('storage',e=>{if(e.key===KEY)syncSession();else if(e.key===DEVICE_SYNC_KEY&&session&&!document.hidden)notice(contacts());});
   window.addEventListener('cc-native-notification-status',e=>{if(e.detail?.permission==='granted'){$('msgNotifications').textContent='Native alerts enabled';localStorage.setItem('cc_native_inbox_alerts','1');}else if(e.detail?.permission==='denied'){localStorage.removeItem('cc_native_inbox_alerts');$('msgNotifications').textContent='Enable alerts';}});
   window.addEventListener('cc-pagechange',e=>{if(e.detail==='messages')notice(open());});
   document.addEventListener('visibilitychange',()=>{if(active())notice(refresh());});window.addEventListener('focus',()=>notice(refresh()));window.addEventListener('online',()=>notice(refresh()));

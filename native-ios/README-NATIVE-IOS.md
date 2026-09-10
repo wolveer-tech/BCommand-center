@@ -1,5 +1,13 @@
 # Command Centre iOS 26 Mirror — Signulous-friendly build
 
+## v1.5.1 WebKit interaction repair
+
+Version **1.5.1 (build 8)** registers the web view's `WKUIDelegate` and presents
+JavaScript alert, confirmation and text-input requests as native iOS dialogs.
+This repairs controls that use confirmation or prompts, while v10.17.1's device
+removal also uses a dialog-independent two-tap confirmation. Rebuild the IPA
+after deploying the matching Worker/web release. Entitlements are unchanged.
+
 ## v1.5.0 stability and fixture refresh
 
 Version **1.5.0 (build 7)** adds an iOS `BGAppRefreshTask` for the native
@@ -39,8 +47,9 @@ Version **1.4.0 (build 6)** adds two main-frame, same-origin JavaScript bridges:
   imports a selected JSON backup through the document picker.
 
 The web app schedules up to 60 future native alerts to stay below iOS pending
-notification limits. The backup contains notes, reminders, calendar events,
-folders and categories; it excludes API keys and notification identifiers.
+notification limits. Beginning with web v10.17.1, the backup contains notes,
+reminders, calendar events, folders, categories, Bible progress and the current
+Bible recommendations; it excludes API keys and notification identifiers.
 
 Command Centre's own bottom floating-video overlay has been removed. WKWebView
 still enables compatible media Picture in Picture, so Apple's system PiP remains

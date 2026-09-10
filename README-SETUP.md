@@ -4,6 +4,31 @@
 
 **Transfers v10.7:** Start with [TRANSFERS-SETUP.md](TRANSFERS-SETUP.md) for the new file/message/link service, Cloudflare R2 and D1 setup, device pairing, Windows sender, browser extension and native iPhone download support. Local validation results are in [VALIDATION.md](VALIDATION.md).
 
+# v10.17.1 — Device sync, Bible backup and music controls
+
+- Removing another device is now an in-page two-tap action, so it works even
+  when a WebKit confirmation dialog is unavailable. Its access is revoked in
+  both Transfers and Messages; Messages keeps any existing conversation marked
+  Disconnected. Recipient lists refresh, other open tabs are notified, and the
+  Devices panel checks for changes while it is open.
+- The Worker verifies the device exists, returns the removed device identity,
+  clears pending Transfer delivery work and reports a useful error if it was
+  already disconnected.
+- Backups now include validated Bible chapter progress and the current daily
+  reading recommendations. Restore merges completed chapters with the progress
+  already on the receiving device.
+- YouTube Music play/pause controls now call the player without accidentally
+  treating the browser click event as a forced Play command. The full and mini
+  control bars are explicitly touchable above the embedded player.
+- iOS **1.5.1 (build 8)** supplies the missing `WKUIDelegate`, restoring native
+  alert, confirmation and text-entry dialogs used by actions throughout the
+  web app.
+
+Deploy the Worker/web project normally. Build and install the new IPA to receive
+the native WebKit dialog repair; the two-tap device removal and the other web
+changes work as soon as Cloudflare deploys. There is no new D1 migration or
+Cloudflare secret.
+
 # v10.17 — Stability and flow foundations
 
 This cumulative release improves the existing foundations without changing the

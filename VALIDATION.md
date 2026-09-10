@@ -1,3 +1,22 @@
+# Device sync, Bible backup and music control v10.17.1 validation — 10 September 2026
+
+- The Remove button uses an explicit two-tap, five-second confirmation inside
+  the page and no longer depends on a WebKit JavaScript dialog.
+- Device changes refresh Transfers recipient/device lists, notify Messages in
+  the same page and propagate to other same-origin tabs through local storage.
+- Real local D1 coverage confirms that removal returns the target identity,
+  drops it from the active device list, rejects repeat removal, invalidates its
+  credential and invalidates its outstanding pairing code.
+- iOS 1.5.1 (build 8) registers a `WKUIDelegate` for native alert, confirm and
+  prompt panels. Windows cannot compile/sign Swift, so a physical-device check
+  remains required after Codemagic builds the IPA.
+- Portable backups export and restore validated Bible chapter progress and the
+  current reading recommendations. Existing backup files remain accepted.
+- Full and mini YouTube Music play/pause handlers no longer receive a click
+  event as a forced Play value; the control layers explicitly accept touches.
+- Project validation and the serial full automated suite pass: **49/49 tests**.
+- No D1 migration, new Cloudflare secret or entitlement change is required.
+
 # Stability and flow v10.17 validation — 10 September 2026
 
 - Weather uses a 15-minute fresh cache and a 24-hour offline fallback, starts

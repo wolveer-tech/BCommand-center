@@ -133,11 +133,15 @@ export async function handleTransfers(request, env, ctx, sendOne) {
     }
     const deviceMatch = path.match(/^\/devices\/([a-f0-9-]{36})$/);
     if (deviceMatch && method === 'DELETE') {
+      const targetId = deviceMatch[1];
+      const target = await one(env, 'SELECT id,name FROM transfer_devices WHERE id=? AND revoked_at IS NULL', targetId);
+      if (!target) fail(404, 'That device is already disconnected or could not be found.');
       await env.DB.batch([
-        env.DB.prepare('UPDATE transfer_devices SET revoked_at=?,push_subscription=NULL WHERE id=?').bind(Date.now(), deviceMatch[1]),
-        env.DB.prepare('DELETE FROM transfer_pairings WHERE created_by=?').bind(deviceMatch[1])
+        env.DB.prepare('UPDATE transfer_devices SET revoked_at=?,push_subscription=NULL WHERE id=? AND revoked_at IS NULL').bind(Date.now(), targetId),
+        env.DB.prepare('DELETE FROM transfer_pairings WHERE created_by=?').bind(targetId),
+        env.DB.prepare('DELETE FROM transfer_deliveries WHERE device_id=?').bind(targetId)
       ]);
-      return reply({ ok: true });
+      return reply({ ok: true, removed: target, updatedAt: Date.now() });
     }
     if (path === '/push' && method === 'POST') {
       const { subscription } = await body(request);
