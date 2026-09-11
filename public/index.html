@@ -1144,7 +1144,7 @@ body.home-fullscreen .mobile-watch-fab{
 .launcher-time{font-size:14px;color:#b6c3da;margin-top:5px}
 .launcher-swipe-hint{font-size:10px;color:#9aacc8}
 .launcher-widget-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
-.launcher-widget{position:relative;text-align:left;border:1px solid rgba(255,255,255,.09);border-radius:26px;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.05));backdrop-filter:blur(18px);padding:14px 14px 13px;color:var(--text);cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.launcher-widget{position:relative;min-width:0;overflow:hidden;text-align:left;border:1px solid rgba(255,255,255,.09);border-radius:26px;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.05));backdrop-filter:blur(18px);padding:14px 14px 13px;color:var(--text);cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
 .launcher-widget.large{grid-column:span 2;min-height:118px;background:linear-gradient(135deg,rgba(155,175,255,.18),rgba(255,255,255,.05))}
 .launcher-widget-title{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#dbe5f7;opacity:.92}
 .launcher-widget-value{font-size:29px;font-weight:850;line-height:1;margin-top:8px;letter-spacing:-.04em}
@@ -1585,6 +1585,28 @@ body.home-fullscreen .mobile-watch-fab{
 
 @media(max-width:760px){.global-quick-add{width:48px;height:48px;right:14px;bottom:calc(82px + env(safe-area-inset-bottom));font-size:25px}.home-today-grid,.today-grid{grid-template-columns:1fr}.continue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.notes-shell{grid-template-columns:1fr}.notes-sidebar{position:static;overflow-x:auto;padding:6px}.notes-nav-title{display:none}.notes-nav{display:flex;gap:5px;width:max-content}.notes-nav-btn{width:auto;white-space:nowrap;padding:8px 10px}.note-editor-options{grid-template-columns:1fr}.media-recommend-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:390px){.media-recommend-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* v10.18 — native-style Home canvas and privacy controls */
+#homePage[data-home-theme="midnight"] .launcher-screen{background:radial-gradient(circle at 90% 0%,rgba(47,87,172,.26),transparent 34%),linear-gradient(180deg,#03050a,#080d18)}
+#homePage[data-home-theme="sunset"] .launcher-screen{background:radial-gradient(circle at 90% 10%,rgba(255,126,95,.30),transparent 38%),radial-gradient(circle at 5% 90%,rgba(125,74,210,.30),transparent 42%),linear-gradient(160deg,#160b19,#090b16)}
+#homePage[data-home-theme="weather"] .launcher-screen{background:radial-gradient(circle at 88% 8%,rgba(109,197,255,.34),transparent 36%),radial-gradient(circle at 5% 95%,rgba(110,103,255,.25),transparent 42%),linear-gradient(160deg,#081525,#080b15)}
+.launcher-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+.launcher-utility{min-width:38px;min-height:38px;border:1px solid rgba(255,255,255,.12);border-radius:13px;background:rgba(6,10,18,.42);color:#fff;font:inherit;font-size:16px;backdrop-filter:blur(14px);cursor:pointer}
+.launcher-widget-title-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.launcher-next-kind{padding:4px 7px;border-radius:999px;background:rgba(255,255,255,.09);color:#d7e5ff;font-size:8px;font-weight:800;text-transform:none;letter-spacing:0}
+.launcher-smart-secondary{margin-top:9px;padding:8px 10px;border-radius:13px;background:rgba(8,13,22,.38);border:1px solid rgba(255,255,255,.08);font-size:9px;line-height:1.4;color:#dce7f8}
+#homeWidgets[data-density="compact"]{gap:8px}
+#homeWidgets[data-density="compact"] .card{padding:11px;border-radius:17px}
+#homeWidgets[data-density="compact"] .card-head{margin-bottom:8px}
+.home-widget[data-home-size="compact"] .card{padding:10px 12px}
+.home-widget[data-home-size="compact"] .sub{display:none}
+.home-widget[data-home-size="compact"] :is(.list,.continue-grid,.home-today-grid,.grid){max-height:148px;overflow:hidden}
+.home-appearance-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+.home-widget-setting{transition:border-color .16s ease,background .16s ease,opacity .16s ease}
+.home-widget-setting[draggable="true"]{cursor:grab}.home-widget-setting.dragging{opacity:.48}.home-widget-setting.drag-over{border-color:#719dff;background:rgba(91,140,255,.12)}
+.home-widget-grip{color:#75869e;font-size:15px;user-select:none}.home-widget-size{display:flex;align-items:center;gap:5px}.home-widget-size select{min-height:34px;border:1px solid var(--line);border-radius:9px;background:#0b1220;color:var(--text);font:inherit;font-size:10px;padding:5px 7px}
+.privacy-status-card{display:grid;gap:12px}.privacy-state{display:flex;align-items:center;gap:9px;padding:11px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.035);font-size:11px}.privacy-state span:first-child{font-size:20px}.privacy-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:520px){body.home-fullscreen #homePage .launcher-widget-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.home-panel-tag small{display:none}.launcher-header{align-items:flex-start}.launcher-swipe-hint{display:none}.launcher-header-actions{max-width:92px}.launcher-utility{min-width:36px;min-height:36px}.home-appearance-grid{grid-template-columns:1fr}.home-widget-size{width:100%;justify-content:flex-end}.home-widget-size select{flex:1;max-width:150px}}
 
 .footer-note{margin-top:13px;text-align:center;font-size:9px;color:#65748a}.skeleton{height:65px;border-radius:12px;background:linear-gradient(90deg,#121c2b,#1b273b,#121c2b);background-size:200% 100%;animation:skeleton 1.3s infinite}.mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.mini{padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--panel2)}.mini strong{display:block;font-size:12px}.mini span{font-size:9px;color:var(--muted)}.warning{padding:10px 11px;border-radius:11px;background:rgba(242,201,76,.08);border:1px solid rgba(242,201,76,.2);color:#e8d68a;font-size:10px;line-height:1.5}.danger{padding:10px 11px;border-radius:11px;background:rgba(255,104,118,.08);border:1px solid rgba(255,104,118,.22);color:#ffadb6;font-size:10px;line-height:1.5}@keyframes fade{from{opacity:.3;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes pulse{50%{opacity:.4}}
 
@@ -2115,14 +2137,15 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
               <div class="launcher-date" id="launcherDate">Monday 15</div>
               <div class="launcher-time" id="launcherTime">10:37 • Your shortcuts and sections</div>
             </div>
-            <div class="launcher-swipe-hint">Swipe down to search</div>
+            <div class="launcher-header-actions"><span class="launcher-swipe-hint">Swipe down to search</span><button class="launcher-utility" id="launcherLockNow" type="button" data-launch-action="lock" aria-label="Lock Command Centre now" title="Lock now">🔒</button><button class="launcher-utility" type="button" data-launch-action="customize" aria-label="Customise Home" title="Customise Home">⋯</button></div>
           </div>
 
           <div class="launcher-widget-grid">
             <button class="launcher-widget large" type="button" data-launch-page="today">
-              <div class="launcher-widget-title">Today</div>
+              <div class="launcher-widget-title-row"><div class="launcher-widget-title">Next up</div><span class="launcher-next-kind" id="launcherNextKind">Today</span></div>
               <div class="launcher-widget-value small" id="launcherTodayValue">Nothing planned</div>
               <div class="launcher-widget-sub" id="launcherTodayMeta">Open Today to see your schedule, reminders and next actions.</div>
+              <div class="launcher-smart-secondary" id="launcherSmartSecondary" hidden></div>
               <div class="launcher-widget-foot">
                 <span class="launcher-chip">☀️ Open Today</span>
                 <span class="launcher-chip">🗓️ Calendar</span>
@@ -2202,14 +2225,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <div id="msgStatus" class="msg-status" role="status" aria-live="polite"></div>
     <div id="msgWelcome" class="msg-welcome" hidden><h3>Your devices, one conversation away.</h3><p>On your PC, open Messages and choose <strong>Connect another device</strong>. Enter its 9-digit code here.</p><button class="btn primary" id="msgWelcomeConnect">Enter a code</button><p class="msg-muted">Setting up your first device? <button class="msg-text-button" data-msg-transfers>Connect it in Transfers</button>.</p></div>
     <div class="msg-shell" id="msgShell" hidden>
-      <aside class="msg-sidebar" aria-label="Device conversations"><div class="msg-sidebar-head"><h3>Your chats</h3><label class="sr-only" for="msgSearch">Search devices</label><input id="msgSearch" type="search" placeholder="Find a device…" autocomplete="off"></div><div id="msgChats" class="msg-chats"></div><button class="msg-connect" id="msgConnect">＋ Connect another device</button></aside>
+      <aside class="msg-sidebar" aria-label="Device conversations"><div class="msg-sidebar-head"><div class="msg-sidebar-title"><h3>Your chats</h3><button class="msg-filter" id="msgDisconnectedToggle" type="button" aria-pressed="false">Show disconnected</button></div><label class="sr-only" for="msgSearch">Search devices</label><input id="msgSearch" type="search" placeholder="Find a device…" autocomplete="off"></div><div id="msgChats" class="msg-chats"></div><button class="msg-connect" id="msgConnect">＋ Connect another device</button></aside>
       <div class="msg-conversation" id="msgConversation">
         <div id="msgChoose" class="msg-choose"><div aria-hidden="true">☷</div><h3>Pick a device. Say something.</h3><p>Paste a link, leave yourself a note,<br>or carry on where you left off.</p></div>
         <div id="msgThread" class="msg-thread" hidden>
           <header class="msg-thread-head"><button class="msg-back btn small" id="msgBack" aria-label="Back to chats">‹ Chats</button><div class="msg-peer"><strong id="msgPeerName"></strong><span id="msgPeerDetail">Messages and links</span></div><button class="btn small" id="msgFavourite" aria-pressed="false" title="Use this device for the home shortcut">☆ Quick chat</button></header>
           <div class="msg-history" id="msgHistory" tabindex="0" aria-label="Conversation history"><button class="btn small msg-older" id="msgOlder" hidden>Load older messages</button><div id="msgBubbles"></div><div id="msgEmpty" class="msg-empty" hidden>No messages yet. Send the first one below.</div></div>
           <button class="msg-new" id="msgNew" hidden>New messages ↓</button>
-          <form id="msgCompose" class="msg-compose"><label class="sr-only" for="msgText">Message or link</label><textarea id="msgText" rows="2" maxlength="20000" placeholder="Message or paste a link…"></textarea><button class="btn primary" id="msgSend" type="submit">Send ↑</button><div class="msg-compose-note"><span id="msgKeyHint">Enter to send · Shift + Enter for a new line</span><button type="button" class="msg-text-button" data-msg-transfers>Send a file ⇄</button></div></form>
+          <form id="msgCompose" class="msg-compose"><div class="msg-reply-preview" id="msgReplyPreview" hidden><span><strong>Replying</strong><small id="msgReplyText"></small></span><button type="button" id="msgReplyCancel" aria-label="Cancel reply">×</button></div><label class="sr-only" for="msgText">Message or link</label><textarea id="msgText" rows="2" maxlength="20000" placeholder="Message or paste a link…"></textarea><button class="btn primary" id="msgSend" type="submit" aria-label="Send message">↑</button><div class="msg-compose-note"><span id="msgKeyHint">Enter to send · Shift + Enter for a new line</span><span id="msgCharCount">0 / 20,000</span><button type="button" class="msg-text-button" data-msg-transfers>Send a file ⇄</button></div></form>
         </div>
       </div>
     </div>
@@ -2543,10 +2566,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
                       <button class="media-mode" data-media-mode="torrent">Alternate</button>
                       <button class="media-mode" data-media-mode="agg">Aggregator</button>
                       <button class="media-mode" data-media-mode="flixer">Flixer</button>
+                      <button class="media-mode" data-media-mode="atlantic">Atlantic</button>
+                      <button class="media-mode" data-media-mode="boomflix">Boomflix</button>
                     </div>
 
                     <div class="media-provider-note">
-                      Primary, Alternate, Aggregator and Flixer play inside Command Centre.
+                      Six sources are available. Atlantic opens the exact movie or episode; Boomflix opens the title page so its own player can choose the stream.
                     </div>
 
                     <div id="mediaPlayerEmpty" class="media-player-empty">
@@ -2965,6 +2990,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   <div class="settings-tabs">
     <button class="btn settings-tab active" data-settings-section="general">⚙️ General</button>
     <button class="btn settings-tab" data-settings-section="home">🏠 Home</button>
+    <button class="btn settings-tab" data-settings-section="privacy">🔒 Privacy</button>
     <button class="btn settings-tab" data-settings-section="notifications">🔔 Notifications</button>
     <button class="btn settings-tab" data-settings-section="content">🎬 Content</button>
     <button class="btn settings-tab" data-settings-section="markets">📈 Markets</button>
@@ -2979,7 +3005,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </article>
   <article class="card settings-card-clean">
     <div class="title">↗ Data backup & restore</div>
-    <div class="settings-description">Move notes, reminders, calendar events, Bible reading progress and current recommendations between the Home Screen app and the IPA. Restoring merges data without deleting items already on this device.</div>
+    <div class="settings-description">Move notes, reminders, calendar events, Bible reading progress and current recommendations between Command Centre installations. Restoring merges data without deleting items already on this device.</div>
     <label style="display:flex;align-items:center;gap:8px;margin:10px 0 8px;font-size:11px"><input id="backupIncludeDevice" type="checkbox" checked> Keep this device’s Messages & Transfers connection</label>
     <div class="field"><label for="backupConnectionPassword">Connection password</label><input id="backupConnectionPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="At least 8 characters" /><div class="setting-note" style="margin-top:5px">Required only when including or restoring the connection. The credential is encrypted before it enters the backup.</div></div>
     <div class="backup-actions"><button class="btn" id="exportBackupBtn" type="button">Export backup</button><button class="btn primary" id="importBackupBtn" type="button">Restore backup</button><input id="backupFileInput" type="file" accept="application/json,.json" hidden /></div>
@@ -2993,12 +3019,22 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </article></section>
 
   <section class="settings-section" data-settings-panel="home"><article class="card settings-card-clean">
-    <div class="card-head"><div><div class="title">🏠 Home dashboard</div><div class="sub">Show, hide and reorder your Home modules.</div></div><button class="btn small" id="resetHomeLayoutBtn">Reset</button></div>
+    <div class="card-head"><div><div class="title">🏠 Home canvas</div><div class="sub">Shape the launcher and dashboard around how you use the IPA.</div></div><button class="btn small" id="resetHomeLayoutBtn">Reset</button></div>
+    <div class="home-appearance-grid"><div class="field"><label>Launcher atmosphere</label><select id="settingsHomeTheme"><option value="aurora">Aurora glass</option><option value="midnight">Midnight</option><option value="sunset">Sunset glow</option><option value="weather">Weather blue</option></select></div><div class="field"><label>Dashboard spacing</label><select id="settingsHomeDensity"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div></div>
+    <div class="settings-description">Drag modules to reorder them, use the arrows as a precise fallback, and choose a compact or full presentation for each one.</div>
     <div id="homeSettingsList" class="home-widget-settings"></div>
   </article></section>
 
+  <section class="settings-section" data-settings-panel="privacy"><article class="card settings-card-clean privacy-status-card">
+    <div><div class="title">🔒 Privacy Lock</div><div class="settings-description">Protect the whole IPA with Face ID or your iPhone passcode. Sensitive content is covered as soon as the app leaves the foreground.</div></div>
+    <div class="privacy-state" id="privacyLockStatus"><span>🔐</span><span>Checking native privacy protection…</span></div>
+    <div class="form"><div class="field"><label>Privacy Lock</label><select id="privacyLockEnabled"><option value="on">On</option><option value="off">Off</option></select></div><div class="field"><label>Require unlock after</label><select id="privacyLockGrace"><option value="0">Immediately</option><option value="60">1 minute</option><option value="300">5 minutes</option><option value="900">15 minutes</option></select></div></div>
+    <div class="privacy-actions"><button class="btn primary" id="applyPrivacyLockBtn" type="button">Apply with Face ID</button><button class="btn" id="privacyLockNowBtn" type="button">Lock now</button></div>
+    <div class="setting-note">This setting is stored by the native wrapper, not in the webpage or backup. Turning it on or off requires authentication.</div>
+  </article></section>
+
   <section class="settings-section" data-settings-panel="notifications">
-    <article class="card settings-card-clean"><div class="card-head"><div><div class="title">🔔 Mobile notifications</div><div class="sub" id="notificationStatus">Checking notification support…</div></div><button class="btn primary" id="enableNotificationsBtn">Enable</button></div><div class="toolbar"><button class="btn" id="testNotificationBtn">Send test</button><button class="btn" id="repairNotificationsBtn">Repair</button><button class="btn" id="rescheduleNotificationsBtn">Reschedule</button></div><div class="setting-note" style="margin-top:8px">The IPA schedules native iPhone alerts for reminders and calendar events. The Home Screen version continues to use Web Push.</div></article>
+    <article class="card settings-card-clean"><div class="card-head"><div><div class="title">🔔 Mobile notifications</div><div class="sub" id="notificationStatus">Checking notification support…</div></div><button class="btn primary" id="enableNotificationsBtn">Enable</button></div><div class="toolbar"><button class="btn" id="testNotificationBtn">Send test</button><button class="btn" id="repairNotificationsBtn">Repair</button><button class="btn" id="rescheduleNotificationsBtn">Reschedule</button></div><div class="setting-note" style="margin-top:8px">The IPA schedules native iPhone alerts for reminders and calendar events. Browser installations use Web Push when supported.</div></article>
     <article class="card settings-card-clean"><div class="title">☀️ Morning briefing</div><div class="form"><div class="field"><label>Morning briefing</label><select id="settingsMorningBriefing"><option value="on">On</option><option value="off">Off</option></select></div><div class="field"><label>Delivery time</label><input id="settingsMorningBriefingTime" type="time" value="07:30" /></div></div><div class="toolbar"><button class="btn" id="testMorningBriefingBtn">Send briefing test</button></div></article>
   </section>
 
@@ -3154,6 +3190,9 @@ const DEFAULT_STATE = {
   noteFolders:['Notes','Personal','Work'],
   homeLayout:['today','continue','words','reading','markets','reminders','assistant'],
   homeHidden:{},
+  homeWidgetSizes:{},
+  homeTheme:'aurora',
+  homeDensity:'comfortable',
   contentDefault:'movies',
   bibleRead:{},
   bibleRecommendations:{date:'',items:[]},
@@ -3205,6 +3244,9 @@ document.body.classList.add('home-fullscreen');
 state.noteFolders=Array.isArray(state.noteFolders)&&state.noteFolders.length?state.noteFolders:['Notes','Personal','Work'];
 state.homeLayout=Array.isArray(state.homeLayout)&&state.homeLayout.length?state.homeLayout:['today','continue','words','reading','markets','reminders','assistant'];
 state.homeHidden=state.homeHidden&&typeof state.homeHidden==='object'?state.homeHidden:{};
+state.homeWidgetSizes=state.homeWidgetSizes&&typeof state.homeWidgetSizes==='object'?state.homeWidgetSizes:{};
+state.homeTheme=['aurora','midnight','sunset','weather'].includes(state.homeTheme)?state.homeTheme:'aurora';
+state.homeDensity=['comfortable','compact'].includes(state.homeDensity)?state.homeDensity:'comfortable';
 state.contentDefault=['movies','youtube'].includes(state.contentDefault)?state.contentDefault:'movies';
 state.activeSportTab=['football','tennis','basketball'].includes(state.activeSportTab)?state.activeSportTab:'football';
 state.sportFavourites=state.sportFavourites&&typeof state.sportFavourites==='object'?state.sportFavourites:{tennis:[],basketball:[]};
@@ -3474,10 +3516,42 @@ const HOME_WIDGET_META={
 };
 const HOME_WIDGET_KEYS=Object.keys(HOME_WIDGET_META);
 function normalizeHomeLayout(){const out=state.homeLayout.filter(k=>HOME_WIDGET_KEYS.includes(k));HOME_WIDGET_KEYS.forEach(k=>{if(!out.includes(k))out.push(k)});state.homeLayout=out}
-function applyHomeLayout(){normalizeHomeLayout();const root=qs('#homeWidgets');if(!root)return;state.homeLayout.forEach(key=>{const el=root.querySelector(`[data-home-widget="${key}"]`);if(el){el.hidden=!!state.homeHidden[key];root.appendChild(el)}})}
-function renderHomeCustomizer(){normalizeHomeLayout();const el=qs('#homeSettingsList');if(!el)return;el.innerHTML=state.homeLayout.map((key,index)=>{const m=HOME_WIDGET_META[key];return `<div class="home-widget-setting"><input type="checkbox" data-home-visible="${esc(key)}" ${state.homeHidden[key]?'':'checked'}><strong>${esc(m.icon)} ${esc(m.label)}</strong><div class="home-widget-order"><button class="btn small" data-home-move="${esc(key)}" data-direction="-1" ${index===0?'disabled':''}>↑</button><button class="btn small" data-home-move="${esc(key)}" data-direction="1" ${index===state.homeLayout.length-1?'disabled':''}>↓</button></div></div>`}).join('')}
-function moveHomeWidget(key,dir){normalizeHomeLayout();const i=state.homeLayout.indexOf(key),j=i+Number(dir);if(i<0||j<0||j>=state.homeLayout.length)return;[state.homeLayout[i],state.homeLayout[j]]=[state.homeLayout[j],state.homeLayout[i]];saveState();applyHomeLayout();renderHomeCustomizer()}
-function resetHomeLayout(){state.homeLayout=['today','continue','words','reading','markets','reminders','assistant'];state.homeHidden={};saveState();applyHomeLayout();renderHomeCustomizer();toast('Home dashboard reset')}
+function nativeHaptic(style='light'){
+  try{window.webkit?.messageHandlers?.nativePrivacy?.postMessage({action:'haptic',style})}catch{}
+}
+window.nativeHaptic=nativeHaptic;
+function applyHomeLayout(){
+  normalizeHomeLayout();
+  const page=qs('#homePage'),root=qs('#homeWidgets');
+  if(page)page.dataset.homeTheme=state.homeTheme||'aurora';
+  if(!root)return;
+  root.dataset.density=state.homeDensity||'comfortable';
+  state.homeLayout.forEach(key=>{const el=root.querySelector(`[data-home-widget="${key}"]`);if(el){el.hidden=!!state.homeHidden[key];el.dataset.homeSize=state.homeWidgetSizes[key]==='compact'?'compact':'full';root.appendChild(el)}});
+}
+let draggedHomeWidget='';
+function reorderHomeWidget(source,target){
+  normalizeHomeLayout();const from=state.homeLayout.indexOf(source),to=state.homeLayout.indexOf(target);if(from<0||to<0||from===to)return;
+  state.homeLayout.splice(to,0,state.homeLayout.splice(from,1)[0]);saveState();applyHomeLayout();nativeHaptic('light');renderHomeCustomizer();
+}
+function bindHomeCustomizerRows(){
+  const root=qs('#homeSettingsList');if(!root)return;
+  root.querySelectorAll('[data-home-visible]').forEach(input=>input.addEventListener('change',()=>{state.homeHidden[input.dataset.homeVisible]=!input.checked;saveState();applyHomeLayout()}));
+  root.querySelectorAll('[data-home-size]').forEach(select=>select.addEventListener('change',()=>{state.homeWidgetSizes[select.dataset.homeSize]=select.value==='compact'?'compact':'full';saveState();applyHomeLayout();nativeHaptic('light')}));
+  root.querySelectorAll('[data-home-setting]').forEach(row=>{
+    row.addEventListener('dragstart',event=>{draggedHomeWidget=row.dataset.homeSetting;row.classList.add('dragging');event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',draggedHomeWidget);nativeHaptic('medium')});
+    row.addEventListener('dragover',event=>{event.preventDefault();row.classList.add('drag-over')});
+    row.addEventListener('dragleave',()=>row.classList.remove('drag-over'));
+    row.addEventListener('drop',event=>{event.preventDefault();row.classList.remove('drag-over');reorderHomeWidget(draggedHomeWidget||event.dataTransfer.getData('text/plain'),row.dataset.homeSetting)});
+    row.addEventListener('dragend',()=>{draggedHomeWidget='';root.querySelectorAll('.home-widget-setting').forEach(x=>x.classList.remove('dragging','drag-over'))});
+  });
+}
+function renderHomeCustomizer(){
+  normalizeHomeLayout();const el=qs('#homeSettingsList');if(!el)return;
+  el.innerHTML=state.homeLayout.map((key,index)=>{const m=HOME_WIDGET_META[key],size=state.homeWidgetSizes[key]==='compact'?'compact':'full';return `<div class="home-widget-setting" data-home-setting="${esc(key)}" draggable="true"><input type="checkbox" data-home-visible="${esc(key)}" aria-label="Show ${esc(m.label)}" ${state.homeHidden[key]?'':'checked'}><strong><span class="home-widget-grip" aria-hidden="true">≡</span> ${esc(m.icon)} ${esc(m.label)}</strong><div class="home-widget-order"><span class="home-widget-size"><select data-home-size="${esc(key)}" aria-label="${esc(m.label)} size"><option value="full" ${size==='full'?'selected':''}>Full</option><option value="compact" ${size==='compact'?'selected':''}>Compact</option></select></span><button class="btn small" data-home-move="${esc(key)}" data-direction="-1" aria-label="Move ${esc(m.label)} up" ${index===0?'disabled':''}>↑</button><button class="btn small" data-home-move="${esc(key)}" data-direction="1" aria-label="Move ${esc(m.label)} down" ${index===state.homeLayout.length-1?'disabled':''}>↓</button></div></div>`}).join('');
+  bindHomeCustomizerRows();
+}
+function moveHomeWidget(key,dir){normalizeHomeLayout();const i=state.homeLayout.indexOf(key),j=i+Number(dir);if(i<0||j<0||j>=state.homeLayout.length)return;[state.homeLayout[i],state.homeLayout[j]]=[state.homeLayout[j],state.homeLayout[i]];saveState();applyHomeLayout();nativeHaptic('light');renderHomeCustomizer()}
+function resetHomeLayout(){state.homeLayout=['today','continue','words','reading','markets','reminders','assistant'];state.homeHidden={};state.homeWidgetSizes={};state.homeTheme='aurora';state.homeDensity='comfortable';saveState();applyHomeLayout();applySettingsUI();renderHomeCustomizer();nativeHaptic('success');toast('Home canvas reset')}
 function openHomeCustomizer(){openSettings();showSettingsSection('home');renderHomeCustomizer()}
 
 function sortedTodayItems(){return [...calendarItemsForDate(dayKey())].sort((a,b)=>String(a.time||'99:99').localeCompare(String(b.time||'99:99')))}
@@ -4237,6 +4311,8 @@ function init(){
     bind('addNoteFolderBtn','click',addNoteFolder);
     bind('restoreNoteBtn','click',restoreEditingNote);
     bind('resetHomeLayoutBtn','click',resetHomeLayout);
+    bind('applyPrivacyLockBtn','click',applyPrivacyLock);
+    bind('privacyLockNowBtn','click',lockCommandCentreNow);
     bind('exportBackupBtn','click',exportCommandCentreBackup);
     bind('importBackupBtn','click',chooseCommandCentreBackup);
     bind('createSafetySnapshotBtn','click',createSafetySnapshot);
@@ -4300,7 +4376,6 @@ function init(){
      document.addEventListener('click',e=>{
        const q=e.target.closest('[data-quick-add]');if(q){runQuickAdd(q.dataset.quickAdd);return}
        const m=e.target.closest('[data-home-move]');if(m){moveHomeWidget(m.dataset.homeMove,Number(m.dataset.direction));return}
-       const v=e.target.closest('[data-home-visible]');if(v){state.homeHidden[v.dataset.homeVisible]=!v.checked;saveState();applyHomeLayout();renderHomeCustomizer();return}
        const c=e.target.closest('[data-continue-index]');if(c){openContinueItem(Number(c.dataset.continueIndex));return}
        const n=e.target.closest('[data-today-note]');if(n){openNote(n.dataset.todayNote);return}
        const h=e.target.closest('[data-media-history-index]');if(h){const mh=(state.entertainment.mediaHistory||[])[Number(h.dataset.mediaHistoryIndex)];if(mh){const i=combinedContinueHistory().findIndex(x=>x.kind==='media'&&x.type===mh.type&&Number(x.id)===Number(mh.id));if(i>=0)openContinueItem(i)}return}
@@ -4397,6 +4472,22 @@ function setLauncherBadge(id,count){
   if(value>0){el.textContent=value>99?'99+':String(value);el.classList.add('show');}
   else{el.textContent='';el.classList.remove('show');}
 }
+function nextLauncherFootballMatch(){
+  const followed=new Set((state.footballFollowedMatches||[]).map(Number));
+  const teams=new Set((state.footballFavouriteTeams||[]).map(team=>Number(team?.id)).filter(Boolean));
+  if(!followed.size&&!teams.size)return null;
+  const source=[...(footballScheduleCache?.matches||[]),...(footballCache?.matches||[])],seen=new Set(),now=Date.now();
+  const candidates=source.filter(match=>{
+    const id=Number(match?.id||0),home=Number(match?.homeTeam?.id||0),away=Number(match?.awayTeam?.id||0),time=Date.parse(match?.utcDate||'');
+    if(!id||seen.has(id)||!Number.isFinite(time)||time<now-2*60*60*1000)return false;
+    seen.add(id);return followed.has(id)||teams.has(home)||teams.has(away);
+  }).sort((a,b)=>Date.parse(a.utcDate)-Date.parse(b.utcDate));
+  const match=candidates[0];if(!match)return null;
+  const home=String(match.homeTeam?.shortName||match.homeTeam?.name||'Home'),away=String(match.awayTeam?.shortName||match.awayTeam?.name||'Away');
+  const live=['IN_PLAY','PAUSED','LIVE'].includes(String(match.status||''));
+  const when=live?'Live now':new Date(match.utcDate).toLocaleString('en-GB',{weekday:'short',hour:'2-digit',minute:'2-digit'});
+  return {title:`${home} vs ${away}`,when};
+}
 function renderHomeLauncher(){
   const dateEl=qs('#launcherDate'),timeEl=qs('#launcherTime');
   const now=new Date();
@@ -4405,11 +4496,17 @@ function renderHomeLauncher(){
 
   const todayItems=typeof sortedTodayItems==='function'?sortedTodayItems():[];
   const todayValue=qs('#launcherTodayValue'),todayMeta=qs('#launcherTodayMeta');
-  const next=todayItems[0];
-  if(todayValue)todayValue.textContent=todayItems.length?`${todayItems.length} item${todayItems.length===1?'':'s'} today`:'Nothing planned';
+  const minutes=now.getHours()*60+now.getMinutes();
+  const next=todayItems.find(item=>!item.time||Number(item.time.slice(0,2))*60+Number(item.time.slice(3,5))>=minutes)||todayItems[0];
+  if(todayValue)todayValue.textContent=next?(next.title||next.text||'Next item'):'Nothing planned';
   if(todayMeta)todayMeta.textContent=next
-    ? `${next.time?`${next.time} • `:''}${next.title||next.text||'Open Today to see your schedule.'}`
+    ? `${next.time?`${next.time} • `:'Anytime • '}${todayItems.length} item${todayItems.length===1?'':'s'} today`
     : 'Open Today to see your schedule, reminders and next actions.';
+  const nextKind=qs('#launcherNextKind');if(nextKind)nextKind.textContent=next?(next.itemType==='event'?'Calendar':'Reminder'):'Clear day';
+
+  const match=nextLauncherFootballMatch();
+  const smartSecondary=qs('#launcherSmartSecondary');
+  if(smartSecondary){smartSecondary.hidden=!match;smartSecondary.textContent=match?`⚽ ${match.title} • ${match.when}`:''}
 
   const weatherValue=qs('#launcherWeatherValue'),weatherMeta=qs('#launcherWeatherMeta');
   if(weatherCache?.data?.current){
@@ -4463,10 +4560,13 @@ function runHomeLauncherAction(btn){
   const watch=btn.dataset.launchWatch;
   const page=btn.dataset.launchPage;
   const action=btn.dataset.launchAction;
+  nativeHaptic('light');
   if(watch){openWatchPage(watch);return;}
   if(action==='quickmessage'){window.CCMessages?.openQuick();return;}
   if(action==='quickadd'){openQuickAdd();return;}
   if(action==='settings'){openSettings();return;}
+  if(action==='customize'){openHomeCustomizer();return;}
+  if(action==='lock'){lockCommandCentreNow();return;}
   if(page){switchPage(page);return;}
 }
 function bindHomeLauncher(){
@@ -4697,6 +4797,39 @@ function openSettings(){
   try{showSettingsSection('general')}catch(e){console.error('Settings tabs failed to initialize',e)}
   modal.classList.add('open');
 }
+let nativePrivacyState={available:false,enabled:false,locked:false,authenticating:false,graceSeconds:0,error:''};
+function nativePrivacyBridge(){return window.webkit?.messageHandlers?.nativePrivacy}
+function renderPrivacyLockSettings(){
+  const available=!!window.CommandCentreNative?.privacyLock&&!!nativePrivacyBridge(),status=qs('#privacyLockStatus'),apply=qs('#applyPrivacyLockBtn'),lock=qs('#privacyLockNowBtn');
+  nativePrivacyState.available=available||nativePrivacyState.available;
+  if(qs('#privacyLockEnabled'))qs('#privacyLockEnabled').value=nativePrivacyState.enabled?'on':'off';
+  if(qs('#privacyLockGrace'))qs('#privacyLockGrace').value=String([0,60,300,900].includes(Number(nativePrivacyState.graceSeconds))?Number(nativePrivacyState.graceSeconds):0);
+  if(apply){apply.disabled=!available||nativePrivacyState.authenticating;apply.textContent=nativePrivacyState.authenticating?'Authenticating…':'Apply with Face ID'}
+  if(lock)lock.disabled=!available||!nativePrivacyState.enabled||nativePrivacyState.authenticating;
+  const launcherLock=qs('#launcherLockNow');if(launcherLock)launcherLock.hidden=!available;
+  if(status){
+    const label=nativePrivacyState.error||(!available?'Privacy Lock is available in the iOS IPA only.':nativePrivacyState.enabled?`On • unlock ${Number(nativePrivacyState.graceSeconds)===0?'immediately':`after ${Number(nativePrivacyState.graceSeconds)/60} minute${Number(nativePrivacyState.graceSeconds)===60?'':'s'}`}`:'Off');
+    status.lastElementChild.textContent=label;status.firstElementChild.textContent=nativePrivacyState.enabled?'🔒':'🔓';
+  }
+}
+function requestPrivacyLockStatus(){
+  if(!nativePrivacyBridge()){renderPrivacyLockSettings();return}
+  nativePrivacyBridge().postMessage({action:'status'});
+}
+function applyPrivacyLock(){
+  const bridge=nativePrivacyBridge();if(!bridge){toast('Privacy Lock requires the iOS IPA');return}
+  const enabled=qs('#privacyLockEnabled')?.value==='on',graceSeconds=Number(qs('#privacyLockGrace')?.value||0);
+  nativePrivacyState.error='';nativePrivacyState.authenticating=true;renderPrivacyLockSettings();
+  bridge.postMessage({action:'configure',enabled,graceSeconds});
+}
+function lockCommandCentreNow(){
+  const bridge=nativePrivacyBridge();if(!bridge){toast('Turn on Privacy Lock in the iOS IPA');return}
+  bridge.postMessage({action:'lock'});
+}
+window.addEventListener('cc-native-privacy-status',event=>{
+  nativePrivacyState={...nativePrivacyState,...(event.detail||{}),error:String(event.detail?.error||'')};
+  renderPrivacyLockSettings();
+});
 function updateProviderFieldsUI(){
   const provider=qs('#settingsMarketProvider').value;
   qs('#twelveDataKeyField').style.display=provider==='twelvedata'?'block':'none';
@@ -4725,8 +4858,11 @@ function applySettingsUI(){
   qs('#spotifyRedirectDisplay').value=spotifyRedirectUri();
   qs('#settingsRedditProxy').value=state.redditProxy;
   if(qs('#settingsContentDefault'))qs('#settingsContentDefault').value=state.contentDefault||'movies';
+  if(qs('#settingsHomeTheme'))qs('#settingsHomeTheme').value=state.homeTheme||'aurora';
+  if(qs('#settingsHomeDensity'))qs('#settingsHomeDensity').value=state.homeDensity||'comfortable';
   updateProviderFieldsUI();
   renderHomeCustomizer();
+  requestPrivacyLockStatus();
 }
 function saveSettings(){
   state.morningBriefingEnabled=qs('#settingsMorningBriefing').value==='on';
@@ -4744,6 +4880,8 @@ function saveSettings(){
   state.spotifyClientId=qs('#settingsSpotifyClientId').value.trim();
   state.redditProxy=qs('#settingsRedditProxy').value.trim();
   if(qs('#settingsContentDefault'))state.contentDefault=qs('#settingsContentDefault').value||'movies';
+  if(qs('#settingsHomeTheme'))state.homeTheme=qs('#settingsHomeTheme').value||'aurora';
+  if(qs('#settingsHomeDensity'))state.homeDensity=qs('#settingsHomeDensity').value||'comfortable';
   saveState();applySettingsUI();applyHomeLayout();syncNewsPreferences();syncMorningBriefingPreferences();closeModal('settingsModal');
   qs('#weatherPlace').textContent=state.city;qs('#weatherFullPlace').textContent=state.city;
   loadWeather(true);loadPortfolio(true);toast('Settings saved')
@@ -5908,10 +6046,10 @@ async function selectMediaExplore(index){
 
 
 function setMediaMode(mode){
-  if(!['standard','torrent','agg','flixer'].includes(mode))mode='standard';
+  if(!['standard','torrent','agg','flixer','atlantic','boomflix'].includes(mode))mode='standard';
   mediaEmbedState.mode=mode;
   qsa('[data-media-mode]').forEach(btn=>btn.classList.toggle('active',btn.dataset.mediaMode===mode));
-  const labels={standard:'Primary provider route',torrent:'Alternate provider route',agg:'Aggregator provider route',flixer:'Flixer in-app provider'};
+  const labels={standard:'Primary provider route',torrent:'Alternate provider route',agg:'Aggregator provider route',flixer:'Flixer in-app provider',atlantic:'Atlantic direct player',boomflix:'Boomflix title and player'};
   mediaStatus(`${labels[mode]}. Select a title to play.`);
 }
 

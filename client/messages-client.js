@@ -4,10 +4,10 @@ const read=(key,fallback=null)=>{try{return JSON.parse(localStorage.getItem(key)
 const save=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));}catch{status('Browser storage is full. Keep this tab open to retain unsent messages.',true);}};
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let session=read(KEY),chats=[],selected=null,messages=[],older=false,sequence=0,refreshTask=null,contactTime=0,readThrough=0,codeExpiry=0;
-let pending=[],drafts={},favourite=null;
+let pending=[],drafts={},favourite=null,replyingTo=null,showDisconnected=false;
 const sending=new Set();
 const personalKey=name=>'cc_messages_'+name+'_'+session?.device.id;
-function personal(){pending=read(personalKey('pending'),[]);drafts=read(personalKey('drafts'),{});favourite=read(personalKey('favourite'));}
+function personal(){pending=read(personalKey('pending'),[]);drafts=read(personalKey('drafts'),{});favourite=read(personalKey('favourite'));showDisconnected=read(personalKey('showDisconnected'),false)===true;}
 function status(text='',error=false){$('msgStatus').textContent=text;$('msgStatus').classList.toggle('error',error);}
 function pairStatus(text='',error=false){$('msgPairStatus').textContent=text;$('msgPairStatus').classList.toggle('error',error);}
 const notice=promise=>Promise.resolve(promise).catch(e=>{if(e.message!=='Session changed.')status(e.message,true);});
@@ -23,7 +23,7 @@ function connection(){
 function syncSession(){
   const next=read(KEY);if(next?.token===session?.token)return;
   sequence++;session=next;chats=[];selected=null;messages=[];contactTime=0;readThrough=0;personal();
-  $('msgText').value='';$('msgBubbles').replaceChildren();$('msgChats').replaceChildren();$('msgThread').hidden=true;$('msgChoose').hidden=false;$('msgShell').classList.remove('chat-open');
+  $('msgText').value='';clearReply();updateCharacterCount();$('msgBubbles').replaceChildren();$('msgChats').replaceChildren();$('msgThread').hidden=true;$('msgChoose').hidden=false;$('msgShell').classList.remove('chat-open');
   $('msgCodeArea').hidden=true;codeExpiry=0;connection();if(session&&active())notice(open());
 }
 async function api(path,data,base='/api/messages'){
@@ -38,11 +38,23 @@ async function api(path,data,base='/api/messages'){
   finally{clearTimeout(timer);}
 }
 function quickPeer(){return chats.find(c=>c.id===favourite&&!c.revoked_at)||chats.find(c=>/\b(pc|computer|desktop)\b/i.test(c.name)&&!c.revoked_at)||chats.find(c=>!c.revoked_at);}
+function messageParts(value){
+  const text=String(value||''),match=text.match(/^↪ Reply to ([^:\n]{1,60}): ([^\n]{1,140})\n\n([\s\S]*)$/);
+  return match?{replyName:match[1],quote:match[2],body:match[3]}:{replyName:'',quote:'',body:text};
+}
+function messagePreview(value){return messageParts(value).body.replace(/\s+/g,' ').trim()}
+function chatTime(value){
+  const date=new Date(Number(value));if(!Number.isFinite(date.getTime()))return '';
+  const today=new Date(),same=date.toDateString()===today.toDateString();
+  return same?date.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):date.toLocaleDateString([],{day:'numeric',month:'short'});
+}
 function renderChats(){
-  const query=$('msgSearch').value.trim().toLowerCase(),list=chats.filter(c=>c.name.toLowerCase().includes(query));
-  const signature=JSON.stringify([query,list,selected?.id,favourite]);if($('msgChats').dataset.signature!==signature){
+  const query=$('msgSearch').value.trim().toLowerCase(),hidden=chats.filter(c=>c.revoked_at).length;
+  const list=chats.filter(c=>(showDisconnected||!c.revoked_at)&&c.name.toLowerCase().includes(query));
+  const toggle=$('msgDisconnectedToggle');toggle.textContent=showDisconnected?'Hide disconnected':`Show disconnected${hidden?` (${hidden})`:''}`;toggle.setAttribute('aria-pressed',String(showDisconnected));toggle.disabled=!hidden;
+  const signature=JSON.stringify([query,list,selected?.id,favourite,showDisconnected,drafts]);if($('msgChats').dataset.signature!==signature){
     $('msgChats').dataset.signature=signature;
-    $('msgChats').innerHTML=list.length?list.map(c=>`<button class="msg-chat ${selected?.id===c.id?'selected':''}" data-msg-peer="${c.id}" aria-pressed="${selected?.id===c.id}"><span class="msg-avatar" aria-hidden="true">${esc(c.name.slice(0,1).toUpperCase())}</span><span class="msg-chat-info"><span class="msg-chat-top"><strong class="msg-chat-name">${c.id===favourite?'☆ ':''}${esc(c.name)}</strong>${c.unread?`<span class="msg-unread" aria-label="${c.unread} unread">${c.unread>99?'99+':c.unread}</span>`:''}</span><span class="msg-chat-preview">${esc(c.revoked_at?'Disconnected · history saved':c.last_body?(c.last_sender===session.device.id?'You: ':'')+c.last_body.slice(0,90):'Start a conversation')}</span></span></button>`).join(''):`<div class="msg-no-chats">${query?'No matching devices.':'Your other paired devices will appear here. Use the button below to connect one.'}</div>`;
+    $('msgChats').innerHTML=list.length?list.map(c=>{const draft=drafts[c.id],preview=c.revoked_at?'Disconnected · history saved':draft?`Draft: ${draft}`:c.last_body?(c.last_sender===session.device.id?'You: ':'')+messagePreview(c.last_body):'Start a conversation';return `<button class="msg-chat ${selected?.id===c.id?'selected':''} ${c.revoked_at?'disconnected':''}" data-msg-peer="${c.id}" aria-pressed="${selected?.id===c.id}"><span class="msg-avatar" aria-hidden="true">${esc(c.name.slice(0,1).toUpperCase())}</span><span class="msg-chat-info"><span class="msg-chat-top"><strong class="msg-chat-name">${c.id===favourite?'☆ ':''}${esc(c.name)}</strong><span class="msg-chat-side">${c.last_at?`<time class="msg-chat-time">${esc(chatTime(c.last_at))}</time>`:''}${c.unread?`<span class="msg-unread" aria-label="${c.unread} unread">${c.unread>99?'99+':c.unread}</span>`:''}</span></span><span class="msg-chat-preview">${esc(preview.slice(0,90))}</span></span></button>`}).join(''):`<div class="msg-no-chats">${query?'No matching devices.':hidden&&!showDisconnected?'Only your active devices are shown. Use Show disconnected to view saved history.':'Your other paired devices will appear here. Use the button below to connect one.'}</div>`;
   }
   const quick=quickPeer();if($('msgQuickHome'))$('msgQuickHome').textContent=quick?'☷ Message '+quick.name:'☷ Message My PC';
   if(selected){const current=chats.find(c=>c.id===selected.id);if(current)selected={...selected,...current};renderHeader();}
@@ -76,18 +88,24 @@ function renderMessages(forceBottom=false){
   if(remaining.length!==pending.length){pending=remaining;save(personalKey('pending'),pending);}
   const queue=pending.filter(p=>p.recipient_id===selected.id&&!acknowledged.has(p.client_id));
   const content=[...messages,...queue];$('msgBubbles').replaceChildren();
+  let previousDay='';
   for(const m of content){
+    const messageDate=new Date(m.created_at),dayKey=Number.isFinite(messageDate.getTime())?messageDate.toDateString():'';
+    if(dayKey&&dayKey!==previousDay){const separator=document.createElement('div'),today=new Date(),yesterday=new Date(Date.now()-86400000);separator.className='msg-date-separator';separator.textContent=dayKey===today.toDateString()?'Today':dayKey===yesterday.toDateString()?'Yesterday':messageDate.toLocaleDateString([],{weekday:'short',day:'numeric',month:'long'});$('msgBubbles').append(separator);previousDay=dayKey;}
     const row=document.createElement('article');row.className='msg-bubble-row'+(m.sender_id===session.device.id?' own':'');
     const bubble=document.createElement('div');bubble.className='msg-bubble';
-    const body=document.createElement('div');body.className='msg-body';body.append(linkedText(m.body));
+    const parts=messageParts(m.body),body=document.createElement('div');body.className='msg-body';
+    if(parts.quote){const quote=document.createElement('div');quote.className='msg-quote';quote.textContent=`${parts.replyName}: ${parts.quote}`;body.append(quote)}
+    body.append(linkedText(parts.body));
     const actions=document.createElement('div');actions.className='msg-message-actions';
-    const time=document.createElement('time');time.dateTime=new Date(m.created_at).toISOString();time.textContent=new Date(m.created_at).toLocaleString([],{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});actions.append(time);
-    const delivery=document.createElement('span');delivery.textContent=m.id?'':sending.has(m.client_id)?'Sending…':'Not sent';actions.append(delivery);
-    const copy=document.createElement('button');copy.type='button';copy.textContent='Copy';copy.onclick=()=>notice(navigator.clipboard.writeText(m.body).then(()=>status('Copied.')));actions.append(copy);
+    const time=document.createElement('time');time.dateTime=new Date(m.created_at).toISOString();time.textContent=new Date(m.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});actions.append(time);
+    if(m.sender_id===session.device.id){const delivery=document.createElement('span');delivery.textContent=m.id?'Delivered ✓':sending.has(m.client_id)?'Sending…':'Not sent';actions.append(delivery)}
+    const reply=document.createElement('button');reply.type='button';reply.textContent='↩ Reply';reply.onclick=()=>beginReply(m);actions.append(reply);
+    const copy=document.createElement('button');copy.type='button';copy.textContent='Copy';copy.onclick=()=>notice(navigator.clipboard.writeText(parts.body).then(()=>status('Copied.')));actions.append(copy);
     if(!m.id){const retry=document.createElement('button');retry.type='button';retry.textContent='Retry';retry.disabled=sending.has(m.client_id);retry.onclick=()=>notice(deliver(m));actions.append(retry);}
     bubble.append(body,actions);
     if(m.error&&!sending.has(m.client_id)){const error=document.createElement('div');error.className='msg-message-error';error.textContent=m.error;bubble.append(error);}
-    row.append(bubble);$('msgBubbles').append(row);
+    row.append(bubble);let touchX=0,touchY=0;row.addEventListener('touchstart',event=>{const touch=event.touches[0];touchX=touch.clientX;touchY=touch.clientY},{passive:true});row.addEventListener('touchend',event=>{const touch=event.changedTouches[0];if(touch.clientX-touchX>62&&Math.abs(touch.clientY-touchY)<45)beginReply(m)},{passive:true});$('msgBubbles').append(row);
   }
   $('msgEmpty').hidden=!!content.length;$('msgOlder').hidden=!older;
   if(forceBottom||atBottom)bottom();else{el.scrollTop=top;$('msgNew').hidden=!content.length;}
@@ -95,8 +113,8 @@ function renderMessages(forceBottom=false){
 function merge(next){const all=new Map(messages.map(m=>[m.id,m]));for(const m of next)all.set(m.id,m);messages=[...all.values()].sort((a,b)=>a.id-b.id);}
 function rememberDraft(){if(!session||!selected)return;const value=$('msgText').value;if(value)drafts[selected.id]=value;else delete drafts[selected.id];save(personalKey('drafts'),drafts);}
 async function choose(id){
-  if(!session)return;rememberDraft();const seq=++sequence;selected=chats.find(c=>c.id===id)||{id,name:'Device'};messages=[];older=false;readThrough=0;
-  $('msgChoose').hidden=true;$('msgThread').hidden=false;$('msgShell').classList.add('chat-open');$('msgText').value=drafts[id]||'';resizeInput();renderHeader();renderChats();renderMessages(true);status('Loading conversation…');
+  if(!session)return;rememberDraft();clearReply();const seq=++sequence;selected=chats.find(c=>c.id===id)||{id,name:'Device'};messages=[];older=false;readThrough=0;
+  $('msgChoose').hidden=true;$('msgThread').hidden=false;$('msgShell').classList.add('chat-open');$('msgText').value=drafts[id]||'';resizeInput();updateCharacterCount();renderHeader();renderChats();renderMessages(true);status('Loading conversation…');
   history.replaceState(null,'',location.pathname+location.search+'#messages/'+id);
   try{const result=await api('/chats/'+id);if(seq!==sequence)return;selected=result.peer;messages=result.messages;older=result.hasMore;renderHeader();renderMessages(true);status('');if(matchMedia('(pointer:fine)').matches)$('msgText').focus();}catch(e){if(seq===sequence)throw e;}
 }
@@ -139,10 +157,18 @@ async function deliver(item){
 }
 function send(){
   const text=$('msgText').value.trim();if(!session||!selected||selected.revoked_at||!text)return;
-  const item={client_id:crypto.randomUUID(),sender_id:session.device.id,recipient_id:selected.id,body:text,created_at:Date.now()};
-  pending.push(item);save(personalKey('pending'),pending);$('msgText').value='';rememberDraft();resizeInput();renderMessages(true);$('msgText').focus();notice(deliver(item));
+  const body=(replyingTo?`↪ Reply to ${replyingTo.name}: ${replyingTo.text}\n\n${text}`:text).slice(0,20000);
+  const item={client_id:crypto.randomUUID(),sender_id:session.device.id,recipient_id:selected.id,body,created_at:Date.now()};
+  pending.push(item);save(personalKey('pending'),pending);$('msgText').value='';clearReply();rememberDraft();resizeInput();updateCharacterCount();renderMessages(true);$('msgText').focus();notice(deliver(item));
 }
 function resizeInput(){const el=$('msgText');el.style.height='auto';el.style.height=Math.min(160,Math.max(64,el.scrollHeight))+'px';}
+function updateCharacterCount(){$('msgCharCount').textContent=`${$('msgText').value.length.toLocaleString()} / 20,000`;}
+function beginReply(message){
+  const parts=messageParts(message.body),name=message.sender_id===session.device.id?'You':selected?.name||'Device';
+  replyingTo={name:name.replace(/[:\n]/g,' ').slice(0,60),text:parts.body.replace(/\s+/g,' ').trim().slice(0,140)||'Message'};
+  $('msgReplyText').textContent=`${replyingTo.name}: ${replyingTo.text}`;$('msgReplyPreview').hidden=false;$('msgText').focus();window.nativeHaptic?.('light');
+}
+function clearReply(){replyingTo=null;if($('msgReplyPreview'))$('msgReplyPreview').hidden=true;if($('msgReplyText'))$('msgReplyText').textContent='';}
 function pairing(){connection();pairStatus('');$('msgPairDialog').showModal();$('msgPairInput').focus();}
 async function generate(){
   $('msgGenerate').disabled=true;try{const result=await api('/pair',{});codeExpiry=result.expiresAt;$('msgCode').textContent=result.code;$('msgCodeArea').hidden=false;updateCode();pairStatus('Enter this code on your other device.');}finally{$('msgGenerate').disabled=false;}
@@ -188,10 +214,11 @@ function bind(){
   $('msgCopyCode').onclick=()=>pairNotice(navigator.clipboard.writeText($('msgCode').textContent).then(()=>pairStatus('Code copied.')));
   $('msgCancelCode').onclick=()=>pairNotice(api('/pair/cancel',{}).then(()=>{codeExpiry=0;$('msgCodeArea').hidden=true;pairStatus('Code cancelled.');}));
   $('msgNotifications').onclick=()=>notice(notifications());$('msgSearch').oninput=renderChats;
+  $('msgDisconnectedToggle').onclick=()=>{showDisconnected=!showDisconnected;save(personalKey('showDisconnected'),showDisconnected);renderChats();};
   $('msgChats').onclick=e=>{const peer=e.target.closest('[data-msg-peer]');if(peer)notice(choose(peer.dataset.msgPeer));};
   $('msgBack').onclick=()=>{rememberDraft();$('msgShell').classList.remove('chat-open');history.replaceState(null,'',location.pathname+location.search+'#messages');};
   $('msgFavourite').onclick=()=>{favourite=favourite===selected?.id?null:selected?.id;save(personalKey('favourite'),favourite);renderChats();};
-  $('msgCompose').onsubmit=e=>{e.preventDefault();send();};$('msgText').oninput=()=>{rememberDraft();resizeInput();};
+  $('msgCompose').onsubmit=e=>{e.preventDefault();send();};$('msgReplyCancel').onclick=clearReply;$('msgText').oninput=()=>{rememberDraft();resizeInput();updateCharacterCount();};
   $('msgText').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&matchMedia('(pointer:fine)').matches){e.preventDefault();send();}};
   $('msgOlder').onclick=()=>notice(olderMessages());$('msgNew').onclick=bottom;
   let scrollTimer;$('msgHistory').onscroll=()=>{clearTimeout(scrollTimer);scrollTimer=setTimeout(()=>{if(nearBottom()){$('msgNew').hidden=true;notice(markRead());}},150);};
@@ -202,7 +229,7 @@ function bind(){
   window.addEventListener('cc-pagechange',e=>{if(e.detail==='messages')notice(open());});
   document.addEventListener('visibilitychange',()=>{if(active())notice(refresh());});window.addEventListener('focus',()=>notice(refresh()));window.addEventListener('online',()=>notice(refresh()));
   function viewport(){if(window.visualViewport){$('messagesPage').style.setProperty('--msg-vh',window.visualViewport.height+'px');$('messagesPage').classList.toggle('msg-keyboard',matchMedia('(max-width:700px)').matches&&window.visualViewport.height<window.innerHeight*0.75);}}
-  window.visualViewport?.addEventListener('resize',viewport);viewport();
+  window.visualViewport?.addEventListener('resize',viewport);viewport();updateCharacterCount();
   setInterval(()=>{updateCode();if(active())notice(refresh());},2000);
   if(session)notice(contacts());if(active())notice(open());
 }

@@ -34,3 +34,29 @@ test('Flixer requires HTTPS and an allowed hostname',async()=>{
     /allowed/i
   );
 });
+
+test('Atlantic builds direct movie and episode watch pages',async()=>{
+  const {buildMediaEmbedUrl}=await mediaHelpers();
+  const env={MEDIA_ATLANTIC_BASE_URL:'https://atlantic.st',MEDIA_ATLANTIC_ALLOWED_HOSTS:'atlantic.st'};
+  assert.equal(buildMediaEmbedUrl(env,{type:'movie',id:'550',mode:'atlantic'}),'https://atlantic.st/watch/550');
+  assert.equal(buildMediaEmbedUrl(env,{type:'tv',id:'1399',season:'2',episode:'3',mode:'atlantic'}),'https://atlantic.st/watch/1399/2/3');
+});
+
+test('Boomflix builds its stable TMDB title pages',async()=>{
+  const {buildMediaEmbedUrl}=await mediaHelpers();
+  const env={MEDIA_BOOMFLIX_BASE_URL:'https://boomflix.qzz.io',MEDIA_BOOMFLIX_ALLOWED_HOSTS:'boomflix.qzz.io'};
+  assert.equal(buildMediaEmbedUrl(env,{type:'movie',id:'550',mode:'boomflix'}),'https://boomflix.qzz.io/title/movie/550');
+  assert.equal(buildMediaEmbedUrl(env,{type:'tv',id:'1399',season:'2',episode:'3',mode:'boomflix'}),'https://boomflix.qzz.io/title/tv/1399');
+});
+
+test('new provider hosts require HTTPS and explicit host approval',async()=>{
+  const {buildMediaEmbedUrl}=await mediaHelpers();
+  assert.throws(
+    ()=>buildMediaEmbedUrl({MEDIA_ATLANTIC_BASE_URL:'http://atlantic.st'},{type:'movie',id:'550',mode:'atlantic'}),
+    /HTTPS/
+  );
+  assert.throws(
+    ()=>buildMediaEmbedUrl({MEDIA_BOOMFLIX_BASE_URL:'https://boomflix.qzz.io',MEDIA_BOOMFLIX_ALLOWED_HOSTS:'example.com'},{type:'movie',id:'550',mode:'boomflix'}),
+    /allowed/i
+  );
+});

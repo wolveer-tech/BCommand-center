@@ -1,3 +1,24 @@
+# Home, Privacy Lock, Messages and media v10.18 validation — 11 September 2026
+
+- Home theme, density, ordering, visibility and compact/full card sizes are
+  validated in saved-state and static interface coverage. The next-up card is
+  driven by live reminder/event data and the match strip uses followed clubs.
+- iOS 1.6.0 (build 11) exposes a main-frame-only privacy bridge, persists only
+  the on-device lock preference, authenticates with the device-owner policy,
+  shields the WKWebView outside the foreground and declares the Face ID usage
+  description.
+- Messages defaults to active devices while allowing disconnected conversations
+  to be revealed, and includes date grouping, reply/copy actions, swipe reply,
+  delivery feedback, character count and draft preservation without a schema
+  change.
+- Media-provider tests verify exact Atlantic movie/episode routes, Boomflix
+  title routes and HTTPS host allowlisting. Provider credentials are not added.
+- Windows cannot compile or sign Swift, so the final Face ID, app-switcher and
+  physical-touch checks must be completed on the iPhone after Codemagic builds
+  the IPA.
+- Project validation and the serial full automated suite pass: **59/59 tests**.
+- No D1 migration, Cloudflare secret or entitlement change is required.
+
 # Persistent paired-device identity v10.17.3 validation — 11 September 2026
 
 - iOS 1.5.3 (build 10) registers a main-frame credential bridge before page

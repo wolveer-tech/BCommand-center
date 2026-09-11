@@ -1324,15 +1324,40 @@ function buildFlixerEmbedUrl(env,{type,id,season,episode}){
   u.searchParams.set('embed','1');
   return u.toString();
 }
+function fixedMediaProviderBase(env,baseKey,hostsKey,fallback,label){
+  const raw=String(env[baseKey]||fallback).trim().replace(/\/$/,'');
+  const base=new URL(raw);
+  if(base.protocol!=='https:'){const e=new Error(`${label} base URL must use HTTPS.`);e.status=500;throw e}
+  const configured=String(env[hostsKey]||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+  const hosts=configured.length?configured:[base.hostname.toLowerCase()];
+  if(!hosts.includes(base.hostname.toLowerCase())){const e=new Error(`${label} host is not in ${hostsKey}.`);e.status=500;throw e}
+  return base;
+}
+function buildAtlanticUrl(env,{type,id,season,episode}){
+  const base=fixedMediaProviderBase(env,'MEDIA_ATLANTIC_BASE_URL','MEDIA_ATLANTIC_ALLOWED_HOSTS','https://atlantic.st','Atlantic');
+  const u=new URL(base.toString()),root=base.pathname.replace(/\/$/,'');
+  u.pathname=type==='tv'
+    ?`${root}/watch/${id}/${Number(season)}/${Number(episode)}`
+    :`${root}/watch/${id}`;
+  u.search='';return u.toString();
+}
+function buildBoomflixUrl(env,{type,id}){
+  const base=fixedMediaProviderBase(env,'MEDIA_BOOMFLIX_BASE_URL','MEDIA_BOOMFLIX_ALLOWED_HOSTS','https://boomflix.qzz.io','Boomflix');
+  const u=new URL(base.toString()),root=base.pathname.replace(/\/$/,'');
+  u.pathname=`${root}/title/${type}/${id}`;
+  u.search='';return u.toString();
+}
 function buildMediaEmbedUrl(env,{type,id,season,episode,mode='standard'}){
   if(!['movie','tv'].includes(type)){const e=new Error('type must be movie or tv.');e.status=400;throw e}
   if(!/^\d+$/.test(String(id||''))){const e=new Error('A numeric TMDB id is required.');e.status=400;throw e}
-  if(!['standard','torrent','agg','flixer'].includes(mode)){const e=new Error('Unsupported provider mode.');e.status=400;throw e}
+  if(!['standard','torrent','agg','flixer','atlantic','boomflix'].includes(mode)){const e=new Error('Unsupported provider mode.');e.status=400;throw e}
   if(type==='tv'){
     if(!Number.isInteger(Number(season))||Number(season)<1){const e=new Error('A valid season is required for TV.');e.status=400;throw e}
     if(!Number.isInteger(Number(episode))||Number(episode)<1){const e=new Error('A valid episode is required for TV.');e.status=400;throw e}
   }
   if(mode==='flixer')return buildFlixerEmbedUrl(env,{type,id,season,episode});
+  if(mode==='atlantic')return buildAtlanticUrl(env,{type,id,season,episode});
+  if(mode==='boomflix')return buildBoomflixUrl(env,{type,id,season,episode});
   const base=mediaBaseUrl(env);
   const u=new URL(base.toString());
   const path=mediaPathForMode(env,mode);
@@ -3438,16 +3463,18 @@ export default {
         const providerConfigured=!!env.MEDIA_EMBED_BASE_URL;
         const tmdbConfigured=!!env.TMDB_API_KEY;
         return json({
-          ready:providerConfigured&&tmdbConfigured,
+          ready:tmdbConfigured,
           providerConfigured,
           tmdbConfigured,
           routes:{
            standard:env.MEDIA_EMBED_PATH_STANDARD||'/embed',
            alternate:env.MEDIA_EMBED_PATH_TORRENT||'/embed/torrent',
             aggregator:env.MEDIA_EMBED_PATH_AGG||'/embed/agg',
-            flixer:'/watch/{type}/{tmdbId}'
+            flixer:'/watch/{type}/{tmdbId}',
+            atlantic:'/watch/{tmdbId}/{season?}/{episode?}',
+            boomflix:'/title/{type}/{tmdbId}'
           }
-        },providerConfigured&&tmdbConfigured?200:503);
+        },tmdbConfigured?200:503);
       }
 
       if(url.pathname==='/api/media/explore'&&request.method==='GET'){

@@ -23,14 +23,15 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: tech.wolveer.commandcentre.native
         PRODUCT_NAME: Command Centre
-        MARKETING_VERSION: 1.5.3
-        CURRENT_PROJECT_VERSION: 10
+        MARKETING_VERSION: 1.6.0
+        CURRENT_PROJECT_VERSION: 11
         INFOPLIST_KEY_CFBundleShortVersionString: "$(MARKETING_VERSION)"
         INFOPLIST_KEY_CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         SWIFT_VERSION: 5.0
         TARGETED_DEVICE_FAMILY: "1,2"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Command Centre
+        INFOPLIST_KEY_NSFaceIDUsageDescription: Unlock your private messages, notes and personal Command Centre data.
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIBackgroundModes:
           - audio
@@ -53,8 +54,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: tech.wolveer.commandcentre.native.broadcast
         PRODUCT_NAME: Command Centre Mirror
-        MARKETING_VERSION: 1.5.3
-        CURRENT_PROJECT_VERSION: 10
+        MARKETING_VERSION: 1.6.0
+        CURRENT_PROJECT_VERSION: 11
         SWIFT_VERSION: 5.0
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: BroadcastUploadExtension/Info.plist

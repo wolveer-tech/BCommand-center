@@ -4,6 +4,7 @@ import AVFAudio
 @main
 struct CommandCentreNativeApp: App {
     @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var privacyLock = NativePrivacyLockManager.shared
 
     init() {
         _ = NativeNotificationHandler.shared
@@ -13,10 +14,22 @@ struct CommandCentreNativeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            CommandCentreWebView()
-                .ignoresSafeArea(.container, edges: .bottom)
+            ZStack {
+                CommandCentreWebView()
+                    .privacySensitive()
+                    .opacity(privacyLock.isLocked || privacyLock.isShielded ? 0 : 1)
+                    .allowsHitTesting(!privacyLock.isLocked && !privacyLock.isShielded)
+
+                if privacyLock.isLocked || privacyLock.isShielded {
+                    NativePrivacyLockView(manager: privacyLock)
+                }
+            }
+            .background(Color(red: 0.02, green: 0.04, blue: 0.09))
+            .ignoresSafeArea(.container, edges: .bottom)
+            .onAppear { privacyLock.handleScenePhase(.active) }
         }
         .onChange(of: scenePhase) { _, newPhase in
+            privacyLock.handleScenePhase(newPhase)
             if newPhase == .background {
                 BackgroundRefreshManager.shared.scheduleNext()
             }

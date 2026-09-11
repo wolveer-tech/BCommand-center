@@ -15,6 +15,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         configuration.userContentController.add(context.coordinator.notificationHandler, name: "nativeNotifications")
         configuration.userContentController.add(context.coordinator.dataHandler, name: "nativeData")
         configuration.userContentController.add(context.coordinator.credentialHandler, name: "nativeCredentials")
+        configuration.userContentController.add(context.coordinator.privacyHandler, name: "nativePrivacy")
 
         let credentialScript = WKUserScript(
             source: context.coordinator.credentialHandler.bootstrapJavaScript(),
@@ -23,9 +24,16 @@ struct CommandCentreWebView: UIViewRepresentable {
         )
         configuration.userContentController.addUserScript(credentialScript)
 
+        let privacyScript = WKUserScript(
+            source: context.coordinator.privacyHandler.bootstrapJavaScript(),
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        )
+        configuration.userContentController.addUserScript(privacyScript)
+
         let bridgeScript = WKUserScript(
             source: """
-            window.CommandCentreNative = { replayKit: true, nativeScreenMirror: true, nativeNotifications: true, backgroundRefresh: true, dataBridge: true, credentialVault: true, platform: 'ios', minimumRuntime: 'iOS 26' };
+            window.CommandCentreNative = { replayKit: true, nativeScreenMirror: true, nativeNotifications: true, backgroundRefresh: true, dataBridge: true, credentialVault: true, privacyLock: true, nativeHaptics: true, platform: 'ios', minimumRuntime: 'iOS 26' };
             """,
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
@@ -40,6 +48,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         context.coordinator.transferHandler.webView = webView
         context.coordinator.notificationHandler.webView = webView
         context.coordinator.dataHandler.webView = webView
+        context.coordinator.privacyHandler.attach(webView: webView)
         NativeMirrorManager.shared.webView = webView
         webView.load(URLRequest(url: AppConfig.commandCentreURL))
         return webView
@@ -55,6 +64,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeNotifications")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeData")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeCredentials")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativePrivacy")
     }
 
     @MainActor final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
@@ -62,6 +72,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         let notificationHandler = NativeNotificationHandler.shared
         let dataHandler = NativeDataHandler()
         let credentialHandler = NativeCredentialHandler.shared
+        let privacyHandler = NativePrivacyLockManager.shared
         weak var webView: WKWebView?
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {

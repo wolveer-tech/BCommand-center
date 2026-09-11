@@ -8,6 +8,7 @@ const worker=readFileSync(new URL('../worker.js',import.meta.url),'utf8');
 const nativeApp=readFileSync(new URL('../native-ios/CommandCentreNative/CommandCentreNativeApp.swift',import.meta.url),'utf8');
 const nativeWebView=readFileSync(new URL('../native-ios/CommandCentreNative/CommandCentreWebView.swift',import.meta.url),'utf8');
 const nativeProject=readFileSync(new URL('../native-ios/project.yml',import.meta.url),'utf8');
+const nativePrivacy=readFileSync(new URL('../native-ios/CommandCentreNative/NativePrivacyLockManager.swift',import.meta.url),'utf8');
 const inlineScript=html.match(/<script>\s*([\s\S]*?)<\/script>/i)?.[1]||'';
 
 function functionSource(name,nextName){
@@ -35,10 +36,40 @@ test('Movies & TV has an app-controlled fullscreen stage',()=>{
 
 test('Movies & TV exposes Flixer as an in-app provider source',()=>{
   assert.match(html,/data-media-mode="flixer">Flixer<\/button>/);
-  assert.match(html,/\['standard','torrent','agg','flixer'\]/);
+  assert.match(html,/data-media-mode="atlantic">Atlantic<\/button>/);
+  assert.match(html,/data-media-mode="boomflix">Boomflix<\/button>/);
+  assert.match(html,/\['standard','torrent','agg','flixer','atlantic','boomflix'\]/);
   assert.match(worker,/buildFlixerEmbedUrl/);
+  assert.match(worker,/buildAtlanticUrl/);
+  assert.match(worker,/buildBoomflixUrl/);
   assert.match(worker,/MEDIA_FLIXER_ALLOWED_HOSTS/);
   assert.match(worker,/externalOnly:false/);
+});
+
+test('Home canvas has a smart next-up stack, atmospheres and resizable draggable modules',()=>{
+  assert.match(html,/id="launcherNextKind"/);
+  assert.match(html,/id="launcherSmartSecondary"/);
+  assert.match(html,/function nextLauncherFootballMatch\(\)/);
+  assert.match(html,/id="settingsHomeTheme"/);
+  assert.match(html,/id="settingsHomeDensity"/);
+  assert.match(html,/data-home-size/);
+  assert.match(html,/draggable="true"/);
+  assert.match(html,/function reorderHomeWidget/);
+  assert.match(html,/window\.nativeHaptic=nativeHaptic/);
+});
+
+test('IPA Privacy Lock uses device-owner authentication and shields private content',()=>{
+  assert.match(nativePrivacy,/import LocalAuthentication/);
+  assert.match(nativePrivacy,/canEvaluatePolicy\(\.deviceOwnerAuthentication/);
+  assert.match(nativePrivacy,/evaluatePolicy\(\.deviceOwnerAuthentication/);
+  assert.match(nativePrivacy,/case \.inactive, \.background:/);
+  assert.match(nativePrivacy,/isShielded = true/);
+  assert.match(nativeApp,/\.privacySensitive\(\)/);
+  assert.match(nativeApp,/NativePrivacyLockView/);
+  assert.match(nativeWebView,/name: "nativePrivacy"/);
+  assert.match(nativeProject,/INFOPLIST_KEY_NSFaceIDUsageDescription/);
+  assert.match(html,/id="applyPrivacyLockBtn"/);
+  assert.match(html,/id="privacyLockNowBtn"/);
 });
 
 test('cold start defers hidden heavy screens and provider requests',()=>{
@@ -187,6 +218,6 @@ test('native iOS wrapper enables background audio and system PiP',()=>{
   assert.match(nativeApp,/setCategory\(\.playback/);
   assert.match(nativeWebView,/allowsPictureInPictureMediaPlayback = true/);
   assert.match(nativeProject,/INFOPLIST_KEY_UIBackgroundModes:[\s\S]*- audio[\s\S]*- fetch/);
-  assert.match(nativeProject,/MARKETING_VERSION: 1\.5\.3/);
-  assert.match(nativeProject,/CURRENT_PROJECT_VERSION: 10/);
+  assert.match(nativeProject,/MARKETING_VERSION: 1\.6\.0/);
+  assert.match(nativeProject,/CURRENT_PROJECT_VERSION: 11/);
 });

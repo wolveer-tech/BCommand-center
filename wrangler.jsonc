@@ -19,7 +19,11 @@
     "LIVE_PROVIDER_2_ALLOWED_DATA_HOSTS": "timst.cfd",
     "LIVE_PROVIDER_2_ALLOWED_EMBED_HOSTS": "epiembeds.online",
     "MEDIA_FLIXER_BASE_URL": "https://flixer.gd",
-    "MEDIA_FLIXER_ALLOWED_HOSTS": "flixer.gd"
+    "MEDIA_FLIXER_ALLOWED_HOSTS": "flixer.gd",
+    "MEDIA_ATLANTIC_BASE_URL": "https://atlantic.st",
+    "MEDIA_ATLANTIC_ALLOWED_HOSTS": "atlantic.st",
+    "MEDIA_BOOMFLIX_BASE_URL": "https://boomflix.qzz.io",
+    "MEDIA_BOOMFLIX_ALLOWED_HOSTS": "boomflix.qzz.io"
   },
   "triggers": {
     "crons": [

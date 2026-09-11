@@ -42,7 +42,7 @@ test('Match Centre exposes overview, lineups, timeline, stats and following',()=
 });
 
 test('app shell and fixture schedules refresh safely in foreground and background',()=>{
-  assert.match(serviceWorker,/command-centre-shell-v10\.17\.3/);
+  assert.match(serviceWorker,/command-centre-shell-v10\.18\.0/);
   assert.match(serviceWorker,/request\.mode === 'navigate'/);
   assert.match(serviceWorker,/url\.pathname\.startsWith\('\/api\/'\)/);
   assert.match(html,/function refreshAppFreshness/);
@@ -77,6 +77,16 @@ test('paired devices stay aligned and removal works without a JavaScript dialog'
   assert.match(webView,/runJavaScriptConfirmPanelWithMessage/);
   assert.match(transfersClient,/Added.*toLocaleString/);
   assert.match(transfersClient,/d\.created_at/);
+});
+
+test('Messages defaults to active devices and supports replies, dates and delivery feedback',()=>{
+  assert.match(messagesClient,/showDisconnected=false/);
+  assert.match(messagesClient,/Show disconnected/);
+  assert.match(messagesClient,/function messageParts/);
+  assert.match(messagesClient,/function beginReply/);
+  assert.match(messagesClient,/msg-date-separator/);
+  assert.match(messagesClient,/Delivered ✓/);
+  assert.match(messagesClient,/touchend/);
 });
 
 test('portable backups include validated Bible progress and recommendations',()=>{

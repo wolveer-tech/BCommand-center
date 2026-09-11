@@ -1,5 +1,21 @@
 # Command Centre iOS 26 Mirror — Signulous-friendly build
 
+## v1.6.0 native Privacy Lock and haptics
+
+Version **1.6.0 (build 11)** places a native privacy shield over the entire
+WKWebView whenever Privacy Lock is engaged or the app leaves the foreground.
+Unlocking uses `LAContext` with the device-owner-authentication policy, allowing
+Face ID and the iPhone passcode fallback. The lock state and grace period are
+stored in `UserDefaults`; private web content is also marked privacy-sensitive
+for system snapshots. The existing JavaScript bridge now advertises Privacy
+Lock and accepts lightweight haptic requests.
+
+The generated app plist supplies `NSFaceIDUsageDescription`. No entitlement,
+App Group, database migration or Cloudflare secret is added. After installing
+over the existing app, open Settings → Privacy, enable the lock, choose the
+relock delay and test both **Lock now** and background/foreground relocking on a
+physical iPhone.
+
 ## v1.5.3 persistent paired-device identity
 
 Version **1.5.3 (build 10)** mirrors the validated Messages/Transfers credential

@@ -4,6 +4,33 @@
 
 **Transfers v10.7:** Start with [TRANSFERS-SETUP.md](TRANSFERS-SETUP.md) for the new file/message/link service, Cloudflare R2 and D1 setup, device pairing, Windows sender, browser extension and native iPhone download support. Local validation results are in [VALIDATION.md](VALIDATION.md).
 
+# v10.18 — Native home, Privacy Lock, cleaner Messages and new media sources
+
+- Home is now a configurable native-style canvas with four colour treatments,
+  comfortable or compact density, draggable cards, arrow-button ordering for
+  touch accessibility, per-card compact sizing, a real next-up card and a
+  followed-football match strip.
+- iOS **1.6.0 (build 11)** adds an app-level Privacy Lock. It uses the iPhone's
+  device-owner authentication (Face ID when available, with the device passcode
+  as fallback), hides web content in the app switcher and supports immediate,
+  one-, five- or fifteen-minute relock delays. Configure it in Settings →
+  Privacy. The preference remains on the iPhone and is not part of a backup.
+- Messages hides disconnected devices by default, adds a reveal filter,
+  Today/Yesterday separators, timestamps, clearer delivery state, drafts,
+  tap-or-swipe reply and copy actions. Replies use the existing message body, so
+  no D1 migration is needed and older clients can still read them.
+- Movies & TV now includes **Atlantic** and **Boomflix**. Atlantic opens the
+  selected movie or episode directly. Boomflix opens its stable title page;
+  choose a TV episode there. Both hosts are fixed HTTPS allowlist entries and no
+  provider secret is required.
+
+Deploy the Worker/web project normally. Build and install the new IPA to get
+Privacy Lock and native haptics; the Home, Messages and media changes arrive
+with the Cloudflare deployment. Install over the current app rather than
+removing it first so iOS has the best chance to retain the paired-device
+Keychain identity. No D1 migration, new Cloudflare secret or entitlement is
+required.
+
 # v10.17.3 — Persistent Messages and Transfers identity
 
 Messages are retained in D1, but the IPA previously kept its paired-device
