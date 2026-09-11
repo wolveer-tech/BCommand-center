@@ -16,6 +16,7 @@ final class NativePrivacyLockManager: NSObject, ObservableObject, WKScriptMessag
     private let graceKey = "cc.privacy-lock.grace-seconds"
     private weak var webView: WKWebView?
     private var backgroundedAt: Date?
+    private var isAppBackgrounded = false
 
     private(set) var isEnabled: Bool
     private(set) var graceSeconds: Int
@@ -78,18 +79,34 @@ final class NativePrivacyLockManager: NSObject, ObservableObject, WKScriptMessag
 
     func handleScenePhase(_ phase: ScenePhase) {
         switch phase {
-        case .inactive, .background:
+        case .inactive:
+            guard isEnabled else { return }
+            isShielded = true
+            // Face ID temporarily makes the scene inactive. Do not count its
+            // own system sheet as the user leaving Command Centre.
+            guard !isAuthenticating else { return }
+            if backgroundedAt == nil { backgroundedAt = Date() }
+        case .background:
+            isAppBackgrounded = true
             guard isEnabled else { return }
             isShielded = true
             if backgroundedAt == nil { backgroundedAt = Date() }
         case .active:
+            isAppBackgrounded = false
             guard isEnabled else {
                 isLocked = false
                 isShielded = false
                 backgroundedAt = nil
                 return
             }
-            let elapsed = backgroundedAt.map { Date().timeIntervalSince($0) } ?? .infinity
+            // Wait for the in-flight Face ID sheet to finish. Its completion
+            // owns the unlock result and will remove the shield.
+            guard !isAuthenticating else { return }
+            guard let leftAt = backgroundedAt else {
+                isShielded = isLocked
+                return
+            }
+            let elapsed = Date().timeIntervalSince(leftAt)
             backgroundedAt = nil
             if isLocked || graceSeconds == 0 || elapsed >= Double(graceSeconds) {
                 isLocked = true
@@ -101,6 +118,11 @@ final class NativePrivacyLockManager: NSObject, ObservableObject, WKScriptMessag
         @unknown default:
             break
         }
+    }
+
+    func authenticateIfNeeded() {
+        guard isEnabled, isLocked, !isAuthenticating else { return }
+        authenticate(reason: "Unlock your private Command Centre data")
     }
 
     func lockNow() {
@@ -136,14 +158,25 @@ final class NativePrivacyLockManager: NSObject, ObservableObject, WKScriptMessag
                 let success = try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)
                 isAuthenticating = false
                 if success {
-                    isLocked = false
+                    if isEnabled && isAppBackgrounded {
+                        isLocked = true
+                        isShielded = true
+                    } else {
+                        isLocked = false
+                        isShielded = false
+                        backgroundedAt = nil
+                        playHaptic(style: "success")
+                    }
+                } else if !isLocked && !isAppBackgrounded {
                     isShielded = false
-                    playHaptic(style: "success")
                 }
                 publishStatus()
                 completion?(success, success ? nil : "Authentication was not completed.")
             } catch {
                 isAuthenticating = false
+                if !isLocked && !isAppBackgrounded {
+                    isShielded = false
+                }
                 let message = error.localizedDescription
                 publishStatus(error: message)
                 completion?(false, message)
@@ -168,8 +201,8 @@ final class NativePrivacyLockManager: NSObject, ObservableObject, WKScriptMessag
             }
             self.isEnabled = requested
             self.graceSeconds = grace
-            self.isLocked = false
-            self.isShielded = false
+            self.isLocked = requested && self.isAppBackgrounded
+            self.isShielded = self.isLocked
             UserDefaults.standard.set(requested, forKey: self.enabledKey)
             UserDefaults.standard.set(grace, forKey: self.graceKey)
             self.publishStatus()

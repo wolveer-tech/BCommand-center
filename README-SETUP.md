@@ -4,6 +4,18 @@
 
 **Transfers v10.7:** Start with [TRANSFERS-SETUP.md](TRANSFERS-SETUP.md) for the new file/message/link service, Cloudflare R2 and D1 setup, device pairing, Windows sender, browser extension and native iPhone download support. Local validation results are in [VALIDATION.md](VALIDATION.md).
 
+# v10.18.1 — Privacy Lock Face ID lifecycle hotfix
+
+iOS **1.6.1 (build 12)** no longer mistakes Face ID's own temporary inactive
+scene for leaving the app. The lock waits for the current authentication result,
+and an active scene with no real background timestamp does not immediately lock
+again. Cancelling Face ID leaves the lock screen ready for a deliberate retry
+instead of opening another prompt automatically.
+
+Build and install the new IPA over the existing app. Deploying the matching web
+files refreshes the shell cache, but the actual fix is native and therefore
+requires the new IPA. No database migration, secret or entitlement is added.
+
 # v10.18 — Native home, Privacy Lock, cleaner Messages and new media sources
 
 - Home is now a configurable native-style canvas with four colour treatments,

@@ -1,3 +1,15 @@
+# Privacy Lock Face ID lifecycle hotfix v10.18.1 — 11 September 2026
+
+- Face ID's temporary inactive scene is shielded but does not start the
+  background timer.
+- An active-scene callback waits for in-flight authentication and does not
+  relock an already-unlocked app when there is no real background timestamp.
+- Initial launch still requests authentication once; cancelling leaves the
+  lock screen available for a user-triggered retry.
+- The native version is iOS **1.6.1 (build 12)** and the web shell cache is
+  v10.18.1. No D1 migration, secret or entitlement change is required.
+- Project validation and the serial full automated suite pass: **59/59 tests**.
+
 # Home, Privacy Lock, Messages and media v10.18 validation — 11 September 2026
 
 - Home theme, density, ordering, visibility and compact/full card sizes are

@@ -26,7 +26,10 @@ struct CommandCentreNativeApp: App {
             }
             .background(Color(red: 0.02, green: 0.04, blue: 0.09))
             .ignoresSafeArea(.container, edges: .bottom)
-            .onAppear { privacyLock.handleScenePhase(.active) }
+            .onAppear {
+                privacyLock.handleScenePhase(.active)
+                privacyLock.authenticateIfNeeded()
+            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             privacyLock.handleScenePhase(newPhase)

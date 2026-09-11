@@ -62,10 +62,12 @@ test('IPA Privacy Lock uses device-owner authentication and shields private cont
   assert.match(nativePrivacy,/import LocalAuthentication/);
   assert.match(nativePrivacy,/canEvaluatePolicy\(\.deviceOwnerAuthentication/);
   assert.match(nativePrivacy,/evaluatePolicy\(\.deviceOwnerAuthentication/);
-  assert.match(nativePrivacy,/case \.inactive, \.background:/);
+  assert.match(nativePrivacy,/case \.inactive:[\s\S]*guard !isAuthenticating else \{ return \}/);
+  assert.match(nativePrivacy,/case \.active:[\s\S]*guard let leftAt = backgroundedAt else/);
   assert.match(nativePrivacy,/isShielded = true/);
   assert.match(nativeApp,/\.privacySensitive\(\)/);
   assert.match(nativeApp,/NativePrivacyLockView/);
+  assert.match(nativeApp,/privacyLock\.authenticateIfNeeded\(\)/);
   assert.match(nativeWebView,/name: "nativePrivacy"/);
   assert.match(nativeProject,/INFOPLIST_KEY_NSFaceIDUsageDescription/);
   assert.match(html,/id="applyPrivacyLockBtn"/);
@@ -218,6 +220,6 @@ test('native iOS wrapper enables background audio and system PiP',()=>{
   assert.match(nativeApp,/setCategory\(\.playback/);
   assert.match(nativeWebView,/allowsPictureInPictureMediaPlayback = true/);
   assert.match(nativeProject,/INFOPLIST_KEY_UIBackgroundModes:[\s\S]*- audio[\s\S]*- fetch/);
-  assert.match(nativeProject,/MARKETING_VERSION: 1\.6\.0/);
-  assert.match(nativeProject,/CURRENT_PROJECT_VERSION: 11/);
+  assert.match(nativeProject,/MARKETING_VERSION: 1\.6\.1/);
+  assert.match(nativeProject,/CURRENT_PROJECT_VERSION: 12/);
 });
