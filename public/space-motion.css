@@ -1,0 +1,23 @@
+/* Command Centre space launch and shared motion system. */
+#ccSpaceIntro{display:none;position:fixed;inset:0;z-index:2147483300;overflow:hidden;background:#02040c;color:#f3f7ff;isolation:isolate;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+html[data-cc-launch] #ccSpaceIntro{display:block}
+#ccSpaceCanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.cc-space-brand{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:28px;text-align:center;pointer-events:none;transition:opacity .7s ease,transform 1.2s cubic-bezier(.2,.7,.2,1);will-change:transform,opacity}
+.cc-space-monogram{display:grid;place-items:center;width:70px;height:70px;border:1px solid #b9dcff50;border-radius:22px;margin-bottom:30px;background:#0c173740;box-shadow:0 0 65px #789eff20,inset 0 0 24px #b2d3ff0c;color:#deebff;font-size:34px;font-weight:300;letter-spacing:-4px;padding-right:4px}
+.cc-space-eyebrow{font-size:12px;letter-spacing:.32em;color:#a4bbdb;margin:0 0 16px;text-transform:uppercase}
+.cc-space-title{font-size:clamp(30px,6.7vw,62px);letter-spacing:-.045em;font-weight:500;line-height:1.12;margin:0;text-wrap:balance;text-shadow:0 2px 28px #030714}
+.cc-space-caption{font-size:14px;line-height:1.5;color:#a9bdd9;margin:19px 0 0;letter-spacing:.04em}
+.cc-space-footer{position:absolute;bottom:max(32px,env(safe-area-inset-bottom));left:24px;right:24px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.cc-space-progress{height:2px;background:#bedcff20;width:min(160px,34vw);overflow:hidden;border-radius:4px}
+.cc-space-progress span{display:block;height:100%;width:100%;background:#c5e7ff;transform:scaleX(0);transform-origin:left;box-shadow:0 0 12px #acd8ff}
+#ccSkipIntro{min-height:44px;padding:10px 18px;background:#0c152b99;border:1px solid #b9d8ff40;border-radius:30px;color:#e0eaff;font:inherit;font-size:14px;cursor:pointer;backdrop-filter:blur(12px)}
+#ccSkipIntro:hover{background:#1b2b46}
+#ccSkipIntro:focus-visible,.cc-motion-settings :focus-visible{outline:2px solid #c5e7ff;outline-offset:4px}
+#ccSpaceIntro.cc-space-warp .cc-space-brand{opacity:0;transform:scale(1.2);filter:blur(2px)}
+#ccSpaceIntro.cc-space-exit{opacity:0;transition:opacity .55s ease;pointer-events:none}
+html[data-cc-motion] .page.active{animation:none}
+.cc-motion-settings .title{font-size:16px}
+.cc-motion-settings .settings-description,.cc-motion-settings label,.cc-motion-settings select,.cc-motion-settings .btn{font-size:14px;line-height:1.5}
+.cc-motion-settings .field{margin:14px 0}
+.cc-motion-settings .btn{min-height:44px}
+@media(prefers-reduced-motion:reduce){.cc-space-brand,#ccSpaceIntro.cc-space-exit{transition:opacity .15s linear}.cc-space-brand{transform:none!important;filter:none!important}}

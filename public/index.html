@@ -2050,8 +2050,20 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <script defer src="/transfers.bundle.js"></script>
 <link rel="stylesheet" href="/messages.css">
 <script defer src="/messages.bundle.js"></script>
+<link rel="stylesheet" href="space-motion.css" />
+<script src="space-motion.js"></script>
 </head>
 <body>
+<div id="ccSpaceIntro" role="dialog" aria-modal="true" aria-labelledby="ccSpaceTitle" aria-hidden="true">
+  <canvas id="ccSpaceCanvas" aria-hidden="true"></canvas>
+  <div class="cc-space-brand">
+    <div class="cc-space-monogram" aria-hidden="true">cc</div>
+    <p class="cc-space-eyebrow">Your personal universe</p>
+    <h1 class="cc-space-title" id="ccSpaceTitle">Command Centre</h1>
+    <p class="cc-space-caption">Everything, within reach.</p>
+  </div>
+  <div class="cc-space-footer"><div class="cc-space-progress" aria-hidden="true"><span id="ccSpaceProgress"></span></div><button id="ccSkipIntro" type="button">Skip intro</button></div>
+</div>
 <div class="connectivity-banner" id="connectivityBanner" role="status">Offline — showing saved information</div>
 <div class="layout">
   <aside class="sidebar" id="sidebar">
@@ -3018,7 +3030,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <div class="foundation-status" id="foundationStorageStatus"><span>●</span><span>Checking durable storage…</span></div>
   </article></section>
 
-  <section class="settings-section" data-settings-panel="home"><article class="card settings-card-clean">
+  <section class="settings-section" data-settings-panel="home"><article class="card settings-card-clean cc-motion-settings">
+    <div class="title">Space &amp; motion</div>
+    <div class="settings-description">Fly through the stars when Command Centre opens, with smooth transitions between apps.</div>
+    <div class="field"><label for="ccMotionMode">Animation style</label><select id="ccMotionMode"><option value="cinematic">Cinematic</option><option value="gentle">Gentle fades</option><option value="off">Off</option></select></div>
+    <button class="btn" id="ccReplayIntro" type="button">Replay space intro</button>
+    <p class="settings-description">Saved on this device. Your device’s Reduce Motion setting always takes priority.</p>
+  </article><article class="card settings-card-clean">
     <div class="card-head"><div><div class="title">🏠 Home canvas</div><div class="sub">Shape the launcher and dashboard around how you use the IPA.</div></div><button class="btn small" id="resetHomeLayoutBtn">Reset</button></div>
     <div class="home-appearance-grid"><div class="field"><label>Launcher atmosphere</label><select id="settingsHomeTheme"><option value="aurora">Aurora glass</option><option value="midnight">Midnight</option><option value="sunset">Sunset glow</option><option value="weather">Weather blue</option></select></div><div class="field"><label>Dashboard spacing</label><select id="settingsHomeDensity"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div></div>
     <div class="settings-description">Drag modules to reorder them, use the arrows as a precise fallback, and choose a compact or full presentation for each one.</div>
@@ -4724,6 +4742,7 @@ window.goBack=goBack;
 function switchPage(page,persist=true,navMode='push'){
   const target=qs('#'+page+'Page');
   if(!target){console.warn('Unknown page',page);return}
+  const motionFrom=appCurrentPage;
   if(page!=='music'&&musicRuntime.current?.source==='youtube')musicTogglePlay(false);
 
   if(page!==appCurrentPage){
@@ -4786,6 +4805,7 @@ function switchPage(page,persist=true,navMode='push'){
   if(page==='words')loadWords();
   if(page==='briefing')generateBriefing();
   if(page==='music')refreshMusicPage();
+  window.CCSpaceMotion?.enterPage(target,{from:motionFrom,to:page,direction:navMode});
 }
 
 function toggleSidebar(){const sb=qs('#sidebar'),ov=qs('#sidebarOverlay');const open=sb.classList.toggle('open');ov.classList.toggle('open',open)}

@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'command-centre-shell-v10.18.1';
+const SHELL_CACHE = 'command-centre-shell-v10.19.0';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -8,7 +8,9 @@ const APP_SHELL = [
   '/transfers.css',
   '/transfers.bundle.js',
   '/messages.css',
-  '/messages.bundle.js'
+  '/messages.bundle.js',
+  '/space-motion.css',
+  '/space-motion.js'
 ];
 
 self.addEventListener('install', event => {
