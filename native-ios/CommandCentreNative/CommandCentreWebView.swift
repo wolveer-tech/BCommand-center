@@ -14,10 +14,18 @@ struct CommandCentreWebView: UIViewRepresentable {
         configuration.userContentController.add(context.coordinator.transferHandler, name: "nativeTransfer")
         configuration.userContentController.add(context.coordinator.notificationHandler, name: "nativeNotifications")
         configuration.userContentController.add(context.coordinator.dataHandler, name: "nativeData")
+        configuration.userContentController.add(context.coordinator.credentialHandler, name: "nativeCredentials")
+
+        let credentialScript = WKUserScript(
+            source: context.coordinator.credentialHandler.bootstrapJavaScript(),
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        )
+        configuration.userContentController.addUserScript(credentialScript)
 
         let bridgeScript = WKUserScript(
             source: """
-            window.CommandCentreNative = { replayKit: true, nativeScreenMirror: true, nativeNotifications: true, backgroundRefresh: true, dataBridge: true, platform: 'ios', minimumRuntime: 'iOS 26' };
+            window.CommandCentreNative = { replayKit: true, nativeScreenMirror: true, nativeNotifications: true, backgroundRefresh: true, dataBridge: true, credentialVault: true, platform: 'ios', minimumRuntime: 'iOS 26' };
             """,
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
@@ -46,12 +54,14 @@ struct CommandCentreWebView: UIViewRepresentable {
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeTransfer")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeNotifications")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeData")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeCredentials")
     }
 
     @MainActor final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
         let transferHandler = NativeTransferHandler()
         let notificationHandler = NativeNotificationHandler.shared
         let dataHandler = NativeDataHandler()
+        let credentialHandler = NativeCredentialHandler.shared
         weak var webView: WKWebView?
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -106,6 +116,20 @@ struct CommandCentreWebView: UIViewRepresentable {
             alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in completionHandler(nil) })
             alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak alert] _ in completionHandler(alert?.textFields?.first?.text) })
             presenter.present(alert, animated: true)
+        }
+
+        func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+            guard navigationAction.targetFrame == nil,
+                  let url = navigationAction.request.url,
+                  let scheme = url.scheme?.lowercased(),
+                  scheme == "https" || scheme == "http" else { return nil }
+
+            if url.host?.lowercased() == AppConfig.commandCentreURL.host?.lowercased() {
+                webView.load(navigationAction.request)
+            } else {
+                UIApplication.shared.open(url, options: [:])
+            }
+            return nil
         }
     }
 }

@@ -1,5 +1,25 @@
 # Command Centre iOS 26 Mirror — Signulous-friendly build
 
+## v1.5.3 persistent paired-device identity
+
+Version **1.5.3 (build 10)** mirrors the validated Messages/Transfers credential
+between WKWebView local storage and a device-only Keychain item. The Keychain
+value is injected at document start before either web client reads its session,
+so compatible IPA upgrades continue using the same D1 device and message
+history. Disconnecting locally or receiving a revoked-session response clears
+both copies.
+
+The web backup provides an encrypted recovery fallback for replacement builds
+whose signing access cannot read the earlier Keychain item. Deploy v10.17.3 and
+export that backup before replacing the current IPA during the first upgrade.
+
+## v1.5.2 one-tap external links
+
+Version **1.5.2 (build 9)** implements WebKit's new-window delegate callback.
+HTTPS and HTTP links to external sites open through iOS, while same-origin
+Command Centre links are loaded in the existing web view. This fixes news cards
+that previously responded only through the long-press context menu.
+
 ## v1.5.1 WebKit interaction repair
 
 Version **1.5.1 (build 8)** registers the web view's `WKUIDelegate` and presents

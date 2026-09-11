@@ -1,3 +1,35 @@
+# Persistent paired-device identity v10.17.3 validation — 11 September 2026
+
+- iOS 1.5.3 (build 10) registers a main-frame credential bridge before page
+  scripts run, validates the token/device shape and mirrors session changes to a
+  device-only generic-password Keychain item.
+- A missing WKWebView session is restored from Keychain before Messages and
+  Transfers initialise; deliberate removal and server revocation clear it.
+- Backups optionally encrypt the paired connection with AES-256-GCM after
+  PBKDF2-SHA256 key derivation (210,000 iterations). A wrong password or modified
+  ciphertext is rejected before app state is changed.
+- Automated crypto coverage round-trips a real test identity, verifies the
+  bearer token is absent from the serialized encrypted record and rejects a
+  wrong password.
+- Messages themselves remain in D1. Reusing the original credential reopens the
+  same history and avoids creating another `transfer_devices` row.
+- Windows cannot compile/sign Swift, so Keychain continuity must be confirmed on
+  the physical iPhone after Codemagic builds the IPA.
+- Project validation and the serial full automated suite pass: **53/53 tests**.
+- No D1 migration, Cloudflare secret or entitlement change is required.
+
+# One-tap native news links v10.17.2 validation — 11 September 2026
+
+- News cards remain semantic HTTPS links with safe new-window attributes and
+  now expose explicit mobile tap/pressed behaviour.
+- iOS 1.5.2 (build 9) handles `target="_blank"` navigation: external articles
+  open through iOS and same-origin links remain in Command Centre.
+- The handler rejects non-HTTP URL schemes and returns no unmanaged web view.
+- Windows cannot compile/sign Swift, so the final physical-iPhone tap check is
+  required after Codemagic builds the IPA.
+- Project validation and the serial full automated suite pass: **50/50 tests**.
+- No D1 migration, Cloudflare secret or entitlement change is required.
+
 # Device sync, Bible backup and music control v10.17.1 validation — 10 September 2026
 
 - The Remove button uses an explicit two-tap, five-second confirmation inside

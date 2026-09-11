@@ -3,6 +3,10 @@ import { createSHA256, createMD5 } from 'hash-wasm';
 const $ = id => document.getElementById(id);
 const escape = text => String(text ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const formatBytes = n => n < 1024 ? `${n} B` : n < 1048576 ? `${(n/1024).toFixed(1)} KB` : n < 1073741824 ? `${(n/1048576).toFixed(1)} MB` : `${(n/1073741824).toFixed(2)} GB`;
+const deviceAdded = value => {
+  const date=new Date(Number(value));
+  return Number.isFinite(date.getTime()) ? `Added ${date.toLocaleString([], {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}` : 'Paired device';
+};
 const KEY = 'cc_transfer_device_v1';
 const DEVICE_SYNC_KEY = 'cc_transfer_devices_changed_v1';
 let session; try { session = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
@@ -37,7 +41,7 @@ async function devices(){
   const result=await api('/devices'), selected=$('trRecipient').value, current=session?.device.id;
   $('trRecipient').innerHTML='<option value="all">All my other devices</option>'+result.devices.filter(d=>d.id!==current).map(d=>`<option value="${d.id}">${escape(d.name)}</option>`).join('');
   if([...$('trRecipient').options].some(o=>o.value===selected))$('trRecipient').value=selected;
-  $('trDeviceList').innerHTML=result.devices.map(d=>`<div class="tr-device"><span>${escape(d.name)} ${d.id===current?'<span class="tr-muted">· This device</span>':''}</span>${d.id===current?'':`<button type="button" class="btn small" data-tr-revoke="${d.id}" data-tr-name="${escape(d.name)}">Remove</button>`}</div>`).join('');
+  $('trDeviceList').innerHTML=result.devices.map(d=>`<div class="tr-device"><span class="tr-device-name"><strong>${escape(d.name)} ${d.id===current?'<span class="tr-muted">· This device</span>':''}</strong><small>${escape(deviceAdded(d.created_at))}</small></span>${d.id===current?'':`<button type="button" class="btn small" data-tr-revoke="${d.id}" data-tr-name="${escape(d.name)}">Remove</button>`}</div>`).join('');
   pendingDeviceRemoval=null;clearTimeout(pendingDeviceRemovalTimer);return result;
   })();
   try{return await deviceRefresh;}finally{deviceRefresh=null;}

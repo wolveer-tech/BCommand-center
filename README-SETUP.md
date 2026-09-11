@@ -4,6 +4,46 @@
 
 **Transfers v10.7:** Start with [TRANSFERS-SETUP.md](TRANSFERS-SETUP.md) for the new file/message/link service, Cloudflare R2 and D1 setup, device pairing, Windows sender, browser extension and native iPhone download support. Local validation results are in [VALIDATION.md](VALIDATION.md).
 
+# v10.17.3 — Persistent Messages and Transfers identity
+
+Messages are retained in D1, but the IPA previously kept its paired-device
+credential only in WKWebView local storage. If installing a newly signed IPA
+replaced that storage, the phone appeared to be a new device and pairing created
+another entry.
+
+- iOS **1.5.3 (build 10)** now validates and stores the existing paired-device
+  credential in the iPhone Keychain, restores it at document start and removes
+  it when the device deliberately disconnects or the server revokes it.
+- The credential is device-only and cannot migrate silently to another phone.
+- Portable backups can optionally include the same identity encrypted with
+  AES-GCM. A user-supplied password is strengthened with PBKDF2 before use; the
+  bearer credential is never written to the JSON in readable form.
+- Restoring that encrypted connection opens the existing server-side message
+  history and Transfer space instead of claiming another device identity.
+- Existing backups without a device connection remain compatible.
+
+For this first transition, deploy v10.17.3 while the current IPA is still
+installed. Open Settings → General, leave **Keep this device’s Messages &
+Transfers connection** selected, enter a password of at least eight characters
+and export a fresh backup. Then install iOS 1.5.3 over the existing app. It should
+reconnect automatically if its container was retained; otherwise enter the same
+password and restore the fresh backup. Future compatible IPA updates should use
+the Keychain automatically.
+
+After confirming the correct phone identity works, remove the old duplicate
+devices once from Transfers → Devices on the laptop. No D1 migration, new
+Cloudflare secret or entitlement change is required.
+
+# v10.17.2 — One-tap news links on iPhone
+
+News cards still use safe standard links, but iOS **1.5.2 (build 9)** now
+handles WebKit requests to open a new window. A normal tap opens external news
+articles in Safari; same-site links stay in Command Centre. News cards also have
+an explicit mobile tap target and pressed state.
+
+Deploy the Worker/web project normally, then build and install the updated IPA.
+There is no D1 migration, new Cloudflare secret or entitlement change.
+
 # v10.17.1 — Device sync, Bible backup and music controls
 
 - Removing another device is now an in-page two-tap action, so it works even

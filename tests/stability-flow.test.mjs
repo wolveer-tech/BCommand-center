@@ -11,6 +11,7 @@ const nativeApp=read('../native-ios/CommandCentreNative/CommandCentreNativeApp.s
 const background=read('../native-ios/CommandCentreNative/BackgroundRefreshManager.swift');
 const notifications=read('../native-ios/CommandCentreNative/NativeNotificationHandler.swift');
 const webView=read('../native-ios/CommandCentreNative/CommandCentreWebView.swift');
+const credentials=read('../native-ios/CommandCentreNative/NativeCredentialHandler.swift');
 const messagesClient=read('../client/messages-client.js');
 const transfersClient=read('../client/transfers-client.js');
 
@@ -41,7 +42,7 @@ test('Match Centre exposes overview, lineups, timeline, stats and following',()=
 });
 
 test('app shell and fixture schedules refresh safely in foreground and background',()=>{
-  assert.match(serviceWorker,/command-centre-shell-v10\.17\.1/);
+  assert.match(serviceWorker,/command-centre-shell-v10\.17\.3/);
   assert.match(serviceWorker,/request\.mode === 'navigate'/);
   assert.match(serviceWorker,/url\.pathname\.startsWith\('\/api\/'\)/);
   assert.match(html,/function refreshAppFreshness/);
@@ -74,6 +75,8 @@ test('paired devices stay aligned and removal works without a JavaScript dialog'
   assert.match(webView,/webView\.uiDelegate = context\.coordinator/);
   assert.match(webView,/WKUIDelegate/);
   assert.match(webView,/runJavaScriptConfirmPanelWithMessage/);
+  assert.match(transfersClient,/Added.*toLocaleString/);
+  assert.match(transfersClient,/d\.created_at/);
 });
 
 test('portable backups include validated Bible progress and recommendations',()=>{
@@ -84,4 +87,40 @@ test('portable backups include validated Bible progress and recommendations',()=
   assert.match(restore,/validBibleKeys/);
   assert.match(restore,/validReadingBlocks/);
   assert.match(restore,/renderBible\(\);renderBibleChecklist\(\)/);
+});
+
+test('a normal tap opens news links from the native iPhone wrapper',()=>{
+  const news=html.slice(html.indexOf('function newsItemHtml'),html.indexOf('function renderNews'));
+  assert.match(news,/target="_blank"/);
+  assert.match(news,/rel="noopener"/);
+  assert.match(html,/\.news-item\{[^}]*touch-action:manipulation/);
+  assert.match(webView,/createWebViewWith configuration: WKWebViewConfiguration/);
+  assert.match(webView,/navigationAction\.targetFrame == nil/);
+  assert.match(webView,/UIApplication\.shared\.open\(url/);
+  assert.match(webView,/webView\.load\(navigationAction\.request\)/);
+});
+
+test('the IPA preserves one paired-device identity across rebuilds',()=>{
+  assert.match(webView,/name: "nativeCredentials"/);
+  assert.match(webView,/credentialHandler\.bootstrapJavaScript\(\)/);
+  assert.match(webView,/injectionTime: \.atDocumentStart/);
+  assert.match(webView,/credentialVault: true/);
+  assert.match(credentials,/import Security/);
+  assert.match(credentials,/kSecClassGenericPassword/);
+  assert.match(credentials,/kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly/);
+  assert.match(credentials,/cc_transfer_device_v1/);
+  assert.match(credentials,/Storage\.prototype\.setItem/);
+  assert.match(credentials,/Storage\.prototype\.removeItem/);
+  assert.match(credentials,/\^\[a-f0-9\]\{64\}\$/);
+});
+
+test('portable backup offers an encrypted paired-device fallback',()=>{
+  assert.match(html,/id="backupIncludeDevice"[^>]*checked/);
+  assert.match(html,/id="backupConnectionPassword"[^>]*type="password"/);
+  assert.match(html,/encryptBackupDeviceSession/);
+  assert.match(html,/decryptBackupDeviceSession/);
+  assert.match(html,/name:'AES-GCM'/);
+  assert.match(html,/name:'PBKDF2'/);
+  assert.match(html,/additionalData:new TextEncoder\(\)\.encode\(BACKUP_DEVICE_AAD\)/);
+  assert.match(html,/Messages and Transfers reconnected to this device/);
 });

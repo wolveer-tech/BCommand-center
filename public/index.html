@@ -68,7 +68,7 @@ body:has(#noteModal.open) .back-to-top{visibility:hidden!important;pointer-event
 .bible-progress{display:flex;align-items:center;gap:10px;margin:10px 0 14px}.bible-progress-bar{flex:1;height:8px;border-radius:99px;background:#ffffff12;overflow:hidden}.bible-progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:99px}.bible-book-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.bible-book{border:1px solid var(--line);background:var(--panel2);border-radius:14px;padding:11px}.bible-book-head{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}.bible-book-title{font-size:12px;font-weight:800}.bible-book-meta{font-size:9px;color:var(--muted);margin-top:2px}.bible-book-chapters{display:none;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px;margin-top:10px}.bible-book.open .bible-book-chapters{display:grid}.chapter-check{position:relative}.chapter-check input{position:absolute;opacity:0;pointer-events:none}.chapter-check label{display:grid;place-items:center;min-height:30px;border:1px solid var(--line);border-radius:8px;background:#0b1220;color:var(--muted);font-size:10px;font-weight:750;cursor:pointer}.chapter-check input:checked+label{background:rgba(39,211,155,.14);border-color:rgba(39,211,155,.45);color:var(--green)}.reading-checks{display:grid;gap:7px;margin-top:10px}.reading-check{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#ffffff08;font-size:11px;cursor:pointer}.reading-check input{accent-color:var(--green)}.bible-actions{display:flex;gap:7px;flex-wrap:wrap}.bible-testament{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px}@media(max-width:700px){.bible-book-grid{grid-template-columns:1fr}.bible-book-chapters{grid-template-columns:repeat(6,minmax(0,1fr))}}
 
 
-.news-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.news-list{display:grid;gap:9px}.news-item{display:block;padding:11px;border:1px solid var(--line);border-radius:12px;background:#0b1220;text-decoration:none;color:inherit}.news-item:hover{border-color:#ffffff35}.news-item-title{font-size:12px;font-weight:800;line-height:1.35}.news-item-meta{font-size:9px;color:var(--muted);margin-top:5px}.news-item-desc{font-size:10px;color:#b7c4d8;line-height:1.45;margin-top:6px}.news-badge{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:3px 7px;font-size:8px;font-weight:800;color:var(--muted)}@media(max-width:800px){.news-grid{grid-template-columns:1fr}}
+.news-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.news-list{display:grid;gap:9px}.news-item{display:block;padding:11px;border:1px solid var(--line);border-radius:12px;background:#0b1220;text-decoration:none;color:inherit;cursor:pointer;touch-action:manipulation;-webkit-user-select:none}.news-item:hover{border-color:#ffffff35}.news-item:active{border-color:#6f8eea;background:#101b2e}.news-item-title{font-size:12px;font-weight:800;line-height:1.35}.news-item-meta{font-size:9px;color:var(--muted);margin-top:5px}.news-item-desc{font-size:10px;color:#b7c4d8;line-height:1.45;margin-top:6px}.news-badge{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:3px 7px;font-size:8px;font-weight:800;color:var(--muted)}@media(max-width:800px){.news-grid{grid-template-columns:1fr}}
 
 
 .bible-book.search-hidden{display:none}.bible-book.search-match{outline:1px solid rgba(96,165,250,.45)}.chapter-check.search-hit label{border-color:rgba(96,165,250,.75);box-shadow:0 0 0 1px rgba(96,165,250,.18)}
@@ -2980,8 +2980,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   <article class="card settings-card-clean">
     <div class="title">↗ Data backup & restore</div>
     <div class="settings-description">Move notes, reminders, calendar events, Bible reading progress and current recommendations between the Home Screen app and the IPA. Restoring merges data without deleting items already on this device.</div>
+    <label style="display:flex;align-items:center;gap:8px;margin:10px 0 8px;font-size:11px"><input id="backupIncludeDevice" type="checkbox" checked> Keep this device’s Messages & Transfers connection</label>
+    <div class="field"><label for="backupConnectionPassword">Connection password</label><input id="backupConnectionPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="At least 8 characters" /><div class="setting-note" style="margin-top:5px">Required only when including or restoring the connection. The credential is encrypted before it enters the backup.</div></div>
     <div class="backup-actions"><button class="btn" id="exportBackupBtn" type="button">Export backup</button><button class="btn primary" id="importBackupBtn" type="button">Restore backup</button><input id="backupFileInput" type="file" accept="application/json,.json" hidden /></div>
-    <div class="setting-note" id="backupStatus">Backups exclude API keys and device notification identifiers.</div>
+    <div class="setting-note" id="backupStatus">API keys and notification identifiers are excluded. The IPA also protects its paired identity in the iPhone Keychain.</div>
   </article>
   <article class="card settings-card-clean">
     <div class="title">🛡 Local safety snapshots</div>
@@ -3315,8 +3317,39 @@ function saveState(){
   catch(error){console.error('Primary state save failed',error);toast('This device is running out of app storage. Export a backup now.');}
   queueSafetySnapshot();
 }
-function commandCentreBackupPayload(){
-  return {
+const BACKUP_DEVICE_KEY='cc_transfer_device_v1',BACKUP_DEVICE_AAD='command-centre-paired-device-v1';
+function backupBase64(bytes){let value='';for(const byte of bytes)value+=String.fromCharCode(byte);return btoa(value)}
+function backupBytes(value,max=8192){
+  if(typeof value!=='string'||value.length>max||!/^[A-Za-z0-9+/]*={0,2}$/.test(value))throw new Error('The encrypted device connection is invalid.');
+  try{return Uint8Array.from(atob(value),character=>character.charCodeAt(0))}catch{throw new Error('The encrypted device connection is invalid.')}
+}
+function validBackupDeviceSession(value){
+  return !!value&&typeof value==='object'&&/^[a-f0-9]{64}$/.test(value.token||'')&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value.device?.id||'')&&typeof value.device?.name==='string'&&value.device.name.length>0&&value.device.name.length<=60;
+}
+async function backupDeviceKey(password,salt,usage){
+  if(!crypto?.subtle)throw new Error('Encrypted connection backups are unavailable on this device.');
+  const material=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt,iterations:210000},material,{name:'AES-GCM',length:256},false,[usage]);
+}
+async function encryptBackupDeviceSession(session,password){
+  if(!validBackupDeviceSession(session))throw new Error('The paired-device connection could not be read. Open Messages and try again.');
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await backupDeviceKey(password,salt,'encrypt'),plain=new TextEncoder().encode(JSON.stringify(session));
+  const encrypted=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode(BACKUP_DEVICE_AAD)},key,plain);
+  return {version:1,cipher:'AES-GCM',kdf:'PBKDF2-SHA256',iterations:210000,salt:backupBase64(salt),iv:backupBase64(iv),data:backupBase64(new Uint8Array(encrypted))};
+}
+async function decryptBackupDeviceSession(record,password){
+  if(record?.version!==1||record?.cipher!=='AES-GCM'||record?.kdf!=='PBKDF2-SHA256'||record?.iterations!==210000)throw new Error('This paired-device backup format is not supported.');
+  try{
+    const salt=backupBytes(record.salt,128),iv=backupBytes(record.iv,128),encrypted=backupBytes(record.data);
+    if(salt.length!==16||iv.length!==12)throw 0;
+    const key=await backupDeviceKey(password,salt,'decrypt');
+    const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode(BACKUP_DEVICE_AAD)},key,encrypted);
+    const session=JSON.parse(new TextDecoder().decode(plain));if(!validBackupDeviceSession(session))throw 0;return session;
+  }catch{throw new Error('The connection password was incorrect or the encrypted device connection is damaged.')}
+}
+function commandCentreBackupPayload(deviceConnection=null){
+  const payload={
     format:'command-centre-backup',schemaVersion:1,exportedAt:nowIso(),
     data:{
       notes:state.notes||[],noteFolders:state.noteFolders||[],
@@ -3325,18 +3358,32 @@ function commandCentreBackupPayload(){
       bibleRead:state.bibleRead||{},bibleRecommendations:state.bibleRecommendations||{date:'',items:[]}
     }
   };
+  if(deviceConnection)payload.deviceConnection=deviceConnection;
+  return payload;
 }
 function backupFileName(){return `command-centre-backup-${dayKey()}.json`}
-function exportCommandCentreBackup(){
-  const contents=JSON.stringify(commandCentreBackupPayload(),null,2),filename=backupFileName();
-  if(window.CommandCentreNative?.dataBridge&&nativeMessageHandler('nativeData')){
-    nativeMessageHandler('nativeData').postMessage({action:'export',filename,contents});
-  }else{
-    const url=URL.createObjectURL(new Blob([contents],{type:'application/json'}));
-    const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
-  }
-  const status=qs('#backupStatus');if(status)status.textContent='Backup created. Save the JSON file, then restore it inside the IPA.';
-  toast('Backup exported');
+async function exportCommandCentreBackup(){
+  const button=qs('#exportBackupBtn'),status=qs('#backupStatus');if(button)button.disabled=true;
+  try{
+    let deviceConnection=null;
+    const raw=localStorage.getItem(BACKUP_DEVICE_KEY),include=qs('#backupIncludeDevice')?.checked!==false;
+    if(include&&raw){
+      const password=qs('#backupConnectionPassword')?.value||'';if(password.length<8)throw new Error('Enter a connection password of at least 8 characters first.');
+      let session;try{session=JSON.parse(raw)}catch{throw new Error('The paired-device connection could not be read. Open Messages and try again.')}
+      if(status)status.textContent='Encrypting this device’s Messages and Transfers connection…';
+      deviceConnection=await encryptBackupDeviceSession(session,password);
+    }
+    const contents=JSON.stringify(commandCentreBackupPayload(deviceConnection),null,2),filename=backupFileName();
+    if(window.CommandCentreNative?.dataBridge&&nativeMessageHandler('nativeData'))nativeMessageHandler('nativeData').postMessage({action:'export',filename,contents});
+    else{
+      const url=URL.createObjectURL(new Blob([contents],{type:'application/json'}));
+      const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }
+    if(qs('#backupConnectionPassword'))qs('#backupConnectionPassword').value='';
+    if(status)status.textContent=deviceConnection?'Backup created with an encrypted Messages and Transfers connection. Keep the file and password safe.':'Backup created without a paired-device connection.';
+    toast('Backup exported');
+  }catch(error){if(status)status.textContent=error.message||'Could not create the backup.';toast(error.message||'Could not create the backup')}
+  finally{if(button)button.disabled=false;}
 }
 function sanitizeImportedNoteHtml(value){
   const doc=new DOMParser().parseFromString(String(value||'').slice(0,250000),'text/html');
@@ -3352,10 +3399,15 @@ function mergeBackupRows(current,incoming,normalise){
   (Array.isArray(incoming)?incoming:[]).slice(0,5000).forEach(raw=>{const item=normalise(raw);if(item)map.set(String(item.id),item)});
   return [...map.values()];
 }
-function importCommandCentreBackup(raw){
+async function importCommandCentreBackup(raw){
   let payload;
   try{payload=typeof raw==='string'?JSON.parse(raw):raw}catch{throw new Error('That file is not valid JSON.')}
   if(payload?.format!=='command-centre-backup'||Number(payload?.schemaVersion)!==1||!payload?.data)throw new Error('Choose a Command Centre backup JSON file.');
+  let restoredSession=null;
+  if(payload.deviceConnection){
+    const password=qs('#backupConnectionPassword')?.value||'';if(password.length<8)throw new Error('Enter the connection password used when this backup was created, then tap Restore backup again.');
+    restoredSession=await decryptBackupDeviceSession(payload.deviceConnection,password);
+  }
   const data=payload.data,frequencies=new Set(['none','daily','every2days','weekly','monthly','yearly']);
   state.notes=mergeBackupRows(state.notes,data.notes,n=>n&&typeof n==='object'?{
     id:String(n.id||makeId('note')).slice(0,140),title:String(n.title||'Untitled note').slice(0,300),body:sanitizeImportedNoteHtml(n.body),
@@ -3381,12 +3433,14 @@ function importCommandCentreBackup(raw){
   if(qs('#todayPage')?.classList.contains('active'))renderTodayPage();
   if(qs('#calendarPage')?.classList.contains('active'))renderCalendar();
   if(qs('#biblePage')?.classList.contains('active')){renderBible();renderBibleChecklist()}
+  if(restoredSession){localStorage.setItem(BACKUP_DEVICE_KEY,JSON.stringify(restoredSession));window.dispatchEvent(new Event('cc-transfer-session'))}
+  if(qs('#backupConnectionPassword'))qs('#backupConnectionPassword').value='';
   scheduleAllNotifications();
   const bibleReadCount=Object.keys(state.bibleRead||{}).length;
-  const status=qs('#backupStatus');if(status)status.textContent=`Restored ${state.notes.length} notes, ${state.reminders.length} reminders, ${state.events.length} calendar events and ${bibleReadCount} read Bible chapters on this device.`;
+  const status=qs('#backupStatus');if(status)status.textContent=`Restored ${state.notes.length} notes, ${state.reminders.length} reminders, ${state.events.length} calendar events and ${bibleReadCount} read Bible chapters.${restoredSession?' Messages and Transfers reconnected to this device.':''}`;
   toast('Backup restored and merged');
 }
-window.CommandCentreReceiveBackup=raw=>{try{importCommandCentreBackup(raw)}catch(e){const status=qs('#backupStatus');if(status)status.textContent=e.message||'Could not restore backup.';toast(e.message||'Could not restore backup')}};
+window.CommandCentreReceiveBackup=raw=>importCommandCentreBackup(raw).catch(e=>{const status=qs('#backupStatus');if(status)status.textContent=e.message||'Could not restore backup.';toast(e.message||'Could not restore backup')});
 window.CommandCentreNativeDataError=message=>{const text=String(message||'Could not open that backup.');const status=qs('#backupStatus');if(status)status.textContent=text;toast(text)};
 function chooseCommandCentreBackup(){
   qs('#backupFileInput')?.click();
@@ -4190,7 +4244,7 @@ function init(){
     bind('backupFileInput','change',async event=>{
       const file=event.target.files?.[0];event.target.value='';if(!file)return;
       if(file.size>10*1024*1024){toast('Backup file is too large');return}
-      try{importCommandCentreBackup(await file.text())}catch(e){const status=qs('#backupStatus');if(status)status.textContent=e.message||'Could not restore backup.';toast(e.message||'Could not restore backup')}
+      try{await importCommandCentreBackup(await file.text())}catch(e){const status=qs('#backupStatus');if(status)status.textContent=e.message||'Could not restore backup.';toast(e.message||'Could not restore backup')}
     });
     bind('clearContinueWatchingBtn','click',()=>{if(confirm('Clear Continue Watching?')){state.entertainment.youtubeHistoryDetailed=[];state.entertainment.mediaHistory=[];saveState();renderAllContinueWatching();toast('Continue Watching cleared')}});
     bind('openContentSettingsBtn','click',()=>{closeModal('settingsModal');openWatchPage()});
