@@ -90,6 +90,8 @@ struct CommandCentreWebView: UIViewRepresentable {
                 Task { @MainActor in
                     await NativeMirrorManager.shared.stop()
                 }
+            case "picker":
+                NativeMirrorManager.shared.presentBroadcastPicker()
             default:
                 break
             }

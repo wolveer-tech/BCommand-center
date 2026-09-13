@@ -1,3 +1,28 @@
+# iPhone foundations and white-list improvements v10.20.0
+
+- The intro is session-gated and has a lower-cost iPhone canvas path; replaying
+  it from Motion settings remains available.
+- Privacy Lock is verified to start locked on cold launch, remain unlocked over
+  inactive/background scene transitions and relock only from **Lock now**.
+- The Notes modal follows `visualViewport`, keeps the mobile toolbar scrollable
+  and accounts for the keyboard and safe-area inset.
+- The Sport UI contains Football, Tennis and Athletics with no Basketball tab.
+  Worker coverage verifies the SofaScore-preferred football and tennis paths,
+  the official World Athletics calendar parser and legacy-provider fallbacks.
+- Refresh Feed prevents overlapping requests and exposes loading, success,
+  cached-fallback and failure feedback.
+- Mirror coverage verifies Apple picker retry, room collision handling,
+  connection timeout cleanup and duplicate WebRTC negotiation handling.
+- A live Worker-module check returned current World Athletics events from the
+  official calendar. SofaScore rejected the local direct test request, so the
+  existing football/tennis fallback path remains deliberately enabled.
+- Static project validation passes and the complete serial suite passes:
+  **65/65 tests**.
+- Windows cannot compile or sign Swift. Confirm Face ID launch behaviour, the
+  ReplayKit picker and Notes above the real iPhone keyboard after Codemagic
+  builds iOS **1.7.0 (build 13)**.
+- No D1 migration, Cloudflare secret or entitlement change is required.
+
 # Privacy Lock Face ID lifecycle hotfix v10.18.1 — 11 September 2026
 
 - Face ID's temporary inactive scene is shielded but does not start the

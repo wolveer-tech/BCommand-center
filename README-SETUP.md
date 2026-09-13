@@ -1,5 +1,29 @@
 # Command Centre setup
 
+## v10.20.0 — iPhone foundations and white-list improvements
+
+- The space intro now runs once per WKWebView session, with a lighter iPhone
+  render path and a manual replay button in Motion settings.
+- Privacy Lock asks once on a cold app launch or after **Lock now**. Opening
+  Control Centre, Notification Centre or the app switcher only shields the
+  preview; it does not immediately ask for Face ID again.
+- The Notes editor follows iOS's visible keyboard viewport, keeps the toolbar
+  horizontally reachable and keeps Delete, Cancel and Save above the keyboard.
+- Sport replaces Basketball with Athletics. Football and Tennis prefer the
+  read-only website feed used by SofaScore, with the existing configured data
+  services retained as fallbacks. Athletics uses the official World Athletics
+  calendar.
+- Refresh Feed now shows an in-progress state, prevents duplicate refreshes and
+  reports whether live or saved fallback items were loaded.
+- Mirror can reopen Apple's broadcast picker, retries room-code collisions and
+  gives an actionable timeout instead of appearing to hang.
+
+Deploy the Worker/web files normally. Build and install iOS **1.7.0 (build 13)**
+over the existing app to receive the native Face ID and Mirror repairs. Do not
+delete the current app first, because an in-place install gives iOS the best
+chance to retain the paired-device Keychain identity and Messages history.
+There is no D1 migration, new Cloudflare secret or entitlement for this release.
+
 **Messages v10.8:** Already using Transfers? Follow [MESSAGES-SETUP.md](MESSAGES-SETUP.md) for the chat update and its single new D1 migration. No new bucket or secrets are required. Validation: [MESSAGES-VALIDATION.md](MESSAGES-VALIDATION.md).
 
 **Transfers v10.7:** Start with [TRANSFERS-SETUP.md](TRANSFERS-SETUP.md) for the new file/message/link service, Cloudflare R2 and D1 setup, device pairing, Windows sender, browser extension and native iPhone download support. Local validation results are in [VALIDATION.md](VALIDATION.md).

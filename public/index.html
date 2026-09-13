@@ -39,14 +39,16 @@
 .calendar-year-heading{text-align:center;margin-bottom:14px}.calendar-year-heading strong{font-size:19px;font-weight:800;letter-spacing:.5px}.calendar-year-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.mini-month{border:1px solid var(--line);border-radius:16px;background:var(--panel2);padding:11px;cursor:pointer;text-align:left;color:var(--text);font:inherit}.mini-month:hover{filter:brightness(1.12);border-color:#3a507a}.mini-month-title{font-size:11px;font-weight:800;margin-bottom:7px;text-align:center;color:var(--text)}.mini-month-title .mini-month-count{display:block;font-size:8px;font-weight:600;color:var(--muted);margin-top:2px}.mini-month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}.mini-day{font-size:8px;text-align:center;padding:3px 0;border-radius:4px;position:relative;color:var(--muted)}.mini-day.empty{visibility:hidden}.mini-day.today{background:var(--blue);color:#fff;font-weight:800}.mini-dot{position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--gold)}
 
 .notes-toolbar{display:flex;gap:8px;margin-bottom:12px}.notes-search{width:100%;background:#0b1220;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:11px 12px;font:inherit;font-size:11px}.notes-list{display:flex;flex-direction:column;gap:7px}.note-card{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--line);background:var(--panel2);border-radius:11px;cursor:pointer}.note-card:hover{border-color:#3d557c}.note-icon{width:30px;height:30px;border-radius:8px;background:#ffffff08;display:flex;align-items:center;justify-content:center;flex:none}.note-card-main{min-width:0;flex:1}.note-card-title{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.note-card-preview{font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.note-card-date{font-size:9px;color:var(--muted);white-space:nowrap}.note-editor-card{max-width:760px}.note-body-input{min-height:330px;resize:vertical;line-height:1.55}.notes-empty{padding:35px 15px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:11px}.notes-empty strong{display:block;color:var(--text);margin-bottom:5px}
-#noteModal.modal{padding:0;align-items:stretch;justify-content:stretch;background:var(--bg);z-index:2147483200}
-#noteModal .modal-card.note-editor-card{width:100%;max-width:100%;height:100dvh;min-height:100dvh;max-height:100dvh;margin:0;border:none;border-radius:0;display:flex;flex-direction:column;overflow:hidden;padding:16px;padding-top:max(16px,env(safe-area-inset-top));padding-bottom:0;background:var(--bg);box-shadow:none;animation:noteSlideIn .28s cubic-bezier(.32,.72,.35,1)}
+#noteModal.modal{padding:0;align-items:stretch;justify-content:stretch;background:var(--bg);z-index:2147483200;inset:auto 0 auto 0;top:var(--cc-note-vv-top,0px);width:100%;height:var(--cc-note-vv-height,100dvh)}
+#noteModal .modal-card.note-editor-card{width:100%;max-width:100%;height:100%;min-height:0;max-height:100%;margin:0;border:none;border-radius:0;display:flex;flex-direction:column;overflow:hidden;padding:16px;padding-top:max(16px,env(safe-area-inset-top));padding-bottom:0;background:var(--bg);box-shadow:none;animation:noteSlideIn .28s cubic-bezier(.32,.72,.35,1)}
 #noteModal .modal-head{flex:none}
+#noteModal .modal-head,#noteModal .field,#noteModal .note-editor-options,#noteModal .note-toolbar{min-width:0;max-width:100%}
 #noteModal .field:has(.note-body-input){flex:1;display:flex;flex-direction:column;min-height:0}
 #noteModal #noteTitle{font-size:17px;font-weight:800;padding:12px 10px;background:transparent;border:none;border-bottom:1px solid var(--line);border-radius:0}
 #noteModal .note-body-input{flex:1;min-height:0;background:transparent;border:none;padding:12px 10px;font-size:14px;overflow:auto;outline:none}
 #noteModal .note-body-input[data-empty="true"]:before{content:attr(data-placeholder);color:var(--muted);pointer-events:none}
-#noteModal .modal-actions{flex:none;position:sticky;bottom:0;z-index:3;min-height:58px;margin:0 -4px;padding:10px 4px max(10px,env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(7,11,20,.94),var(--bg) 25%);box-shadow:0 -10px 24px rgba(7,11,20,.72)}
+#noteModal .modal-actions{flex:none;position:sticky;bottom:0;z-index:3;min-height:58px;margin:0 -4px;padding:10px 4px max(10px,env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(7,11,20,.94),var(--bg) 25%);box-shadow:0 -10px 24px rgba(7,11,20,.72);width:calc(100% + 8px)}
+#noteModal .modal-actions .btn{flex:1 1 0;min-width:0;margin-right:0!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body:has(#noteModal.open){overflow:hidden}
 body:has(#noteModal.open) .mobile-dock,
 body:has(#noteModal.open) .global-quick-add,
@@ -64,6 +66,7 @@ body:has(#noteModal.open) .back-to-top{visibility:hidden!important;pointer-event
 .color-dot{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.18);cursor:pointer;padding:0}
 .color-dot.active{border-color:#fff}
 #noteModal .note-body-input b,#noteModal .note-body-input strong{font-weight:800}
+@media(max-width:520px){#noteModal .modal-card.note-editor-card{padding-left:12px;padding-right:12px}.note-toolbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}.note-toolbar::-webkit-scrollbar{display:none}.note-toolbar>*{flex:0 0 auto}#noteModal .note-body-input{padding-left:6px;padding-right:6px}#noteModal .modal-actions{gap:6px}#noteModal .modal-actions .btn{padding-left:6px;padding-right:6px}}
 
 .bible-progress{display:flex;align-items:center;gap:10px;margin:10px 0 14px}.bible-progress-bar{flex:1;height:8px;border-radius:99px;background:#ffffff12;overflow:hidden}.bible-progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:99px}.bible-book-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.bible-book{border:1px solid var(--line);background:var(--panel2);border-radius:14px;padding:11px}.bible-book-head{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}.bible-book-title{font-size:12px;font-weight:800}.bible-book-meta{font-size:9px;color:var(--muted);margin-top:2px}.bible-book-chapters{display:none;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px;margin-top:10px}.bible-book.open .bible-book-chapters{display:grid}.chapter-check{position:relative}.chapter-check input{position:absolute;opacity:0;pointer-events:none}.chapter-check label{display:grid;place-items:center;min-height:30px;border:1px solid var(--line);border-radius:8px;background:#0b1220;color:var(--muted);font-size:10px;font-weight:750;cursor:pointer}.chapter-check input:checked+label{background:rgba(39,211,155,.14);border-color:rgba(39,211,155,.45);color:var(--green)}.reading-checks{display:grid;gap:7px;margin-top:10px}.reading-check{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#ffffff08;font-size:11px;cursor:pointer}.reading-check input{accent-color:var(--green)}.bible-actions{display:flex;gap:7px;flex-wrap:wrap}.bible-testament{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px}@media(max-width:700px){.bible-book-grid{grid-template-columns:1fr}.bible-book-chapters{grid-template-columns:repeat(6,minmax(0,1fr))}}
 
@@ -2368,6 +2371,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
             <div><div class="title">🎮 Entertainment</div><div class="sub">A social-style feed, games and video without leaving Command Centre.</div></div>
             <button class="btn" id="refreshEntertainmentBtn">↻ Refresh feed</button>
           </div>
+          <div class="section-note" id="entertainmentFeedStatus" role="status">The feed refreshes when you open Entertainment or press Refresh feed.</div>
 
           <div class="ent-tabs">
             <button class="ent-tab active" data-ent-tab="foryou" onclick="showEntertainmentPanel('foryou')">✨ For You</button>
@@ -2643,7 +2647,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
           <div class="card-head">
             <div>
               <div class="title">🏟️ Sport Hub</div>
-              <div class="sub">Follow football, tennis and basketball from one place.</div>
+              <div class="sub">Follow football, tennis and athletics from one place.</div>
             </div>
             <button class="btn" id="footballRefreshBtn">↻ Refresh</button>
           </div>
@@ -2651,7 +2655,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
           <div class="sport-switcher" id="sportSwitcher">
             <button class="sport-switch-btn active" type="button" data-sport-tab="football">⚽ Football</button>
             <button class="sport-switch-btn" type="button" data-sport-tab="tennis">🎾 Tennis</button>
-            <button class="sport-switch-btn" type="button" data-sport-tab="basketball">🏀 Basketball</button>
+            <button class="sport-switch-btn" type="button" data-sport-tab="athletics">🏃 Athletics</button>
           </div>
 
           <div id="footballCompetitionWrap">
@@ -2747,22 +2751,22 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
             <div class="card-head">
               <div><div class="title">🔴 Live now</div><div class="sub" id="generalSportLiveSub">Live scores update whenever the Sport feed refreshes.</div></div>
             </div>
-            <div id="generalSportLive" class="sport-live-wrap"><div class="sport-live-empty">Choose Tennis or Basketball.</div></div>
+            <div id="generalSportLive" class="sport-live-wrap"><div class="sport-live-empty">Choose Tennis or Athletics.</div></div>
           </article>
 
           <div class="football-grid">
             <article class="card">
               <div class="card-head"><div><div class="title">🗓️ Today & upcoming</div><div class="sub" id="generalSportUpcomingSub">Upcoming events</div></div></div>
-              <div id="generalSportUpcoming" class="sport-event-list"><div class="empty">Choose Tennis or Basketball.</div></div>
+              <div id="generalSportUpcoming" class="sport-event-list"><div class="empty">Choose Tennis or Athletics.</div></div>
             </article>
             <article class="card">
               <div class="card-head"><div><div class="title">🏁 Recent results</div><div class="sub">Recent completed events</div></div></div>
-              <div id="generalSportResults" class="sport-event-list"><div class="empty">Choose Tennis or Basketball.</div></div>
+              <div id="generalSportResults" class="sport-event-list"><div class="empty">Choose Tennis or Athletics.</div></div>
             </article>
           </div>
 
           <article class="card">
-            <div class="setting-note"><b>Live data:</b> Football and Basketball use the same shared API-SPORTS account key. Tennis uses API-Tennis because it is a separate provider. The Worker caches results to protect your request allowances.</div>
+            <div class="setting-note"><b>Live data:</b> Football and Tennis prefer the same feed used by the SofaScore website, with the existing providers kept as fallbacks. Athletics comes from the official World Athletics calendar. The Worker caches results for reliability.</div>
           </article>
         </div>
         <article class="card" id="liveSportStreamingCard">
@@ -2782,7 +2786,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
             <iframe id="liveFootballFrame" class="live-stream-frame" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
             <video id="liveFootballVideo" class="live-stream-frame" controls playsinline preload="metadata" style="display:none;background:#000"></video>
           </div>
-          <div class="setting-note">This section changes automatically with Football, Tennis and Basketball. Command Centre only displays streams from providers you configure and are authorised to access and embed.</div>
+          <div class="setting-note">This section changes automatically with Football, Tennis and Athletics. Command Centre only displays streams from providers you configure and are authorised to access and embed.</div>
         </article>
 
       </div>
@@ -2849,6 +2853,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
             </div>
             <div class="native-mirror-actions">
               <button class="btn primary" id="nativeMirrorStartBtn">Start iPhone screen mirror</button>
+              <button class="btn" id="nativeMirrorPickerBtn" disabled>Open Apple broadcast picker</button>
               <button class="btn" id="nativeMirrorStopBtn">Stop native mirror</button>
             </div>
             <div id="nativeMirrorCode" class="mirror-code">------</div>
@@ -3044,9 +3049,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </article></section>
 
   <section class="settings-section" data-settings-panel="privacy"><article class="card settings-card-clean privacy-status-card">
-    <div><div class="title">🔒 Privacy Lock</div><div class="settings-description">Protect the whole IPA with Face ID or your iPhone passcode. Sensitive content is covered as soon as the app leaves the foreground.</div></div>
+    <div><div class="title">🔒 Privacy Lock</div><div class="settings-description">Protect the whole IPA with Face ID or your iPhone passcode. It asks once when the app starts; Control Centre, Notification Centre and normal app switching only hide the preview.</div></div>
     <div class="privacy-state" id="privacyLockStatus"><span>🔐</span><span>Checking native privacy protection…</span></div>
-    <div class="form"><div class="field"><label>Privacy Lock</label><select id="privacyLockEnabled"><option value="on">On</option><option value="off">Off</option></select></div><div class="field"><label>Require unlock after</label><select id="privacyLockGrace"><option value="0">Immediately</option><option value="60">1 minute</option><option value="300">5 minutes</option><option value="900">15 minutes</option></select></div></div>
+    <div class="field"><label>Privacy Lock</label><select id="privacyLockEnabled"><option value="on">On</option><option value="off">Off</option></select></div>
     <div class="privacy-actions"><button class="btn primary" id="applyPrivacyLockBtn" type="button">Apply with Face ID</button><button class="btn" id="privacyLockNowBtn" type="button">Lock now</button></div>
     <div class="setting-note">This setting is stored by the native wrapper, not in the webpage or backup. Turning it on or off requires authentication.</div>
   </article></section>
@@ -3224,7 +3229,7 @@ const DEFAULT_STATE = {
   newsPushMode:'major',
   financialNewsProvider:'hybrid',
   activeSportTab:'football',
-  sportFavourites:{tennis:[],basketball:[]},
+  sportFavourites:{tennis:[],athletics:[]},
   footballCompetition:'PL',
   footballFavouriteTeamId:null,
   footballFavouriteTeamName:'',
@@ -3266,10 +3271,10 @@ state.homeWidgetSizes=state.homeWidgetSizes&&typeof state.homeWidgetSizes==='obj
 state.homeTheme=['aurora','midnight','sunset','weather'].includes(state.homeTheme)?state.homeTheme:'aurora';
 state.homeDensity=['comfortable','compact'].includes(state.homeDensity)?state.homeDensity:'comfortable';
 state.contentDefault=['movies','youtube'].includes(state.contentDefault)?state.contentDefault:'movies';
-state.activeSportTab=['football','tennis','basketball'].includes(state.activeSportTab)?state.activeSportTab:'football';
-state.sportFavourites=state.sportFavourites&&typeof state.sportFavourites==='object'?state.sportFavourites:{tennis:[],basketball:[]};
+state.activeSportTab=['football','tennis','athletics'].includes(state.activeSportTab)?state.activeSportTab:'football';
+state.sportFavourites=state.sportFavourites&&typeof state.sportFavourites==='object'?state.sportFavourites:{tennis:[],athletics:[]};
 state.sportFavourites.tennis=Array.isArray(state.sportFavourites.tennis)?state.sportFavourites.tennis.map(String):[];
-state.sportFavourites.basketball=Array.isArray(state.sportFavourites.basketball)?state.sportFavourites.basketball.map(String):[];
+state.sportFavourites.athletics=Array.isArray(state.sportFavourites.athletics)?state.sportFavourites.athletics.map(String):[];
 state.musicLiked=Array.isArray(state.musicLiked)?state.musicLiked:[];
 state.musicPlaylists=Array.isArray(state.musicPlaylists)?state.musicPlaylists:[];
 state.musicRecent=Array.isArray(state.musicRecent)?state.musicRecent:[];
@@ -3584,7 +3589,7 @@ function todaySportsSummary(){
   footballMatches
     .filter(m=>{
       const hid=Number(m?.homeTeam?.id||0),aid=Number(m?.awayTeam?.id||0);
-      return footballFavs.some(t=>Number(t.id)===hid||Number(t.id)===aid);
+      return footballFavs.some(t=>Number(t.id)===hid||Number(t.id)===aid||footballTeamKey(t.name)===footballTeamKey(footballTeamName(m.homeTeam))||footballTeamKey(t.name)===footballTeamKey(footballTeamName(m.awayTeam)));
     })
     .filter(m=>{
       const time=Date.parse(m.utcDate||'');
@@ -3598,7 +3603,7 @@ function todaySportsSummary(){
       sport:'football'
     }));
 
-  ['tennis','basketball'].forEach(kind=>{
+  ['tennis','athletics'].forEach(kind=>{
     const favs=typeof sportFavourites==='function'?sportFavourites(kind):[];
     const cache=(typeof generalSportCache!=='undefined'&&generalSportCache[kind])?generalSportCache[kind]:{events:[]};
     const events=Array.isArray(cache.events)?cache.events:[];
@@ -3623,7 +3628,7 @@ function todaySportsSummary(){
   footballFavs.slice(0,2).forEach(t=>rows.push({
     title:t.name||'Favourite football team',meta:'Following',badge:'Football',sport:'football'
   }));
-  ['tennis','basketball'].forEach(kind=>{
+  ['tennis','athletics'].forEach(kind=>{
     (typeof sportFavourites==='function'?sportFavourites(kind):[]).slice(0,2).forEach(name=>{
       if(rows.length<4)rows.push({title:String(name),meta:'Following',badge:sportLabel(kind),sport:kind});
     });
@@ -3643,7 +3648,7 @@ function renderTodayExtra(){
     const rows=todaySportsSummary();
     sport.innerHTML=rows.length
       ?`<div class="today-sport-list">${rows.map(r=>`<button class="today-focus-row" type="button" onclick="openTodaySport('${esc(r.sport)}')"><span class="today-focus-main"><span class="today-focus-title">${esc(r.title)}</span><span class="today-focus-meta">${esc(r.meta||'')}</span></span><span class="today-focus-badge">${esc(r.badge)}</span></button>`).join('')}</div>`
-      :'<div class="empty">Follow a football team, tennis player or basketball team and it will appear here.</div>';
+      :'<div class="empty">Follow a football team, tennis player or athletics meeting and it will appear here.</div>';
   }
 
   const finance=qs('#todayFinanceNews');
@@ -3665,7 +3670,7 @@ function renderTodayPage(){
   const reminders=items.filter(x=>x.itemType==='reminder').length;
   const notes=state.notes.filter(n=>!n.deletedAt).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt));
   const following=(typeof footballFavouriteTeams==='function'?footballFavouriteTeams().length:0)
-    +(typeof sportFavourites==='function'?sportFavourites('tennis').length+sportFavourites('basketball').length:0);
+    +(typeof sportFavourites==='function'?sportFavourites('tennis').length+sportFavourites('athletics').length:0);
 
   const glance=qs('#todayAtAGlance');
   if(glance)glance.innerHTML=`
@@ -3706,7 +3711,7 @@ function renderTodayPage(){
   }
   if(typeof loadGeneralSport==='function'&&typeof sportFavourites==='function'){
     if(sportFavourites('tennis').length)loadGeneralSport('tennis',false).then(()=>renderTodayExtra()).catch(()=>{});
-    if(sportFavourites('basketball').length)loadGeneralSport('basketball',false).then(()=>renderTodayExtra()).catch(()=>{});
+    if(sportFavourites('athletics').length)loadGeneralSport('athletics',false).then(()=>renderTodayExtra()).catch(()=>{});
   }
 }
 
@@ -3831,7 +3836,7 @@ function localUniversalResults(q){
     }
   });
 
-  ['tennis','basketball'].forEach(kind=>{
+  ['tennis','athletics'].forEach(kind=>{
     const favs=typeof sportFavourites==='function'?sportFavourites(kind):[];
     favs.forEach(name=>{
       if(String(name).toLowerCase().includes(n)){
@@ -3886,7 +3891,7 @@ function renderUniversalSearch(q,loading=false){
   const ss=l.schedule.map((x,i)=>sr('schedule',i,x.kind==='event'?'🗓️':'🔔',x.kind==='event'?x.title:x.text,x.kind==='event'?`${x.date||''} ${x.time||''}`:`${x.category||'General'} ${x.startDate||''}`)).join('');
   if(ss)secs.push(`<section><div class="search-section-title">Schedule</div><div class="search-result-list">${ss}</div></section>`);
 
-  const sp=l.sports.map((x,i)=>sr('sport',i,x.sport==='tennis'?'🎾':x.sport==='basketball'?'🏀':'⚽',x.title,x.sub)).join('');
+  const sp=l.sports.map((x,i)=>sr('sport',i,x.sport==='tennis'?'🎾':x.sport==='athletics'?'🏃':'⚽',x.title,x.sub)).join('');
   if(sp)secs.push(`<section><div class="search-section-title">Sport</div><div class="search-result-list">${sp}</div></section>`);
 
   const nw=l.news.map((x,i)=>sr('news',i,x._kind==='financial'?'📈':'📰',x.title||'News',`${x.source||'News'} • ${x._kind==='financial'?'Finance':'World'}`)).join('');
@@ -4178,11 +4183,12 @@ function collectPushSchedule(days=400){
 function collectNativeFootballNotifications(){
   if(state.footballNotificationsEnabled===false)return [];
   const favouriteIds=new Set(footballFavouriteTeams().map(team=>Number(team.id)));
+  const favouriteNames=new Set(footballFavouriteTeams().map(team=>footballTeamKey(team.name)).filter(Boolean));
   const followedIds=new Set((state.footballFollowedMatches||[]).map(Number));
   if(!favouriteIds.size&&!followedIds.size)return [];
   const now=Date.now(),items=[];
   footballAllScheduleMatches().forEach(match=>{
-    if(!favouriteIds.has(Number(match.homeTeam?.id))&&!favouriteIds.has(Number(match.awayTeam?.id))&&!followedIds.has(Number(match.id)))return;
+    if(!favouriteIds.has(Number(match.homeTeam?.id))&&!favouriteIds.has(Number(match.awayTeam?.id))&&!favouriteNames.has(footballTeamKey(footballTeamName(match.homeTeam)))&&!favouriteNames.has(footballTeamKey(footballTeamName(match.awayTeam)))&&!followedIds.has(Number(match.id)))return;
     const kickoff=Date.parse(match.utcDate||'');if(!Number.isFinite(kickoff)||kickoff<=now)return;
     const fixture=`${footballTeamName(match.homeTeam)} vs ${footballTeamName(match.awayTeam)}`;
     const add=(suffix,offset,body)=>{const due=kickoff-offset;if(due>now)items.push({id:`football-${match.id}-${suffix}`,matchId:Number(match.id),offsetMinutes:Math.round(offset/60000),kind:'football',dueAt:new Date(due).toISOString(),title:'⚽ Football',body,url:'#football'})};
@@ -4493,12 +4499,13 @@ function setLauncherBadge(id,count){
 function nextLauncherFootballMatch(){
   const followed=new Set((state.footballFollowedMatches||[]).map(Number));
   const teams=new Set((state.footballFavouriteTeams||[]).map(team=>Number(team?.id)).filter(Boolean));
+  const teamNames=new Set((state.footballFavouriteTeams||[]).map(team=>footballTeamKey(team?.name)).filter(Boolean));
   if(!followed.size&&!teams.size)return null;
   const source=[...(footballScheduleCache?.matches||[]),...(footballCache?.matches||[])],seen=new Set(),now=Date.now();
   const candidates=source.filter(match=>{
     const id=Number(match?.id||0),home=Number(match?.homeTeam?.id||0),away=Number(match?.awayTeam?.id||0),time=Date.parse(match?.utcDate||'');
     if(!id||seen.has(id)||!Number.isFinite(time)||time<now-2*60*60*1000)return false;
-    seen.add(id);return followed.has(id)||teams.has(home)||teams.has(away);
+    seen.add(id);return followed.has(id)||teams.has(home)||teams.has(away)||teamNames.has(footballTeamKey(footballTeamName(match.homeTeam)))||teamNames.has(footballTeamKey(footballTeamName(match.awayTeam)));
   }).sort((a,b)=>Date.parse(a.utcDate)-Date.parse(b.utcDate));
   const match=candidates[0];if(!match)return null;
   const home=String(match.homeTeam?.shortName||match.homeTeam?.name||'Home'),away=String(match.awayTeam?.shortName||match.awayTeam?.name||'Away');
@@ -4823,12 +4830,11 @@ function renderPrivacyLockSettings(){
   const available=!!window.CommandCentreNative?.privacyLock&&!!nativePrivacyBridge(),status=qs('#privacyLockStatus'),apply=qs('#applyPrivacyLockBtn'),lock=qs('#privacyLockNowBtn');
   nativePrivacyState.available=available||nativePrivacyState.available;
   if(qs('#privacyLockEnabled'))qs('#privacyLockEnabled').value=nativePrivacyState.enabled?'on':'off';
-  if(qs('#privacyLockGrace'))qs('#privacyLockGrace').value=String([0,60,300,900].includes(Number(nativePrivacyState.graceSeconds))?Number(nativePrivacyState.graceSeconds):0);
   if(apply){apply.disabled=!available||nativePrivacyState.authenticating;apply.textContent=nativePrivacyState.authenticating?'Authenticating…':'Apply with Face ID'}
   if(lock)lock.disabled=!available||!nativePrivacyState.enabled||nativePrivacyState.authenticating;
   const launcherLock=qs('#launcherLockNow');if(launcherLock)launcherLock.hidden=!available;
   if(status){
-    const label=nativePrivacyState.error||(!available?'Privacy Lock is available in the iOS IPA only.':nativePrivacyState.enabled?`On • unlock ${Number(nativePrivacyState.graceSeconds)===0?'immediately':`after ${Number(nativePrivacyState.graceSeconds)/60} minute${Number(nativePrivacyState.graceSeconds)===60?'':'s'}`}`:'Off');
+    const label=nativePrivacyState.error||(!available?'Privacy Lock is available in the iOS IPA only.':nativePrivacyState.enabled?'On • unlocks once when Command Centre starts':'Off');
     status.lastElementChild.textContent=label;status.firstElementChild.textContent=nativePrivacyState.enabled?'🔒':'🔓';
   }
 }
@@ -4838,7 +4844,7 @@ function requestPrivacyLockStatus(){
 }
 function applyPrivacyLock(){
   const bridge=nativePrivacyBridge();if(!bridge){toast('Privacy Lock requires the iOS IPA');return}
-  const enabled=qs('#privacyLockEnabled')?.value==='on',graceSeconds=Number(qs('#privacyLockGrace')?.value||0);
+  const enabled=qs('#privacyLockEnabled')?.value==='on',graceSeconds=0;
   nativePrivacyState.error='';nativePrivacyState.authenticating=true;renderPrivacyLockSettings();
   bridge.postMessage({action:'configure',enabled,graceSeconds});
 }
@@ -5539,19 +5545,27 @@ function startNativeIPhoneMirror(){
   qs('#nativeMirrorStatus').textContent="Creating mirror room and opening Apple\'s screen broadcast picker…";
   window.webkit.messageHandlers.nativeMirror.postMessage({action:'start',baseURL:location.origin});
 }
+function reopenNativeMirrorPicker(){
+  if(!nativeMirrorBridgeAvailable()){toast('This control requires the iOS IPA');return}
+  qs('#nativeMirrorStatus').textContent="Opening Apple's broadcast picker…";
+  window.webkit.messageHandlers.nativeMirror.postMessage({action:'picker'});
+}
 function stopNativeIPhoneMirror(){
   if(nativeMirrorBridgeAvailable())window.webkit.messageHandlers.nativeMirror.postMessage({action:'stop'});
   if(qs('#nativeMirrorCode'))qs('#nativeMirrorCode').textContent='------';
+  if(qs('#nativeMirrorPickerBtn'))qs('#nativeMirrorPickerBtn').disabled=true;
 }
 window.CommandCentreNativeMirrorStatus=function(payload){
   const p=payload||{};
   if(p.code&&qs('#nativeMirrorCode'))qs('#nativeMirrorCode').textContent=String(p.code);
+  if(p.code&&qs('#nativeMirrorPickerBtn'))qs('#nativeMirrorPickerBtn').disabled=false;
   const el=qs('#nativeMirrorStatus');if(el){el.textContent=p.message||p.state||'Native mirror update';el.className=`mirror-state${p.ok?' ok':(p.error?' bad':'')}`}
 };
 
 let mirrorState={
   role:null,code:null,pc:null,stream:null,lastSignalId:0,pollTimer:null,connected:false,
-  pendingIce:[],readyTimer:null,retryTimer:null,audioContext:null,audioNextTime:0,audioChannel:null
+  pendingIce:[],readyTimer:null,retryTimer:null,connectionTimer:null,pollInFlight:false,pollFailures:0,
+  audioContext:null,audioNextTime:0,audioChannel:null
 };
 const MIRROR_ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
 function mirrorStatus(id,text,kind=''){const el=qs('#'+id);if(!el)return;el.className=`mirror-state${kind?' '+kind:''}`;el.textContent=text}
@@ -5568,17 +5582,22 @@ async function mirrorSignal(type,data,to){
 }
 async function createMirrorRoom(){
   stopMirror(false);
-  const code=mirrorRandomCode();
-  const r=await fetch('/api/mirror/room',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({code})
-  });
-  const data=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error(data.error||'Could not create mirror room');
+  let code='',data={};
+  for(let attempt=0;attempt<6;attempt++){
+    code=mirrorRandomCode();
+    const r=await fetch('/api/mirror/room',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})
+    });
+    data=await r.json().catch(()=>({}));
+    if(r.ok)break;
+    if(r.status===409){code='';continue}
+    throw new Error(data.error||'Could not create mirror room');
+  }
+  if(!code)throw new Error('Could not find a free mirror code. Please try again.');
   mirrorState.role='sender';
   mirrorState.code=code;
   mirrorState.lastSignalId=0;
+  mirrorState.pollFailures=0;
   if(qs('#mirrorSendCode'))qs('#mirrorSendCode').textContent=code;
   mirrorStatus('mirrorSenderStatus','Room created. Open Mirror on your laptop and enter this code.','ok');
   startMirrorPolling();
@@ -5769,21 +5788,35 @@ async function joinMirrorRoom(){
   mirrorState.role='receiver';
   mirrorState.code=code;
   mirrorState.lastSignalId=0;
+  mirrorState.pollFailures=0;
   makeMirrorPeer();
   mirrorStatus('mirrorReceiverStatus','Joined room. Asking the iPhone to connect…','ok');
   startMirrorPolling();
   scheduleMirrorReadyRetry();
+  clearTimeout(mirrorState.connectionTimer);
+  mirrorState.connectionTimer=setTimeout(()=>{
+    if(mirrorState.role==='receiver'&&!mirrorState.connected){
+      mirrorStatus('mirrorReceiverStatus','Still not connected. Keep the iPhone broadcast running, then tap Join mirror again.','bad');
+    }
+  },22000);
   try{await mirrorSignal('ready',{reason:'join',standalone:window.matchMedia?.('(display-mode: standalone)')?.matches===true},'sender')}catch(e){console.warn(e)}
 }
 async function handleMirrorSignal(sig){
   if(!mirrorState.pc&&mirrorState.role==='receiver')makeMirrorPeer();
-  const pc=mirrorState.pc;
+  let pc=mirrorState.pc;
   if(!pc)return;
   if(sig.type==='ready'&&mirrorState.role==='sender'){
     await resendBrowserMirrorOffer(pc.remoteDescription!=null&&!mirrorState.connected);
   }
   else if(sig.type==='offer'&&mirrorState.role==='receiver'){
     try{
+      if(pc.signalingState!=='stable'){
+        if(pc.remoteDescription?.type==='offer'&&pc.remoteDescription?.sdp===sig.data?.sdp&&pc.localDescription?.type==='answer'){
+          await mirrorSignal('answer',pc.localDescription,'sender');
+          return;
+        }
+        pc=makeMirrorPeer();
+      }
       await pc.setRemoteDescription(new RTCSessionDescription(sig.data));
       await flushMirrorIce();
       const answer=await pc.createAnswer();
@@ -5797,6 +5830,7 @@ async function handleMirrorSignal(sig){
   }
   else if(sig.type==='answer'&&mirrorState.role==='sender'){
     try{
+      if(pc.signalingState!=='have-local-offer')return;
       await pc.setRemoteDescription(new RTCSessionDescription(sig.data));
       await flushMirrorIce();
     }catch(e){console.warn('Mirror answer failed',e)}
@@ -5814,17 +5848,25 @@ async function handleMirrorSignal(sig){
   }
 }
 async function pollMirrorSignals(){
-  if(!mirrorState.code||!mirrorState.role)return;
+  if(!mirrorState.code||!mirrorState.role||mirrorState.pollInFlight)return;
+  mirrorState.pollInFlight=true;
   try{
     const r=await fetch(`/api/mirror/signals?code=${encodeURIComponent(mirrorState.code)}&for=${encodeURIComponent(mirrorState.role)}&after=${mirrorState.lastSignalId||0}`,{cache:'no-store'});
     const data=await r.json().catch(()=>({signals:[]}));
-    if(r.ok){
-      for(const sig of data.signals||[]){
-        mirrorState.lastSignalId=Math.max(mirrorState.lastSignalId,Number(sig.id)||0);
-        await handleMirrorSignal(sig);
-      }
+    if(!r.ok)throw new Error(data.error||`Mirror signalling HTTP ${r.status}`);
+    mirrorState.pollFailures=0;
+    for(const sig of data.signals||[]){
+      mirrorState.lastSignalId=Math.max(mirrorState.lastSignalId,Number(sig.id)||0);
+      await handleMirrorSignal(sig);
     }
-  }catch(e){console.warn('Mirror polling failed',e)}
+  }catch(e){
+    mirrorState.pollFailures++;
+    console.warn('Mirror polling failed',e);
+    if(mirrorState.pollFailures===3){
+      const id=mirrorState.role==='sender'?'mirrorSenderStatus':'mirrorReceiverStatus';
+      mirrorStatus(id,'Mirror signalling lost. Checking the connection…','bad');
+    }
+  }finally{mirrorState.pollInFlight=false}
 }
 function startMirrorPolling(){
   if(mirrorState.pollTimer)clearInterval(mirrorState.pollTimer);
@@ -5862,9 +5904,13 @@ async function stopMirror(sendBye=true){
   if(mirrorState.pollTimer)clearInterval(mirrorState.pollTimer);
   if(mirrorState.readyTimer)clearInterval(mirrorState.readyTimer);
   if(mirrorState.retryTimer)clearTimeout(mirrorState.retryTimer);
+  if(mirrorState.connectionTimer)clearTimeout(mirrorState.connectionTimer);
   mirrorState.pollTimer=null;
   mirrorState.readyTimer=null;
   mirrorState.retryTimer=null;
+  mirrorState.connectionTimer=null;
+  mirrorState.pollInFlight=false;
+  mirrorState.pollFailures=0;
   stopMirrorSharing();
   if(mirrorState.pc)try{mirrorState.pc.close()}catch{}
   mirrorState.pc=null;
@@ -5899,6 +5945,7 @@ function bindMirrorControls(){
   bind('mirrorFullscreenBtn','click',toggleMirrorFullscreen);
   bind('mirrorLeaveBtn','click',()=>stopMirror(true));
   bind('nativeMirrorStartBtn','click',startNativeIPhoneMirror);
+  bind('nativeMirrorPickerBtn','click',reopenNativeMirrorPicker);
   bind('nativeMirrorStopBtn','click',stopNativeIPhoneMirror);
   const remote=qs('#mirrorRemoteVideo');
   if(remote)remote.addEventListener('dblclick',toggleMirrorFullscreen);
@@ -6409,13 +6456,13 @@ let liveFootballCurrentSourceIndex=0;
 
 function liveSportKind(){
   const kind=typeof currentSportTab==='function'?currentSportTab():'football';
-  return ['football','tennis','basketball'].includes(kind)?kind:'football';
+  return ['football','tennis','athletics'].includes(kind)?kind:'football';
 }
 function liveSportCategory(kind=liveSportKind()){
-  return kind==='tennis'?'tennis':kind==='basketball'?'basketball':'soccer';
+  return kind==='tennis'?'tennis':kind==='athletics'?'athletics':'soccer';
 }
 function liveSportDisplay(kind=liveSportKind()){
-  return kind==='tennis'?'Tennis':kind==='basketball'?'Basketball':'Football';
+  return kind==='tennis'?'Tennis':kind==='athletics'?'Athletics':'Football';
 }
 function liveSportProviderStorageKey(kind=liveSportKind()){
   return `cc_live_provider_${kind}`;
@@ -6766,12 +6813,12 @@ window.setLiveFootballSource=setLiveFootballSource;
 window.selectLiveFootballProvider=selectLiveFootballProvider;
 
 
-let generalSportCache={tennis:{events:[],updatedAt:''},basketball:{events:[],updatedAt:''}};
+let generalSportCache={tennis:{events:[],updatedAt:''},athletics:{events:[],updatedAt:''}};
 let generalSportLoadToken=0;
 
 function currentSportTab(){return state.activeSportTab||'football'}
-function sportLabel(kind){return kind==='tennis'?'Tennis':kind==='basketball'?'Basketball':'Football'}
-function sportEmoji(kind){return kind==='tennis'?'🎾':kind==='basketball'?'🏀':'⚽'}
+function sportLabel(kind){return kind==='tennis'?'Tennis':kind==='athletics'?'Athletics':'Football'}
+function sportEmoji(kind){return kind==='tennis'?'🎾':kind==='athletics'?'🏃':'⚽'}
 function sportFavourites(kind){
   const arr=state.sportFavourites?.[kind];
   return Array.isArray(arr)?arr:[];
@@ -6781,7 +6828,7 @@ function isSportFollowed(kind,name){
 }
 function toggleSportFollow(kind,name){
   name=decodeURIComponent(name||'').trim();
-  if(!name||!['tennis','basketball'].includes(kind))return;
+  if(!name||!['tennis','athletics'].includes(kind))return;
   const current=sportFavourites(kind);
   const exists=current.some(x=>x.toLowerCase()===name.toLowerCase());
   state.sportFavourites={...(state.sportFavourites||{}),[kind]:exists?current.filter(x=>x.toLowerCase()!==name.toLowerCase()):[...current,name]};
@@ -6817,6 +6864,14 @@ function generalSportScore(e){
   return generalSportFinished(e)?'Final':'vs';
 }
 function generalSportEventCard(e,kind){
+  if(kind==='athletics'){
+    const followed=isSportFollowed(kind,e.name),result=generalSportFinished(e),link=String(e.url||'');
+    return `<div class="sport-event ${followed?'followed':''}">
+      <div class="sport-event-top"><div><div class="sport-event-title">${esc(e.name||'Athletics meeting')}</div><div class="sport-event-meta">${esc(generalSportEventTime(e))} • ${esc(e.league||'World Athletics')}</div></div>${followed?'<span class="football-favourite-badge">★ Following</span>':''}</div>
+      <div class="sport-participants"><div class="sport-person"><button class="sport-follow-btn ${followed?'active':''}" onclick="toggleSportFollow('athletics','${encodeURIComponent(e.name||'Athletics meeting')}')" title="Follow meeting">${followed?'★':'☆'}</button><span class="sport-person-name">${esc(e.venue||'Venue to be confirmed')}</span></div><div class="sport-event-score">${result?'Results':'Upcoming'}</div></div>
+      ${link?`<div class="football-match-actions"><a class="btn small" href="${esc(link)}" target="_blank" rel="noopener">Open official page</a></div>`:''}
+    </div>`;
+  }
   const home=e.home||String(e.name||'').split(' vs ')[0]||'';
   const away=e.away||String(e.name||'').split(' vs ')[1]||'';
   const followed=isSportFollowed(kind,home)||isSportFollowed(kind,away);
@@ -6846,7 +6901,7 @@ function renderGeneralSportFollowing(kind){
   el.innerHTML=favs.length?favs.map(name=>`<span class="sport-follow-chip">★ ${esc(name)} <button onclick="removeSportFollow('${kind}','${encodeURIComponent(name)}')" title="Remove">×</button></span>`).join(''):'<div class="empty">Nothing followed yet. Tap ☆ beside a team or player.</div>';
 }
 function renderGeneralSport(kind){
-  if(!['tennis','basketball'].includes(kind))return;
+  if(!['tennis','athletics'].includes(kind))return;
   const cache=generalSportCache[kind]||{events:[]};
   const events=Array.isArray(cache.events)?cache.events:[];
   const now=Date.now();
@@ -6890,7 +6945,7 @@ function renderGeneralSport(kind){
   renderGeneralSportFollowing(kind);
 }
 async function loadGeneralSport(kind,force=false){
-  if(!['tennis','basketball'].includes(kind))return;
+  if(!['tennis','athletics'].includes(kind))return;
   const token=++generalSportLoadToken;
   const status=qs('#footballStatus');
   if(status)status.innerHTML=`<span class="status"><span class="dot loading"></span>Loading live ${sportLabel(kind).toLowerCase()}…</span>`;
@@ -6917,7 +6972,7 @@ async function loadGeneralSport(kind,force=false){
   }
 }
 function setSportTab(kind,load=true){
-  if(!['football','tennis','basketball'].includes(kind))kind='football';
+  if(!['football','tennis','athletics'].includes(kind))kind='football';
   state.activeSportTab=kind;saveState();
   qsa('[data-sport-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.sportTab===kind));
   const football=qs('#footballSportContent'),general=qs('#generalSportContent'),comp=qs('#footballCompetitionWrap');
@@ -6982,6 +7037,7 @@ function footballDateTime(iso){
   return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' • '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
 }
 function footballTeamName(team){return team?.shortName||team?.name||team?.tla||'Team'}
+function footballTeamKey(name){return String(name||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g,'')}
 function footballScoreText(m){
   const h=m?.score?.fullTime?.home,a=m?.score?.fullTime?.away;
   if(Number.isFinite(h)&&Number.isFinite(a))return `${h} – ${a}`;
@@ -7016,7 +7072,14 @@ function renderFootballScheduleTabs(){
 }
 function footballAllScheduleMatches(){
   const rows=[...(footballScheduleCache.matches||[]),...(footballCache.matches||[])];
-  return [...new Map(rows.map(match=>[String(match.id),match])).values()];
+  const seen=new Map();
+  rows.forEach(match=>{
+    const kickoff=Date.parse(match?.utcDate||''),minute=Number.isFinite(kickoff)?Math.round(kickoff/60000):String(match?.utcDate||'');
+    const teams=[footballTeamKey(footballTeamName(match?.homeTeam)),footballTeamKey(footballTeamName(match?.awayTeam))].sort().join(':');
+    const key=teams?`${minute}:${teams}`:`id:${match?.id}`;
+    if(!seen.has(key))seen.set(key,match);
+  });
+  return [...seen.values()];
 }
 function footballLineupPlayerHtml(player){return `<div class="football-player"><span class="football-player-number">${player.number==null?'—':esc(player.number)}</span><span>${esc(player.name||'Player')}${player.position?`<small class="football-player-position">${esc(player.position)}</small>`:''}</span></div>`}
 function footballLineupTeamHtml(team){return `<section class="football-lineup-team"><div class="football-lineup-team-head">${team.crest?`<img src="${esc(team.crest)}" alt="">`:''}<div><strong>${esc(team.name||'Team')}</strong><div class="sub">${esc([team.formation?`Formation ${team.formation}`:'',team.coach?`Coach ${team.coach}`:''].filter(Boolean).join(' • ')||'Team sheet')}</div></div></div><div class="section-note">Starting XI</div>${team.starting?.length?team.starting.map(footballLineupPlayerHtml).join(''):'<div class="empty">Not announced</div>'}<div class="section-note" style="margin-top:8px">Bench</div>${team.bench?.length?team.bench.map(footballLineupPlayerHtml).join(''):'<div class="empty">Not announced</div>'}</section>`}
@@ -7241,7 +7304,7 @@ function renderFootballFavourite(){
   }
   el.innerHTML=`<div class="football-favourites-list">${teams.map(team=>{
     const id=Number(team.id);
-    const matches=footballAllScheduleMatches().filter(m=>Number(m.homeTeam?.id)===id||Number(m.awayTeam?.id)===id);
+    const key=footballTeamKey(team.name),matches=footballAllScheduleMatches().filter(m=>Number(m.homeTeam?.id)===id||Number(m.awayTeam?.id)===id||footballTeamKey(footballTeamName(m.homeTeam))===key||footballTeamKey(footballTeamName(m.awayTeam))===key);
     const next=matches.filter(m=>!['FINISHED','CANCELLED'].includes(m.status)&&new Date(m.utcDate)>=new Date()).sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate))[0];
     const last=matches.filter(m=>m.status==='FINISHED').sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate))[0];
     return `<div class="football-favourite">
@@ -7709,12 +7772,32 @@ function renderForYouFeed(){
   el.innerHTML=visible.length?visible.join(''):'<div class="empty">Your feed is empty. Refresh it to load fresh items.</div>';
   renderEntertainmentStats();
 }
+let entertainmentRefreshPromise=null;
 async function refreshEntertainmentFeed(force=false){
-  const btn=qs('#refreshEntertainmentBtn');if(btn)btn.disabled=true;
-  try{
-    await Promise.allSettled([loadNews(force),loadReddit(),loadManga(force)]);
-    renderForYouFeed();renderEntertainmentCommunity();
-  }finally{if(btn)btn.disabled=false}
+  if(entertainmentRefreshPromise)return entertainmentRefreshPromise;
+  const btn=qs('#refreshEntertainmentBtn'),status=qs('#entertainmentFeedStatus');
+  const originalLabel=btn?.textContent||'↻ Refresh feed';
+  if(btn){btn.disabled=true;btn.textContent='Refreshing…';btn.setAttribute('aria-busy','true')}
+  if(status)status.textContent='Refreshing news, community posts and recommendations…';
+  entertainmentRefreshPromise=(async()=>{
+    try{
+      const results=await Promise.allSettled([loadNews(force),loadReddit(),loadManga(force)]);
+      renderForYouFeed();renderEntertainmentCommunity();
+      const failures=results.filter(result=>result.status==='rejected').length;
+      const time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+      if(status)status.textContent=failures?`Updated at ${time}. ${failures} source${failures===1?'':'s'} kept its saved results.`:`Feed updated at ${time}.`;
+      if(force)toast(failures?'Feed updated with saved fallbacks':'Feed refreshed');
+      return failures===0;
+    }catch(error){
+      if(status)status.textContent=`Refresh failed: ${error?.message||'check your connection'}`;
+      if(force)toast('Feed refresh failed');
+      return false;
+    }finally{
+      if(btn){btn.disabled=false;btn.textContent=originalLabel;btn.removeAttribute('aria-busy')}
+      entertainmentRefreshPromise=null;
+    }
+  })();
+  return entertainmentRefreshPromise;
 }
 function renderEntertainmentCommunity(){
   const el=qs('#entCommunityFeed');if(!el)return;
@@ -9130,16 +9213,28 @@ function updateNoteBodyEmptyState(){
   const empty=!el.textContent.trim()&&!el.querySelector('img');
   el.dataset.empty=empty?'true':'false';
 }
+function syncNoteVisualViewport(){
+  const modal=qs('#noteModal');if(!modal?.classList.contains('open'))return;
+  const viewport=window.visualViewport;
+  const height=Math.max(280,Math.round(viewport?.height||window.innerHeight||document.documentElement.clientHeight));
+  const top=Math.max(0,Math.round(viewport?.offsetTop||0));
+  document.documentElement.style.setProperty('--cc-note-vv-height',`${height}px`);
+  document.documentElement.style.setProperty('--cc-note-vv-top',`${top}px`);
+  requestAnimationFrame(()=>{
+    const active=document.activeElement;
+    if(active===qs('#noteBody')||active===qs('#noteTitle'))active.scrollIntoView?.({block:'nearest'});
+  });
+}
 let notesFilter='all';
 function populateNoteFolderSelect(value='Notes'){const s=qs('#noteFolder');if(!s)return;const folders=[...new Set(state.noteFolders)].sort((a,b)=>a.localeCompare(b));s.innerHTML=folders.map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join('');s.value=folders.includes(value)?value:(folders[0]||'Notes')}
 function renderNotesNavigation(){const el=qs('#notesNavigation');if(!el)return;const active=state.notes.filter(n=>!n.deletedAt),deleted=state.notes.filter(n=>n.deletedAt);const items=[['all','📝 All Notes',active.length],['pinned','📌 Pinned',active.filter(n=>n.pinned).length],...[...new Set(state.noteFolders)].map(f=>[`folder:${f}`,`📁 ${f}`,active.filter(n=>n.folder===f).length]),['deleted','🗑 Recently Deleted',deleted.length]];el.innerHTML=items.map(([k,l,c])=>`<button class="notes-nav-btn ${notesFilter===k?'active':''}" data-notes-filter="${esc(k)}"><span>${esc(l)}</span><span class="notes-nav-count">${c}</span></button>`).join('')}
 function setNotesFilter(f){notesFilter=f||'all';renderNotesNavigation();renderNotes()}
 function addNoteFolder(){const n=prompt('New folder name');if(!n)return;const clean=n.trim().slice(0,40);if(!clean)return;if(!state.noteFolders.includes(clean))state.noteFolders.push(clean);saveState();setNotesFilter(`folder:${clean}`);toast(`Folder "${clean}" created`)}
-function openNote(id=null){editingNoteId=id;const n=id?state.notes.find(x=>x.id===id):null,deleted=!!n?.deletedAt;qs('#noteModalTitle').textContent=n?(deleted?'Deleted note':'Edit note'):'New note';qs('#noteTitle').value=n?.title||'';qs('#noteBody').innerHTML=n?.body||'';populateNoteFolderSelect(n?.folder||(notesFilter.startsWith('folder:')?notesFilter.slice(7):'Notes'));qs('#notePinned').checked=!!n?.pinned;updateNoteBodyEmptyState();qs('#deleteNoteBtn').style.display=n?'block':'none';qs('#deleteNoteBtn').textContent=deleted?'Delete forever':'Delete';qs('#restoreNoteBtn').style.display=deleted?'block':'none';qs('#saveNote').style.display=deleted?'none':'inline-flex';qs('#saveNote').textContent=n?'Save changes':'Save note';openModal('noteModal');setTimeout(()=>qs('#noteTitle')?.focus(),80)}
+function openNote(id=null){editingNoteId=id;const n=id?state.notes.find(x=>x.id===id):null,deleted=!!n?.deletedAt;qs('#noteModalTitle').textContent=n?(deleted?'Deleted note':'Edit note'):'New note';qs('#noteTitle').value=n?.title||'';qs('#noteBody').innerHTML=n?.body||'';populateNoteFolderSelect(n?.folder||(notesFilter.startsWith('folder:')?notesFilter.slice(7):'Notes'));qs('#notePinned').checked=!!n?.pinned;updateNoteBodyEmptyState();qs('#deleteNoteBtn').style.display=n?'block':'none';qs('#deleteNoteBtn').textContent=deleted?'Delete forever':'Delete';qs('#restoreNoteBtn').style.display=deleted?'block':'none';qs('#saveNote').style.display=deleted?'none':'inline-flex';qs('#saveNote').textContent=n?'Save changes':'Save note';openModal('noteModal');syncNoteVisualViewport();setTimeout(()=>{qs('#noteTitle')?.focus();syncNoteVisualViewport()},80)}
 function normalizeFontTags(root){const sizeMap={'1':'11px','2':'12px','3':'14px','4':'16px','5':'19px','6':'23px','7':'28px'};root.querySelectorAll('font[size]').forEach(f=>{const span=document.createElement('span');span.style.fontSize=sizeMap[f.getAttribute('size')]||'14px';span.innerHTML=f.innerHTML;f.replaceWith(span)})}
 function noteExec(cmd,value=null){const el=qs('#noteBody');if(!el)return;el.focus();document.execCommand(cmd,false,value);normalizeFontTags(el);updateNoteBodyEmptyState();refreshToolbarState()}
 function refreshToolbarState(){['bold','italic','underline','strikeThrough','insertUnorderedList'].forEach(cmd=>{const btn=qs(`#noteToolbar [data-cmd="${cmd}"]`);if(!btn)return;let active=false;try{active=document.queryCommandState(cmd)}catch{}btn.classList.toggle('active',active)})}
-function bindNoteToolbar(){qsa('#noteToolbar [data-cmd]').forEach(btn=>btn.addEventListener('click',()=>{const cmd=btn.dataset.cmd;if(cmd==='removeFormat'){noteExec('removeFormat');noteExec('unlink');return}noteExec(cmd)}));qs('#noteFontSize')?.addEventListener('change',e=>noteExec('fontSize',e.target.value));qsa('#noteColorSwatches .color-dot').forEach(dot=>dot.addEventListener('click',()=>{qsa('#noteColorSwatches .color-dot').forEach(d=>d.classList.remove('active'));dot.classList.add('active');noteExec('foreColor',dot.dataset.color)}));const body=qs('#noteBody');if(body){body.addEventListener('input',updateNoteBodyEmptyState);body.addEventListener('keyup',refreshToolbarState);body.addEventListener('mouseup',refreshToolbarState);body.addEventListener('paste',e=>{e.preventDefault();const text=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,text)})}}
+function bindNoteToolbar(){qsa('#noteToolbar [data-cmd]').forEach(btn=>btn.addEventListener('click',()=>{const cmd=btn.dataset.cmd;if(cmd==='removeFormat'){noteExec('removeFormat');noteExec('unlink');return}noteExec(cmd)}));qs('#noteFontSize')?.addEventListener('change',e=>noteExec('fontSize',e.target.value));qsa('#noteColorSwatches .color-dot').forEach(dot=>dot.addEventListener('click',()=>{qsa('#noteColorSwatches .color-dot').forEach(d=>d.classList.remove('active'));dot.classList.add('active');noteExec('foreColor',dot.dataset.color)}));const body=qs('#noteBody');if(body){body.addEventListener('input',()=>{updateNoteBodyEmptyState();syncNoteVisualViewport()});body.addEventListener('focus',syncNoteVisualViewport);body.addEventListener('keyup',refreshToolbarState);body.addEventListener('mouseup',refreshToolbarState);body.addEventListener('paste',e=>{e.preventDefault();const text=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,text)})}qs('#noteTitle')?.addEventListener('focus',syncNoteVisualViewport);window.visualViewport?.addEventListener('resize',syncNoteVisualViewport,{passive:true});window.visualViewport?.addEventListener('scroll',syncNoteVisualViewport,{passive:true});window.addEventListener('resize',syncNoteVisualViewport,{passive:true})}
 window.editNote=id=>openNote(id);
 function renderNotes(){renderHomeLauncher();renderNotesNavigation();const el=qs('#notesList');if(!el)return;const q=(qs('#notesSearch')?.value||'').trim().toLowerCase();let notes=[...state.notes];if(notesFilter==='deleted')notes=notes.filter(n=>n.deletedAt);else{notes=notes.filter(n=>!n.deletedAt);if(notesFilter==='pinned')notes=notes.filter(n=>n.pinned);else if(notesFilter.startsWith('folder:'))notes=notes.filter(n=>n.folder===notesFilter.slice(7))}if(q)notes=notes.filter(n=>(`${n.title||''} ${notePreview(n.body)} ${n.folder||''}`).toLowerCase().includes(q));notes.sort((a,b)=>{if(!a.deletedAt&&!b.deletedAt&&a.pinned!==b.pinned)return a.pinned?-1:1;return new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt)});if(!notes.length){el.innerHTML=q?'<div class="notes-empty"><strong>No matching notes</strong>Try another search.</div>':'<div class="notes-empty"><strong>Nothing here</strong>Create a note or choose another folder.</div>';return}const card=n=>`<div class="note-card ${n.pinned?'pinned':''}" data-note-id="${esc(n.id)}"><div class="note-icon">${n.deletedAt?'🗑':(n.pinned?'📌':'📝')}</div><div class="note-card-main"><div class="note-card-title">${esc(n.title||'Untitled note')}</div><div class="note-card-preview">${esc(notePreview(n.body)||'No text')}</div><div class="note-card-meta"><span class="note-folder-pill">${esc(n.folder||'Notes')}</span><span>${esc(noteDateLabel(n.updatedAt||n.createdAt))}</span></div></div></div>`;const pinned=notesFilter!=='deleted'?notes.filter(n=>n.pinned):[],other=notesFilter!=='deleted'?notes.filter(n=>!n.pinned):notes;el.innerHTML=pinned.length&&other.length?`<div class="notes-section-label">Pinned</div><div class="notes-list">${pinned.map(card).join('')}</div><div class="notes-section-label">Notes</div><div class="notes-list">${other.map(card).join('')}</div>`:`<div class="notes-list">${notes.map(card).join('')}</div>`;qsa('#notesList [data-note-id]').forEach(c=>c.addEventListener('click',()=>openNote(c.dataset.noteId)))}
 function saveNote(){const title=qs('#noteTitle').value.trim()||'Untitled note',body=qs('#noteBody').innerHTML,folder=qs('#noteFolder')?.value||'Notes',pinned=!!qs('#notePinned')?.checked,now=nowIso();if(!state.noteFolders.includes(folder))state.noteFolders.push(folder);if(editingNoteId)state.notes=state.notes.map(n=>n.id===editingNoteId?{...n,title,body,folder,pinned,updatedAt:now}:n);else state.notes=[{id:makeId('note'),title,body,folder,pinned,createdAt:now,updatedAt:now,deletedAt:''},...state.notes];saveState();closeModal('noteModal');renderNotes();renderTodayPage();toast(editingNoteId?'Note updated':'Note saved');editingNoteId=null}

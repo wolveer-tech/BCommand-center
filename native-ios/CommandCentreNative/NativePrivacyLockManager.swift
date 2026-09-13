@@ -13,19 +13,18 @@ final class NativePrivacyLockManager: NSObject, ObservableObject, WKScriptMessag
     @Published private(set) var isAuthenticating = false
 
     private let enabledKey = "cc.privacy-lock.enabled"
-    private let graceKey = "cc.privacy-lock.grace-seconds"
     private weak var webView: WKWebView?
-    private var backgroundedAt: Date?
     private var isAppBackgrounded = false
 
     private(set) var isEnabled: Bool
-    private(set) var graceSeconds: Int
+    // Kept in the bridge payload for backward compatibility with an older web
+    // shell. Privacy Lock now authenticates on a cold app launch or Lock Now,
+    // never for Control Centre, Notification Centre or normal app switching.
+    private(set) var graceSeconds = 0
 
     private override init() {
         let defaults = UserDefaults.standard
         isEnabled = defaults.bool(forKey: enabledKey)
-        let savedGrace = defaults.object(forKey: graceKey) as? Int
-        graceSeconds = Self.validGrace(savedGrace ?? 0)
         isLocked = isEnabled
         super.init()
     }
@@ -60,8 +59,7 @@ final class NativePrivacyLockManager: NSObject, ObservableObject, WKScriptMessag
                 publishStatus(error: "Choose whether Privacy Lock is on or off.")
                 return
             }
-            let grace = Self.validGrace((body["graceSeconds"] as? NSNumber)?.intValue ?? graceSeconds)
-            configure(enabled: requested, graceSeconds: grace)
+            configure(enabled: requested)
         case "lock":
             guard isEnabled else {
                 publishStatus(error: "Turn on Privacy Lock in Settings first.")
@@ -81,35 +79,25 @@ final class NativePrivacyLockManager: NSObject, ObservableObject, WKScriptMessag
         switch phase {
         case .inactive:
             guard isEnabled else { return }
+            // Hide private content in system snapshots without changing the
+            // unlocked session. Control Centre and notification banners both
+            // make a scene inactive, so they must never trigger Face ID.
             isShielded = true
-            // Face ID temporarily makes the scene inactive. Do not count its
-            // own system sheet as the user leaving Command Centre.
-            guard !isAuthenticating else { return }
-            if backgroundedAt == nil { backgroundedAt = Date() }
         case .background:
             isAppBackgrounded = true
             guard isEnabled else { return }
             isShielded = true
-            if backgroundedAt == nil { backgroundedAt = Date() }
         case .active:
             isAppBackgrounded = false
             guard isEnabled else {
                 isLocked = false
                 isShielded = false
-                backgroundedAt = nil
                 return
             }
             // Wait for the in-flight Face ID sheet to finish. Its completion
             // owns the unlock result and will remove the shield.
             guard !isAuthenticating else { return }
-            guard let leftAt = backgroundedAt else {
-                isShielded = isLocked
-                return
-            }
-            let elapsed = Date().timeIntervalSince(leftAt)
-            backgroundedAt = nil
-            if isLocked || graceSeconds == 0 || elapsed >= Double(graceSeconds) {
-                isLocked = true
+            if isLocked {
                 isShielded = true
                 authenticate(reason: "Unlock your private Command Centre data")
             } else {
@@ -164,7 +152,6 @@ final class NativePrivacyLockManager: NSObject, ObservableObject, WKScriptMessag
                     } else {
                         isLocked = false
                         isShielded = false
-                        backgroundedAt = nil
                         playHaptic(style: "success")
                     }
                 } else if !isLocked && !isAppBackgrounded {
@@ -184,10 +171,9 @@ final class NativePrivacyLockManager: NSObject, ObservableObject, WKScriptMessag
         }
     }
 
-    private func configure(enabled requested: Bool, graceSeconds grace: Int) {
+    private func configure(enabled requested: Bool) {
         if requested == isEnabled {
-            graceSeconds = grace
-            UserDefaults.standard.set(grace, forKey: graceKey)
+            graceSeconds = 0
             publishStatus()
             return
         }
@@ -200,17 +186,12 @@ final class NativePrivacyLockManager: NSObject, ObservableObject, WKScriptMessag
                 return
             }
             self.isEnabled = requested
-            self.graceSeconds = grace
+            self.graceSeconds = 0
             self.isLocked = requested && self.isAppBackgrounded
             self.isShielded = self.isLocked
             UserDefaults.standard.set(requested, forKey: self.enabledKey)
-            UserDefaults.standard.set(grace, forKey: self.graceKey)
             self.publishStatus()
         }
-    }
-
-    private static func validGrace(_ value: Int) -> Int {
-        [0, 60, 300, 900].contains(value) ? value : 0
     }
 
     private func playHaptic(style: String) {

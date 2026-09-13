@@ -3,15 +3,18 @@
   'use strict';
   const root = document.documentElement;
   const media = matchMedia('(prefers-reduced-motion: reduce)');
+  const introSessionKey = 'cc_space_intro_played_v1';
   let preference = 'cinematic';
   try { preference = localStorage.getItem('cc_motion_mode') || preference; } catch {}
+  let playedThisSession = false;
+  try { playedThisSession = sessionStorage.getItem(introSessionKey) === '1'; } catch {}
   const mode = () => preference === 'off' ? 'off' : media.matches || preference === 'gentle' ? 'gentle' : 'cinematic';
   root.dataset.ccMotion = mode();
-  if (mode() !== 'off') root.dataset.ccLaunch = 'pending';
+  if (mode() !== 'off' && !playedThisSession) root.dataset.ccLaunch = 'pending';
 
   let overlay, canvas, context, progress, raf = 0, elapsed = 0, previousTime = 0;
   let running = false, finishing = false, nativeLocked = !!window.CommandCentreNative?.privacyLock;
-  let nativeKnown = !nativeLocked, startRequested = mode() !== 'off';
+  let nativeKnown = !nativeLocked, startRequested = mode() !== 'off' && !playedThisSession;
   let width = 0, height = 0, stars = [], safetyTimer, exitTimer, restoreFocus;
   let lastTrigger = null, pageAnimation = null;
   const inerted = [];
@@ -69,7 +72,10 @@
   function resize() {
     if (!canvas || !context) return;
     width = innerWidth; height = innerHeight;
-    const pixelRatio = Math.min(devicePixelRatio || 1, 1.75);
+    // A full-resolution canvas with hundreds of particles was enough to make
+    // WKWebView drop frames or be killed on iPhone. The lower mobile cap is
+    // visually identical at this speed and leaves room for the app to boot.
+    const pixelRatio = Math.min(devicePixelRatio || 1, width < 600 ? 1.3 : 1.75);
     canvas.width = Math.round(width * pixelRatio); canvas.height = Math.round(height * pixelRatio);
     context.setTransform(pixelRatio,0,0,pixelRatio,0,0);
   }
@@ -126,9 +132,10 @@
     previousTime=time;elapsed+=dt;
     try {
       draw(mode()==='gentle'?0:dt/1000, mode()==='gentle'?0:elapsed);
-      progress.style.transform=`scaleX(${clamp(elapsed/3100)})`;
+      const cinematicDuration = width < 600 ? 2550 : 3100;
+      progress.style.transform=`scaleX(${clamp(elapsed/cinematicDuration)})`;
       if (elapsed > 1350) overlay.classList.add('cc-space-warp');
-      if (elapsed > (mode()==='gentle'?320:3100)) {finish();return;}
+      if (elapsed > (mode()==='gentle'?320:cinematicDuration)) {finish();return;}
       raf=requestAnimationFrame(frame);
     } catch { finish(true); }
   }
@@ -138,6 +145,8 @@
     clearTimeout(exitTimer);clearTimeout(safetyTimer);
     cancelMotion();
     running=true;finishing=false;elapsed=0;previousTime=0;
+    playedThisSession=true;
+    try { sessionStorage.setItem(introSessionKey, '1'); } catch {}
     restoreFocus=document.activeElement;
     root.dataset.ccLaunch='playing';
     overlay.setAttribute('aria-hidden','false');
@@ -152,7 +161,7 @@
       context=canvas.getContext('2d',{alpha:false});
       if(!context){finish(true);return;}
       resize();
-      stars=Array.from({length:width<600?700:1200},()=>seedStar({}));
+      stars=Array.from({length:width<600?360:1000},()=>seedStar({}));
       draw(0,0);
       raf=requestAnimationFrame(frame);
       safetyTimer=setTimeout(()=>finish(true),8000);

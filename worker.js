@@ -1739,6 +1739,86 @@ const API_FOOTBALL_COMPETITIONS={
 function isoDayOffset(n){
   const d=new Date();d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);
 }
+
+// SofaScore has no public developer-key product. These are the same read-only,
+// first-party JSON routes requested by sofascore.com itself. Keep every call
+// server-side, cached and optional: if the website rejects automated traffic,
+// Command Centre falls back to the configured football/tennis providers.
+const SOFASCORE_WEB_BASE='https://www.sofascore.com/api/v1';
+const SOFASCORE_ID_PREFIX=900000000000;
+async function sofascoreWebsiteFetch(path){
+  const r=await fetch(`${SOFASCORE_WEB_BASE}${path}`,{headers:{
+    accept:'application/json,text/plain,*/*',
+    referer:'https://www.sofascore.com/',
+    origin:'https://www.sofascore.com',
+    'user-agent':'Mozilla/5.0 (compatible; CommandCentre/1.0; +https://bcommand-center.wolvesgidaree.workers.dev)'
+  }});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok){const err=new Error(`SofaScore website feed HTTP ${r.status}`);err.status=502;throw err}
+  return data;
+}
+function sofascoreRawEvents(payload){
+  if(Array.isArray(payload?.events))return payload.events;
+  const found=[],seen=new Set(),walk=(value,depth=0)=>{
+    if(!value||depth>7)return;
+    if(Array.isArray(value)){value.forEach(item=>walk(item,depth+1));return}
+    if(typeof value!=='object')return;
+    if(value.id&&value.homeTeam&&value.awayTeam&&(value.startTimestamp||value.startTime||value.status)){
+      const key=String(value.id);if(!seen.has(key)){seen.add(key);found.push(value)}
+      return;
+    }
+    Object.values(value).forEach(item=>walk(item,depth+1));
+  };
+  walk(payload);
+  return found;
+}
+function sofascoreTeam(team){
+  const rawId=Number(team?.id)||0,id=rawId?SOFASCORE_ID_PREFIX+rawId:0;
+  return {id,name:String(team?.name||'Team'),shortName:String(team?.shortName||team?.name||'Team'),tla:String(team?.nameCode||''),crest:rawId?`https://img.sofascore.com/api/v1/team/${rawId}/image`:''};
+}
+function sofascoreStatus(event){
+  const type=String(event?.status?.type||event?.status?.description||'').toLowerCase();
+  if(/finished|after extra|after penalties/.test(type))return 'FINISHED';
+  if(/cancel|abandon/.test(type))return 'CANCELLED';
+  if(/postpon/.test(type))return 'POSTPONED';
+  if(/pause|halftime/.test(type))return 'PAUSED';
+  if(/inprogress|live|period/.test(type))return 'IN_PLAY';
+  return 'SCHEDULED';
+}
+function cleanSofascoreFootballEvent(event){
+  const rawId=Number(event?.id)||0,scoreHome=event?.homeScore?.normaltime??event?.homeScore?.current,scoreAway=event?.awayScore?.normaltime??event?.awayScore?.current;
+  const tournament=event?.tournament||{},unique=tournament?.uniqueTournament||{};
+  const statusText=String(event?.status?.description||event?.status?.type||''),minuteMatch=statusText.match(/\d+/);
+  return {
+    id:rawId?SOFASCORE_ID_PREFIX+rawId:0,sofascoreId:rawId,
+    utcDate:event?.startTimestamp?new Date(Number(event.startTimestamp)*1000).toISOString():String(event?.startTime||''),
+    status:sofascoreStatus(event),minute:minuteMatch?Number(minuteMatch[0]):null,
+    competition:{id:Number(unique.id||tournament.id)||0,name:String(unique.name||tournament.name||'Football'),code:'',emblem:Number(unique.id)?`https://img.sofascore.com/api/v1/unique-tournament/${unique.id}/image`:''},
+    homeTeam:sofascoreTeam(event?.homeTeam),awayTeam:sofascoreTeam(event?.awayTeam),
+    score:{fullTime:{home:scoreHome==null?null:Number(scoreHome),away:scoreAway==null?null:Number(scoreAway)}},
+    source:'sofascore-website'
+  };
+}
+async function sofascoreSportEvents(sport,dates){
+  const settled=await Promise.allSettled(dates.map(async date=>{
+    try{return sofascoreRawEvents(await sofascoreWebsiteFetch(`/sport/${sport}/scheduled-events/${date}`))}
+    catch(firstError){
+      const pages=await Promise.all([1,2].map(page=>sofascoreWebsiteFetch(`/sport/${sport}/scheduled-tournaments/${date}/page/${page}`).catch(()=>null)));
+      const rows=pages.flatMap(sofascoreRawEvents);if(!rows.length)throw firstError;return rows;
+    }
+  }));
+  const rows=settled.flatMap(result=>result.status==='fulfilled'?result.value:[]);
+  if(!rows.length){const reason=settled.find(result=>result.status==='rejected')?.reason;throw reason||new Error('SofaScore website feed returned no events.')}
+  return [...new Map(rows.map(event=>[String(event.id),event])).values()];
+}
+async function sofascoreFootballSchedule(){
+  const dates=Array.from({length:9},(_,index)=>isoDayOffset(index-1));
+  const events=await sofascoreSportEvents('football',dates);
+  const matches=events.map(cleanSofascoreFootballEvent).filter(match=>match.id&&match.utcDate).sort((a,b)=>Date.parse(a.utcDate)-Date.parse(b.utcDate));
+  const competitions=[...new Map(matches.map(match=>[String(match.competition.id||match.competition.name),match.competition])).values()];
+  return {matches,competitions,provider:'SofaScore website feed',dateFrom:dates[0],dateTo:dates.at(-1),updatedAt:new Date().toISOString()};
+}
+
 async function footballFetch(path,env,extraHeaders={}){
   if(!env.FOOTBALL_DATA_API_KEY){
     const err=new Error('Football is not configured. Add FOOTBALL_DATA_API_KEY as a Cloudflare Worker secret.');
@@ -1778,26 +1858,30 @@ async function getFootballSchedule(env,force=false,requestUrl='https://local/api
   }
 
   try{
-    const dateFrom=isoDayOffset(-1),dateTo=isoDayOffset(14);
-    let matches=[],provider='football-data.org';
-    if(env.FOOTBALL_DATA_API_KEY){
-      const data=await footballFetch(`/matches?dateFrom=${dateFrom}&dateTo=${dateTo}&limit=500`,env);
-      matches=Array.isArray(data.matches)?data.matches:[];
-    }else{
-      const data=await apiFootballFetch('fixtures',{from:dateFrom,to:dateTo,timezone:'UTC'},env);
-      matches=(Array.isArray(data?.response)?data.response:[]).map(cleanApiFootballFixture);
-      provider='API-Football';
+    try{
+      const payload=await sofascoreFootballSchedule();
+      if(cache&&cacheKey){try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=600'}}))}catch{}}
+      return {...payload,cache:'fresh'};
+    }catch(sofaError){
+      const dateFrom=isoDayOffset(-1),dateTo=isoDayOffset(14);
+      let matches=[],provider='football-data.org';
+      if(env.FOOTBALL_DATA_API_KEY){
+        const data=await footballFetch(`/matches?dateFrom=${dateFrom}&dateTo=${dateTo}&limit=500`,env);
+        matches=Array.isArray(data.matches)?data.matches:[];
+      }else{
+        const data=await apiFootballFetch('fixtures',{from:dateFrom,to:dateTo,timezone:'UTC'},env);
+        matches=(Array.isArray(data?.response)?data.response:[]).map(cleanApiFootballFixture);
+        provider='API-Football';
+      }
+      matches.sort((a,b)=>Date.parse(a.utcDate||0)-Date.parse(b.utcDate||0));
+      const competitions=[...new Map(matches.map(match=>{
+        const comp=match?.competition||{};
+        return [String(comp.id||comp.code||comp.name||''),{id:comp.id||0,code:comp.code||'',name:comp.name||'Competition',emblem:comp.emblem||''}];
+      }).filter(([key])=>key)).values()];
+      const payload={matches,competitions,provider,dateFrom,dateTo,updatedAt:new Date().toISOString(),warning:`SofaScore was unavailable; ${provider} fallback is shown.`};
+      if(cache&&cacheKey){try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=600'}}))}catch{}}
+      return {...payload,cache:'fresh'};
     }
-    matches.sort((a,b)=>Date.parse(a.utcDate||0)-Date.parse(b.utcDate||0));
-    const competitions=[...new Map(matches.map(match=>{
-      const comp=match?.competition||{};
-      return [String(comp.id||comp.code||comp.name||''),{id:comp.id||0,code:comp.code||'',name:comp.name||'Competition',emblem:comp.emblem||''}];
-    }).filter(([key])=>key)).values()];
-    const payload={matches,competitions,provider,dateFrom,dateTo,updatedAt:new Date().toISOString()};
-    if(cache&&cacheKey){
-      try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=600'}}))}catch{}
-    }
-    return {...payload,cache:'fresh'};
   }catch(e){
     if(cachedPayload)return {...cachedPayload,cache:'stale',warning:e?.message||'Showing the last saved football schedule.'};
     throw e;
@@ -1869,6 +1953,47 @@ function footballDataMatchEvent(kind,row){
   };
 }
 
+function cleanSofascoreLineupTeam(team,lineupSide={}){
+  const players=(Array.isArray(lineupSide?.players)?lineupSide.players:[]).map(row=>{
+    const player=row?.player||row||{};
+    return {id:Number(player.id)||0,name:String(player.name||'Player').slice(0,120),number:row?.shirtNumber??player?.shirtNumber??null,position:String(player.position||'').slice(0,80),substitute:row?.substitute===true};
+  });
+  const cleaned=sofascoreTeam(team);
+  return {...cleaned,formation:String(lineupSide?.formation||''),coach:String(lineupSide?.manager?.name||''),starting:players.filter(player=>!player.substitute),bench:players.filter(player=>player.substitute)};
+}
+async function getSofascoreFootballMatch(sofascoreId){
+  const rawId=Number(sofascoreId)||0;
+  if(!rawId)throw new Error('A valid SofaScore event ID is required.');
+  const settled=await Promise.allSettled([
+    sofascoreWebsiteFetch(`/event/${rawId}`),
+    sofascoreWebsiteFetch(`/event/${rawId}/lineups`),
+    sofascoreWebsiteFetch(`/event/${rawId}/incidents`),
+    sofascoreWebsiteFetch(`/event/${rawId}/statistics`)
+  ]);
+  if(settled[0].status!=='fulfilled')throw settled[0].reason;
+  const rawEvent=settled[0].value?.event||settled[0].value;
+  const match=cleanSofascoreFootballEvent(rawEvent);
+  match.venue=String(rawEvent?.venue?.stadium?.name||rawEvent?.venue?.name||rawEvent?.venue?.city?.name||'');
+  match.referees=[rawEvent?.referee?.name].filter(Boolean);
+  const lineup=settled[1].status==='fulfilled'?settled[1].value:{};
+  const teams=[cleanSofascoreLineupTeam(rawEvent?.homeTeam,lineup?.home),cleanSofascoreLineupTeam(rawEvent?.awayTeam,lineup?.away)];
+  const incidentsRaw=settled[2].status==='fulfilled'&&Array.isArray(settled[2].value?.incidents)?settled[2].value.incidents:[];
+  const events=incidentsRaw.map(row=>{
+    const rawType=String(row?.incidentType||row?.incidentClass||'Event');
+    const detail=String(row?.reason||row?.incidentClass||rawType).replaceAll('_',' ');
+    const team=row?.isHome===true?match.homeTeam:row?.isHome===false?match.awayTeam:{id:0,name:''};
+    return {type:rawType,detail,minute:Number(row?.time)||0,extra:Number(row?.addedTime)||0,team,player:String(row?.player?.name||row?.playerIn?.name||''),assist:String(row?.assist1?.name||row?.assist?.name||''),playerOut:String(row?.playerOut?.name||''),score:(row?.homeScore!=null||row?.awayScore!=null)?{home:row?.homeScore,away:row?.awayScore}:null};
+  }).sort((a,b)=>(a.minute+a.extra/100)-(b.minute+b.extra/100));
+  const periods=settled[3].status==='fulfilled'&&Array.isArray(settled[3].value?.statistics)?settled[3].value.statistics:[];
+  const period=periods.find(item=>String(item?.period||'').toUpperCase()==='ALL')||periods[0]||{};
+  const statItems=(Array.isArray(period?.groups)?period.groups:[]).flatMap(group=>Array.isArray(group?.statisticsItems)?group.statisticsItems:[]);
+  const statistics=[
+    {team:match.homeTeam,items:statItems.map(item=>({label:String(item?.name||''),value:item?.home??item?.homeValue??'—'}))},
+    {team:match.awayTeam,items:statItems.map(item=>({label:String(item?.name||''),value:item?.away??item?.awayValue??'—'}))}
+  ];
+  return {match,teams,events,statistics,provider:'SofaScore website feed',updatedAt:new Date().toISOString(),available:{lineups:teams.some(team=>team.starting.length||team.bench.length),timeline:events.length>0,statistics:statItems.length>0}};
+}
+
 async function getFootballMatchCentre(env,matchId,force=false,requestUrl='https://local/api/football/match'){
   const id=Number(matchId)||0;
   if(!id){const err=new Error('A valid football match ID is required.');err.status=400;throw err}
@@ -1883,7 +2008,9 @@ async function getFootballMatchCentre(env,matchId,force=false,requestUrl='https:
   }catch{cache=null;cacheKey=null}
 
   let payload;
-  if(id>0){
+  if(id>SOFASCORE_ID_PREFIX){
+    payload=await getSofascoreFootballMatch(id-SOFASCORE_ID_PREFIX);
+  }else if(id>0){
     const match=await footballFetch(`/matches/${encodeURIComponent(id)}`,env,{
       'X-Unfold-Lineups':'true','X-Unfold-Goals':'true','X-Unfold-Bookings':'true','X-Unfold-Subs':'true'
     });
@@ -2181,7 +2308,7 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
   }
 }
 
-const GENERAL_SPORTS=new Set(['tennis','basketball']);
+const GENERAL_SPORTS=new Set(['tennis','athletics']);
 
 function sportsDayKey(offset=0){
   const d=new Date();
@@ -2448,8 +2575,56 @@ async function apiTennisBundle(env){
   };
 }
 
+function cleanSofascoreGeneralEvent(event,sportKey){
+  const home=String(event?.homeTeam?.name||''),away=String(event?.awayTeam?.name||'');
+  const homeScore=event?.homeScore?.current??event?.homeScore?.normaltime,awayScore=event?.awayScore?.current??event?.awayScore?.normaltime;
+  const timestamp=event?.startTimestamp?new Date(Number(event.startTimestamp)*1000).toISOString():'';
+  const status=String(event?.status?.description||event?.status?.type||'');
+  const isLive=sofascoreStatus(event)==='IN_PLAY'||sofascoreStatus(event)==='PAUSED';
+  const finished=sofascoreStatus(event)==='FINISHED';
+  const tournament=event?.tournament||{},unique=tournament?.uniqueTournament||{};
+  return {
+    id:`sofascore-${sportKey}-${String(event?.id||`${timestamp}-${home}-${away}`)}`,sport:sportKey,
+    name:[home,away].filter(Boolean).join(' vs ')||String(unique.name||tournament.name||'Event'),
+    league:String(unique.name||tournament.name||''),home,away,homeId:String(event?.homeTeam?.id||''),awayId:String(event?.awayTeam?.id||''),
+    homeScore:homeScore==null?null:Number(homeScore),awayScore:awayScore==null?null:Number(awayScore),
+    displayScore:(homeScore!=null&&awayScore!=null)?`${homeScore} – ${awayScore}`:'',
+    date:timestamp.slice(0,10),time:timestamp.slice(11,19),timestamp,status,
+    liveDetail:isLive?[status,event?.status?.description].filter(Boolean).join(' • '):'',isLive,finished,
+    round:String(event?.roundInfo?.round||''),venue:String(event?.venue?.stadium?.name||event?.venue?.name||''),thumbnail:Number(unique.id)?`https://img.sofascore.com/api/v1/unique-tournament/${unique.id}/image`:''
+  };
+}
+async function sofascoreTennisBundle(){
+  const dates=[sportsDayKey(-1),sportsDayKey(0),sportsDayKey(1),sportsDayKey(2)];
+  const events=(await sofascoreSportEvents('tennis',dates)).map(event=>cleanSofascoreGeneralEvent(event,'tennis')).filter(event=>event.home&&event.away);
+  if(!events.length)throw new Error('SofaScore website feed returned no tennis matches.');
+  return {sport:'tennis',provider:'SofaScore website feed',events,updatedAt:new Date().toISOString(),warning:'',windowLabel:'yesterday through the next two days'};
+}
+
+async function worldAthleticsBundle(){
+  const startDate=sportsDayKey(-7),endDate=sportsDayKey(28);
+  const u=new URL('https://worldathletics.org/competition/calendar-results');
+  u.searchParams.set('startDate',startDate);u.searchParams.set('endDate',endDate);u.searchParams.set('hideCompetitionsWithNoResults','false');
+  const r=await fetch(u.toString(),{headers:{accept:'text/html,application/xhtml+xml','user-agent':'Mozilla/5.0 (compatible; CommandCentre/1.0)'}});
+  if(!r.ok){const err=new Error(`World Athletics calendar HTTP ${r.status}`);err.status=502;throw err}
+  const html=await r.text();
+  if(html.length>3_000_000)throw new Error('World Athletics calendar response was unexpectedly large.');
+  const match=html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/i);
+  if(!match)throw new Error('World Athletics calendar data was not present on the official page.');
+  let page;
+  try{page=JSON.parse(match[1])}catch{throw new Error('World Athletics calendar data could not be read.')}
+  const rows=page?.props?.pageProps?.initialEvents?.results;
+  if(!Array.isArray(rows))throw new Error('World Athletics returned an unexpected calendar format.');
+  const today=sportsDayKey(0);
+  const events=rows.map(item=>{
+    const date=String(item?.startDate||''),end=String(item?.endDate||date),hasResults=item?.hasResults===true||item?.hasApiResults===true;
+    return {id:`athletics-${String(item?.id||`${date}-${item?.name||''}`)}`,sport:'athletics',name:String(item?.name||'Athletics meeting'),league:String(item?.disciplines||item?.competitionGroup||'World Athletics'),home:String(item?.name||'Athletics meeting'),away:'',homeId:String(item?.id||''),awayId:'',homeScore:null,awayScore:null,displayScore:hasResults?'Results':'',date,time:'09:00:00',timestamp:date?`${date}T09:00:00Z`:'',status:hasResults?'Finished':end<today?'Ended':'Scheduled',liveDetail:'',isLive:false,finished:hasResults||end<today,round:'',venue:String(item?.venue||''),thumbnail:'',url:`https://worldathletics.org/competition/calendar-results?startDate=${encodeURIComponent(date)}&endDate=${encodeURIComponent(end)}&hideCompetitionsWithNoResults=false`};
+  }).filter(event=>event.name&&event.date);
+  return {sport:'athletics',provider:'World Athletics official calendar',events,updatedAt:new Date().toISOString(),warning:'',windowLabel:'last 7 days and next 4 weeks'};
+}
+
 async function sportsDbFallbackBundle(env,sportKey){
-  const providerSport=sportKey==='basketball'?'Basketball':'Tennis';
+  const providerSport='Tennis';
   const dates=[sportsDayKey(-1),sportsDayKey(0),sportsDayKey(1)];
   let all=[],warnings=[];
   for(const date of dates){
@@ -2506,23 +2681,21 @@ async function getGeneralSportBundle(env,kind='tennis',force=false,requestUrl='h
 
   try{
     let payload;
-    if(sportKey==='basketball'){
-      try{
-        payload=await apiBasketballBundle(env);
-      }catch(e){
-        if(e?.setupRequired){
-          payload=await sportsDbFallbackBundle(env,sportKey);
-          payload.warning=`${e.message} ${payload.events.length?'Limited fallback events are shown below.':''}`.trim();
-        }else throw e;
-      }
+    if(sportKey==='athletics'){
+      payload=await worldAthleticsBundle();
     }else{
       try{
-        payload=await apiTennisBundle(env);
-      }catch(e){
-        if(e?.setupRequired){
-          payload=await sportsDbFallbackBundle(env,sportKey);
-          payload.warning=`${e.message} ${payload.events.length?'Limited fallback events are shown below.':''}`.trim();
-        }else throw e;
+        payload=await sofascoreTennisBundle();
+      }catch(sofaError){
+        try{
+          payload=await apiTennisBundle(env);
+          payload.warning='SofaScore was unavailable; the configured API-Tennis fallback is shown.';
+        }catch(tennisError){
+          if(tennisError?.setupRequired){
+            payload=await sportsDbFallbackBundle(env,sportKey);
+            payload.warning=`SofaScore was unavailable. ${tennisError.message} ${payload.events.length?'Limited fallback events are shown below.':''}`.trim();
+          }else throw tennisError;
+        }
       }
     }
 
@@ -2601,7 +2774,7 @@ async function commandCentreStatus(env,live=false){
     kind:sharedApiSportsKey?'ok':'warn',
     detail:sharedApiSportsKey
       ?(env.API_SPORTS_KEY
-        ?'API_SPORTS_KEY is present and is shared by API-Football and API-Basketball.'
+        ?'API_SPORTS_KEY is present for the API-Football fallback.'
         :'Using the existing API_FOOTBALL_KEY as the shared API-SPORTS key. You can rename it to API_SPORTS_KEY later.')
       :'Add one API_SPORTS_KEY secret using the single API key shown in your API-SPORTS dashboard.'
   });
@@ -2644,14 +2817,8 @@ async function commandCentreStatus(env,live=false){
     kind:env.NEWSDATA_API_KEY?'info':'warn',
     detail:env.NEWSDATA_API_KEY?'Secret is present. Live calls are skipped here to preserve quota.':'NEWSDATA_API_KEY is missing.'
   });
-  services.push({
-    name:'Basketball live data',
-    state:sharedApiSportsKey?'Configured':'Needs setup',
-    kind:sharedApiSportsKey?'ok':'warn',
-    detail:sharedApiSportsKey
-      ?'Using the same shared API-SPORTS key as Football. Basketball must show Active in the API-SPORTS dashboard.'
-      :'Add API_SPORTS_KEY once; do not create a separate Basketball key.'
-  });
+  services.push({name:'SofaScore website feed',state:'Built in',kind:'info',detail:'Football and Tennis use the same read-only feed as sofascore.com, with the configured providers retained as fallbacks.'});
+  services.push({name:'World Athletics calendar',state:'Built in',kind:'info',detail:'Athletics meetings and result availability come from the official global calendar.'});
   services.push({
     name:'Tennis live data',
     state:env.API_TENNIS_KEY?'Configured':'Needs setup',
@@ -3272,7 +3439,15 @@ export default {
       }
 
       if(url.pathname==='/api/mirror/room'&&request.method==='POST'){
-        await ensureMirrorTables(env);const {code}=await request.json();if(!/^\d{6}$/.test(String(code||'')))return json({error:'A 6-digit mirror code is required.'},400);const now=Date.now();await env.DB.prepare(`INSERT INTO mirror_rooms(code,created_at,updated_at) VALUES(?,?,?) ON CONFLICT(code) DO UPDATE SET updated_at=excluded.updated_at`).bind(String(code),now,now).run();await env.DB.prepare('DELETE FROM mirror_signals WHERE code=?').bind(String(code)).run();return json({ok:true,code:String(code)});
+        await ensureMirrorTables(env);
+        const {code}=await request.json(),cleanCode=String(code||'');
+        if(!/^\d{6}$/.test(cleanCode))return json({error:'A 6-digit mirror code is required.'},400);
+        const now=Date.now();
+        const existing=await env.DB.prepare('SELECT updated_at FROM mirror_rooms WHERE code=?').bind(cleanCode).first();
+        if(existing&&now-Number(existing.updated_at||0)<30*60*1000)return json({error:'That mirror code is already active. Try again.'},409);
+        if(existing){await env.DB.prepare('DELETE FROM mirror_signals WHERE code=?').bind(cleanCode).run();await env.DB.prepare('DELETE FROM mirror_rooms WHERE code=?').bind(cleanCode).run()}
+        await env.DB.prepare('INSERT INTO mirror_rooms(code,created_at,updated_at) VALUES(?,?,?)').bind(cleanCode,now,now).run();
+        return json({ok:true,code:cleanCode});
       }
       if(url.pathname==='/api/mirror/room'&&request.method==='GET'){
         await ensureMirrorTables(env);const code=String(url.searchParams.get('code')||'');const row=await env.DB.prepare('SELECT code,updated_at FROM mirror_rooms WHERE code=?').bind(code).first();const exists=!!row&&(Date.now()-Number(row.updated_at||0)<30*60*1000);return json({exists});

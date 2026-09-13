@@ -21,3 +21,4 @@ html[data-cc-motion] .page.active{animation:none}
 .cc-motion-settings .field{margin:14px 0}
 .cc-motion-settings .btn{min-height:44px}
 @media(prefers-reduced-motion:reduce){.cc-space-brand,#ccSpaceIntro.cc-space-exit{transition:opacity .15s linear}.cc-space-brand{transform:none!important;filter:none!important}}
+@supports(-webkit-touch-callout:none){#ccSkipIntro{backdrop-filter:none;background:#0c152be6}.cc-space-brand{will-change:auto}}

@@ -51,7 +51,16 @@ final class NativeMirrorManager: ObservableObject {
         }
     }
 
-    private func presentBroadcastPicker() {
+    func presentBroadcastPicker() {
+        guard signalling != nil else {
+            sendStatus(
+                message: "Create a mirror room before opening Apple's broadcast picker.",
+                error: true
+            )
+            return
+        }
+        broadcastPicker?.removeFromSuperview()
+        broadcastPicker = nil
         guard let host = webView?.superview ?? webView else {
             sendStatus(
                 message: "Could not present the iPhone broadcast picker.",
@@ -84,8 +93,8 @@ final class NativeMirrorManager: ObservableObject {
                 button.sendActions(for: .touchUpInside)
             } else {
                 self?.sendStatus(
-                    message: "Open Control Centre → Screen Recording and choose Command Centre Mirror.",
-                    error: true
+                    message: "Apple's panel did not open. Tap Open Apple broadcast picker below, or use Control Centre → Screen Recording.",
+                    error: false
                 )
             }
 
