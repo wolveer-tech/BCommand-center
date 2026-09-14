@@ -1,3 +1,12 @@
+# APNs one-secret compatibility v10.21.1
+
+- `APNS_CONFIG` accepts multiline, pipe-delimited or JSON-packed credentials
+  and keeps compatibility with the earlier separate secret names.
+- The production environment and app bundle ID use internal defaults, removing
+  two unnecessary Worker variables.
+- The functional signing test now authenticates an APNs request using only the
+  packed secret.
+
 # Notes, FotMob, YouTube freshness and APNs v10.21.0
 
 - Notes tracks the collapsed selection range and scrolls the active caret above

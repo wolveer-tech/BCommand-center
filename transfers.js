@@ -123,7 +123,7 @@ export async function handleTransfers(request, env, ctx, sendOne) {
     if (path === '/apns' && method === 'POST') {
       const data = await body(request), token = String(data.token || '').trim().toLowerCase();
       if (!/^[a-f0-9]{32,256}$/.test(token)) fail(400, 'A valid APNs device token is required.');
-      if (!apnsConfigured(env)) fail(503, 'Add the APNS_KEY_ID, APNS_TEAM_ID and APNS_PRIVATE_KEY Worker secrets first.');
+      if (!apnsConfigured(env)) fail(503, 'Add the combined APNS_CONFIG Worker secret first.');
       try {
         await run(env, 'UPDATE transfer_devices SET apns_token=?,apns_updated_at=? WHERE id=? AND revoked_at IS NULL', token, Date.now(), device.id);
       } catch (error) {

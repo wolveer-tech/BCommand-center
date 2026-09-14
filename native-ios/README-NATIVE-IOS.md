@@ -9,8 +9,8 @@ the production `aps-environment` entitlement; the re-signing profile must also
 support Push Notifications and preserve that entitlement.
 
 The `.p8` provider key stays in Cloudflare and is never embedded in the IPA.
-Run `migrations/0010_native_apns.sql` and configure the Worker secrets listed in
-the root `RELEASE-v10.21.0.md`. Background refresh remains enabled as a delayed
+Run `migrations/0010_native_apns.sql` and configure the single packed Worker
+secret listed in the root `RELEASE-v10.21.1.md`. Background refresh remains enabled as a delayed
 fallback if APNs registration or delivery is temporarily unavailable.
 
 ## v1.7.0 cold-launch privacy and Mirror retry

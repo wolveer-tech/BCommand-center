@@ -2938,7 +2938,7 @@ async function commandCentreStatus(env,live=false){
   });
   services.push({name:'FotMob website feed',state:'Built in',kind:'info',detail:'The complete football schedule and Match Centre prefer FotMob’s public website data, including lineups, incidents and available match statistics.'});
   services.push({name:'World Athletics calendar',state:'Built in',kind:'info',detail:'Athletics meetings and result availability come from the official global calendar.'});
-  services.push({name:'Apple Push Notification service',state:apnsConfigured(env)?'Configured':'Needs setup',kind:apnsConfigured(env)?'ok':'warn',detail:apnsConfigured(env)?'APNs credentials are present for immediate native Messages and Transfers alerts.':'Add APNS_KEY_ID, APNS_TEAM_ID and APNS_PRIVATE_KEY secrets after enabling Push Notifications for the app identifier.'});
+  services.push({name:'Apple Push Notification service',state:apnsConfigured(env)?'Configured':'Needs setup',kind:apnsConfigured(env)?'ok':'warn',detail:apnsConfigured(env)?'APNs credentials are present for immediate native Messages and Transfers alerts.':'Add the combined APNS_CONFIG secret after enabling Push Notifications for the app identifier.'});
   services.push({
     name:'Tennis live data',
     state:env.API_TENNIS_KEY?'Configured':'Needs setup',

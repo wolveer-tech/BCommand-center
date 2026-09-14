@@ -1,5 +1,8 @@
 # Command Centre v10.21.0 / iOS 1.8.0
 
+> APNs setup was consolidated in v10.21.1. Use the single-secret instructions
+> in `RELEASE-v10.21.1.md` instead of the older five-variable steps below.
+
 ## Changes
 
 - Notes follows the live caret while typing. When the iPhone keyboard is open,

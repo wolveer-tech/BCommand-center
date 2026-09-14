@@ -1,5 +1,13 @@
 # Command Centre setup
 
+## v10.21.1 — one-secret APNs configuration
+
+Cloudflare accounts at the Worker variable limit can now configure native push
+with one encrypted `APNS_CONFIG` secret. Delete the separate APNs ID/team and
+the two optional APNs defaults first, then use the packed format documented in
+[RELEASE-v10.21.1.md](RELEASE-v10.21.1.md). Existing three-secret setups remain
+compatible. This patch does not require another IPA after iOS 1.8.0 build 14.
+
 ## v10.21.0 — visible Notes typing, FotMob, fresher For You and APNs
 
 This release keeps the active note caret visible above the iPhone keyboard,

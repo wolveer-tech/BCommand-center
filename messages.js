@@ -1,4 +1,5 @@
 import { authenticateTransferDevice, readTransferJSON, createTransferDevice } from './transfers.js';
+import { apnsConfigured } from './apns.js';
 
 const fail = (status,message) => { throw Object.assign(new Error(message),{status}); };
 const first = (env,sql,...args) => env.DB.prepare(sql).bind(...args).first();
@@ -136,7 +137,7 @@ export async function handleMessages(request,env,ctx,sendOne) {
 }
 
 export async function flushMessagePushes(env,sendOne){
-  const webReady=!!(env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY),nativeReady=!!(env.APNS_KEY_ID&&env.APNS_TEAM_ID&&env.APNS_PRIVATE_KEY);
+  const webReady=!!(env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY),nativeReady=apnsConfigured(env);
   if(!env.DB||(!webReady&&!nativeReady))return;
   try{
     const base=`FROM message_deliveries o JOIN device_messages m ON m.id=o.message_id

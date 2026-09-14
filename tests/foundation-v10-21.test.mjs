@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {generateKeyPairSync} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {sendAPNSNotification} from '../apns.js';
+import {apnsConfigured,apnsSettings,sendAPNSNotification} from '../apns.js';
 
 const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 const html=read('../public/index.html');
@@ -71,10 +71,10 @@ test('APNs sender creates an authenticated alert request',async()=>{
     return new Response(null,{status:200});
   };
   try{
-    const result=await sendAPNSNotification({apnsToken:'a'.repeat(64),title:'Message',body:'New message',url:'/#messages',id:'message-1'}, {
-      APNS_KEY_ID:'ABCDEFGHIJ',APNS_TEAM_ID:'KLMNOPQRST',APNS_PRIVATE_KEY:pem,
-      APNS_BUNDLE_ID:'tech.wolveer.commandcentre.native',APNS_ENVIRONMENT:'production'
-    });
+    const env={APNS_CONFIG:`ABCDEFGHIJ\nKLMNOPQRST\n${pem}`};
+    assert.equal(apnsConfigured(env),true);
+    assert.equal(apnsSettings(env).privateKey,pem.trim());
+    const result=await sendAPNSNotification({apnsToken:'a'.repeat(64),title:'Message',body:'New message',url:'/#messages',id:'message-1'},env);
     assert.deepEqual(result,{ok:true});
   }finally{globalThis.fetch=previousFetch;}
   assert.match(sent.url,/^https:\/\/api\.push\.apple\.com\/3\/device\/[a-f0-9]+$/);
