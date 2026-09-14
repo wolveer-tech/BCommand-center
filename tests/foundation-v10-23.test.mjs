@@ -46,6 +46,8 @@ test('Messages and Transfers fall back to the linked Web Push receiver',()=>{
 test('League One uses the keyless FotMob league table and normalises clubs',()=>{
   assert.match(worker,/EL1:\{id:108,name:'League One'/);
   assert.match(worker,/fotmobWebsiteFetch\('leagues'/);
+  assert.match(worker,/data\?\.fixtures\?\.allMatches/);
+  assert.match(worker,/__cache\/football-v4/);
   assert.match(worker,/FOTMOB_LEAGUE_COMPETITIONS\[code\]/);
   const start=worker.indexOf("const FOTMOB_WEB_BASE=");
   const end=worker.indexOf('async function fotmobLeagueBundle',start);
@@ -60,5 +62,8 @@ test('iPhone note writing mode hides editor chrome without the unsupported has s
   assert.match(html,/note-body-focused \.note-title-field/);
   assert.match(html,/note-body-focused \.note-editor-options/);
   assert.match(html,/display:none!important/);
+  assert.match(html,/function applyNoteWritingMode\(active\)/);
+  assert.match(html,/element\.style\.setProperty\('display','none','important'\)/);
+  assert.match(html,/keyboardOpen=.*\|\|mobileBodyFocused/);
   assert.doesNotMatch(html,/:has\(#noteTitle\)/);
 });

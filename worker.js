@@ -2042,7 +2042,9 @@ async function fotmobLeagueBundle(code){
   const data=await fotmobWebsiteFetch('leagues',{id:cfg.id,ccode3:'GBR_MA',timezone:'Europe/London',language:'en'});
   const rows=fotmobLeagueTableRows(data).map(cleanFotmobStandingRow).filter(row=>row.team.id);
   if(!rows.length)throw Object.assign(new Error(`FotMob returned no ${cfg.name} table.`),{status:502});
-  const rawMatches=Array.isArray(data?.matches?.allMatches)?data.matches.allMatches:(Array.isArray(data?.matches?.fixtures)?data.matches.fixtures:[]);
+  const rawMatches=Array.isArray(data?.fixtures?.allMatches)?data.fixtures.allMatches
+    :(Array.isArray(data?.matches?.allMatches)?data.matches.allMatches
+      :(Array.isArray(data?.matches?.fixtures)?data.matches.fixtures:[]));
   const league={id:cfg.id,primaryId:cfg.id,name:cfg.name,ccode:code};
   const matches=rawMatches.map(row=>cleanFotmobFootballMatch(row,league)).filter(match=>match.id&&match.utcDate);
   return {
@@ -2513,7 +2515,7 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
     cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
     if(cache){
       const u=new URL(requestUrl);
-      u.pathname='/__cache/football-v3';
+      u.pathname='/__cache/football-v4';
       u.search=new URLSearchParams({competition:code}).toString();
       cacheKey=new Request(u.toString(),{method:'GET'});
       const hit=await cache.match(cacheKey);
@@ -2584,7 +2586,7 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
       try{
         if(!cacheKey){
           const u=new URL(requestUrl);
-          u.pathname='/__cache/football-v3';
+          u.pathname='/__cache/football-v4';
           u.search=new URLSearchParams({competition:code}).toString();
           cacheKey=new Request(u.toString(),{method:'GET'});
         }

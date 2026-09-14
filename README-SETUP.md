@@ -1,5 +1,14 @@
 # Command Centre setup
 
+## v10.23.1 — League One results and Notes focus hotfix
+
+League One completed matches now come from FotMob's correct
+`fixtures.allMatches` response field, and the football cache key is refreshed.
+Notes now enters compact writing mode directly from body focus on iPhone, even
+when WKWebView does not resize `visualViewport`; JavaScript also force-hides the
+non-writing controls. No new IPA, migration or Cloudflare variable is required.
+See [RELEASE-v10.23.1.md](RELEASE-v10.23.1.md).
+
 ## v10.23.0 — Safari notification companion, League One and Notes focus
 
 The paired IPA can now link a Safari Home Screen Web Push receiver without

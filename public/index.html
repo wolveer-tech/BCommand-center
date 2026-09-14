@@ -9475,15 +9475,28 @@ function updateNoteBodyEmptyState(){
   const empty=!el.textContent.trim()&&!el.querySelector('img');
   el.dataset.empty=empty?'true':'false';
 }
+function applyNoteWritingMode(active){
+  const modal=qs('#noteModal');if(!modal)return;
+  const enabled=!!active&&window.innerWidth<=520;
+  modal.classList.toggle('note-writing-mode',enabled);
+  modal.querySelectorAll('.modal-head,.note-title-field,.note-editor-options,.modal-actions').forEach(element=>{
+    if(enabled)element.style.setProperty('display','none','important');
+    else element.style.removeProperty('display');
+  });
+}
 function syncNoteVisualViewport(){
   const modal=qs('#noteModal');if(!modal?.classList.contains('open'))return;
   const viewport=window.visualViewport;
   const height=Math.max(280,Math.round(viewport?.height||window.innerHeight||document.documentElement.clientHeight));
   const top=Math.max(0,Math.round(viewport?.offsetTop||0));
-  const keyboardOpen=!!viewport&&viewport.height<window.innerHeight*.82;
+  const bodyFocused=document.activeElement===qs('#noteBody'),mobileBodyFocused=bodyFocused&&window.innerWidth<=520;
+  // Some WKWebView builds keep visualViewport close to the layout viewport even
+  // while the software keyboard is visible. Body focus is the reliable signal.
+  const keyboardOpen=(!!viewport&&viewport.height<window.innerHeight*.82)||mobileBodyFocused;
   modal.classList.toggle('note-keyboard-open',keyboardOpen);
-  modal.classList.toggle('note-body-focused',document.activeElement===qs('#noteBody'));
-  if(!keyboardOpen||document.activeElement!==qs('#noteBody')){const toolbar=qs('#noteToolbar'),toggle=qs('#noteFormatToggle');toolbar?.classList.remove('expanded');toggle?.setAttribute('aria-expanded','false')}
+  modal.classList.toggle('note-body-focused',bodyFocused);
+  applyNoteWritingMode(mobileBodyFocused);
+  if(!keyboardOpen||!bodyFocused){const toolbar=qs('#noteToolbar'),toggle=qs('#noteFormatToggle');toolbar?.classList.remove('expanded');toggle?.setAttribute('aria-expanded','false')}
   document.documentElement.style.setProperty('--cc-note-vv-height',`${height}px`);
   document.documentElement.style.setProperty('--cc-note-vv-top',`${top}px`);
   requestAnimationFrame(keepNoteCaretVisible);

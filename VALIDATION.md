@@ -1,3 +1,12 @@
+# League One results and Notes focus hotfix v10.23.1
+
+- FotMob league history is read from `fixtures.allMatches`, and the selected
+  league Worker cache is `football-v4` to invalidate empty older responses.
+- Mobile note body focus forces writing mode through both class-based CSS and
+  direct DOM styles, without depending on `visualViewport` keyboard detection.
+- The app shell cache is `command-centre-shell-v10.23.1`.
+- Static project validation and the full automated suite pass: **80/80 tests**.
+
 # Safari notification companion, League One and Notes focus v10.23.0
 
 - Safari Web Push links to an existing paired IPA device ID and stores only a
@@ -9,7 +18,7 @@
   Championship, League Two and National League use the same keyless path.
 - Notes focused-keyboard selectors use explicit title/body classes, so the
   writing chrome collapse does not depend on a relational CSS selector.
-- The app shell cache is `command-centre-shell-v10.23.0`.
+- The original release used app shell cache `command-centre-shell-v10.23.0`.
 - `node scripts/check-project.mjs`: passed.
 - `node --test tests/*.test.mjs`: **80/80 passed**.
 - Final Web Push delivery and iPhone keyboard layout should still receive a
