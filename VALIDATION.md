@@ -1,3 +1,20 @@
+# Safari notification companion, League One and Notes focus v10.23.0
+
+- Safari Web Push links to an existing paired IPA device ID and stores only a
+  restricted receiver-management token in the Home Screen app.
+- The IPA synchronises reminders, events, briefing, news and favourite-team
+  football settings to that receiver; Messages and Transfers fall back from
+  APNs to the linked Web Push subscription.
+- League One club/table normalisation is covered with the FotMob league ID 108;
+  Championship, League Two and National League use the same keyless path.
+- Notes focused-keyboard selectors use explicit title/body classes, so the
+  writing chrome collapse does not depend on a relational CSS selector.
+- The app shell cache is `command-centre-shell-v10.23.0`.
+- `node scripts/check-project.mjs`: passed.
+- `node --test tests/*.test.mjs`: **80/80 passed**.
+- Final Web Push delivery and iPhone keyboard layout should still receive a
+  physical iPhone check after the Cloudflare deployment.
+
 # Football focus and Notes writing dock v10.22.0
 
 - Football defaults to the saved selected league and includes an explicit

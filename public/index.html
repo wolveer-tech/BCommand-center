@@ -43,7 +43,7 @@
 #noteModal .modal-card.note-editor-card{position:relative;width:100%;max-width:100%;height:100%;min-height:0;max-height:100%;margin:0;border:none;border-radius:0;display:flex;flex-direction:column;overflow:hidden;padding:16px;padding-top:max(16px,env(safe-area-inset-top));padding-bottom:0;background:var(--bg);box-shadow:none;animation:noteSlideIn .28s cubic-bezier(.32,.72,.35,1)}
 #noteModal .modal-head{flex:none}
 #noteModal .modal-head,#noteModal .field,#noteModal .note-editor-options,#noteModal .note-toolbar{min-width:0;max-width:100%}
-#noteModal .field:has(.note-body-input){flex:1;display:flex;flex-direction:column;min-height:0}
+#noteModal .note-body-field{flex:1;display:flex;flex-direction:column;min-height:0}
 #noteModal #noteTitle{font-size:17px;font-weight:800;padding:12px 10px;background:transparent;border:none;border-bottom:1px solid var(--line);border-radius:0}
 #noteModal .note-body-input{flex:1;min-height:0;background:transparent;border:none;padding:12px 10px 96px;font-size:16px;line-height:1.55;overflow:auto;outline:none;caret-color:var(--cyan);scroll-padding-block:20px 112px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 #noteModal .note-body-input[data-empty="true"]:before{content:attr(data-placeholder);color:var(--muted);pointer-events:none}
@@ -68,7 +68,10 @@ body:has(#noteModal.open) .back-to-top{visibility:hidden!important;pointer-event
 .color-dot{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.18);cursor:pointer;padding:0}
 .color-dot.active{border-color:#fff}
 #noteModal .note-body-input b,#noteModal .note-body-input strong{font-weight:800}
-@media(max-width:520px){#noteModal .modal-card.note-editor-card{padding-left:12px;padding-right:12px}.note-toolbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}.note-toolbar::-webkit-scrollbar{display:none}.note-toolbar>*{flex:0 0 auto}.note-format-details{flex-wrap:nowrap}.note-format-details>*{flex:0 0 auto}#noteModal .note-body-input{padding-left:6px;padding-right:6px}#noteModal .modal-actions{gap:6px}#noteModal .modal-actions .btn{padding-left:6px;padding-right:6px}#noteModal.note-keyboard-open.note-body-focused .modal-head,#noteModal.note-keyboard-open.note-body-focused .field:has(#noteTitle),#noteModal.note-keyboard-open.note-body-focused .note-editor-options,#noteModal.note-keyboard-open.note-body-focused .modal-actions{display:none}#noteModal.note-keyboard-open.note-body-focused .note-toolbar{position:absolute;z-index:7;left:50%;bottom:max(8px,env(safe-area-inset-bottom));transform:translateX(-50%);width:auto;max-width:calc(100% - 24px);margin:0;padding:6px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(15,22,36,.94);box-shadow:0 10px 30px rgba(0,0,0,.46);backdrop-filter:blur(18px);overflow:hidden}#noteModal.note-keyboard-open.note-body-focused .note-format-toggle,#noteModal.note-keyboard-open.note-body-focused .note-keyboard-done{display:inline-flex}#noteModal.note-keyboard-open.note-body-focused .note-format-details{display:none}#noteModal.note-keyboard-open.note-body-focused .note-toolbar.expanded{width:calc(100% - 24px)}#noteModal.note-keyboard-open.note-body-focused .note-toolbar.expanded .note-format-details{display:flex;flex:1;overflow-x:auto;scrollbar-width:none}#noteModal.note-keyboard-open.note-body-focused .note-toolbar.expanded .note-format-details::-webkit-scrollbar{display:none}#noteModal.note-keyboard-open.note-body-focused .fmt-btn{width:30px;height:30px}#noteModal.note-keyboard-open.note-body-focused .color-dot{width:19px;height:19px}#noteModal.note-keyboard-open.note-body-focused .note-body-input{padding-top:18px;padding-bottom:72px;scroll-padding-bottom:84px}}
+@media(max-width:520px){#noteModal .modal-card.note-editor-card{padding-left:12px;padding-right:12px}.note-toolbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}.note-toolbar::-webkit-scrollbar{display:none}.note-toolbar>*{flex:0 0 auto}.note-format-details{flex-wrap:nowrap}.note-format-details>*{flex:0 0 auto}#noteModal .note-body-input{padding-left:6px;padding-right:6px}#noteModal .modal-actions{gap:6px}#noteModal .modal-actions .btn{padding-left:6px;padding-right:6px}#noteModal.note-keyboard-open.note-body-focused .modal-head,#noteModal.note-keyboard-open.note-body-focused .note-title-field,#noteModal.note-keyboard-open.note-body-focused .note-editor-options,#noteModal.note-keyboard-open.note-body-focused .modal-actions{display:none!important}#noteModal.note-keyboard-open.note-body-focused .note-toolbar{position:absolute;z-index:7;left:50%;bottom:max(8px,env(safe-area-inset-bottom));transform:translateX(-50%);width:auto;max-width:calc(100% - 24px);margin:0;padding:6px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(15,22,36,.94);box-shadow:0 10px 30px rgba(0,0,0,.46);backdrop-filter:blur(18px);overflow:hidden}#noteModal.note-keyboard-open.note-body-focused .note-format-toggle,#noteModal.note-keyboard-open.note-body-focused .note-keyboard-done{display:inline-flex}#noteModal.note-keyboard-open.note-body-focused .note-format-details{display:none}#noteModal.note-keyboard-open.note-body-focused .note-toolbar.expanded{width:calc(100% - 24px)}#noteModal.note-keyboard-open.note-body-focused .note-toolbar.expanded .note-format-details{display:flex;flex:1;overflow-x:auto;scrollbar-width:none}#noteModal.note-keyboard-open.note-body-focused .note-toolbar.expanded .note-format-details::-webkit-scrollbar{display:none}#noteModal.note-keyboard-open.note-body-focused .fmt-btn{width:30px;height:30px}#noteModal.note-keyboard-open.note-body-focused .color-dot{width:19px;height:19px}#noteModal.note-keyboard-open.note-body-focused .note-body-input{padding-top:18px;padding-bottom:72px;scroll-padding-bottom:84px}}
+@media(max-width:520px){#noteModal.note-keyboard-open.note-body-focused .modal-actions{display:none}}
+
+.notification-companion-code{font-size:28px;font-weight:900;letter-spacing:.12em;text-align:center;padding:16px;margin:12px 0;border:1px solid rgba(91,140,255,.42);border-radius:14px;background:rgba(91,140,255,.11);font-variant-numeric:tabular-nums}.notification-companion-entry{font-size:22px!important;letter-spacing:.1em;text-align:center;font-variant-numeric:tabular-nums}.notification-companion-state{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:#ffffff08;margin-top:10px}.notification-companion-state strong{display:block;margin-bottom:3px}.notification-companion-state span:first-child{font-size:18px}
 
 .bible-progress{display:flex;align-items:center;gap:10px;margin:10px 0 14px}.bible-progress-bar{flex:1;height:8px;border-radius:99px;background:#ffffff12;overflow:hidden}.bible-progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:99px}.bible-book-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.bible-book{border:1px solid var(--line);background:var(--panel2);border-radius:14px;padding:11px}.bible-book-head{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}.bible-book-title{font-size:12px;font-weight:800}.bible-book-meta{font-size:9px;color:var(--muted);margin-top:2px}.bible-book-chapters{display:none;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px;margin-top:10px}.bible-book.open .bible-book-chapters{display:grid}.chapter-check{position:relative}.chapter-check input{position:absolute;opacity:0;pointer-events:none}.chapter-check label{display:grid;place-items:center;min-height:30px;border:1px solid var(--line);border-radius:8px;background:#0b1220;color:var(--muted);font-size:10px;font-weight:750;cursor:pointer}.chapter-check input:checked+label{background:rgba(39,211,155,.14);border-color:rgba(39,211,155,.45);color:var(--green)}.reading-checks{display:grid;gap:7px;margin-top:10px}.reading-check{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#ffffff08;font-size:11px;cursor:pointer}.reading-check input{accent-color:var(--green)}.bible-actions{display:flex;gap:7px;flex-wrap:wrap}.bible-testament{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px}@media(max-width:700px){.bible-book-grid{grid-template-columns:1fr}.bible-book-chapters{grid-template-columns:repeat(6,minmax(0,1fr))}}
 
@@ -3067,6 +3070,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
   <section class="settings-section" data-settings-panel="notifications">
     <article class="card settings-card-clean"><div class="card-head"><div><div class="title">🔔 Mobile notifications</div><div class="sub" id="notificationStatus">Checking notification support…</div></div><button class="btn primary" id="enableNotificationsBtn">Enable</button></div><div class="toolbar"><button class="btn" id="testNotificationBtn">Send test</button><button class="btn" id="repairNotificationsBtn">Repair</button><button class="btn" id="rescheduleNotificationsBtn">Reschedule</button></div><div class="setting-note" style="margin-top:8px">The IPA schedules native iPhone alerts for reminders and calendar events. Browser installations use Web Push when supported.</div></article>
+    <article class="card settings-card-clean"><div class="card-head"><div><div class="title">📲 Safari notification companion</div><div class="sub" id="notificationCompanionStatus">Checking link status…</div></div><button class="btn primary" id="notificationCompanionBtn" type="button">Set up</button></div><div class="toolbar"><button class="btn" id="notificationCompanionTestBtn" type="button">Send companion test</button><button class="btn red" id="notificationCompanionUnlinkBtn" type="button">Unlink</button></div><div class="setting-note" style="margin-top:8px">Links the Safari Home Screen app to this IPA device for Web Push. It reuses the same Messages &amp; Transfers identity, so it does not create another device.</div></article>
     <article class="card settings-card-clean"><div class="title">☀️ Morning briefing</div><div class="form"><div class="field"><label>Morning briefing</label><select id="settingsMorningBriefing"><option value="on">On</option><option value="off">Off</option></select></div><div class="field"><label>Delivery time</label><input id="settingsMorningBriefingTime" type="time" value="07:30" /></div></div><div class="toolbar"><button class="btn" id="testMorningBriefingBtn">Send briefing test</button></div></article>
   </section>
 
@@ -3102,6 +3106,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 </div>
 <div class="modal-actions"><button class="btn" data-close="settingsModal">Cancel</button><button class="btn primary" id="saveSettings">Save</button></div>
 </div></div>
+<div class="modal" id="notificationCompanionModal"><div class="modal-card" style="max-width:560px">
+<div class="modal-head"><div><div class="title">📲 Safari notification companion</div><div class="sub">Use Web Push for the device already paired to your IPA.</div></div><button class="icon-btn" data-close="notificationCompanionModal">×</button></div>
+<div id="notificationCompanionContent"><div class="empty">Checking this installation…</div></div>
+<div class="modal-actions"><button class="btn" data-close="notificationCompanionModal">Close</button></div>
+</div></div>
 <div class="modal" id="footballLineupModal"><div class="modal-card" style="max-width:780px">
 <div class="modal-head"><div><div class="title" id="footballLineupTitle">Match Centre</div><div class="sub" id="footballLineupStatus">Loading…</div></div><button class="icon-btn" data-close="footballLineupModal">×</button></div>
 <div id="footballMatchHero"></div>
@@ -3123,7 +3132,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <button class="quick-add-choice" data-quick-add="today"><span class="quick-add-icon">☀️</span><strong>Open Today</strong><span>See your unified day dashboard.</span></button>
 </div></div></div>
 <div class="modal" id="holdingModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="holdingModalTitle">Add holding</div><div class="sub">Enter the position you own</div></div><button class="icon-btn" data-close="holdingModal">×</button></div><div class="form"><div class="field"><label>Ticker</label><input id="holdSymbol" placeholder="VWRP.L" autocapitalize="characters" /></div><div class="field"><label>Name</label><input id="holdName" placeholder="Vanguard FTSE All-World" /></div><div class="field"><label>Shares</label><input id="holdShares" type="number" min="0" step="0.000001" placeholder="12" /></div><div class="field"><label>Average buy price (native currency)</label><input id="holdBuyPrice" type="number" min="0" step="0.000001" placeholder="95.50" /></div><div class="field"><label>Exchange</label><select id="holdExchange"><option value="LSE">London Stock Exchange (LSE)</option><option value="NASDAQ">NASDAQ</option><option value="NYSE">NYSE</option><option value="AMEX">AMEX</option></select></div><div class="field"><label>Market currency</label><select id="holdCurrency"><option value="GBP">GBP</option><option value="GBp">GBp (pence)</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="Other">Other</option></select></div><div class="field"><label>Exchange note</label><input id="holdNote" placeholder="Optional" /></div></div><div class="modal-actions"><button class="btn red" id="deleteHoldingBtn" style="display:none;margin-right:auto">Delete</button><button class="btn" data-close="holdingModal">Cancel</button><button class="btn primary" id="saveHolding">Save</button></div></div></div>
-<div class="modal" id="reminderModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="reminderModalTitle">Add reminder</div><div class="sub">Choose when it should appear in your briefing.</div></div><button class="icon-btn" data-close="reminderModal">×</button></div><div class="field"><label>Reminder</label><textarea id="reminderText" placeholder="e.g. Check ISA contribution"></textarea></div><div class="form"><div class="field"><label>Category</label><select id="reminderCategory"></select></div><div class="field"><label>First / due date</label><input id="reminderStartDate" type="date" /></div><div class="field"><label>Time (optional)</label><input id="reminderTime" type="time" /></div><div class="field"><label>Frequency</label><select id="reminderFrequency"><option value="none">One time</option><option value="daily">Daily</option><option value="every2days">Every 2 days</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div></div><div class="field" id="newCategoryField" style="display:none"><label>New category name</label><input id="newCategoryInput" placeholder="e.g. Shopping" /></div><div class="setting-note" style="margin-top:8px">A recurring reminder is shown in the briefing only when it is due on that briefing date. “Every 2 days” is the bi-daily option.</div><div class="modal-actions"><button class="btn" data-close="reminderModal">Cancel</button><button class="btn primary" id="saveReminder">Add reminder</button></div></div></div><div class="modal" id="calendarEventModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="calendarEventModalTitle">Add calendar event</div><div class="sub">Put an event on a specific day.</div></div><button class="icon-btn" data-close="calendarEventModal">×</button></div><div class="form"><div class="field full"><label>Event</label><input id="calendarEventTitle" placeholder="e.g. Dentist appointment" /></div><div class="field"><label>Date</label><input id="calendarEventDate" type="date" /></div><div class="field"><label>Time (optional)</label><input id="calendarEventTime" type="time" /></div><div class="field full"><label>Notes (optional)</label><textarea id="calendarEventNotes" placeholder="Anything you want included in the briefing"></textarea></div></div><div class="modal-actions"><button class="btn red" id="deleteCalendarEventBtn" style="display:none;margin-right:auto">Delete</button><button class="btn" data-close="calendarEventModal">Cancel</button><button class="btn primary" id="saveCalendarEvent">Save event</button></div></div></div><div class="modal" id="noteModal"><div class="modal-card note-editor-card"><div class="modal-head"><div><div class="title" id="noteModalTitle">New note</div><div class="sub">Write anything you want to keep.</div></div><button class="icon-btn" data-close="noteModal">×</button></div><div class="field"><input id="noteTitle" placeholder="Note title" /></div>
+<div class="modal" id="reminderModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="reminderModalTitle">Add reminder</div><div class="sub">Choose when it should appear in your briefing.</div></div><button class="icon-btn" data-close="reminderModal">×</button></div><div class="field"><label>Reminder</label><textarea id="reminderText" placeholder="e.g. Check ISA contribution"></textarea></div><div class="form"><div class="field"><label>Category</label><select id="reminderCategory"></select></div><div class="field"><label>First / due date</label><input id="reminderStartDate" type="date" /></div><div class="field"><label>Time (optional)</label><input id="reminderTime" type="time" /></div><div class="field"><label>Frequency</label><select id="reminderFrequency"><option value="none">One time</option><option value="daily">Daily</option><option value="every2days">Every 2 days</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div></div><div class="field" id="newCategoryField" style="display:none"><label>New category name</label><input id="newCategoryInput" placeholder="e.g. Shopping" /></div><div class="setting-note" style="margin-top:8px">A recurring reminder is shown in the briefing only when it is due on that briefing date. “Every 2 days” is the bi-daily option.</div><div class="modal-actions"><button class="btn" data-close="reminderModal">Cancel</button><button class="btn primary" id="saveReminder">Add reminder</button></div></div></div><div class="modal" id="calendarEventModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="calendarEventModalTitle">Add calendar event</div><div class="sub">Put an event on a specific day.</div></div><button class="icon-btn" data-close="calendarEventModal">×</button></div><div class="form"><div class="field full"><label>Event</label><input id="calendarEventTitle" placeholder="e.g. Dentist appointment" /></div><div class="field"><label>Date</label><input id="calendarEventDate" type="date" /></div><div class="field"><label>Time (optional)</label><input id="calendarEventTime" type="time" /></div><div class="field full"><label>Notes (optional)</label><textarea id="calendarEventNotes" placeholder="Anything you want included in the briefing"></textarea></div></div><div class="modal-actions"><button class="btn red" id="deleteCalendarEventBtn" style="display:none;margin-right:auto">Delete</button><button class="btn" data-close="calendarEventModal">Cancel</button><button class="btn primary" id="saveCalendarEvent">Save event</button></div></div></div><div class="modal" id="noteModal"><div class="modal-card note-editor-card"><div class="modal-head"><div><div class="title" id="noteModalTitle">New note</div><div class="sub">Write anything you want to keep.</div></div><button class="icon-btn" data-close="noteModal">×</button></div><div class="field note-title-field"><input id="noteTitle" placeholder="Note title" /></div>
 <div class="note-editor-options"><div class="field"><label>Folder</label><select id="noteFolder"></select></div><label class="note-pin-control"><input id="notePinned" type="checkbox" /> 📌 Pin note</label></div><div class="note-toolbar" id="noteToolbar">
 <button type="button" class="fmt-btn note-format-toggle" id="noteFormatToggle" title="More formatting" aria-expanded="false">Aa</button>
 <button type="button" class="fmt-btn" data-cmd="bold" title="Bold"><b>B</b></button>
@@ -3159,7 +3168,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <button type="button" class="fmt-btn" data-cmd="removeFormat" title="Clear formatting">⨯</button>
 </div>
 <button type="button" class="fmt-btn note-keyboard-done" id="noteKeyboardDone" title="Hide keyboard" aria-label="Hide keyboard">⌄</button>
-</div><div class="field"><div id="noteBody" class="note-body-input" contenteditable="true" data-placeholder="Start writing..." data-empty="true"></div></div><div class="modal-actions"><button class="btn" id="restoreNoteBtn" style="display:none;margin-right:auto">Restore</button><button class="btn red" id="deleteNoteBtn" style="display:none">Delete</button><button class="btn" data-close="noteModal">Cancel</button><button class="btn primary" id="saveNote">Save note</button></div></div></div>
+</div><div class="field note-body-field"><div id="noteBody" class="note-body-input" contenteditable="true" data-placeholder="Start writing..." data-empty="true"></div></div><div class="modal-actions"><button class="btn" id="restoreNoteBtn" style="display:none;margin-right:auto">Restore</button><button class="btn red" id="deleteNoteBtn" style="display:none">Delete</button><button class="btn" data-close="noteModal">Cancel</button><button class="btn primary" id="saveNote">Save note</button></div></div></div>
 <audio id="commandMusicAudio" preload="metadata"></audio>
 <div class="music-mini-player" id="musicMiniPlayer" aria-live="polite">
   <div class="music-mini-main">
@@ -3534,7 +3543,7 @@ function chooseCommandCentreBackup(){
 function makeId(prefix='item'){return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,9)}`}
 function toast(msg){const el=qs('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2400)}
 function openModal(id){qs('#'+id).classList.add('open')}
-function closeModal(id){qs('#'+id).classList.remove('open')}
+function closeModal(id){qs('#'+id)?.classList.remove('open');if(id==='notificationCompanionModal'){clearInterval(notificationCompanionPollTimer);notificationCompanionPollTimer=null}}
 function dayOfYear(d=new Date()){const start=new Date(d.getFullYear(),0,0);return Math.floor((d-start)/86400000)}
 function dayKey(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 
@@ -3999,6 +4008,10 @@ function openQuickAdd(){openModal('quickAddModal')}function runQuickAdd(kind){cl
 let notificationTimers = new Map();
 let notificationSWRegistration = null;
 const PUSH_API = '/api/push';
+const NOTIFICATION_COMPANION_API='/api/notification-companion';
+const NOTIFICATION_COMPANION_OWNER_KEY='cc_notification_companion_owner_v1';
+const NOTIFICATION_COMPANION_RECEIVER_KEY='cc_notification_companion_receiver_v1';
+let notificationCompanionPollTimer=null,notificationCompanionSyncTimer=null;
 
 function nativeMessageHandler(name){return window.webkit?.messageHandlers?.[name]||null}
 function nativeNotificationsSupported(){return !!(window.CommandCentreNative?.nativeNotifications&&nativeMessageHandler('nativeNotifications'))}
@@ -4008,6 +4021,108 @@ function postNativeNotification(action,extra={}){
   handler.postMessage({action,...extra});return true;
 }
 function nativeInboxCredential(){try{return String(JSON.parse(localStorage.getItem('cc_transfer_device_v1')||'null')?.token||'')}catch{return ''}}
+function notificationCompanionJson(key){try{return JSON.parse(localStorage.getItem(key)||'null')}catch{return null}}
+function notificationCompanionOwner(){return notificationCompanionJson(NOTIFICATION_COMPANION_OWNER_KEY)}
+function notificationCompanionReceiver(){return notificationCompanionJson(NOTIFICATION_COMPANION_RECEIVER_KEY)}
+function notificationCompanionSession(){
+  const value=notificationCompanionJson('cc_transfer_device_v1');
+  const deviceId=value?.deviceId||value?.device?.id,deviceName=value?.deviceName||value?.device?.name||'';
+  return value?.token&&deviceId?{...value,deviceId,deviceName}:null;
+}
+function notificationCompanionStandalone(){return !!(window.matchMedia?.('(display-mode: standalone)')?.matches||navigator.standalone===true)}
+function notificationCompanionTimezone(){return Intl.DateTimeFormat().resolvedOptions().timeZone||'Europe/London'}
+async function notificationCompanionFetch(path,{method='GET',body,token=nativeInboxCredential()}={}){
+  const response=await fetch(NOTIFICATION_COMPANION_API+path,{method,headers:{Accept:'application/json',...(body?{'Content-Type':'application/json'}:{}),...(token?{Authorization:`Bearer ${token}`}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store'});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw Object.assign(new Error(data.error||`Notification companion HTTP ${response.status}`),{status:response.status});
+  return data;
+}
+function notificationCompanionPayload(){
+  const teams=footballFavouriteTeams();
+  return {
+    timezone:notificationCompanionTimezone(),
+    items:collectPushSchedule(400),
+    briefing:{enabled:state.morningBriefingEnabled!==false,localTime:state.morningBriefingTime||'07:30',city:state.city||'London',bibleText:morningBriefingBibleText()},
+    news:{worldEnabled:state.worldNewsEnabled!==false,financialEnabled:state.financialNewsEnabled!==false,pushMode:state.newsPushMode||'major'},
+    football:{enabled:state.footballNotificationsEnabled!==false&&teams.length>0,teams:teams.map(team=>({id:Number(team.id),name:team.name||'',crest:team.crest||''})),notify24h:state.footballNotify24h!==false,notify1h:state.footballNotify1h!==false,notifyKickoff:state.footballNotifyKickoff!==false,notifyFinal:state.footballNotifyFinal!==false}
+  };
+}
+function updateNotificationCompanionUI(){
+  const status=qs('#notificationCompanionStatus'),button=qs('#notificationCompanionBtn'),test=qs('#notificationCompanionTestBtn'),unlink=qs('#notificationCompanionUnlinkBtn');
+  const owner=notificationCompanionOwner(),receiver=notificationCompanionReceiver(),paired=notificationCompanionSession();
+  let text='',label='Set up',connected=false;
+  if(nativeNotificationsSupported()){
+    connected=!!owner?.linked;
+    text=!paired?'Pair this IPA in Devices first.':connected?`Linked to Safari Web Push${owner.deviceName?` for ${owner.deviceName}`:''}.`:owner?.pending?'Waiting for Safari to enter the link code.':'Not linked — add the website to the iPhone Home Screen, then link it here.';
+    label=connected?'Manage':'Link Safari';
+  }else if(receiver){connected=true;text=`Linked as the Web Push receiver for ${receiver.deviceName||'your IPA device'}.`;label='Manage'}
+  else{text=notificationCompanionStandalone()?'Ready to link to an existing IPA device.':'On iPhone, first add this site to the Home Screen from Safari.';label='Enter code'}
+  if(status)status.textContent=text;if(button)button.textContent=label;if(test)test.disabled=!connected;if(unlink)unlink.disabled=!connected;
+}
+function renderNotificationCompanionReceiver(){
+  const content=qs('#notificationCompanionContent'),receiver=notificationCompanionReceiver();if(!content)return;
+  if(receiver){
+    content.innerHTML=`<div class="notification-companion-state"><span>✅</span><div><strong>Linked to ${esc(receiver.deviceName||'IPA device')}</strong><div class="sub">This Home Screen app receives Web Push without appearing as another Messages or Transfers device.</div></div></div><div class="toolbar" style="margin-top:12px"><button class="btn primary" id="notificationCompanionRefreshReceiver">Refresh connection</button><button class="btn" id="notificationCompanionReceiverTest">Send test</button></div>`;
+    qs('#notificationCompanionRefreshReceiver')?.addEventListener('click',()=>refreshNotificationCompanionReceiver(true));qs('#notificationCompanionReceiverTest')?.addEventListener('click',testNotificationCompanion);return;
+  }
+  const installNote=notificationCompanionStandalone()?'This Home Screen app is ready. Enter the code shown in the IPA.':'On iPhone, close this page, use Safari Share → Add to Home Screen, then open that Home Screen icon before entering the code.';
+  content.innerHTML=`<div class="notification-companion-state"><span>①</span><div><strong>Open the IPA</strong><div class="sub">Go to Settings → Notifications → Safari notification companion and create a code.</div></div></div><div class="notification-companion-state"><span>②</span><div><strong>Link this Home Screen app</strong><div class="sub">${esc(installNote)}</div></div></div><div class="field" style="margin-top:14px"><label>9-digit link code</label><input id="notificationCompanionCodeInput" class="notification-companion-entry" inputmode="numeric" autocomplete="one-time-code" maxlength="11" placeholder="000 000 000" /></div><button class="btn primary" id="notificationCompanionClaimBtn" type="button" style="width:100%">Allow notifications and link</button>`;
+  qs('#notificationCompanionCodeInput')?.addEventListener('input',event=>{const digits=event.target.value.replace(/\D/g,'').slice(0,9);event.target.value=digits.replace(/(\d{3})(?=\d)/g,'$1 ')});
+  qs('#notificationCompanionClaimBtn')?.addEventListener('click',claimNotificationCompanion);
+}
+function renderNotificationCompanionOwner(data={}){
+  const content=qs('#notificationCompanionContent'),owner=notificationCompanionOwner();if(!content)return;
+  if(owner?.linked||data.linked){content.innerHTML=`<div class="notification-companion-state"><span>✅</span><div><strong>Safari notification receiver linked</strong><div class="sub">Reminders, calendar events, morning briefing, news, football, Messages and Transfers use this IPA device identity.</div></div></div><div class="toolbar" style="margin-top:12px"><button class="btn primary" id="notificationCompanionSyncNow">Sync notification settings</button><button class="btn" id="notificationCompanionOwnerTest">Send test</button></div>`;qs('#notificationCompanionSyncNow')?.addEventListener('click',()=>syncNotificationCompanionFromIPA(true));qs('#notificationCompanionOwnerTest')?.addEventListener('click',testNotificationCompanion);return}
+  if(data.code){content.innerHTML=`<div class="sub">In the Safari Home Screen app, open Settings → Notifications → Safari notification companion and enter:</div><div class="notification-companion-code">${esc(data.code)}</div><div class="notification-companion-state"><span>⏳</span><div><strong>Waiting for Safari</strong><div class="sub">This one-time code expires in 10 minutes. Keep this screen open until it says linked.</div></div></div>`;return}
+  content.innerHTML=`<div class="empty">Create a one-time code to link Safari Web Push to this IPA device.</div><button class="btn primary" id="notificationCompanionCreateCode" type="button" style="width:100%;margin-top:12px">Create link code</button>`;qs('#notificationCompanionCreateCode')?.addEventListener('click',createNotificationCompanionCode);
+}
+async function openNotificationCompanion(){
+  openModal('notificationCompanionModal');
+  if(nativeNotificationsSupported()){
+    const session=notificationCompanionSession();if(!session){qs('#notificationCompanionContent').innerHTML='<div class="empty"><strong>Pair this IPA first</strong><br>Open Devices and create or restore its Messages &amp; Transfers connection, then return here.</div>';return}
+    try{const status=await notificationCompanionFetch('/status');if(status.linked){localStorage.setItem(NOTIFICATION_COMPANION_OWNER_KEY,JSON.stringify({linked:true,deviceName:status.deviceName||session.deviceName||''}));renderNotificationCompanionOwner(status);updateNotificationCompanionUI();return}}catch(e){console.warn('Companion status check failed',e)}
+    renderNotificationCompanionOwner();return;
+  }
+  renderNotificationCompanionReceiver();
+}
+async function createNotificationCompanionCode(){
+  try{
+    const data=await notificationCompanionFetch('/code',{method:'POST',body:{}});localStorage.setItem(NOTIFICATION_COMPANION_OWNER_KEY,JSON.stringify({pending:true,expiresAt:data.expiresAt||Date.now()+600000}));renderNotificationCompanionOwner(data);updateNotificationCompanionUI();
+    clearInterval(notificationCompanionPollTimer);notificationCompanionPollTimer=setInterval(pollNotificationCompanionStatus,2500);
+  }catch(e){toast(e.message||'Could not create a companion link code')}
+}
+async function pollNotificationCompanionStatus(){
+  const owner=notificationCompanionOwner();if(!owner?.pending||Date.now()>Number(owner.expiresAt||0)){clearInterval(notificationCompanionPollTimer);notificationCompanionPollTimer=null;return}
+  try{const status=await notificationCompanionFetch('/status');if(!status.linked)return;clearInterval(notificationCompanionPollTimer);notificationCompanionPollTimer=null;localStorage.setItem(NOTIFICATION_COMPANION_OWNER_KEY,JSON.stringify({linked:true,deviceName:status.deviceName||''}));renderNotificationCompanionOwner(status);updateNotificationCompanionUI();await syncNotificationCompanionFromIPA(false);toast('Safari notification receiver linked')}catch(e){console.warn('Companion link polling failed',e)}
+}
+async function claimNotificationCompanion(){
+  const input=qs('#notificationCompanionCodeInput'),code=String(input?.value||'').replace(/\D/g,'');if(code.length!==9){toast('Enter the complete 9-digit code from the IPA');return}
+  if(/iPhone|iPad|iPod/i.test(navigator.userAgent)&&!notificationCompanionStandalone()){toast('Add this site to the Home Screen in Safari, then open the Home Screen icon');return}
+  if(!notificationSupported()){toast('Web Push is not supported in this installation');return}
+  try{
+    const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('Notification permission was not granted.');
+    const sub=await getPushSubscription(),data=await notificationCompanionFetch('/claim',{method:'POST',token:'',body:{code,subscription:subscriptionJson(sub),timezone:notificationCompanionTimezone()}});
+    const receiver={token:data.token,deviceId:data.deviceId,deviceName:data.deviceName||'IPA device'};localStorage.setItem(NOTIFICATION_COMPANION_RECEIVER_KEY,JSON.stringify(receiver));localStorage.setItem('cc_push_device_id',data.deviceId);state.notificationsEnabled=true;saveState();renderNotificationCompanionReceiver();updateNotificationUI();updateNotificationCompanionUI();toast('Linked to the IPA notification device');
+  }catch(e){toast(e.message||'Could not link this Home Screen app')}
+}
+async function refreshNotificationCompanionReceiver(showToast=false){
+  const receiver=notificationCompanionReceiver();if(!receiver?.token)return false;
+  try{const sub=await getPushSubscription(),data=await notificationCompanionFetch('/refresh',{method:'POST',token:receiver.token,body:{subscription:subscriptionJson(sub),timezone:notificationCompanionTimezone()}});localStorage.setItem(NOTIFICATION_COMPANION_RECEIVER_KEY,JSON.stringify({...receiver,deviceName:data.deviceName||receiver.deviceName}));if(showToast)toast('Safari notification connection refreshed');return true}catch(e){if(showToast)toast(e.message||'Could not refresh the connection');return false}
+}
+async function syncNotificationCompanionFromIPA(showToast=false){
+  if(!nativeNotificationsSupported()||!notificationCompanionOwner()?.linked||!nativeInboxCredential())return false;
+  try{const data=await notificationCompanionFetch('/sync',{method:'POST',body:notificationCompanionPayload()});if(showToast)toast(`Safari notifications synced • ${Number(data.scheduled)||0} scheduled`);return true}catch(e){if(e.status===409){localStorage.removeItem(NOTIFICATION_COMPANION_OWNER_KEY);updateNotificationCompanionUI()}if(showToast)toast(e.message||'Could not sync Safari notifications');return false}
+}
+function queueNotificationCompanionSync(){
+  if(!nativeNotificationsSupported()||!notificationCompanionOwner()?.linked)return;clearTimeout(notificationCompanionSyncTimer);notificationCompanionSyncTimer=setTimeout(()=>syncNotificationCompanionFromIPA(false),700);
+}
+async function testNotificationCompanion(){
+  try{const receiver=notificationCompanionReceiver();await notificationCompanionFetch(receiver?'/receiver/test':'/test',{method:'POST',token:receiver?.token||nativeInboxCredential(),body:{}});toast('Companion test notification sent')}catch(e){toast(e.message||'Could not send companion test')}
+}
+async function unlinkNotificationCompanion(){
+  const receiver=notificationCompanionReceiver(),owner=notificationCompanionOwner();if(!receiver&&!owner?.linked)return;if(!confirm('Unlink the Safari notification receiver from this IPA device?'))return;
+  try{await notificationCompanionFetch(receiver?'/receiver':'',{method:'DELETE',token:receiver?.token||nativeInboxCredential()});if(receiver)localStorage.removeItem(NOTIFICATION_COMPANION_RECEIVER_KEY);if(owner)localStorage.removeItem(NOTIFICATION_COMPANION_OWNER_KEY);clearInterval(notificationCompanionPollTimer);notificationCompanionPollTimer=null;updateNotificationCompanionUI();if(qs('#notificationCompanionModal')?.classList.contains('open'))await openNotificationCompanion();toast('Safari notification receiver unlinked')}catch(e){toast(e.message||'Could not unlink the notification receiver')}
+}
 function notificationSupported(){
   return nativeNotificationsSupported()||('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window);
 }
@@ -4017,7 +4132,7 @@ function notificationPermission(){
 }
 function notificationStatusText(){
   if(nativeNotificationsSupported()){
-    if(notificationPermission()==='granted'&&state.notificationsEnabled)return 'Native IPA notifications are enabled for schedules plus background Messages and Transfers checks.';
+    if(notificationPermission()==='granted'&&state.notificationsEnabled)return `Native IPA notifications are enabled${notificationCompanionOwner()?.linked?' and the Safari Web Push companion is linked':''}.`;
     if(notificationPermission()==='denied')return 'Native notifications are blocked. Allow Command Centre notifications in iPhone Settings.';
     return 'Native iPhone notifications are available — tap Enable.';
   }
@@ -4103,6 +4218,10 @@ async function repairNotifications(){
     const oldSub=await reg.pushManager.getSubscription();
     if(oldSub){try{await oldSub.unsubscribe()}catch{}}
     state.notificationsEnabled=false;saveState();updateNotificationUI();
+    if(notificationCompanionReceiver()){
+      const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('Notification permission was not granted.');
+      const sub=await getPushSubscription(),receiver=notificationCompanionReceiver();await notificationCompanionFetch('/refresh',{method:'POST',token:receiver.token,body:{subscription:subscriptionJson(sub),timezone:notificationCompanionTimezone()}});state.notificationsEnabled=true;saveState();updateNotificationUI();toast('Safari companion subscription repaired');return;
+    }
     await enableNotifications();
     if(notificationPermission()==='granted'&&state.notificationsEnabled)toast('Push subscription repaired');
   }catch(e){console.error(e);toast(e.message||'Could not repair notifications')}
@@ -4123,6 +4242,9 @@ async function enableNotifications(){
       await registerNotificationSW();
       const sub=await getPushSubscription();
       state.notificationsEnabled=true;saveState();
+      if(notificationCompanionReceiver()){
+        await refreshNotificationCompanionReceiver(false);updateNotificationUI();toast('Safari companion notifications enabled');return;
+      }
       const registerRes=await fetch(PUSH_API+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:pushDeviceId(),subscription:subscriptionJson(sub),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone})});
       if(!registerRes.ok){const d=await registerRes.json().catch(()=>({}));throw new Error(d.error||'Could not register this device for notifications')}
       await syncPushSchedule();
@@ -4141,6 +4263,8 @@ function morningBriefingBibleText(){
   return recs.length ? recs.map(formatReadingRange).join(' • ') : 'Bible complete';
 }
 async function syncMorningBriefingPreferences(){
+  queueNotificationCompanionSync();
+  if(notificationCompanionReceiver())return;
   if(!state.notificationsEnabled||notificationPermission()!=='granted')return;
   if(nativeNotificationsSupported()){syncNativeNotifications();return}
   try{
@@ -4231,9 +4355,12 @@ function collectNativeNotificationSchedule(){
   return scheduled;
 }
 function syncNativeNotifications(){
+  queueNotificationCompanionSync();
   if(nativeNotificationsSupported()&&state.notificationsEnabled)postNativeNotification('schedule',{items:collectNativeNotificationSchedule()});
 }
 async function syncPushSchedule(){
+  queueNotificationCompanionSync();
+  if(notificationCompanionReceiver())return;
   if(!state.notificationsEnabled||notificationPermission()!=='granted')return;
   if(nativeNotificationsSupported()){syncNativeNotifications();return}
   try{
@@ -4250,6 +4377,7 @@ function scheduleNotificationAt(id,title,body,when,url){
 }
 function scheduleAllNotifications(){
   clearNotificationTimers();
+  queueNotificationCompanionSync();
   if(!state.notificationsEnabled||notificationPermission()!=='granted')return;
   if(nativeNotificationsSupported()){syncNativeNotifications();return}
   const now=new Date();
@@ -4266,6 +4394,7 @@ async function testNotification(){
   if(!notificationSupported()){toast('Web Push is not supported');return}
   if(notificationPermission()!=='granted'||!state.notificationsEnabled){await enableNotifications();if(notificationPermission()!=='granted'||!state.notificationsEnabled)return}
   if(nativeNotificationsSupported()){postNativeNotification('test',{title:'🔔 Command Centre','body':'Native IPA notifications are working.','url':'#today'});return}
+  if(notificationCompanionReceiver()){await testNotificationCompanion();return}
   try{const response=await fetch(PUSH_API+'/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:pushDeviceId()})});if(!response.ok)throw new Error('Test push failed');toast('Test notification sent')}catch(e){toast(e.message||'Could not send test notification')}
 }
 
@@ -4277,6 +4406,7 @@ window.addEventListener('cc-native-notification-status',event=>{
   saveState();updateNotificationUI();
   if(event.detail?.message)toast(String(event.detail.message));
 });
+window.addEventListener('cc-transfer-session',updateNotificationCompanionUI);
 
 
 function applyLaunchRoute(){
@@ -4374,10 +4504,13 @@ function init(){
      bind('enableNotificationsBtn','click',enableNotifications);
      bind('testNotificationBtn','click',testNotification);
      bind('repairNotificationsBtn','click',repairNotifications);
+     bind('notificationCompanionBtn','click',openNotificationCompanion);
+     bind('notificationCompanionTestBtn','click',testNotificationCompanion);
+     bind('notificationCompanionUnlinkBtn','click',unlinkNotificationCompanion);
      bind('testMorningBriefingBtn','click',testMorningBriefing);
      bind('rescheduleNotificationsBtn','click',()=>{scheduleAllNotifications();toast('Notifications rescheduled')});
     qsa('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
-    ['settingsModal','universalSearchModal','quickAddModal','holdingModal','reminderModal','calendarEventModal','noteModal','footballLineupModal'].forEach(id=>{const el=qs('#'+id);if(el)el.addEventListener('click',e=>{if(e.target.id===id)closeModal(id)})});
+    ['settingsModal','notificationCompanionModal','universalSearchModal','quickAddModal','holdingModal','reminderModal','calendarEventModal','noteModal','footballLineupModal'].forEach(id=>{const el=qs('#'+id);if(el)el.addEventListener('click',e=>{if(e.target.id===id)closeModal(id)})});
     bind('saveSettings','click',saveSettings);
     bind('settingsMarketProvider','change',updateProviderFieldsUI);
     bind('addHoldingBtn','click',()=>openHolding());
@@ -4462,6 +4595,7 @@ function init(){
     registerNotificationSW();
     runInitStep('foundation refresh',bindFoundationRefresh);
     runInitStep('notification controls',updateNotificationUI);
+    runInitStep('notification companion controls',updateNotificationCompanionUI);
     if(state.notificationsEnabled&&notificationPermission()==='granted')scheduleAllNotifications();
     setTimeout(()=>runInitStep('launch route',applyLaunchRoute),60);
     const startupJobs=[
@@ -4843,6 +4977,7 @@ function openSettings(){
   const modal=qs('#settingsModal');
   if(!modal)return;
   try{applySettingsUI()}catch(e){console.error('Settings values failed to load',e)}
+  try{updateNotificationCompanionUI()}catch(e){console.error('Notification companion status failed to load',e)}
   try{showSettingsSection('general')}catch(e){console.error('Settings tabs failed to initialize',e)}
   modal.classList.add('open');
 }
@@ -7262,6 +7397,7 @@ function updateFootballNotificationStatus(text=''){
 }
 async function syncFootballNotificationPreferences(showToast=false){
   if(nativeNotificationsSupported()){
+    queueNotificationCompanionSync();
     if(!state.notificationsEnabled||notificationPermission()!=='granted'){
       updateFootballNotificationStatus();
       if(showToast)toast('Enable native notifications first');
@@ -7273,6 +7409,7 @@ async function syncFootballNotificationPreferences(showToast=false){
     if(showToast)toast(state.footballNotificationsEnabled!==false?'Native football alerts saved':'Football alerts turned off');
     return true;
   }
+  if(notificationCompanionReceiver())return true;
   try{
     const teams=footballFavouriteTeams();
     const enabled=state.footballNotificationsEnabled!==false&&teams.length>0;
@@ -9285,7 +9422,8 @@ async function loadNews(force=false){
   }
 }
 async function syncNewsPreferences(){
-  if(nativeNotificationsSupported())return;
+  if(nativeNotificationsSupported()){queueNotificationCompanionSync();return}
+  if(notificationCompanionReceiver())return;
   try{
     await fetch('/api/news/preferences',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       deviceId:pushDeviceId(),

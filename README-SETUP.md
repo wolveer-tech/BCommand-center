@@ -1,5 +1,19 @@
 # Command Centre setup
 
+## v10.23.0 — Safari notification companion, League One and Notes focus
+
+The paired IPA can now link a Safari Home Screen Web Push receiver without
+creating a second Messages/Transfers device. It synchronises reminders, events,
+briefing, news and football preferences; Messages and Transfers also fall back
+to it when APNs is unavailable. League One and the neighbouring English lower
+divisions use FotMob league tables without another secret. The iPhone Notes
+editor now hides all non-writing chrome while the keyboard is open.
+
+No new Cloudflare variable or IPA build is required. Existing VAPID keys are
+still required for Web Push. The Worker creates the companion tables on first
+use, while `migrations/0011_notification_companion.sql` is included for clean
+database setup. See [RELEASE-v10.23.0.md](RELEASE-v10.23.0.md).
+
 ## v10.22.0 — focused Football and compact Notes writing
 
 Football fixtures/results now follow the selected league by default. The new

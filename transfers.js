@@ -155,6 +155,18 @@ export async function handleTransfers(request, env, ctx, sendOne) {
         env.DB.prepare('DELETE FROM transfer_pairings WHERE created_by=?').bind(targetId),
         env.DB.prepare('DELETE FROM transfer_deliveries WHERE device_id=?').bind(targetId)
       ]);
+      // Companion tables are optional on older deployments, so clean each one
+      // independently without making ordinary device removal depend on a migration.
+      for (const statement of [
+        'DELETE FROM notification_companion_codes WHERE device_id=?',
+        'DELETE FROM notification_companion_links WHERE device_id=?',
+        'DELETE FROM notifications WHERE device_id=?',
+        'DELETE FROM devices WHERE device_id=?',
+        'DELETE FROM morning_briefing_preferences WHERE device_id=?',
+        'DELETE FROM news_preferences WHERE device_id=?',
+        'DELETE FROM football_notification_teams WHERE device_id=?',
+        'DELETE FROM football_notification_preferences WHERE device_id=?'
+      ]) await run(env, statement, targetId).catch(() => {});
       return reply({ ok: true, removed: target, updatedAt: Date.now() });
     }
     if (path === '/push' && method === 'POST') {
@@ -296,13 +308,17 @@ export async function flushTransferPushes(env, sendOne) {
       const claimed = await one(env, `UPDATE transfer_deliveries SET attempts=attempts+1,next_try=? WHERE transfer_id=? AND device_id=? AND next_try<=? AND sent_at IS NULL RETURNING transfer_id`,Date.now()+120000,row.transfer_id,row.device_id,Date.now());
       if (!claimed) continue;
       try {
-        if (row.apns_token) {
-          await sendOne({apnsToken:row.apns_token,deviceId:row.device_id,title:'Command Centre Transfer',body:'A new transfer is ready. Open Transfers to view it.',url:'/#transfers',id:'transfer-'+row.transfer_id},env);
-        } else {
-          if (!webReady) throw new Error('Web Push credentials are not configured.');
+        let delivered = false, lastError = null;
+        if (row.apns_token && nativeReady) {
+          try { await sendOne({apnsToken:row.apns_token,deviceId:row.device_id,title:'Command Centre Transfer',body:'A new transfer is ready. Open Transfers to view it.',url:'/#transfers',id:'transfer-'+row.transfer_id},env); delivered = true; }
+          catch (error) { lastError = error; console.warn('Transfer APNs delivery failed; trying Web Push companion', error?.message || error); }
+        }
+        if (!delivered && row.push_subscription && webReady) {
           const sub = JSON.parse(row.push_subscription);
           await sendOne({endpoint:sub.endpoint,p256dh:sub.keys.p256dh,auth:sub.keys.auth,title:'Command Centre Transfer',body:'A new transfer is ready. Open Transfers to view it.',url:'/#transfers',id:'transfer-'+row.transfer_id},env);
+          delivered = true;
         }
+        if (!delivered) throw lastError || new Error('No configured notification route is available for this device.');
         await run(env,'UPDATE transfer_deliveries SET sent_at=? WHERE transfer_id=? AND device_id=?',Date.now(),row.transfer_id,row.device_id);
       } catch { console.error('Transfer notification will retry',row.transfer_id); }
     }

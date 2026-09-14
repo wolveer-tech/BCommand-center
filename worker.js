@@ -1,9 +1,125 @@
 import { sendPushNotification } from '@mmmike/web-push/send';
-import { handleTransfers, cleanTransfers, flushTransferPushes } from './transfers.js';
+import { handleTransfers, cleanTransfers, flushTransferPushes, authenticateTransferDevice, readTransferJSON } from './transfers.js';
 import { handleMessages, cleanMessages, flushMessagePushes } from './messages.js';
 import { apnsConfigured, sendAPNSNotification } from './apns.js';
 
 function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json','access-control-allow-origin':'*','cache-control':'no-store'}})}
+const companionEncoder=new TextEncoder();
+const companionHex=bytes=>[...new Uint8Array(bytes)].map(value=>value.toString(16).padStart(2,'0')).join('');
+const companionHash=async value=>companionHex(await crypto.subtle.digest('SHA-256',companionEncoder.encode(String(value||''))));
+const companionSecret=()=>companionHex(crypto.getRandomValues(new Uint8Array(32)));
+function companionCode(){const value=crypto.getRandomValues(new Uint32Array(1))[0]%1000000000;return String(value).padStart(9,'0')}
+function cleanCompanionSubscription(subscription){
+  let endpoint;try{endpoint=new URL(subscription?.endpoint)}catch{throw Object.assign(new Error('The Web Push subscription is invalid.'),{status:400})}
+  if(endpoint.protocol!=='https:'||!/(^|\.)(push\.apple\.com|fcm\.googleapis\.com|push\.services\.mozilla\.com|notify\.windows\.com)$/.test(endpoint.hostname)||!subscription?.keys?.p256dh||!subscription?.keys?.auth)throw Object.assign(new Error('The browser returned an unsupported Web Push subscription.'),{status:400});
+  return {endpoint:endpoint.toString(),p256dh:String(subscription.keys.p256dh),auth:String(subscription.keys.auth)};
+}
+async function ensureNotificationCompanionTables(env){
+  await env.DB.batch([
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS notification_companion_codes (code_hash TEXT PRIMARY KEY,device_id TEXT NOT NULL UNIQUE,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL)`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS notification_companion_links (device_id TEXT PRIMARY KEY,token_hash TEXT NOT NULL UNIQUE,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS notification_companion_attempts (scope TEXT PRIMARY KEY,attempts INTEGER NOT NULL,expires_at INTEGER NOT NULL)`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS devices (device_id TEXT PRIMARY KEY,endpoint TEXT NOT NULL,p256dh TEXT NOT NULL,auth TEXT NOT NULL,timezone TEXT NOT NULL DEFAULT 'Europe/London',updated_at INTEGER NOT NULL)`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS notifications (id TEXT PRIMARY KEY,device_id TEXT NOT NULL,item_id TEXT NOT NULL,kind TEXT NOT NULL,due_at TEXT NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,url TEXT NOT NULL,frequency TEXT NOT NULL DEFAULT 'none',local_date TEXT NOT NULL,local_time TEXT NOT NULL,timezone TEXT NOT NULL,sent INTEGER NOT NULL DEFAULT 0)`)
+  ]);
+}
+async function checkNotificationCompanionRate(request,env){
+  const raw=request.headers.get('CF-Connecting-IP')||request.headers.get('x-forwarded-for')||'unknown';
+  const scope=await companionHash(`claim:${raw}`),now=Date.now(),expires=now+10*60*1000;
+  const row=await env.DB.prepare(`INSERT INTO notification_companion_attempts(scope,attempts,expires_at) VALUES(?,1,?) ON CONFLICT(scope) DO UPDATE SET attempts=CASE WHEN notification_companion_attempts.expires_at<=? THEN 1 ELSE notification_companion_attempts.attempts+1 END,expires_at=CASE WHEN notification_companion_attempts.expires_at<=? THEN excluded.expires_at ELSE notification_companion_attempts.expires_at END RETURNING attempts`).bind(scope,expires,now,now).first();
+  if(Number(row?.attempts)>20)throw Object.assign(new Error('Too many link attempts. Wait ten minutes and try again.'),{status:429});
+}
+async function authenticateNotificationCompanion(request,env){
+  const token=(request.headers.get('authorization')||'').match(/^Bearer ([a-f0-9]{64})$/i)?.[1];
+  if(!token)throw Object.assign(new Error('This notification companion is not linked.'),{status:401});
+  const row=await env.DB.prepare(`SELECT l.device_id,d.name FROM notification_companion_links l JOIN transfer_devices d ON d.id=l.device_id WHERE l.token_hash=? AND d.revoked_at IS NULL`).bind(await companionHash(token.toLowerCase())).first();
+  if(!row)throw Object.assign(new Error('This notification companion link is no longer active.'),{status:401});
+  return row;
+}
+function notificationCompanionItem(item,deviceId,timezone){
+  const dueAt=String(item?.dueAt||''),due=new Date(dueAt);if(!Number.isFinite(due.getTime()))return null;
+  const kind=['reminder','event'].includes(item?.kind)?item.kind:null;if(!kind)return null;
+  const sourceId=String(item.id||'').slice(0,180);if(!sourceId)return null;
+  return {id:`companion:${deviceId}:${sourceId}`.slice(0,240),deviceId,itemId:String(item.itemId||'').slice(0,180),kind,dueAt:due.toISOString(),title:String(item.title||'Command Centre').slice(0,140),body:String(item.body||'').slice(0,500),url:String(item.url||'/').slice(0,500),frequency:['none','daily','every2days','weekly','monthly','yearly'].includes(item.frequency)?item.frequency:'none',localDate:String(item.localDate||'').slice(0,10),localTime:String(item.localTime||'').slice(0,5),timezone};
+}
+async function syncNotificationCompanion(device,body,env,ctx){
+  const linked=await env.DB.prepare('SELECT d.endpoint FROM notification_companion_links l JOIN devices d ON d.device_id=l.device_id WHERE l.device_id=?').bind(device.id).first();
+  if(!linked)throw Object.assign(new Error('Finish linking the Safari Home Screen receiver first.'),{status:409});
+  const timezone=String(body?.timezone||'Europe/London').slice(0,80),items=(Array.isArray(body?.items)?body.items:[]).slice(0,1200).map(item=>notificationCompanionItem(item,device.id,timezone)).filter(item=>item?.id&&item.itemId);
+  await env.DB.prepare('UPDATE devices SET timezone=?,updated_at=? WHERE device_id=?').bind(timezone,Date.now(),device.id).run();
+  await env.DB.prepare("DELETE FROM notifications WHERE device_id=? AND sent=0 AND kind IN ('reminder','event')").bind(device.id).run();
+  for(const item of items)await env.DB.prepare('INSERT OR REPLACE INTO notifications(id,device_id,item_id,kind,due_at,title,body,url,frequency,local_date,local_time,timezone,sent) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,0)').bind(item.id,item.deviceId,item.itemId,item.kind,item.dueAt,item.title,item.body,item.url,item.frequency,item.localDate,item.localTime,item.timezone).run();
+
+  const briefing=body?.briefing||{};await ensureBriefingTable(env);
+  const briefingTime=/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(briefing.localTime||''))?String(briefing.localTime):'07:30';
+  await env.DB.prepare(`INSERT INTO morning_briefing_preferences(device_id,enabled,local_time,timezone,city,bible_text,last_sent_date,updated_at) VALUES(?,?,?,?,?,?,NULL,?) ON CONFLICT(device_id) DO UPDATE SET enabled=excluded.enabled,local_time=excluded.local_time,timezone=excluded.timezone,city=excluded.city,bible_text=excluded.bible_text,updated_at=excluded.updated_at`).bind(device.id,briefing.enabled===false?0:1,briefingTime,timezone,String(briefing.city||'London').slice(0,100),String(briefing.bibleText||'').slice(0,180),Date.now()).run();
+
+  const news=body?.news||{};await ensureNewsTables(env);
+  const pushMode=['major','all','off'].includes(news.pushMode)?news.pushMode:'major';
+  await env.DB.prepare(`INSERT INTO news_preferences(device_id,world_enabled,financial_enabled,push_mode,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(device_id) DO UPDATE SET world_enabled=excluded.world_enabled,financial_enabled=excluded.financial_enabled,push_mode=excluded.push_mode,updated_at=excluded.updated_at`).bind(device.id,news.worldEnabled===false?0:1,news.financialEnabled===false?0:1,pushMode,Date.now()).run();
+
+  const football=body?.football||{},teams=(Array.isArray(football.teams)?football.teams:[]).map(team=>({id:Number(team?.id)||0,name:String(team?.name||'').slice(0,120),crest:String(team?.crest||'').slice(0,500)})).filter(team=>team.id).filter((team,index,all)=>all.findIndex(other=>other.id===team.id)===index).slice(0,20),primary=teams[0]||null;
+  await ensureFootballNotificationTables(env);
+  await env.DB.prepare(`INSERT INTO football_notification_preferences(device_id,enabled,team_id,team_name,team_crest,timezone,notify_24h,notify_1h,notify_kickoff,notify_final,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(device_id) DO UPDATE SET enabled=excluded.enabled,team_id=excluded.team_id,team_name=excluded.team_name,team_crest=excluded.team_crest,timezone=excluded.timezone,notify_24h=excluded.notify_24h,notify_1h=excluded.notify_1h,notify_kickoff=excluded.notify_kickoff,notify_final=excluded.notify_final,updated_at=excluded.updated_at`).bind(device.id,football.enabled===false?0:1,primary?.id||null,primary?.name||'',primary?.crest||'',timezone,football.notify24h===false?0:1,football.notify1h===false?0:1,football.notifyKickoff===false?0:1,football.notifyFinal===false?0:1,Date.now()).run();
+  await env.DB.prepare('DELETE FROM football_notification_teams WHERE device_id=?').bind(device.id).run();
+  for(const team of teams)await env.DB.prepare('INSERT INTO football_notification_teams(device_id,team_id,team_name,team_crest,updated_at) VALUES(?,?,?,?,?)').bind(device.id,team.id,team.name,team.crest,Date.now()).run();
+  ctx.waitUntil(syncFootballPreferenceNow(env,device.id).catch(error=>console.warn('Companion football sync deferred',error?.message||error)));
+  await env.DB.prepare('UPDATE notification_companion_links SET updated_at=? WHERE device_id=?').bind(Date.now(),device.id).run();
+  return {ok:true,scheduled:items.length,teams:teams.length};
+}
+async function handleNotificationCompanion(request,env,ctx,sendOne){
+  try{
+    if(!env.DB)throw Object.assign(new Error('D1 is not configured.'),{status:503});
+    await ensureNotificationCompanionTables(env);const url=new URL(request.url),path=url.pathname.slice('/api/notification-companion'.length),method=request.method;
+    if(path==='/claim'&&method==='POST'){
+      await checkNotificationCompanionRate(request,env);const data=await readTransferJSON(request),code=String(data.code||'').replace(/\D/g,'');if(!/^\d{9}$/.test(code))throw Object.assign(new Error('Enter the complete 9-digit code from the IPA.'),{status:400});
+      const subscription=cleanCompanionSubscription(data.subscription),invite=await env.DB.prepare('DELETE FROM notification_companion_codes WHERE code_hash=? AND expires_at>? RETURNING device_id').bind(await companionHash(code),Date.now()).first();
+      if(!invite)throw Object.assign(new Error('That link code is invalid, expired or already used.'),{status:400});
+      const device=await env.DB.prepare('SELECT id,name FROM transfer_devices WHERE id=? AND revoked_at IS NULL').bind(invite.device_id).first();if(!device)throw Object.assign(new Error('The IPA device is no longer connected.'),{status:410});
+      const token=companionSecret(),now=Date.now(),timezone=String(data.timezone||'Europe/London').slice(0,80);
+      await env.DB.batch([
+        env.DB.prepare('INSERT INTO notification_companion_links(device_id,token_hash,created_at,updated_at) VALUES(?,?,?,?) ON CONFLICT(device_id) DO UPDATE SET token_hash=excluded.token_hash,updated_at=excluded.updated_at').bind(device.id,await companionHash(token),now,now),
+        env.DB.prepare('UPDATE transfer_devices SET push_subscription=? WHERE id=? AND revoked_at IS NULL').bind(JSON.stringify({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}}),device.id),
+        env.DB.prepare('INSERT INTO devices(device_id,endpoint,p256dh,auth,timezone,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(device_id) DO UPDATE SET endpoint=excluded.endpoint,p256dh=excluded.p256dh,auth=excluded.auth,timezone=excluded.timezone,updated_at=excluded.updated_at').bind(device.id,subscription.endpoint,subscription.p256dh,subscription.auth,timezone,now)
+      ]);
+      ctx.waitUntil(sendOne({...subscription,title:'Command Centre linked',body:'Safari will now receive notifications for your IPA device.',url:'/#settings',id:`companion-linked-${device.id}`},env).catch(error=>console.warn('Companion welcome push failed',error?.message||error)));
+      return json({ok:true,deviceId:device.id,deviceName:device.name,token});
+    }
+    if(path==='/refresh'&&method==='POST'){
+      const link=await authenticateNotificationCompanion(request,env),data=await readTransferJSON(request),subscription=cleanCompanionSubscription(data.subscription),timezone=String(data.timezone||'Europe/London').slice(0,80),now=Date.now();
+      await env.DB.batch([
+        env.DB.prepare('UPDATE transfer_devices SET push_subscription=? WHERE id=? AND revoked_at IS NULL').bind(JSON.stringify({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}}),link.device_id),
+        env.DB.prepare('INSERT INTO devices(device_id,endpoint,p256dh,auth,timezone,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(device_id) DO UPDATE SET endpoint=excluded.endpoint,p256dh=excluded.p256dh,auth=excluded.auth,timezone=excluded.timezone,updated_at=excluded.updated_at').bind(link.device_id,subscription.endpoint,subscription.p256dh,subscription.auth,timezone,now),
+        env.DB.prepare('UPDATE notification_companion_links SET updated_at=? WHERE device_id=?').bind(now,link.device_id)
+      ]);return json({ok:true,deviceId:link.device_id,deviceName:link.name});
+    }
+    if(path==='/receiver/test'&&method==='POST'){
+      const link=await authenticateNotificationCompanion(request,env),row=await env.DB.prepare('SELECT endpoint,p256dh,auth FROM devices WHERE device_id=?').bind(link.device_id).first();
+      if(!row)throw Object.assign(new Error('This Safari receiver needs to be refreshed.'),{status:404});
+      await sendOne({...row,title:'Command Centre companion',body:'Web Push is linked to your IPA device.',url:'/#today',id:`companion-test-${Date.now()}`},env);return json({ok:true});
+    }
+    if(path==='/receiver'&&method==='DELETE'){
+      const link=await authenticateNotificationCompanion(request,env);await env.DB.batch([env.DB.prepare('UPDATE transfer_devices SET push_subscription=NULL WHERE id=?').bind(link.device_id),env.DB.prepare('DELETE FROM devices WHERE device_id=?').bind(link.device_id),env.DB.prepare('DELETE FROM notifications WHERE device_id=?').bind(link.device_id),env.DB.prepare('DELETE FROM notification_companion_links WHERE device_id=?').bind(link.device_id)]);return json({ok:true});
+    }
+    const device=await authenticateTransferDevice(request,env);
+    if(path==='/code'&&method==='POST'){
+      await env.DB.prepare('DELETE FROM notification_companion_codes WHERE device_id=? OR expires_at<=?').bind(device.id,Date.now()).run();let code='';
+      for(let attempt=0;attempt<6&&!code;attempt++){const candidate=companionCode();try{await env.DB.prepare('INSERT INTO notification_companion_codes(code_hash,device_id,expires_at,created_at) VALUES(?,?,?,?)').bind(await companionHash(candidate),device.id,Date.now()+10*60*1000,Date.now()).run();code=candidate}catch{}}
+      if(!code)throw Object.assign(new Error('Could not create a unique link code. Try again.'),{status:503});return json({code:code.replace(/(\d{3})(?=\d)/g,'$1 '),expiresAt:Date.now()+10*60*1000});
+    }
+    if(path==='/status'&&method==='GET'){
+      const row=await env.DB.prepare('SELECT l.updated_at,d.updated_at AS receiver_updated FROM notification_companion_links l LEFT JOIN devices d ON d.device_id=l.device_id WHERE l.device_id=?').bind(device.id).first();return json({linked:!!row,updatedAt:Number(row?.receiver_updated||row?.updated_at)||0,deviceId:device.id,deviceName:device.name});
+    }
+    if(path==='/sync'&&method==='POST')return json(await syncNotificationCompanion(device,await readTransferJSON(request),env,ctx));
+    if(path==='/test'&&method==='POST'){
+      const row=await env.DB.prepare('SELECT endpoint,p256dh,auth FROM devices WHERE device_id=?').bind(device.id).first();if(!row)throw Object.assign(new Error('Link the Safari notification receiver first.'),{status:404});await sendOne({...row,title:'Command Centre companion',body:'Web Push is connected to your IPA device.',url:'/#today',id:`companion-test-${Date.now()}`},env);return json({ok:true});
+    }
+    if(path===''&&method==='DELETE'){
+      await env.DB.batch([env.DB.prepare('UPDATE transfer_devices SET push_subscription=NULL WHERE id=?').bind(device.id),env.DB.prepare('DELETE FROM devices WHERE device_id=?').bind(device.id),env.DB.prepare('DELETE FROM notifications WHERE device_id=?').bind(device.id),env.DB.prepare('DELETE FROM notification_companion_codes WHERE device_id=?').bind(device.id),env.DB.prepare('DELETE FROM notification_companion_links WHERE device_id=?').bind(device.id)]);return json({ok:true});
+    }
+    return json({error:'Not found'},404);
+  }catch(error){console.error('notification companion',error);return json({error:error?.message||String(error)},Number(error?.status)||500)}
+}
 function addDaysLocal(dateKey,n){const [y,m,d]=dateKey.split('-').map(Number);const dt=new Date(Date.UTC(y,m-1,d));dt.setUTCDate(dt.getUTCDate()+n);return dt.toISOString().slice(0,10)}
 function nextLocalDate(dateKey,frequency){
   if(frequency==='daily') return addDaysLocal(dateKey,1);
@@ -1748,6 +1864,15 @@ const API_FOOTBALL_COMPETITIONS={
   FAC:{id:45,name:'FA Cup',country:'England'},
   FLC:{id:48,name:'League Cup',country:'England'}
 };
+// FotMob's public league pages include tables and club identities for the
+// English pyramid without requiring another Worker secret. These IDs are the
+// league-page IDs used by fotmob.com (not the API-Football IDs above).
+const FOTMOB_LEAGUE_COMPETITIONS={
+  ELC:{id:48,name:'Championship',country:'England'},
+  EL1:{id:108,name:'League One',country:'England'},
+  EL2:{id:109,name:'League Two',country:'England'},
+  ENL:{id:117,name:'National League',country:'England'}
+};
 
 function isoDayOffset(n){
   const d=new Date();d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);
@@ -1885,6 +2010,47 @@ async function fotmobFootballSchedule(){
   const unique=[...new Map(matches.map(match=>[String(match.id),match])).values()].sort((a,b)=>Date.parse(a.utcDate)-Date.parse(b.utcDate));
   const competitions=[...new Map(unique.map(match=>[String(match.competition.id||match.competition.name),match.competition])).values()];
   return {matches:unique,competitions,provider:'FotMob website feed',dateFrom:dates[0],dateTo:dates.at(-1),updatedAt:new Date().toISOString()};
+}
+
+function cleanFotmobStandingRow(row){
+  const scores=String(row?.scoresStr||'').match(/(-?\d+)\D+(-?\d+)/);
+  const goalsFor=Number(row?.scoresFor??scores?.[1])||0,goalsAgainst=Number(row?.scoresAgainst??scores?.[2])||0;
+  return {
+    position:Number(row?.idx??row?.rank??row?.position)||0,
+    team:fotmobTeam({id:row?.id,name:row?.name,longName:row?.name,shortName:row?.shortName}),
+    playedGames:Number(row?.played)||0,
+    won:Number(row?.wins??row?.win)||0,
+    draw:Number(row?.draws??row?.draw)||0,
+    lost:Number(row?.losses??row?.loss)||0,
+    points:Number(row?.pts??row?.points)||0,
+    goalsFor,goalsAgainst,
+    goalDifference:Number(row?.goalConDiff??row?.goalDifference)||(goalsFor-goalsAgainst)
+  };
+}
+function fotmobLeagueTableRows(payload){
+  const sections=Array.isArray(payload?.table)?payload.table:[];
+  for(const section of sections){
+    const table=section?.data?.table||section?.table||{};
+    const rows=Array.isArray(table?.all)?table.all:(Array.isArray(table)?table:[]);
+    if(rows.length)return rows;
+  }
+  return [];
+}
+async function fotmobLeagueBundle(code){
+  const cfg=FOTMOB_LEAGUE_COMPETITIONS[code];
+  if(!cfg)throw Object.assign(new Error('No FotMob league mapping exists for this competition.'),{status:503});
+  const data=await fotmobWebsiteFetch('leagues',{id:cfg.id,ccode3:'GBR_MA',timezone:'Europe/London',language:'en'});
+  const rows=fotmobLeagueTableRows(data).map(cleanFotmobStandingRow).filter(row=>row.team.id);
+  if(!rows.length)throw Object.assign(new Error(`FotMob returned no ${cfg.name} table.`),{status:502});
+  const rawMatches=Array.isArray(data?.matches?.allMatches)?data.matches.allMatches:(Array.isArray(data?.matches?.fixtures)?data.matches.fixtures:[]);
+  const league={id:cfg.id,primaryId:cfg.id,name:cfg.name,ccode:code};
+  const matches=rawMatches.map(row=>cleanFotmobFootballMatch(row,league)).filter(match=>match.id&&match.utcDate);
+  return {
+    competition:{id:cfg.id,name:cfg.name,code,emblem:`https://images.fotmob.com/image_resources/logo/leaguelogo/${cfg.id}.png`},
+    standings:[{type:'TOTAL',group:'',table:rows}],matches,
+    provider:'FotMob website feed',providerMode:'public-league-page',
+    updatedAt:new Date().toISOString()
+  };
 }
 
 async function footballFetch(path,env,extraHeaders={}){
@@ -2385,11 +2551,19 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
   try{
     let payload;
 
+    // League One and the neighbouring English divisions were previously sent
+    // to providers whose free/keyless tiers do not expose their club tables.
+    // Use the same FotMob league feed as the global fixture schedule first.
+    if(FOTMOB_LEAGUE_COMPETITIONS[code]){
+      try{payload=await fotmobLeagueBundle(code)}
+      catch(fotmobLeagueError){console.warn(`FotMob league feed unavailable for ${code}`,fotmobLeagueError?.message||fotmobLeagueError)}
+    }
+
     // Avoid triggering a known 403 for competitions outside the normal primary-key
     // coverage. If a fallback key is present, go directly to API-Football.
-    if(!FOOTBALL_DATA_PRIMARY_CODES.has(code)&&apiSportsKey(env)){
+    if(!payload&&!FOOTBALL_DATA_PRIMARY_CODES.has(code)&&apiSportsKey(env)){
       payload=await apiFootballBundle(env,code);
-    }else{
+    }else if(!payload){
       try{
         payload=await fetchPrimary();
       }catch(primaryError){
@@ -3545,6 +3719,7 @@ async function audiusStreamResponse(request,env,trackId){
 export default {
   async fetch(request,env,ctx){
     const url=new URL(request.url);
+    if(url.pathname.startsWith('/api/notification-companion')) return handleNotificationCompanion(request,env,ctx,sendOne);
     if(url.pathname.startsWith('/api/transfers/')) return handleTransfers(request,env,ctx,sendOne);
     if(url.pathname.startsWith('/api/messages/')) return handleMessages(request,env,ctx,sendOne);
     if(request.method==='OPTIONS') return new Response(null,{headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET,POST,DELETE,OPTIONS','access-control-allow-headers':'content-type'}});

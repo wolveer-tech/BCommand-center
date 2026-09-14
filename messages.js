@@ -153,13 +153,16 @@ export async function flushMessagePushes(env,sendOne){
         WHERE message_id=? AND sent_at IS NULL AND next_try<=? RETURNING message_id`,Date.now()+120000,delivery.message_id,Date.now());
       if(!claimed)continue;
       try{
-        if(delivery.apns_token){
-          await sendOne({apnsToken:delivery.apns_token,deviceId:delivery.recipient_id,title:'Command Centre Messages',body:'You have a new message.',url:'/#messages/'+delivery.sender_id,id:'chat-'+delivery.sender_id},env);
-        }else{
-          if(!webReady)throw new Error('Web Push credentials are not configured.');
+        let delivered=false,lastError=null;
+        if(delivery.apns_token&&nativeReady){
+          try{await sendOne({apnsToken:delivery.apns_token,deviceId:delivery.recipient_id,title:'Command Centre Messages',body:'You have a new message.',url:'/#messages/'+delivery.sender_id,id:'chat-'+delivery.sender_id},env);delivered=true}catch(error){lastError=error;console.warn('Message APNs delivery failed; trying Web Push companion',error?.message||error)}
+        }
+        if(!delivered&&delivery.push_subscription&&webReady){
           const sub=JSON.parse(delivery.push_subscription);
           await sendOne({endpoint:sub.endpoint,p256dh:sub.keys.p256dh,auth:sub.keys.auth,title:'Command Centre Messages',body:'You have a new message.',url:'/#messages/'+delivery.sender_id,id:'chat-'+delivery.sender_id},env);
+          delivered=true;
         }
+        if(!delivered)throw lastError||new Error('No configured notification route is available for this device.');
         await run(env,'UPDATE message_deliveries SET sent_at=? WHERE message_id=?',Date.now(),delivery.message_id);
       }catch{console.error('Message notification will retry',delivery.message_id);}
     }
