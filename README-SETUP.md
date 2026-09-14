@@ -1,5 +1,13 @@
 # Command Centre setup
 
+## v10.23.2 — League One recent-score hotfix
+
+League-history scores are now parsed from FotMob's `status.scoreStr` field,
+while the daily-feed score format remains supported. The response keeps the 48
+newest results and 80 nearest unfinished fixtures, and both the Worker football
+cache and service-worker shell cache are refreshed. No IPA, migration or new
+Cloudflare variable is required. See [RELEASE-v10.23.2.md](RELEASE-v10.23.2.md).
+
 ## v10.23.1 — League One results and Notes focus hotfix
 
 League One completed matches now come from FotMob's correct

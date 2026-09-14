@@ -47,14 +47,18 @@ test('League One uses the keyless FotMob league table and normalises clubs',()=>
   assert.match(worker,/EL1:\{id:108,name:'League One'/);
   assert.match(worker,/fotmobWebsiteFetch\('leagues'/);
   assert.match(worker,/data\?\.fixtures\?\.allMatches/);
-  assert.match(worker,/__cache\/football-v4/);
+  assert.match(worker,/__cache\/football-v5/);
+  assert.match(worker,/status\?\.scoreStr/);
+  assert.match(worker,/slice\(0,48\)/);
   assert.match(worker,/FOTMOB_LEAGUE_COMPETITIONS\[code\]/);
   const start=worker.indexOf("const FOTMOB_WEB_BASE=");
   const end=worker.indexOf('async function fotmobLeagueBundle',start);
   const context={URL,fetch:()=>{throw new Error('not called')}};vm.createContext(context);
-  vm.runInContext(`${worker.slice(start,end)}\nglobalThis.cleanRow=cleanFotmobStandingRow;`,context);
+  vm.runInContext(`${worker.slice(start,end)}\nglobalThis.cleanRow=cleanFotmobStandingRow;globalThis.cleanMatch=cleanFotmobFootballMatch;`,context);
   const row=context.cleanRow({idx:3,id:8678,name:'Example FC',shortName:'Example',played:10,wins:6,draws:2,losses:2,scoresStr:'18-9',pts:20});
   assert.equal(row.position,3);assert.equal(row.team.id,800000008678);assert.equal(row.playedGames,10);assert.equal(row.goalDifference,9);assert.equal(row.points,20);
+  const match=context.cleanMatch({id:5837158,home:{id:1,name:'Home'},away:{id:2,name:'Away'},status:{utcTime:'2026-09-12T14:00:00Z',finished:true,started:true,scoreStr:'3 - 2'}},{id:108,name:'League One',ccode:'EL1'});
+  assert.equal(match.status,'FINISHED');assert.equal(match.score.fullTime.home,3);assert.equal(match.score.fullTime.away,2);
 });
 
 test('iPhone note writing mode hides editor chrome without the unsupported has selector',()=>{

@@ -1988,11 +1988,13 @@ function cleanFotmobFootballMatch(row,league={}){
   const rawId=Number(row?.id)||0,status=row?.status||{};
   const kickoff=status.utcTime||((Number(row?.timeTS)||0)>0?new Date(Number(row.timeTS)).toISOString():'');
   const minuteMatch=String(status?.liveTime?.short||status?.liveTime?.long||'').match(/\d+/);
+  const scoreMatch=String(status?.scoreStr||'').match(/(\d+)\s*-\s*(\d+)/);
+  const homeScore=row?.home?.score??(scoreMatch?Number(scoreMatch[1]):null),awayScore=row?.away?.score??(scoreMatch?Number(scoreMatch[2]):null);
   return {
     id:rawId?FOTMOB_ID_PREFIX+rawId:0,fotmobId:rawId,utcDate:String(kickoff||''),status:fotmobStatus(row),minute:minuteMatch?Number(minuteMatch[0]):null,
     competition:{id:Number(league?.primaryId||league?.id)||0,name:String(league?.name||'Football'),code:String(league?.ccode||''),emblem:Number(league?.primaryId||league?.id)?`https://images.fotmob.com/image_resources/logo/leaguelogo/${league.primaryId||league.id}.png`:''},
     homeTeam:fotmobTeam(row?.home),awayTeam:fotmobTeam(row?.away),
-    score:{fullTime:{home:row?.home?.score==null?null:Number(row.home.score),away:row?.away?.score==null?null:Number(row.away.score)}},
+    score:{fullTime:{home:homeScore==null?null:Number(homeScore),away:awayScore==null?null:Number(awayScore)}},
     source:'fotmob-website'
   };
 }
@@ -2046,7 +2048,10 @@ async function fotmobLeagueBundle(code){
     :(Array.isArray(data?.matches?.allMatches)?data.matches.allMatches
       :(Array.isArray(data?.matches?.fixtures)?data.matches.fixtures:[]));
   const league={id:cfg.id,primaryId:cfg.id,name:cfg.name,ccode:code};
-  const matches=rawMatches.map(row=>cleanFotmobFootballMatch(row,league)).filter(match=>match.id&&match.utcDate);
+  const allMatches=rawMatches.map(row=>cleanFotmobFootballMatch(row,league)).filter(match=>match.id&&match.utcDate);
+  const recent=allMatches.filter(match=>match.status==='FINISHED').sort((a,b)=>Date.parse(b.utcDate)-Date.parse(a.utcDate)).slice(0,48);
+  const current=allMatches.filter(match=>match.status!=='FINISHED').sort((a,b)=>Date.parse(a.utcDate)-Date.parse(b.utcDate)).slice(0,80);
+  const matches=[...recent,...current];
   return {
     competition:{id:cfg.id,name:cfg.name,code,emblem:`https://images.fotmob.com/image_resources/logo/leaguelogo/${cfg.id}.png`},
     standings:[{type:'TOTAL',group:'',table:rows}],matches,
@@ -2515,7 +2520,7 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
     cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
     if(cache){
       const u=new URL(requestUrl);
-      u.pathname='/__cache/football-v4';
+      u.pathname='/__cache/football-v5';
       u.search=new URLSearchParams({competition:code}).toString();
       cacheKey=new Request(u.toString(),{method:'GET'});
       const hit=await cache.match(cacheKey);
@@ -2586,7 +2591,7 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
       try{
         if(!cacheKey){
           const u=new URL(requestUrl);
-          u.pathname='/__cache/football-v4';
+          u.pathname='/__cache/football-v5';
           u.search=new URLSearchParams({competition:code}).toString();
           cacheKey=new Request(u.toString(),{method:'GET'});
         }

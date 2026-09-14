@@ -7596,7 +7596,7 @@ function renderFootball(){
   if(sub)sub.textContent=allMode?'Choose a league for its table':(footballCache.competitionName?`${footballCache.competitionName} • current season`:'Current season');
   const scheduleSub=qs('#footballScheduleSub');
   if(scheduleSub)scheduleSub.textContent=allMode?`All worldwide • biggest and most relevant leagues first • showing ${upcoming.length} of ${matchingUpcoming.length}`:`${FOOTBALL_COMPETITIONS[selection]||footballCache.competitionName||selection} • ${footballScheduleCache.provider||'football data'} • showing ${upcoming.length} of ${matchingUpcoming.length}`;
-  const resultsSub=qs('#footballResultsSub');if(resultsSub)resultsSub.textContent=allMode?`All worldwide • prioritised by competition`:(FOOTBALL_COMPETITIONS[selection]||footballCache.competitionName||selection);
+  const resultsSub=qs('#footballResultsSub');if(resultsSub)resultsSub.textContent=allMode?`All worldwide • prioritised by competition`:`${FOOTBALL_COMPETITIONS[selection]||footballCache.competitionName||selection} • ${matchingResults.length} recent result${matchingResults.length===1?'':'s'}`;
 }
 async function loadFootball(force=false){
   const status=qs('#footballStatus'),sel=qs('#footballCompetition');

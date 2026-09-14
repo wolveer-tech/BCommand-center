@@ -1,3 +1,14 @@
+# League One recent-score hotfix v10.23.2
+
+- A live League One response contained 552 season matches and 71 completed
+  matches; recent records store their score as `status.scoreStr`.
+- Unit coverage verifies that a FotMob history value of `3 - 2` becomes numeric
+  home/away full-time scores and remains `FINISHED`.
+- The response is capped to 48 recent results and 80 live/upcoming matches.
+- Worker football cache `football-v5` and app shell cache
+  `command-centre-shell-v10.23.2` invalidate prior scoreless data.
+- Static project validation and the full automated suite pass: **80/80 tests**.
+
 # League One results and Notes focus hotfix v10.23.1
 
 - FotMob league history is read from `fixtures.allMatches`, and the selected
