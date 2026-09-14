@@ -40,7 +40,7 @@
 
 .notes-toolbar{display:flex;gap:8px;margin-bottom:12px}.notes-search{width:100%;background:#0b1220;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:11px 12px;font:inherit;font-size:11px}.notes-list{display:flex;flex-direction:column;gap:7px}.note-card{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--line);background:var(--panel2);border-radius:11px;cursor:pointer}.note-card:hover{border-color:#3d557c}.note-icon{width:30px;height:30px;border-radius:8px;background:#ffffff08;display:flex;align-items:center;justify-content:center;flex:none}.note-card-main{min-width:0;flex:1}.note-card-title{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.note-card-preview{font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.note-card-date{font-size:9px;color:var(--muted);white-space:nowrap}.note-editor-card{max-width:760px}.note-body-input{min-height:330px;resize:vertical;line-height:1.55}.notes-empty{padding:35px 15px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:11px}.notes-empty strong{display:block;color:var(--text);margin-bottom:5px}
 #noteModal.modal{padding:0;align-items:stretch;justify-content:stretch;background:var(--bg);z-index:2147483200;inset:auto 0 auto 0;top:var(--cc-note-vv-top,0px);width:100%;height:var(--cc-note-vv-height,100dvh)}
-#noteModal .modal-card.note-editor-card{width:100%;max-width:100%;height:100%;min-height:0;max-height:100%;margin:0;border:none;border-radius:0;display:flex;flex-direction:column;overflow:hidden;padding:16px;padding-top:max(16px,env(safe-area-inset-top));padding-bottom:0;background:var(--bg);box-shadow:none;animation:noteSlideIn .28s cubic-bezier(.32,.72,.35,1)}
+#noteModal .modal-card.note-editor-card{position:relative;width:100%;max-width:100%;height:100%;min-height:0;max-height:100%;margin:0;border:none;border-radius:0;display:flex;flex-direction:column;overflow:hidden;padding:16px;padding-top:max(16px,env(safe-area-inset-top));padding-bottom:0;background:var(--bg);box-shadow:none;animation:noteSlideIn .28s cubic-bezier(.32,.72,.35,1)}
 #noteModal .modal-head{flex:none}
 #noteModal .modal-head,#noteModal .field,#noteModal .note-editor-options,#noteModal .note-toolbar{min-width:0;max-width:100%}
 #noteModal .field:has(.note-body-input){flex:1;display:flex;flex-direction:column;min-height:0}
@@ -56,6 +56,8 @@ body:has(#noteModal.open) .music-mini-player,
 body:has(#noteModal.open) .back-to-top{visibility:hidden!important;pointer-events:none!important}
 @keyframes noteSlideIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 .note-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 4px;border-bottom:1px solid var(--line);flex:none}
+.note-format-details{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.note-format-toggle,.note-keyboard-done{display:none}
 .note-toolbar select{background:#0b1220;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 7px;font:inherit;font-size:11px;outline:none}
 .fmt-btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;justify-content:center;line-height:1}
 .fmt-btn.active{background:linear-gradient(135deg,#3568e8,#7658db);border-color:transparent;color:#fff}
@@ -66,7 +68,7 @@ body:has(#noteModal.open) .back-to-top{visibility:hidden!important;pointer-event
 .color-dot{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.18);cursor:pointer;padding:0}
 .color-dot.active{border-color:#fff}
 #noteModal .note-body-input b,#noteModal .note-body-input strong{font-weight:800}
-@media(max-width:520px){#noteModal .modal-card.note-editor-card{padding-left:12px;padding-right:12px}.note-toolbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}.note-toolbar::-webkit-scrollbar{display:none}.note-toolbar>*{flex:0 0 auto}#noteModal .note-body-input{padding-left:6px;padding-right:6px}#noteModal .modal-actions{gap:6px}#noteModal .modal-actions .btn{padding-left:6px;padding-right:6px}#noteModal.note-keyboard-open.note-body-focused .modal-head,#noteModal.note-keyboard-open.note-body-focused .field:has(#noteTitle),#noteModal.note-keyboard-open.note-body-focused .note-editor-options{display:none}#noteModal.note-keyboard-open.note-body-focused .note-toolbar{margin-top:0}#noteModal.note-keyboard-open.note-body-focused .note-body-input{padding-top:18px}}
+@media(max-width:520px){#noteModal .modal-card.note-editor-card{padding-left:12px;padding-right:12px}.note-toolbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}.note-toolbar::-webkit-scrollbar{display:none}.note-toolbar>*{flex:0 0 auto}.note-format-details{flex-wrap:nowrap}.note-format-details>*{flex:0 0 auto}#noteModal .note-body-input{padding-left:6px;padding-right:6px}#noteModal .modal-actions{gap:6px}#noteModal .modal-actions .btn{padding-left:6px;padding-right:6px}#noteModal.note-keyboard-open.note-body-focused .modal-head,#noteModal.note-keyboard-open.note-body-focused .field:has(#noteTitle),#noteModal.note-keyboard-open.note-body-focused .note-editor-options,#noteModal.note-keyboard-open.note-body-focused .modal-actions{display:none}#noteModal.note-keyboard-open.note-body-focused .note-toolbar{position:absolute;z-index:7;left:50%;bottom:max(8px,env(safe-area-inset-bottom));transform:translateX(-50%);width:auto;max-width:calc(100% - 24px);margin:0;padding:6px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(15,22,36,.94);box-shadow:0 10px 30px rgba(0,0,0,.46);backdrop-filter:blur(18px);overflow:hidden}#noteModal.note-keyboard-open.note-body-focused .note-format-toggle,#noteModal.note-keyboard-open.note-body-focused .note-keyboard-done{display:inline-flex}#noteModal.note-keyboard-open.note-body-focused .note-format-details{display:none}#noteModal.note-keyboard-open.note-body-focused .note-toolbar.expanded{width:calc(100% - 24px)}#noteModal.note-keyboard-open.note-body-focused .note-toolbar.expanded .note-format-details{display:flex;flex:1;overflow-x:auto;scrollbar-width:none}#noteModal.note-keyboard-open.note-body-focused .note-toolbar.expanded .note-format-details::-webkit-scrollbar{display:none}#noteModal.note-keyboard-open.note-body-focused .fmt-btn{width:30px;height:30px}#noteModal.note-keyboard-open.note-body-focused .color-dot{width:19px;height:19px}#noteModal.note-keyboard-open.note-body-focused .note-body-input{padding-top:18px;padding-bottom:72px;scroll-padding-bottom:84px}}
 
 .bible-progress{display:flex;align-items:center;gap:10px;margin:10px 0 14px}.bible-progress-bar{flex:1;height:8px;border-radius:99px;background:#ffffff12;overflow:hidden}.bible-progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:99px}.bible-book-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.bible-book{border:1px solid var(--line);background:var(--panel2);border-radius:14px;padding:11px}.bible-book-head{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}.bible-book-title{font-size:12px;font-weight:800}.bible-book-meta{font-size:9px;color:var(--muted);margin-top:2px}.bible-book-chapters{display:none;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px;margin-top:10px}.bible-book.open .bible-book-chapters{display:grid}.chapter-check{position:relative}.chapter-check input{position:absolute;opacity:0;pointer-events:none}.chapter-check label{display:grid;place-items:center;min-height:30px;border:1px solid var(--line);border-radius:8px;background:#0b1220;color:var(--muted);font-size:10px;font-weight:750;cursor:pointer}.chapter-check input:checked+label{background:rgba(39,211,155,.14);border-color:rgba(39,211,155,.45);color:var(--green)}.reading-checks{display:grid;gap:7px;margin-top:10px}.reading-check{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#ffffff08;font-size:11px;cursor:pointer}.reading-check input{accent-color:var(--green)}.bible-actions{display:flex;gap:7px;flex-wrap:wrap}.bible-testament{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px}@media(max-width:700px){.bible-book-grid{grid-template-columns:1fr}.bible-book-chapters{grid-template-columns:repeat(6,minmax(0,1fr))}}
 
@@ -1865,6 +1867,10 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
 .football-match-wrap{display:grid;gap:6px;padding:9px;border:1px solid var(--line);border-radius:14px;background:var(--panel2)}
 .football-match-wrap .football-match{padding:2px;border:0;border-radius:0;background:transparent}
 .football-match-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #ffffff0a;padding-top:7px}
+.football-league-heading{display:flex;align-items:center;justify-content:space-between;gap:9px;margin:13px 2px 2px;padding:0 2px;color:var(--text);font-size:10px;font-weight:850}
+.football-league-heading:first-child{margin-top:2px}
+.football-league-heading span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.football-league-heading small{flex:0 0 auto;color:var(--muted);font-size:8px;font-weight:750;text-transform:uppercase;letter-spacing:.4px}
 .football-lineup-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-height:62vh;overflow:auto}
 .football-lineup-team{border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:11px}
 .football-lineup-team-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
@@ -2661,8 +2667,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
           <div id="footballCompetitionWrap">
             <div class="football-toolbar" style="margin-top:10px">
               <div class="field">
-                <label>Standings competition</label>
+                <label>League and match schedule</label>
                 <select id="footballCompetition">
+                  <optgroup label="Worldwide">
+                    <option value="ALL">All — worldwide</option>
+                  </optgroup>
                   <optgroup label="Top European leagues">
                     <option value="PL">Premier League</option>
                     <option value="PD">La Liga</option>
@@ -2718,12 +2727,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
         <div class="football-grid">
           <article class="card">
-            <div class="card-head"><div><div class="title">🗓️ Match schedule</div><div class="sub" id="footballScheduleSub">All available competitions • choose a day</div></div></div>
+            <div class="card-head"><div><div class="title">🗓️ Match schedule</div><div class="sub" id="footballScheduleSub">Premier League • choose a day</div></div></div>
             <div id="footballScheduleTabs" class="football-schedule-tabs"></div>
             <div id="footballFixtures" class="list"><div class="empty">Loading…</div></div>
           </article>
           <article class="card">
-            <div class="card-head"><div><div class="title">🏁 Recent results</div><div class="sub">Across available competitions</div></div></div>
+            <div class="card-head"><div><div class="title">🏁 Recent results</div><div class="sub" id="footballResultsSub">Premier League</div></div></div>
             <div id="footballResults" class="list"><div class="empty">Loading…</div></div>
           </article>
         </div>
@@ -2734,7 +2743,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
         </article>
 
         <article class="card">
-          <div class="warning">Football data is loaded through your Cloudflare Worker using football-data.org. The app now supports the major European leagues plus Championship, League One, League Two and National League. Your football-data.org subscription determines which lower divisions your API key can actually access.</div>
+          <div class="warning">Choose one league for a focused schedule and its current table. Choose All for a worldwide feed grouped with your teams and the biggest competitions first. Match Centre detail depends on what the live football provider publishes for each fixture.</div>
         </article>
 
         </div>
@@ -3116,12 +3125,20 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div class="modal" id="holdingModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="holdingModalTitle">Add holding</div><div class="sub">Enter the position you own</div></div><button class="icon-btn" data-close="holdingModal">×</button></div><div class="form"><div class="field"><label>Ticker</label><input id="holdSymbol" placeholder="VWRP.L" autocapitalize="characters" /></div><div class="field"><label>Name</label><input id="holdName" placeholder="Vanguard FTSE All-World" /></div><div class="field"><label>Shares</label><input id="holdShares" type="number" min="0" step="0.000001" placeholder="12" /></div><div class="field"><label>Average buy price (native currency)</label><input id="holdBuyPrice" type="number" min="0" step="0.000001" placeholder="95.50" /></div><div class="field"><label>Exchange</label><select id="holdExchange"><option value="LSE">London Stock Exchange (LSE)</option><option value="NASDAQ">NASDAQ</option><option value="NYSE">NYSE</option><option value="AMEX">AMEX</option></select></div><div class="field"><label>Market currency</label><select id="holdCurrency"><option value="GBP">GBP</option><option value="GBp">GBp (pence)</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="Other">Other</option></select></div><div class="field"><label>Exchange note</label><input id="holdNote" placeholder="Optional" /></div></div><div class="modal-actions"><button class="btn red" id="deleteHoldingBtn" style="display:none;margin-right:auto">Delete</button><button class="btn" data-close="holdingModal">Cancel</button><button class="btn primary" id="saveHolding">Save</button></div></div></div>
 <div class="modal" id="reminderModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="reminderModalTitle">Add reminder</div><div class="sub">Choose when it should appear in your briefing.</div></div><button class="icon-btn" data-close="reminderModal">×</button></div><div class="field"><label>Reminder</label><textarea id="reminderText" placeholder="e.g. Check ISA contribution"></textarea></div><div class="form"><div class="field"><label>Category</label><select id="reminderCategory"></select></div><div class="field"><label>First / due date</label><input id="reminderStartDate" type="date" /></div><div class="field"><label>Time (optional)</label><input id="reminderTime" type="time" /></div><div class="field"><label>Frequency</label><select id="reminderFrequency"><option value="none">One time</option><option value="daily">Daily</option><option value="every2days">Every 2 days</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div></div><div class="field" id="newCategoryField" style="display:none"><label>New category name</label><input id="newCategoryInput" placeholder="e.g. Shopping" /></div><div class="setting-note" style="margin-top:8px">A recurring reminder is shown in the briefing only when it is due on that briefing date. “Every 2 days” is the bi-daily option.</div><div class="modal-actions"><button class="btn" data-close="reminderModal">Cancel</button><button class="btn primary" id="saveReminder">Add reminder</button></div></div></div><div class="modal" id="calendarEventModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="calendarEventModalTitle">Add calendar event</div><div class="sub">Put an event on a specific day.</div></div><button class="icon-btn" data-close="calendarEventModal">×</button></div><div class="form"><div class="field full"><label>Event</label><input id="calendarEventTitle" placeholder="e.g. Dentist appointment" /></div><div class="field"><label>Date</label><input id="calendarEventDate" type="date" /></div><div class="field"><label>Time (optional)</label><input id="calendarEventTime" type="time" /></div><div class="field full"><label>Notes (optional)</label><textarea id="calendarEventNotes" placeholder="Anything you want included in the briefing"></textarea></div></div><div class="modal-actions"><button class="btn red" id="deleteCalendarEventBtn" style="display:none;margin-right:auto">Delete</button><button class="btn" data-close="calendarEventModal">Cancel</button><button class="btn primary" id="saveCalendarEvent">Save event</button></div></div></div><div class="modal" id="noteModal"><div class="modal-card note-editor-card"><div class="modal-head"><div><div class="title" id="noteModalTitle">New note</div><div class="sub">Write anything you want to keep.</div></div><button class="icon-btn" data-close="noteModal">×</button></div><div class="field"><input id="noteTitle" placeholder="Note title" /></div>
 <div class="note-editor-options"><div class="field"><label>Folder</label><select id="noteFolder"></select></div><label class="note-pin-control"><input id="notePinned" type="checkbox" /> 📌 Pin note</label></div><div class="note-toolbar" id="noteToolbar">
+<button type="button" class="fmt-btn note-format-toggle" id="noteFormatToggle" title="More formatting" aria-expanded="false">Aa</button>
 <button type="button" class="fmt-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+<button type="button" class="fmt-btn" data-cmd="insertUnorderedList" title="Checklist / list">☑</button>
+<div class="note-format-details" id="noteFormatDetails">
 <button type="button" class="fmt-btn i-ital" data-cmd="italic" title="Italic">I</button>
 <button type="button" class="fmt-btn i-und" data-cmd="underline" title="Underline">U</button>
 <button type="button" class="fmt-btn" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
-<button type="button" class="fmt-btn" data-cmd="insertUnorderedList" title="Checklist / list">☑</button>
 <div class="fmt-sep"></div>
+<select id="noteFontFamily" title="Font">
+<option value="-apple-system">Default</option>
+<option value="Arial">Arial</option>
+<option value="Georgia">Georgia</option>
+<option value="Courier New">Mono</option>
+</select>
 <select id="noteFontSize" title="Text size">
 <option value="2">Small</option>
 <option value="3" selected>Normal</option>
@@ -3140,6 +3157,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 </div>
 <div class="fmt-sep"></div>
 <button type="button" class="fmt-btn" data-cmd="removeFormat" title="Clear formatting">⨯</button>
+</div>
+<button type="button" class="fmt-btn note-keyboard-done" id="noteKeyboardDone" title="Hide keyboard" aria-label="Hide keyboard">⌄</button>
 </div><div class="field"><div id="noteBody" class="note-body-input" contenteditable="true" data-placeholder="Start writing..." data-empty="true"></div></div><div class="modal-actions"><button class="btn" id="restoreNoteBtn" style="display:none;margin-right:auto">Restore</button><button class="btn red" id="deleteNoteBtn" style="display:none">Delete</button><button class="btn" data-close="noteModal">Cancel</button><button class="btn primary" id="saveNote">Save note</button></div></div></div>
 <audio id="commandMusicAudio" preload="metadata"></audio>
 <div class="music-mini-player" id="musicMiniPlayer" aria-live="polite">
@@ -4366,7 +4385,7 @@ function init(){
     bind('moreManga','click',()=>loadManga(true));
     bind('redditRetry','click',loadReddit);
     bind('footballRefreshBtn','click',refreshSelectedSport);
-    bind('footballCompetition','change',()=>loadFootball(false));
+    bind('footballCompetition','change',()=>{footballVisibleLimit=60;footballResultsVisibleLimit=24;loadFootball(false)});
     runInitStep('sport controls',bindSportSwitcher);
     runInitStep('football match centre',bindFootballMatchCentre);
     bind('liveFootballRefreshBtn','click',()=>loadLiveFootball(true));
@@ -7010,6 +7029,7 @@ function bindSportSwitcher(){
 }
 
 const FOOTBALL_COMPETITIONS={
+  ALL:'All — worldwide',
   PL:'Premier League',
   PD:'La Liga',
   BL1:'Bundesliga',
@@ -7027,6 +7047,24 @@ const FOOTBALL_COMPETITIONS={
   FAC:'FA Cup',
   FLC:'League Cup'
 };
+const FOOTBALL_COMPETITION_RULES={
+  PL:{names:['Premier League'],countries:['ENG','GBR']},
+  PD:{names:['La Liga','LaLiga'],countries:['ESP']},
+  BL1:{names:['Bundesliga'],countries:['GER','DEU']},
+  SA:{names:['Serie A'],countries:['ITA']},
+  FL1:{names:['Ligue 1'],countries:['FRA']},
+  DED:{names:['Eredivisie'],countries:['NED','NLD']},
+  PPL:{names:['Primeira Liga','Liga Portugal'],countries:['POR']},
+  ELC:{names:['Championship','EFL Championship'],countries:['ENG','GBR']},
+  EL1:{names:['League One','EFL League One'],countries:['ENG','GBR']},
+  EL2:{names:['League Two','EFL League Two'],countries:['ENG','GBR']},
+  ENL:{names:['National League'],countries:['ENG','GBR']},
+  CL:{names:['Champions League','UEFA Champions League'],countries:[]},
+  EL:{names:['Europa League','UEFA Europa League'],countries:[]},
+  UCL:{names:['Conference League','UEFA Conference League','UEFA Europa Conference League'],countries:[]},
+  FAC:{names:['FA Cup'],countries:['ENG','GBR']},
+  FLC:{names:['League Cup','EFL Cup','Carabao Cup'],countries:['ENG','GBR']}
+};
 let footballCache={competition:'',matches:[],standings:[],competitionName:'',updatedAt:''};
 const FOOTBALL_SCHEDULE_CACHE_KEY='command-centre-football-schedule-v2';
 function loadStoredFootballSchedule(){try{const cached=JSON.parse(localStorage.getItem(FOOTBALL_SCHEDULE_CACHE_KEY)||'null');return Array.isArray(cached?.matches)?cached:{matches:[],competitions:[],provider:'',updatedAt:'',warning:''}}catch{return{matches:[],competitions:[],provider:'',updatedAt:'',warning:''}}}
@@ -7042,6 +7080,46 @@ function footballDateTime(iso){
 }
 function footballTeamName(team){return team?.shortName||team?.name||team?.tla||'Team'}
 function footballTeamKey(name){return String(name||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g,'')}
+function footballCompetitionToken(value){return String(value||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g,'')}
+function footballMatchInCompetition(match,selection){
+  const selected=String(selection||'PL').toUpperCase();if(selected==='ALL')return true;
+  const competition=match?.competition||{},directCode=String(competition.code||'').toUpperCase();
+  if(directCode===selected)return true;
+  const rule=FOOTBALL_COMPETITION_RULES[selected];if(!rule)return false;
+  const name=footballCompetitionToken(competition.name),country=directCode;
+  const nameMatches=rule.names.some(alias=>footballCompetitionToken(alias)===name);
+  const countryMatches=!rule.countries.length||!country||rule.countries.includes(country);
+  return nameMatches&&countryMatches;
+}
+function footballMatchIsPersonal(match){
+  const id=Number(match?.id)||0;if((state.footballFollowedMatches||[]).includes(id))return true;
+  const homeId=Number(match?.homeTeam?.id)||0,awayId=Number(match?.awayTeam?.id)||0;
+  const homeKey=footballTeamKey(footballTeamName(match?.homeTeam)),awayKey=footballTeamKey(footballTeamName(match?.awayTeam));
+  return footballFavouriteTeams().some(team=>{const teamId=Number(team.id)||0,teamKey=footballTeamKey(team.name);return (teamId&&(teamId===homeId||teamId===awayId))||(teamKey&&(teamKey===homeKey||teamKey===awayKey))});
+}
+function footballCompetitionPriority(match){
+  const name=footballCompetitionToken(match?.competition?.name),code=String(match?.competition?.code||'').toUpperCase();
+  if(/worldcup|europeanchampionship|uefaeuro|copaamerica/.test(name))return 5;
+  if(name==='premierleague'&&['','ENG','GBR','PL'].includes(code))return 10;
+  if(name==='championsleague'||name==='uefachampionsleague')return 15;
+  if(['laliga','bundesliga','seriea','ligue1'].includes(name))return 25;
+  if(['europaleague','uefaeuropaleague','conferenceleague','uefaconferenceleague','uefaeuropaconferenceleague'].includes(name))return 30;
+  if(['championship','eflchampionship','facup','leaguecup','eflcup','carabaocup','eredivisie','primeiraliga','ligaportugal'].includes(name))return 40;
+  if(/scottishpremiership|majorleaguesoccer|mls|ligamx|brasileir[aã]o|brazilianseriea|ligaprofesional|argentinaprimera|saudiproleague/.test(name))return 50;
+  return 100;
+}
+function footballCompetitionGroupKey(match){const competition=match?.competition||{};return `${Number(competition.id)||0}:${String(competition.code||'').toUpperCase()}:${footballCompetitionToken(competition.name)||'football'}`}
+function footballPrioritiseWorldwide(rows,newestFirst=false){
+  const groups=new Map();
+  rows.forEach(match=>{const key=footballCompetitionGroupKey(match);if(!groups.has(key))groups.set(key,{key,name:match?.competition?.name||'Football',priority:footballCompetitionPriority(match),personal:false,matches:[]});const group=groups.get(key);group.priority=Math.min(group.priority,footballCompetitionPriority(match));group.personal=group.personal||footballMatchIsPersonal(match);group.matches.push(match)});
+  return [...groups.values()].sort((a,b)=>(a.personal===b.personal?0:(a.personal?-1:1))||a.priority-b.priority||a.name.localeCompare(b.name)).flatMap(group=>group.matches.sort((a,b)=>{const personal=Number(footballMatchIsPersonal(b))-Number(footballMatchIsPersonal(a));if(personal)return personal;const delta=new Date(a.utcDate)-new Date(b.utcDate);return newestFirst?-delta:delta}));
+}
+function footballCompetitionTier(match){const priority=footballCompetitionPriority(match);if(footballMatchIsPersonal(match))return 'Your teams';if(priority<=15)return 'Top competition';if(priority<=50)return 'Featured';return 'Worldwide'}
+function footballMatchListHtml(visible,allRows,allMode){
+  if(!allMode)return visible.map(footballMatchCard).join('');
+  const counts=new Map();allRows.forEach(match=>{const key=footballCompetitionGroupKey(match);counts.set(key,(counts.get(key)||0)+1)});
+  let previous='';return visible.map(match=>{const key=footballCompetitionGroupKey(match),heading=key===previous?'':`<div class="football-league-heading"><span>${esc(match?.competition?.name||'Football')}</span><small>${esc(footballCompetitionTier(match))} • ${counts.get(key)||1}</small></div>`;previous=key;return heading+footballMatchCard(match)}).join('');
+}
 function footballScoreText(m){
   const h=m?.score?.fullTime?.home,a=m?.score?.fullTime?.away;
   if(Number.isFinite(h)&&Number.isFinite(a))return `${h} – ${a}`;
@@ -7332,6 +7410,10 @@ function renderFootballFavourite(){
 }
 function renderFootballStandings(){
   const el=qs('#footballStandings');if(!el)return;
+  if(String(state.footballCompetition||'PL').toUpperCase()==='ALL'){
+    el.innerHTML='<div class="empty">Choose a specific league above to see its current table.</div>';
+    return;
+  }
   const tables=footballCache.standings||[];
   if(!tables.length){
     el.innerHTML='<div class="empty">No league table is available for this competition right now.</div>';
@@ -7360,33 +7442,37 @@ function renderFootballStandings(){
 function renderFootball(){
   const fixtureEl=qs('#footballFixtures'),resultEl=qs('#footballResults');
   if(!fixtureEl||!resultEl)return;
-  const matches=footballAllScheduleMatches();
-  const matchingUpcoming=matches.filter(m=>footballScheduleFilter==='live'?footballMatchIsLive(m):footballLocalDay(m.utcDate)===footballScheduleFilter)
-    .sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
-  const matchingResults=matches.filter(m=>m.status==='FINISHED')
-    .sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate));
+  const selection=String(state.footballCompetition||'PL').toUpperCase(),allMode=selection==='ALL';
+  const matches=footballAllScheduleMatches(),scopedMatches=matches.filter(match=>footballMatchInCompetition(match,selection));
+  const upcomingRows=scopedMatches.filter(m=>footballScheduleFilter==='live'?footballMatchIsLive(m):footballLocalDay(m.utcDate)===footballScheduleFilter);
+  const resultRows=scopedMatches.filter(m=>m.status==='FINISHED');
+  const matchingUpcoming=allMode?footballPrioritiseWorldwide(upcomingRows):upcomingRows.sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
+  const matchingResults=allMode?footballPrioritiseWorldwide(resultRows,true):resultRows.sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate));
   const upcoming=matchingUpcoming.slice(0,footballVisibleLimit),results=matchingResults.slice(0,footballResultsVisibleLimit);
 
   renderFootballScheduleTabs();
-  fixtureEl.innerHTML=upcoming.length?upcoming.map(footballMatchCard).join('')+(matchingUpcoming.length>upcoming.length?`<button class="btn" type="button" onclick="showMoreFootballFixtures()">Show 60 more • ${matchingUpcoming.length-upcoming.length} remaining</button>`:''):`<div class="empty">No matches found for ${footballScheduleFilter==='live'?'Live':footballScheduleFilter}. Try another day.</div>`;
-  resultEl.innerHTML=results.length?results.map(footballMatchCard).join('')+(matchingResults.length>results.length?`<button class="btn" type="button" onclick="showMoreFootballResults()">Show more results • ${matchingResults.length-results.length} remaining</button>`:''):'<div class="empty">No recent results in the current window.</div>';
+  fixtureEl.innerHTML=upcoming.length?footballMatchListHtml(upcoming,matchingUpcoming,allMode)+(matchingUpcoming.length>upcoming.length?`<button class="btn" type="button" onclick="showMoreFootballFixtures()">Show 60 more • ${matchingUpcoming.length-upcoming.length} remaining</button>`:''):`<div class="empty">No ${allMode?'worldwide':esc(FOOTBALL_COMPETITIONS[selection]||selection)} matches found for ${footballScheduleFilter==='live'?'Live':footballScheduleFilter}. Try another day.</div>`;
+  resultEl.innerHTML=results.length?footballMatchListHtml(results,matchingResults,allMode)+(matchingResults.length>results.length?`<button class="btn" type="button" onclick="showMoreFootballResults()">Show more results • ${matchingResults.length-results.length} remaining</button>`:''):`<div class="empty">No recent ${allMode?'worldwide':esc(FOOTBALL_COMPETITIONS[selection]||selection)} results in the current window.</div>`;
   renderFootballStandings();renderFootballFavourite();applyFootballNotificationUI();
 
   const sub=qs('#footballStandingsSub');
-  if(sub)sub.textContent=footballCache.competitionName?`${footballCache.competitionName} • current season`:'Current season';
+  if(sub)sub.textContent=allMode?'Choose a league for its table':(footballCache.competitionName?`${footballCache.competitionName} • current season`:'Current season');
   const scheduleSub=qs('#footballScheduleSub');
-  if(scheduleSub)scheduleSub.textContent=`${footballScheduleCache.competitions?.length||new Set(matches.map(m=>m?.competition?.name).filter(Boolean)).size} competitions • ${footballScheduleCache.provider||'football data'} • showing ${upcoming.length} of ${matchingUpcoming.length}`;
+  if(scheduleSub)scheduleSub.textContent=allMode?`All worldwide • biggest and most relevant leagues first • showing ${upcoming.length} of ${matchingUpcoming.length}`:`${FOOTBALL_COMPETITIONS[selection]||footballCache.competitionName||selection} • ${footballScheduleCache.provider||'football data'} • showing ${upcoming.length} of ${matchingUpcoming.length}`;
+  const resultsSub=qs('#footballResultsSub');if(resultsSub)resultsSub.textContent=allMode?`All worldwide • prioritised by competition`:(FOOTBALL_COMPETITIONS[selection]||footballCache.competitionName||selection);
 }
 async function loadFootball(force=false){
   const status=qs('#footballStatus'),sel=qs('#footballCompetition');
   const competition=(sel?.value||state.footballCompetition||'PL').toUpperCase();
+  const allMode=competition==='ALL';
   state.footballCompetition=competition;saveState();
   if(status)status.innerHTML='<span class="status"><span class="dot loading"></span>Loading football data…</span>';
   try{
     const params=new URLSearchParams({competition});if(force)params.set('refresh','1');
     const scheduleParams=new URLSearchParams();if(force)scheduleParams.set('refresh','1');
+    const leagueRequest=allMode?Promise.resolve({matches:[],standings:[],competition:{name:'All — worldwide'},updatedAt:new Date().toISOString()}):fetchJson(`/api/football?${params.toString()}`,{},18000).catch(error=>({error:error?.message||'Standings unavailable',matches:[],standings:[]}));
     const [dataResult,scheduleResult]=await Promise.all([
-      fetchJson(`/api/football?${params.toString()}`,{},18000).catch(error=>({error:error?.message||'Standings unavailable',matches:[],standings:[]})),
+      leagueRequest,
       fetchJson(`/api/football/schedule?${scheduleParams.toString()}`,{},26000).catch(error=>({error:error?.message||'Expanded schedule unavailable'}))
     ]);
     if(dataResult.error&&!Array.isArray(scheduleResult.matches))throw new Error(scheduleResult.error||dataResult.error);
@@ -9259,11 +9345,21 @@ function syncNoteVisualViewport(){
   const keyboardOpen=!!viewport&&viewport.height<window.innerHeight*.82;
   modal.classList.toggle('note-keyboard-open',keyboardOpen);
   modal.classList.toggle('note-body-focused',document.activeElement===qs('#noteBody'));
+  if(!keyboardOpen||document.activeElement!==qs('#noteBody')){const toolbar=qs('#noteToolbar'),toggle=qs('#noteFormatToggle');toolbar?.classList.remove('expanded');toggle?.setAttribute('aria-expanded','false')}
   document.documentElement.style.setProperty('--cc-note-vv-height',`${height}px`);
   document.documentElement.style.setProperty('--cc-note-vv-top',`${top}px`);
   requestAnimationFrame(keepNoteCaretVisible);
 }
 let noteCaretFrame=0;
+let noteSavedRange=null;
+function rememberNoteSelection(){
+  const body=qs('#noteBody'),selection=window.getSelection?.();if(!body||!selection?.rangeCount)return;
+  const range=selection.getRangeAt(0);if(body.contains(range.commonAncestorContainer))noteSavedRange=range.cloneRange();
+}
+function restoreNoteSelection(){
+  const body=qs('#noteBody'),selection=window.getSelection?.();if(!body||!selection||!noteSavedRange||!body.contains(noteSavedRange.commonAncestorContainer))return false;
+  selection.removeAllRanges();selection.addRange(noteSavedRange);return true;
+}
 function keepNoteCaretVisible(){
   cancelAnimationFrame(noteCaretFrame);
   noteCaretFrame=requestAnimationFrame(()=>{
@@ -9274,9 +9370,11 @@ function keepNoteCaretVisible(){
     const range=selection.getRangeAt(0).cloneRange();range.collapse(false);
     const caret=range.getClientRects?.()[0]||range.getBoundingClientRect?.();
     if(!caret||(!caret.height&&!caret.width))return;
-    const bodyRect=body.getBoundingClientRect(),actions=modal.querySelector('.modal-actions')?.getBoundingClientRect();
+    const bodyRect=body.getBoundingClientRect(),actionsEl=modal.querySelector('.modal-actions'),toolbarEl=qs('#noteToolbar');
+    const actions=actionsEl&&getComputedStyle(actionsEl).display!=='none'?actionsEl.getBoundingClientRect():null;
+    const toolbar=modal.classList.contains('note-keyboard-open')&&modal.classList.contains('note-body-focused')&&toolbarEl&&getComputedStyle(toolbarEl).display!=='none'?toolbarEl.getBoundingClientRect():null;
     const viewport=window.visualViewport,viewTop=viewport?.offsetTop||0,viewBottom=viewTop+(viewport?.height||window.innerHeight);
-    const safeTop=Math.max(bodyRect.top,viewTop)+18,safeBottom=Math.min(bodyRect.bottom,actions?.top||viewBottom,viewBottom)-24;
+    const safeTop=Math.max(bodyRect.top,viewTop)+18,safeBottom=Math.min(bodyRect.bottom,actions?.top||viewBottom,toolbar?.top||viewBottom,viewBottom)-24;
     if(caret.bottom>safeBottom)body.scrollTop+=caret.bottom-safeBottom+28;
     else if(caret.top<safeTop)body.scrollTop-=safeTop-caret.top+18;
   });
@@ -9286,11 +9384,21 @@ function populateNoteFolderSelect(value='Notes'){const s=qs('#noteFolder');if(!s
 function renderNotesNavigation(){const el=qs('#notesNavigation');if(!el)return;const active=state.notes.filter(n=>!n.deletedAt),deleted=state.notes.filter(n=>n.deletedAt);const items=[['all','📝 All Notes',active.length],['pinned','📌 Pinned',active.filter(n=>n.pinned).length],...[...new Set(state.noteFolders)].map(f=>[`folder:${f}`,`📁 ${f}`,active.filter(n=>n.folder===f).length]),['deleted','🗑 Recently Deleted',deleted.length]];el.innerHTML=items.map(([k,l,c])=>`<button class="notes-nav-btn ${notesFilter===k?'active':''}" data-notes-filter="${esc(k)}"><span>${esc(l)}</span><span class="notes-nav-count">${c}</span></button>`).join('')}
 function setNotesFilter(f){notesFilter=f||'all';renderNotesNavigation();renderNotes()}
 function addNoteFolder(){const n=prompt('New folder name');if(!n)return;const clean=n.trim().slice(0,40);if(!clean)return;if(!state.noteFolders.includes(clean))state.noteFolders.push(clean);saveState();setNotesFilter(`folder:${clean}`);toast(`Folder "${clean}" created`)}
-function openNote(id=null){editingNoteId=id;const n=id?state.notes.find(x=>x.id===id):null,deleted=!!n?.deletedAt;qs('#noteModalTitle').textContent=n?(deleted?'Deleted note':'Edit note'):'New note';qs('#noteTitle').value=n?.title||'';qs('#noteBody').innerHTML=n?.body||'';populateNoteFolderSelect(n?.folder||(notesFilter.startsWith('folder:')?notesFilter.slice(7):'Notes'));qs('#notePinned').checked=!!n?.pinned;updateNoteBodyEmptyState();qs('#deleteNoteBtn').style.display=n?'block':'none';qs('#deleteNoteBtn').textContent=deleted?'Delete forever':'Delete';qs('#restoreNoteBtn').style.display=deleted?'block':'none';qs('#saveNote').style.display=deleted?'none':'inline-flex';qs('#saveNote').textContent=n?'Save changes':'Save note';openModal('noteModal');syncNoteVisualViewport();setTimeout(()=>{qs('#noteTitle')?.focus();syncNoteVisualViewport()},80)}
-function normalizeFontTags(root){const sizeMap={'1':'11px','2':'12px','3':'14px','4':'16px','5':'19px','6':'23px','7':'28px'};root.querySelectorAll('font[size]').forEach(f=>{const span=document.createElement('span');span.style.fontSize=sizeMap[f.getAttribute('size')]||'14px';span.innerHTML=f.innerHTML;f.replaceWith(span)})}
-function noteExec(cmd,value=null){const el=qs('#noteBody');if(!el)return;el.focus();document.execCommand(cmd,false,value);normalizeFontTags(el);updateNoteBodyEmptyState();refreshToolbarState()}
+function openNote(id=null){editingNoteId=id;noteSavedRange=null;const n=id?state.notes.find(x=>x.id===id):null,deleted=!!n?.deletedAt;qs('#noteModalTitle').textContent=n?(deleted?'Deleted note':'Edit note'):'New note';qs('#noteTitle').value=n?.title||'';qs('#noteBody').innerHTML=n?.body||'';populateNoteFolderSelect(n?.folder||(notesFilter.startsWith('folder:')?notesFilter.slice(7):'Notes'));qs('#notePinned').checked=!!n?.pinned;updateNoteBodyEmptyState();qs('#deleteNoteBtn').style.display=n?'block':'none';qs('#deleteNoteBtn').textContent=deleted?'Delete forever':'Delete';qs('#restoreNoteBtn').style.display=deleted?'block':'none';qs('#saveNote').style.display=deleted?'none':'inline-flex';qs('#saveNote').textContent=n?'Save changes':'Save note';qs('#noteToolbar')?.classList.remove('expanded');qs('#noteFormatToggle')?.setAttribute('aria-expanded','false');openModal('noteModal');syncNoteVisualViewport();setTimeout(()=>{qs('#noteTitle')?.focus();syncNoteVisualViewport()},80)}
+function normalizeFontTags(root){const sizeMap={'1':'11px','2':'12px','3':'14px','4':'16px','5':'19px','6':'23px','7':'28px'};root.querySelectorAll('font').forEach(f=>{const span=document.createElement('span'),size=f.getAttribute('size'),face=f.getAttribute('face'),color=f.getAttribute('color');if(size)span.style.fontSize=sizeMap[size]||'14px';if(face)span.style.fontFamily=face;if(color)span.style.color=color;span.innerHTML=f.innerHTML;f.replaceWith(span)})}
+function noteExec(cmd,value=null){const el=qs('#noteBody');if(!el)return;el.focus({preventScroll:true});restoreNoteSelection();document.execCommand(cmd,false,value);normalizeFontTags(el);rememberNoteSelection();updateNoteBodyEmptyState();refreshToolbarState();keepNoteCaretVisible()}
 function refreshToolbarState(){['bold','italic','underline','strikeThrough','insertUnorderedList'].forEach(cmd=>{const btn=qs(`#noteToolbar [data-cmd="${cmd}"]`);if(!btn)return;let active=false;try{active=document.queryCommandState(cmd)}catch{}btn.classList.toggle('active',active)})}
-function bindNoteToolbar(){qsa('#noteToolbar [data-cmd]').forEach(btn=>btn.addEventListener('click',()=>{const cmd=btn.dataset.cmd;if(cmd==='removeFormat'){noteExec('removeFormat');noteExec('unlink');return}noteExec(cmd)}));qs('#noteFontSize')?.addEventListener('change',e=>noteExec('fontSize',e.target.value));qsa('#noteColorSwatches .color-dot').forEach(dot=>dot.addEventListener('click',()=>{qsa('#noteColorSwatches .color-dot').forEach(d=>d.classList.remove('active'));dot.classList.add('active');noteExec('foreColor',dot.dataset.color)}));const body=qs('#noteBody');if(body){body.addEventListener('beforeinput',keepNoteCaretVisible);body.addEventListener('input',()=>{updateNoteBodyEmptyState();syncNoteVisualViewport();keepNoteCaretVisible()});body.addEventListener('focus',()=>{syncNoteVisualViewport();keepNoteCaretVisible()});body.addEventListener('blur',syncNoteVisualViewport);body.addEventListener('keyup',()=>{refreshToolbarState();keepNoteCaretVisible()});body.addEventListener('mouseup',keepNoteCaretVisible);body.addEventListener('paste',e=>{e.preventDefault();const text=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,text);keepNoteCaretVisible()})}qs('#noteTitle')?.addEventListener('focus',syncNoteVisualViewport);window.visualViewport?.addEventListener('resize',syncNoteVisualViewport,{passive:true});window.visualViewport?.addEventListener('scroll',syncNoteVisualViewport,{passive:true});window.addEventListener('resize',syncNoteVisualViewport,{passive:true})}
+function bindNoteToolbar(){
+  const toolbar=qs('#noteToolbar'),toggle=qs('#noteFormatToggle'),done=qs('#noteKeyboardDone');
+  toolbar?.addEventListener('pointerdown',event=>{rememberNoteSelection();if(event.target.closest('button'))event.preventDefault()});
+  toggle?.addEventListener('click',()=>{const expanded=toolbar.classList.toggle('expanded');toggle.setAttribute('aria-expanded',String(expanded));qs('#noteBody')?.focus({preventScroll:true});restoreNoteSelection();keepNoteCaretVisible()});
+  done?.addEventListener('click',()=>{toolbar?.classList.remove('expanded');toggle?.setAttribute('aria-expanded','false');qs('#noteBody')?.blur();syncNoteVisualViewport()});
+  qsa('#noteToolbar [data-cmd]').forEach(btn=>btn.addEventListener('click',()=>{const cmd=btn.dataset.cmd;if(cmd==='removeFormat'){noteExec('removeFormat');noteExec('unlink');return}noteExec(cmd)}));
+  qs('#noteFontFamily')?.addEventListener('pointerdown',rememberNoteSelection);qs('#noteFontFamily')?.addEventListener('change',e=>noteExec('fontName',e.target.value));qs('#noteFontSize')?.addEventListener('pointerdown',rememberNoteSelection);qs('#noteFontSize')?.addEventListener('change',e=>noteExec('fontSize',e.target.value));
+  qsa('#noteColorSwatches .color-dot').forEach(dot=>dot.addEventListener('click',()=>{qsa('#noteColorSwatches .color-dot').forEach(d=>d.classList.remove('active'));dot.classList.add('active');noteExec('foreColor',dot.dataset.color)}));
+  const body=qs('#noteBody');if(body){body.addEventListener('beforeinput',keepNoteCaretVisible);body.addEventListener('input',()=>{rememberNoteSelection();updateNoteBodyEmptyState();syncNoteVisualViewport();keepNoteCaretVisible()});body.addEventListener('focus',()=>{syncNoteVisualViewport();keepNoteCaretVisible()});body.addEventListener('blur',()=>{rememberNoteSelection();syncNoteVisualViewport()});body.addEventListener('keyup',()=>{rememberNoteSelection();refreshToolbarState();keepNoteCaretVisible()});body.addEventListener('mouseup',()=>{rememberNoteSelection();keepNoteCaretVisible()});body.addEventListener('paste',e=>{e.preventDefault();const text=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,text);rememberNoteSelection();keepNoteCaretVisible()})}
+  document.addEventListener('selectionchange',()=>{if(qs('#noteModal')?.classList.contains('open'))rememberNoteSelection()});qs('#noteTitle')?.addEventListener('focus',syncNoteVisualViewport);window.visualViewport?.addEventListener('resize',syncNoteVisualViewport,{passive:true});window.visualViewport?.addEventListener('scroll',syncNoteVisualViewport,{passive:true});window.addEventListener('resize',syncNoteVisualViewport,{passive:true})
+}
 window.editNote=id=>openNote(id);
 function renderNotes(){renderHomeLauncher();renderNotesNavigation();const el=qs('#notesList');if(!el)return;const q=(qs('#notesSearch')?.value||'').trim().toLowerCase();let notes=[...state.notes];if(notesFilter==='deleted')notes=notes.filter(n=>n.deletedAt);else{notes=notes.filter(n=>!n.deletedAt);if(notesFilter==='pinned')notes=notes.filter(n=>n.pinned);else if(notesFilter.startsWith('folder:'))notes=notes.filter(n=>n.folder===notesFilter.slice(7))}if(q)notes=notes.filter(n=>(`${n.title||''} ${notePreview(n.body)} ${n.folder||''}`).toLowerCase().includes(q));notes.sort((a,b)=>{if(!a.deletedAt&&!b.deletedAt&&a.pinned!==b.pinned)return a.pinned?-1:1;return new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt)});if(!notes.length){el.innerHTML=q?'<div class="notes-empty"><strong>No matching notes</strong>Try another search.</div>':'<div class="notes-empty"><strong>Nothing here</strong>Create a note or choose another folder.</div>';return}const card=n=>`<div class="note-card ${n.pinned?'pinned':''}" data-note-id="${esc(n.id)}"><div class="note-icon">${n.deletedAt?'🗑':(n.pinned?'📌':'📝')}</div><div class="note-card-main"><div class="note-card-title">${esc(n.title||'Untitled note')}</div><div class="note-card-preview">${esc(notePreview(n.body)||'No text')}</div><div class="note-card-meta"><span class="note-folder-pill">${esc(n.folder||'Notes')}</span><span>${esc(noteDateLabel(n.updatedAt||n.createdAt))}</span></div></div></div>`;const pinned=notesFilter!=='deleted'?notes.filter(n=>n.pinned):[],other=notesFilter!=='deleted'?notes.filter(n=>!n.pinned):notes;el.innerHTML=pinned.length&&other.length?`<div class="notes-section-label">Pinned</div><div class="notes-list">${pinned.map(card).join('')}</div><div class="notes-section-label">Notes</div><div class="notes-list">${other.map(card).join('')}</div>`:`<div class="notes-list">${notes.map(card).join('')}</div>`;qsa('#notesList [data-note-id]').forEach(c=>c.addEventListener('click',()=>openNote(c.dataset.noteId)))}
 function saveNote(){const title=qs('#noteTitle').value.trim()||'Untitled note',body=qs('#noteBody').innerHTML,folder=qs('#noteFolder')?.value||'Notes',pinned=!!qs('#notePinned')?.checked,now=nowIso();if(!state.noteFolders.includes(folder))state.noteFolders.push(folder);if(editingNoteId)state.notes=state.notes.map(n=>n.id===editingNoteId?{...n,title,body,folder,pinned,updatedAt:now}:n);else state.notes=[{id:makeId('note'),title,body,folder,pinned,createdAt:now,updatedAt:now,deletedAt:''},...state.notes];saveState();closeModal('noteModal');renderNotes();renderTodayPage();toast(editingNoteId?'Note updated':'Note saved');editingNoteId=null}

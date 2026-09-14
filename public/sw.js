@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'command-centre-shell-v10.21.1';
+const SHELL_CACHE = 'command-centre-shell-v10.22.0';
 const APP_SHELL = [
   '/',
   '/index.html',

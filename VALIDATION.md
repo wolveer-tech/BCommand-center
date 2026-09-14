@@ -1,3 +1,19 @@
+# Football focus and Notes writing dock v10.22.0
+
+- Football defaults to the saved selected league and includes an explicit
+  **All — worldwide** scope.
+- Representative functional coverage verifies Premier League filtering,
+  Champions League matching, worldwide inclusion and this order: personal
+  favourite/followed match, Premier League, Champions League, regional league.
+- Worldwide results use the same competition grouping and priority system.
+- Notes keyboard mode hides non-writing chrome, exposes the expandable floating
+  dock and preserves the body selection across font, size and colour changes.
+- The app shell cache is `command-centre-shell-v10.22.0`.
+- `node scripts/check-project.mjs`: passed.
+- `node --test tests/*.test.mjs`: **75/75 passed**.
+- Physical keyboard/safe-area behaviour should still receive a quick check on
+  an iPhone after Cloudflare deploys the update.
+
 # APNs one-secret compatibility v10.21.1
 
 - `APNS_CONFIG` accepts multiline, pipe-delimited or JSON-packed credentials

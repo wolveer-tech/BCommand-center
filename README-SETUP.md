@@ -1,5 +1,16 @@
 # Command Centre setup
 
+## v10.22.0 — focused Football and compact Notes writing
+
+Football fixtures/results now follow the selected league by default. The new
+**All — worldwide** option groups every available match with favourite/followed
+teams and the biggest competitions first. Notes now uses a distraction-free
+iPhone writing view plus a small expandable formatting dock with font, size and
+colour controls. See [RELEASE-v10.22.0.md](RELEASE-v10.22.0.md).
+
+This update deploys through the existing GitHub-to-Cloudflare flow and does not
+require a new IPA, migration or Worker secret.
+
 ## v10.21.1 — one-secret APNs configuration
 
 Cloudflare accounts at the Worker variable limit can now configure native push
