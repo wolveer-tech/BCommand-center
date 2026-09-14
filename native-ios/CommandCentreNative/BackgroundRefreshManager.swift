@@ -19,8 +19,10 @@ final class BackgroundRefreshManager {
                 self.scheduleNext()
                 var expired = false
                 refreshTask.expirationHandler = { expired = true }
-                let refreshed = await NativeNotificationHandler.shared.performBackgroundRefresh()
-                refreshTask.setTaskCompleted(success: refreshed && !expired)
+                async let notifications = NativeNotificationHandler.shared.performBackgroundRefresh()
+                async let dashboard = NativeDashboardHandler.shared.performBackgroundRefresh()
+                let (notificationsRefreshed, dashboardRefreshed) = await (notifications, dashboard)
+                refreshTask.setTaskCompleted(success: (notificationsRefreshed || dashboardRefreshed) && !expired)
             }
         }
         scheduleNext()

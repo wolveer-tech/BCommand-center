@@ -1,6 +1,6 @@
 workflows:
   ios-26-signulous-ipa:
-    name: Command Centre iOS 1.8.0
+    name: Command Centre iOS 1.9.0 Widgets and Live Activities
     max_build_duration: 60
     instance_type: mac_mini_m2
 
@@ -69,13 +69,27 @@ workflows:
 
           echo "App bundle: $APP_PATH"
 
-          APPEX_PATH="$(find "$APP_PATH/PlugIns" -maxdepth 1 -type d -name '*.appex' 2>/dev/null | head -n 1)"
-          if [ -z "$APPEX_PATH" ]; then
-            echo "ERROR: ReplayKit Broadcast Upload Extension was not embedded."
+          APPEX_PATHS=("$APP_PATH"/PlugIns/*.appex)
+          if [ "${#APPEX_PATHS[@]}" -ne 2 ]; then
+            echo "ERROR: Expected the ReplayKit and Widget extensions; found ${#APPEX_PATHS[@]}."
             exit 1
           fi
 
-          echo "ReplayKit extension: $APPEX_PATH"
+          BROADCAST_APPEX_PATH=""
+          WIDGET_APPEX_PATH=""
+          for appex in "${APPEX_PATHS[@]}"; do
+            bundle_id=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$appex/Info.plist")
+            case "$bundle_id" in
+              *.broadcast) BROADCAST_APPEX_PATH="$appex" ;;
+              *.widgets) WIDGET_APPEX_PATH="$appex" ;;
+            esac
+          done
+          if [ -z "$BROADCAST_APPEX_PATH" ] || [ -z "$WIDGET_APPEX_PATH" ]; then
+            echo "ERROR: Could not identify both embedded extensions."
+            exit 1
+          fi
+          echo "ReplayKit extension: $BROADCAST_APPEX_PATH"
+          echo "Widget extension: $WIDGET_APPEX_PATH"
 
           # Remove anything left over from an earlier signing/export attempt.
           find "$APP_PATH" -name '_CodeSignature' -type d -prune -exec rm -rf {} + 2>/dev/null || true
@@ -94,12 +108,20 @@ workflows:
             /usr/bin/codesign --force --sign - --timestamp=none "$dylib"
           done < <(find "$APP_PATH" -type f -name '*.dylib' -print0)
 
-          # Sign the ReplayKit extension before the containing app.
+          # Sign both extensions before the containing app. The widget extension
+          # carries the same App Group entitlement as the containing app.
           /usr/bin/codesign \
             --force \
             --sign - \
             --timestamp=none \
-            "$APPEX_PATH"
+            "$BROADCAST_APPEX_PATH"
+
+          /usr/bin/codesign \
+            --force \
+            --sign - \
+            --timestamp=none \
+            --entitlements "$CM_BUILD_DIR/native-ios/CommandCentreWidgets/CommandCentreWidgets.entitlements" \
+            "$WIDGET_APPEX_PATH"
 
           # Sign the containing app last.
           /usr/bin/codesign \
@@ -111,34 +133,30 @@ workflows:
 
           echo "=== Bundle identifiers ==="
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist"
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APPEX_PATH/Info.plist"
+          for appex in "${APPEX_PATHS[@]}"; do /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$appex/Info.plist"; done
 
           echo "=== Package types ==="
           /usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$APP_PATH/Info.plist"
-          /usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$APPEX_PATH/Info.plist"
+          for appex in "${APPEX_PATHS[@]}"; do /usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$appex/Info.plist"; done
           echo "=== Version consistency ==="
           APP_SHORT=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Info.plist")
           APP_BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/Info.plist")
-          EXT_SHORT=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APPEX_PATH/Info.plist")
-          EXT_BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APPEX_PATH/Info.plist")
-          EXT_EXEC=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APPEX_PATH/Info.plist")
           echo "App version: $APP_SHORT ($APP_BUILD)"
-          echo "Extension version: $EXT_SHORT ($EXT_BUILD)"
-          echo "Extension executable: $EXT_EXEC"
-          if [ "$APP_SHORT" != "$EXT_SHORT" ] || [ "$APP_BUILD" != "$EXT_BUILD" ]; then
-            echo "ERROR: App and extension versions do not match."
-            exit 1
-          fi
-          if [ -z "$EXT_EXEC" ]; then
-            echo "ERROR: Extension CFBundleExecutable is missing."
-            exit 1
-          fi
+          for appex in "${APPEX_PATHS[@]}"; do
+            EXT_SHORT=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$appex/Info.plist")
+            EXT_BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$appex/Info.plist")
+            EXT_EXEC=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$appex/Info.plist")
+            echo "Extension $(basename "$appex"): $EXT_SHORT ($EXT_BUILD), executable $EXT_EXEC"
+            if [ "$APP_SHORT" != "$EXT_SHORT" ] || [ "$APP_BUILD" != "$EXT_BUILD" ] || [ -z "$EXT_EXEC" ]; then
+              echo "ERROR: Extension version or executable is invalid."
+              exit 1
+            fi
+          done
 
-
-          echo "=== Extension point ==="
-          /usr/libexec/PlistBuddy \
-            -c 'Print :NSExtension:NSExtensionPointIdentifier' \
-            "$APPEX_PATH/Info.plist"
+          echo "=== Extension points ==="
+          for appex in "${APPEX_PATHS[@]}"; do
+            /usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionPointIdentifier' "$appex/Info.plist"
+          done
 
           echo "=== Verify ad-hoc code structure ==="
           /usr/bin/codesign --verify --deep --strict --verbose=4 "$APP_PATH"
@@ -157,10 +175,12 @@ workflows:
             echo "APP=$(basename "$APP_PATH")"
             echo "APP_BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")"
             echo "APP_PACKAGE_TYPE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$APP_PATH/Info.plist")"
-            echo "APPEX=$(basename "$APPEX_PATH")"
-            echo "APPEX_BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APPEX_PATH/Info.plist")"
-            echo "APPEX_PACKAGE_TYPE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$APPEX_PATH/Info.plist")"
-            echo "APPEX_EXTENSION_POINT=$(/usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionPointIdentifier' "$APPEX_PATH/Info.plist")"
+            for appex in "${APPEX_PATHS[@]}"; do
+              echo "APPEX=$(basename "$appex")"
+              echo "APPEX_BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$appex/Info.plist")"
+              echo "APPEX_PACKAGE_TYPE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$appex/Info.plist")"
+              echo "APPEX_EXTENSION_POINT=$(/usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionPointIdentifier' "$appex/Info.plist")"
+            done
             echo
             echo "Nested bundles:"
             find "$APP_PATH" -type d \( -name '*.framework' -o -name '*.appex' \) -print
@@ -174,7 +194,7 @@ workflows:
           set -euo pipefail
           cd "$CM_BUILD_DIR/build"
 
-          rm -f CommandCentre-iOS26-v1.8.0.ipa
+          rm -f CommandCentre-iOS26-v1.9.0.ipa
 
           # ditto preserves bundle metadata and executable permissions.
           /usr/bin/ditto \
@@ -183,19 +203,19 @@ workflows:
             --sequesterRsrc \
             --keepParent \
             Payload \
-            CommandCentre-iOS26-v1.8.0.ipa
+            CommandCentre-iOS26-v1.9.0.ipa
 
           echo "=== IPA contents ==="
-          /usr/bin/unzip -l CommandCentre-iOS26-v1.8.0.ipa | head -n 80
+          /usr/bin/unzip -l CommandCentre-iOS26-v1.9.0.ipa | head -n 100
 
           # Basic integrity test.
-          /usr/bin/unzip -t CommandCentre-iOS26-v1.8.0.ipa
+          /usr/bin/unzip -t CommandCentre-iOS26-v1.9.0.ipa
 
           echo
           echo "Created IPA:"
-          ls -lh CommandCentre-iOS26-v1.8.0.ipa
+          ls -lh CommandCentre-iOS26-v1.9.0.ipa
 
     artifacts:
-      - build/CommandCentre-iOS26-v1.8.0.ipa
+      - build/CommandCentre-iOS26-v1.9.0.ipa
       - build/ipa-structure-report.txt
       - build/xcodebuild-device.log

@@ -3070,6 +3070,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
   <section class="settings-section" data-settings-panel="notifications">
     <article class="card settings-card-clean"><div class="card-head"><div><div class="title">🔔 Mobile notifications</div><div class="sub" id="notificationStatus">Checking notification support…</div></div><button class="btn primary" id="enableNotificationsBtn">Enable</button></div><div class="toolbar"><button class="btn" id="testNotificationBtn">Send test</button><button class="btn" id="repairNotificationsBtn">Repair</button><button class="btn" id="rescheduleNotificationsBtn">Reschedule</button></div><div class="setting-note" style="margin-top:8px">The IPA schedules native iPhone alerts for reminders and calendar events. Browser installations use Web Push when supported.</div></article>
+    <article class="card settings-card-clean"><div class="card-head"><div><div class="title">🏝️ Widgets &amp; Live Activities</div><div class="sub" id="nativeDashboardStatus">Checking native widget support…</div></div><button class="btn primary" id="syncNativeDashboardBtn" type="button">Sync now</button></div><div class="setting-note">The native IPA supplies Weather, Next Event and Next Reminder widgets for the Home and Lock Screens. Following a football match prepares its Live Activity and Dynamic Island score view near kick-off.</div></article>
     <article class="card settings-card-clean"><div class="card-head"><div><div class="title">📲 Safari notification companion</div><div class="sub" id="notificationCompanionStatus">Checking link status…</div></div><button class="btn primary" id="notificationCompanionBtn" type="button">Set up</button></div><div class="toolbar"><button class="btn" id="notificationCompanionTestBtn" type="button">Send companion test</button><button class="btn red" id="notificationCompanionUnlinkBtn" type="button">Unlink</button></div><div class="setting-note" style="margin-top:8px">Links the Safari Home Screen app to this IPA device for Web Push. It reuses the same Messages &amp; Transfers identity, so it does not create another device.</div></article>
     <article class="card settings-card-clean"><div class="title">☀️ Morning briefing</div><div class="form"><div class="field"><label>Morning briefing</label><select id="settingsMorningBriefing"><option value="on">On</option><option value="off">Off</option></select></div><div class="field"><label>Delivery time</label><input id="settingsMorningBriefingTime" type="time" value="07:30" /></div></div><div class="toolbar"><button class="btn" id="testMorningBriefingBtn">Send briefing test</button></div></article>
   </section>
@@ -3411,6 +3412,7 @@ function saveState(){
   try{localStorage.setItem(STORAGE,JSON.stringify(state))}
   catch(error){console.error('Primary state save failed',error);toast('This device is running out of app storage. Export a backup now.');}
   queueSafetySnapshot();
+  queueNativeDashboardSync();
 }
 const BACKUP_DEVICE_KEY='cc_transfer_device_v1',BACKUP_DEVICE_AAD='command-centre-paired-device-v1';
 function backupBase64(bytes){let value='';for(const byte of bytes)value+=String.fromCharCode(byte);return btoa(value)}
@@ -4020,6 +4022,69 @@ function postNativeNotification(action,extra={}){
   if(!handler)return false;
   handler.postMessage({action,...extra});return true;
 }
+let nativeDashboardSyncTimer=null,nativeLiveActivityRefreshPromise=null;
+function nativeDashboardSupported(){return !!(window.CommandCentreNative?.nativeWidgets&&nativeMessageHandler('nativeDashboard'))}
+function nativeWeatherSymbol(code){
+  if(code===0)return'sun.max.fill';if([1,2].includes(code))return'cloud.sun.fill';if(code===3)return'cloud.fill';if([45,48].includes(code))return'cloud.fog.fill';
+  if([51,53,55,56,57].includes(code))return'cloud.drizzle.fill';if([61,63,65,66,67,80,81,82].includes(code))return'cloud.rain.fill';
+  if([71,73,75,77,85,86].includes(code))return'cloud.snow.fill';if([95,96,99].includes(code))return'cloud.bolt.rain.fill';return'cloud.fill';
+}
+function nativeNextEventPayload(){
+  const today=dayKey(),now=Date.now();
+  return (state.events||[]).map(event=>{
+    const hasTime=!!event.time,date=new Date(`${event.date}T${hasTime?event.time:'12:00'}:00`);
+    return {id:String(event.id||''),title:String(event.title||'Event'),detail:String(event.notes||''),timestamp:date.getTime(),isAllDay:!hasTime,dateKey:String(event.date||'')};
+  }).filter(item=>Number.isFinite(item.timestamp)&&item.dateKey>=today&&(item.isAllDay||item.timestamp>=now)).sort((a,b)=>a.timestamp-b.timestamp)[0]||null;
+}
+function nativeReminderPayload(limit=12){
+  const today=dayKey(),now=Date.now(),rows=[];
+  for(let offset=0;offset<400&&rows.length<limit*2;offset++){
+    const date=new Date();date.setHours(0,0,0,0);date.setDate(date.getDate()+offset);const key=dayKey(date);
+    (state.reminders||[]).forEach(reminder=>{
+      if(!reminderOccursOn(reminder,key))return;
+      const hasTime=!!reminder.time,[hour,minute]=(reminder.time||'12:00').split(':').map(Number),due=new Date(date.getFullYear(),date.getMonth(),date.getDate(),hour||0,minute||0);
+      if(hasTime&&due.getTime()<now)return;
+      rows.push({id:`${reminder.id}-${key}`,title:String(reminder.text||'Reminder'),detail:[reminder.category,formatFrequency(reminder.frequency)].filter(Boolean).join(' • '),timestamp:due.getTime(),isAllDay:!hasTime});
+    });
+  }
+  return rows.sort((a,b)=>a.timestamp-b.timestamp).slice(0,limit);
+}
+function nativeWeatherPayload(){
+  const current=weatherCache?.data?.current;if(!current)return null;
+  const daily=weatherCache?.data?.daily,info=weatherInfo(Number(current.weather_code));
+  return {city:weatherCache?.loc?.name||state.city||'Weather',temperature:Math.round(Number(current.temperature_2m)||0),apparentTemperature:Math.round(Number(current.apparent_temperature??current.temperature_2m)||0),condition:info[1],symbolName:nativeWeatherSymbol(Number(current.weather_code)),high:Number.isFinite(Number(daily?.temperature_2m_max?.[0]))?Math.round(Number(daily.temperature_2m_max[0])):null,low:Number.isFinite(Number(daily?.temperature_2m_min?.[0]))?Math.round(Number(daily.temperature_2m_min[0])):null,precipitationChance:Number.isFinite(Number(daily?.precipitation_probability_max?.[0]))?Math.round(Number(daily.precipitation_probability_max[0])):null,latitude:Number(weatherCache?.loc?.latitude)||null,longitude:Number(weatherCache?.loc?.longitude)||null};
+}
+function nativeFootballMatchPayload(extra=[]){
+  const followed=new Set((state.footballFollowedMatches||[]).map(Number)),seen=new Map();
+  const runtime=typeof footballMatchRuntime!=='undefined'?footballMatchRuntime?.data?.match:null;
+  [...footballAllScheduleMatches(),runtime,...extra].filter(Boolean).forEach(match=>{const id=Number(match.id)||0;if(id&&followed.has(id))seen.set(id,match)});
+  return [...seen.values()].map(match=>({id:Number(match.id),competition:String(match?.competition?.name||'Football'),homeTeam:footballTeamName(match.homeTeam),awayTeam:footballTeamName(match.awayTeam),kickoff:Date.parse(match.utcDate||''),homeScore:Number.isFinite(match?.score?.fullTime?.home)?Number(match.score.fullTime.home):null,awayScore:Number.isFinite(match?.score?.fullTime?.away)?Number(match.score.fullTime.away):null,status:String(match.status||'SCHEDULED').toUpperCase(),minute:Number.isFinite(Number(match.minute))?Number(match.minute):null})).filter(match=>Number.isFinite(match.kickoff));
+}
+function nativeDashboardPayload(extraMatches=[]){
+  return {snapshot:{weather:nativeWeatherPayload(),nextEvent:nativeNextEventPayload(),reminders:nativeReminderPayload()},followedMatchIDs:(state.footballFollowedMatches||[]).map(Number).filter(Boolean),matches:nativeFootballMatchPayload(extraMatches)};
+}
+function updateNativeDashboardStatus(message=''){
+  const el=qs('#nativeDashboardStatus');if(!el)return;
+  el.textContent=message||(nativeDashboardSupported()?'Native widgets are ready. Add them from the iPhone Home or Lock Screen.':'Widgets and Dynamic Island require the new native IPA.');
+}
+function syncNativeDashboard(showToast=false,extraMatches=[]){
+  clearTimeout(nativeDashboardSyncTimer);nativeDashboardSyncTimer=null;
+  if(!nativeDashboardSupported()){updateNativeDashboardStatus();if(showToast)toast('Install the widget-enabled IPA first');return false}
+  const handler=nativeMessageHandler('nativeDashboard');handler.postMessage({action:'sync',...nativeDashboardPayload(extraMatches)});updateNativeDashboardStatus('Synced just now • followed matches update near kick-off.');if(showToast)toast('Widgets and Live Activities synced');return true;
+}
+function queueNativeDashboardSync(delay=350){if(!nativeDashboardSupported())return;clearTimeout(nativeDashboardSyncTimer);nativeDashboardSyncTimer=setTimeout(()=>syncNativeDashboard(false),delay)}
+async function refreshNativeLiveActivities(force=false){
+  if(!nativeDashboardSupported()||document.visibilityState==='hidden'||navigator.onLine===false)return false;
+  if(nativeLiveActivityRefreshPromise)return nativeLiveActivityRefreshPromise;
+  const now=Date.now(),candidates=nativeFootballMatchPayload().filter(match=>!['FINISHED','CANCELLED','POSTPONED'].includes(match.status)&&Math.abs(match.kickoff-now)<=5*60*60*1000).slice(0,3);
+  if(!candidates.length){queueNativeDashboardSync();return false}
+  nativeLiveActivityRefreshPromise=Promise.allSettled(candidates.map(async match=>{const params=new URLSearchParams({matchId:String(match.id)});if(force)params.set('refresh','1');return (await fetchJson(`/api/football/match?${params}`,{},18000))?.match})).then(results=>{
+    const matches=results.filter(result=>result.status==='fulfilled'&&result.value).map(result=>result.value);const handler=nativeMessageHandler('nativeDashboard');handler?.postMessage({action:'matches',followedMatchIDs:(state.footballFollowedMatches||[]).map(Number).filter(Boolean),matches:nativeFootballMatchPayload(matches)});return matches.length>0;
+  }).catch(error=>{console.warn('Native Live Activity refresh failed',error);return false}).finally(()=>{nativeLiveActivityRefreshPromise=null});
+  return nativeLiveActivityRefreshPromise;
+}
+window.CommandCentreSyncNativeDashboard=syncNativeDashboard;
+window.addEventListener('cc-native-dashboard-status',event=>{const detail=event.detail||{};updateNativeDashboardStatus(String(detail.message||''));if(detail.error)console.warn('Native dashboard',detail.message||'Live Activity warning')});
 function nativeInboxCredential(){try{return String(JSON.parse(localStorage.getItem('cc_transfer_device_v1')||'null')?.token||'')}catch{return ''}}
 function notificationCompanionJson(key){try{return JSON.parse(localStorage.getItem(key)||'null')}catch{return null}}
 function notificationCompanionOwner(){return notificationCompanionJson(NOTIFICATION_COMPANION_OWNER_KEY)}
@@ -4422,6 +4487,10 @@ function applyLaunchRoute(){
     switchPage('football',false);
     return;
   }
+  if(location.hash==='#weather'){
+    switchPage('weather',false);
+    return;
+  }
   if(location.hash==='#today'||location.hash.startsWith('#reminder-')||location.hash.startsWith('#event-')){
     switchPage('today',false);
     return;
@@ -4509,6 +4578,7 @@ function init(){
      bind('notificationCompanionUnlinkBtn','click',unlinkNotificationCompanion);
      bind('testMorningBriefingBtn','click',testMorningBriefing);
      bind('rescheduleNotificationsBtn','click',()=>{scheduleAllNotifications();toast('Notifications rescheduled')});
+     bind('syncNativeDashboardBtn','click',()=>syncNativeDashboard(true));
     qsa('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
     ['settingsModal','notificationCompanionModal','universalSearchModal','quickAddModal','holdingModal','reminderModal','calendarEventModal','noteModal','footballLineupModal'].forEach(id=>{const el=qs('#'+id);if(el)el.addEventListener('click',e=>{if(e.target.id===id)closeModal(id)})});
     bind('saveSettings','click',saveSettings);
@@ -4596,6 +4666,7 @@ function init(){
     runInitStep('foundation refresh',bindFoundationRefresh);
     runInitStep('notification controls',updateNotificationUI);
     runInitStep('notification companion controls',updateNotificationCompanionUI);
+    runInitStep('native widget controls',updateNativeDashboardStatus);
     if(state.notificationsEnabled&&notificationPermission()==='granted')scheduleAllNotifications();
     setTimeout(()=>runInitStep('launch route',applyLaunchRoute),60);
     const startupJobs=[
@@ -4615,6 +4686,8 @@ function init(){
     const startHomeWeather=()=>refreshAppFreshness(false);
     if('requestIdleCallback' in window)window.requestIdleCallback(startHomeWeather,{timeout:1200});
     else setTimeout(startHomeWeather,250);
+    setTimeout(()=>queueNativeDashboardSync(0),900);
+    setInterval(()=>refreshNativeLiveActivities(false),90*1000);
     setInterval(()=>{const fw=qs('#featuredWord');if(fw)fw.textContent=yourWords[Math.floor(Math.random()*yourWords.length)]},30000);
     window.addEventListener('pagehide',()=>{captureYoutubeProgress(true);captureMediaProgress(true)});
     document.addEventListener('visibilitychange',()=>{
@@ -7341,7 +7414,7 @@ async function openFootballMatchCentre(matchId,force=false,tab='overview'){
 }
 function followFootballMatch(){
   const id=Number(footballMatchRuntime.matchId)||0;if(!id)return;const current=state.footballFollowedMatches||[],following=current.includes(id);
-  state.footballFollowedMatches=following?current.filter(item=>item!==id):[id,...current].slice(0,30);saveState();renderFootballMatchCentre();renderFootball();if(state.notificationsEnabled)syncNativeNotifications();toast(following?'Match unfollowed':'Match followed — fixture alerts will stay scheduled');
+  state.footballFollowedMatches=following?current.filter(item=>item!==id):[id,...current].slice(0,30);saveState();renderFootballMatchCentre();renderFootball();queueNativeDashboardSync(0);if(!following)refreshNativeLiveActivities(true);if(state.notificationsEnabled)syncNativeNotifications();toast(following?'Match unfollowed':'Match followed — Live Activity and fixture alerts are ready');
 }
 function addFootballMatchToCalendar(){
   const match=footballMatchRuntime.data?.match;if(!match?.utcDate)return;const date=new Date(match.utcDate);closeModal('footballLineupModal');openCalendarEvent(dayKey(date));
@@ -7634,6 +7707,8 @@ async function loadFootball(force=false){
     }
     persistFootballSchedule();
     renderFootball();
+    queueNativeDashboardSync();
+    refreshNativeLiveActivities(false);
     if(nativeNotificationsSupported()&&state.notificationsEnabled)syncNativeNotifications();
     const scheduleProvider=footballScheduleCache.provider||footballCache.competitionName;
     const warning=[data.warning,footballScheduleCache.warning].filter(Boolean)[0]||'';
@@ -7657,6 +7732,8 @@ async function refreshFootballScheduleInBackground(force=false){
     footballScheduleCache={matches:data.matches,competitions:Array.isArray(data.competitions)?data.competitions:[],provider:data.provider||'football data',updatedAt:data.updatedAt||nowIso(),warning:data.warning||''};
     persistFootballSchedule();
     if(appCurrentPage==='football')renderFootball();
+    queueNativeDashboardSync();
+    refreshNativeLiveActivities(false);
     if(nativeNotificationsSupported()&&state.notificationsEnabled)syncNativeNotifications();
     return true;
   }catch(error){console.warn('Background fixture refresh failed',error);return false}
@@ -9210,7 +9287,7 @@ function renderWeatherSnapshot(){
   if(!weatherCache?.data?.current)return;
   const c=weatherCache.data.current,wi=weatherInfo(c.weather_code);
   qs('#weatherSnapshot').innerHTML=`<div class="metric" style="font-size:22px">${Math.round(c.temperature_2m)}°C</div><div class="sub" style="margin-top:4px">${wi[0]} ${wi[1]} • feels ${Math.round(c.apparent_temperature)}°C</div>`;
-  renderWeatherFull();renderHomeLauncher();
+  renderWeatherFull();renderHomeLauncher();queueNativeDashboardSync();
 }
 function loadWeather(force=false){
   if(weatherLoadPromise)return weatherLoadPromise;

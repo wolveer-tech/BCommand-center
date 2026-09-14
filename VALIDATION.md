@@ -1,3 +1,18 @@
+# Native widgets and followed-match Live Activities v10.24.0
+
+- `node scripts/check-project.mjs` passes after parsing the complete inline web
+  application and bundling the Worker dependency graph.
+- The complete Node test suite passes **87/87**, including seven new native
+  dashboard checks.
+- Static coverage verifies all three WidgetKit configurations, Home and Lock
+  Screen families, ActivityKit start/update/end flows, scheduled match starts,
+  Dynamic Island regions, App Group parity, widget deep links, background
+  refresh and two-extension IPA packaging.
+- The app shell cache is `command-centre-shell-v10.24.0`.
+- The Windows workspace cannot compile an iOS target. The Codemagic macOS build
+  is the required final Swift/Xcode validation and now fails unless both embedded
+  extensions are present with matching version/build numbers.
+
 # League One recent-score hotfix v10.23.2
 
 - A live League One response contained 552 season matches and 71 completed

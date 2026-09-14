@@ -1,5 +1,16 @@
 # Command Centre setup
 
+## v10.24.0 — Native widgets and followed-match Live Activities
+
+Web v10.24.0 and native iOS v1.9.0 (build 15) add Weather, Next Event and Next
+Reminder widgets for the iPhone Home and Lock Screens, plus a scheduled football
+Live Activity with Dynamic Island layouts for followed matches. The native app
+and widget extension share a small local snapshot through
+`group.tech.wolveer.commandcentre.native`; Messages and Transfers keep their
+existing Keychain identity. This release requires a new IPA, but no new
+Cloudflare variable or database migration. Follow the deployment and signing
+notes in [RELEASE-v10.24.0.md](RELEASE-v10.24.0.md).
+
 ## v10.23.2 — League One recent-score hotfix
 
 League-history scores are now parsed from FotMob's `status.scoreStr` field,

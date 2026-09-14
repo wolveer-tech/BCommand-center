@@ -8,6 +8,7 @@ const worker=readFileSync(new URL('../worker.js',import.meta.url),'utf8');
 const nativeApp=readFileSync(new URL('../native-ios/CommandCentreNative/CommandCentreNativeApp.swift',import.meta.url),'utf8');
 const nativeWebView=readFileSync(new URL('../native-ios/CommandCentreNative/CommandCentreWebView.swift',import.meta.url),'utf8');
 const nativeProject=readFileSync(new URL('../native-ios/project.yml',import.meta.url),'utf8');
+const nativeInfo=readFileSync(new URL('../native-ios/CommandCentreNative/Info.plist',import.meta.url),'utf8');
 const nativePrivacy=readFileSync(new URL('../native-ios/CommandCentreNative/NativePrivacyLockManager.swift',import.meta.url),'utf8');
 const inlineScript=html.match(/<script>\s*([\s\S]*?)<\/script>/i)?.[1]||'';
 
@@ -71,7 +72,7 @@ test('IPA Privacy Lock uses device-owner authentication and shields private cont
   assert.match(nativeApp,/NativePrivacyLockView/);
   assert.match(nativeApp,/privacyLock\.authenticateIfNeeded\(\)/);
   assert.match(nativeWebView,/name: "nativePrivacy"/);
-  assert.match(nativeProject,/INFOPLIST_KEY_NSFaceIDUsageDescription/);
+  assert.match(nativeInfo,/NSFaceIDUsageDescription/);
   assert.match(html,/id="applyPrivacyLockBtn"/);
   assert.match(html,/id="privacyLockNowBtn"/);
 });
@@ -221,7 +222,7 @@ test('native iOS wrapper enables background audio and system PiP',()=>{
   assert.match(nativeApp,/AVAudioSession\.sharedInstance\(\)/);
   assert.match(nativeApp,/setCategory\(\.playback/);
   assert.match(nativeWebView,/allowsPictureInPictureMediaPlayback = true/);
-  assert.match(nativeProject,/INFOPLIST_KEY_UIBackgroundModes:[\s\S]*- audio[\s\S]*- fetch/);
-  assert.match(nativeProject,/MARKETING_VERSION: 1\.8\.0/);
-  assert.match(nativeProject,/CURRENT_PROJECT_VERSION: 14/);
+  assert.match(nativeInfo,/UIBackgroundModes[\s\S]*<string>audio<\/string>[\s\S]*<string>fetch<\/string>/);
+  assert.match(nativeProject,/MARKETING_VERSION: 1\.9\.0/);
+  assert.match(nativeProject,/CURRENT_PROJECT_VERSION: 15/);
 });

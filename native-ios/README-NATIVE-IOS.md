@@ -1,5 +1,28 @@
 # Command Centre iOS 26 — Signulous-friendly build
 
+## v1.9.0 widgets, Dynamic Island and football Live Activities
+
+Version **1.9.0 (build 15)** adds a WidgetKit extension with Weather, Next Event
+and Next Reminder widgets for Home and Lock Screens. It also adds an ActivityKit
+football view for the Lock Screen and all Dynamic Island presentations.
+
+The web view publishes a limited local display snapshot to the App Group
+`group.tech.wolveer.commandcentre.native`. Followed fixtures are scheduled to
+start a Live Activity five minutes before kick-off; an already-live fixture
+starts immediately. Scores update while the IPA is open and whenever iOS grants
+the existing background-refresh task. Continuous server-driven ActivityKit
+updates while the IPA is closed still require an Apple ActivityKit push key.
+
+This is the first revision that intentionally restores an App Group, because
+WidgetKit extensions cannot read the containing app's ordinary local storage.
+Signulous must preserve this entitlement for both the containing app and the
+Widget extension. The Codemagic workflow signs and validates both embedded
+extensions before packaging `CommandCentre-iOS26-v1.9.0.ipa`.
+
+Install over the existing app to retain its Keychain identity. After first open,
+use Settings → Notifications → Widgets & Live Activities → Sync now, then add
+the widgets from the iPhone Home or Lock Screen editor.
+
 ## v1.8.0 immediate native alerts and Notes visibility
 
 Version **1.8.0 (build 14)** registers the app with APNs after notification

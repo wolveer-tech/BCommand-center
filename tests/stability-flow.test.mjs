@@ -7,6 +7,7 @@ const html=read('../public/index.html');
 const worker=read('../worker.js');
 const serviceWorker=read('../public/sw.js');
 const project=read('../native-ios/project.yml');
+const appInfo=read('../native-ios/CommandCentreNative/Info.plist');
 const nativeApp=read('../native-ios/CommandCentreNative/CommandCentreNativeApp.swift');
 const background=read('../native-ios/CommandCentreNative/BackgroundRefreshManager.swift');
 const notifications=read('../native-ios/CommandCentreNative/NativeNotificationHandler.swift');
@@ -42,12 +43,12 @@ test('Match Centre exposes overview, lineups, timeline, stats and following',()=
 });
 
 test('app shell and fixture schedules refresh safely in foreground and background',()=>{
-  assert.match(serviceWorker,/command-centre-shell-v10\.23\.2/);
+  assert.match(serviceWorker,/command-centre-shell-v10\.24\.0/);
   assert.match(serviceWorker,/request\.mode === 'navigate'/);
   assert.match(serviceWorker,/url\.pathname\.startsWith\('\/api\/'\)/);
   assert.match(html,/function refreshAppFreshness/);
   assert.match(html,/function refreshFootballScheduleInBackground/);
-  assert.match(project,/BGTaskSchedulerPermittedIdentifiers/);
+  assert.match(appInfo,/BGTaskSchedulerPermittedIdentifiers/);
   assert.match(background,/BGAppRefreshTaskRequest/);
   assert.match(nativeApp,/BackgroundRefreshManager\.shared\.register\(\)/);
   assert.match(notifications,/refreshSavedScheduleFromNetwork/);

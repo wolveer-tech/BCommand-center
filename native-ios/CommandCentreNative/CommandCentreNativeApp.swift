@@ -9,6 +9,7 @@ struct CommandCentreNativeApp: App {
 
     init() {
         _ = NativeNotificationHandler.shared
+        _ = NativeDashboardHandler.shared
         BackgroundRefreshManager.shared.register()
         configureBackgroundPlayback()
     }
@@ -30,6 +31,9 @@ struct CommandCentreNativeApp: App {
             .onAppear {
                 privacyLock.handleScenePhase(.active)
                 privacyLock.authenticateIfNeeded()
+            }
+            .onOpenURL { url in
+                NativeDeepLinkRouter.shared.open(url)
             }
         }
         .onChange(of: scenePhase) { _, newPhase in
