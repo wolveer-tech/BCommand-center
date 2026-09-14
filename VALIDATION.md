@@ -1,3 +1,22 @@
+# Notes, FotMob, YouTube freshness and APNs v10.21.0
+
+- Notes tracks the collapsed selection range and scrolls the active caret above
+  the keyboard/action boundary; mobile keyboard mode collapses nonessential
+  editor chrome.
+- A live Worker-module check returned **2,752 matches across 222 competitions**
+  from FotMob. The sampled Match Centre returned both starting elevens, both
+  benches and 13 timeline events. A second completed-match check returned both
+  starting elevens, 15 events, 40 statistics, the venue and referee.
+- For You cache v5 records recent impressions, rotates them out for seven days,
+  weights watch completion/recency and requests date/relevance freshness lanes.
+- APNs registration is authenticated by the existing paired-device credential.
+  D1 stores only the app-device token; the `.p8` key remains a Worker secret.
+- Legacy Web Push and iOS background checks remain available as fallbacks.
+- Swift compilation, final signing-entitlement inspection and a physical APNs
+  delivery test must run through Codemagic/Signulous and an iPhone.
+- Static project validation passes and the complete serial suite passes:
+  **70/70 tests**.
+
 # iPhone foundations and white-list improvements v10.20.0
 
 - The intro is session-gated and has a lower-cost iPhone canvas path; replaying

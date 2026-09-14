@@ -1,6 +1,7 @@
 import { sendPushNotification } from '@mmmike/web-push/send';
 import { handleTransfers, cleanTransfers, flushTransferPushes } from './transfers.js';
 import { handleMessages, cleanMessages, flushMessagePushes } from './messages.js';
+import { apnsConfigured, sendAPNSNotification } from './apns.js';
 
 function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json','access-control-allow-origin':'*','cache-control':'no-store'}})}
 function addDaysLocal(dateKey,n){const [y,m,d]=dateKey.split('-').map(Number);const dt=new Date(Date.UTC(y,m-1,d));dt.setUTCDate(dt.getUTCDate()+n);return dt.toISOString().slice(0,10)}
@@ -1537,6 +1538,14 @@ async function searchYouTube(env,query,requestUrl){
     throw err;
   }
 
+  let requestOptions={order:'relevance',freshness:'',force:false};
+  try{
+    const incoming=new URL(requestUrl);
+    const order=String(incoming.searchParams.get('order')||'relevance');
+    const freshness=String(incoming.searchParams.get('freshness')||'');
+    requestOptions={order:['relevance','date','viewCount'].includes(order)?order:'relevance',freshness:['week','month','year'].includes(freshness)?freshness:'',force:incoming.searchParams.get('refresh')==='1'};
+  }catch{}
+
   // Cache identical searches for 15 minutes when Cache API is available.
   let cache=null,cacheKey=null;
   try{
@@ -1544,10 +1553,9 @@ async function searchYouTube(env,query,requestUrl){
     if(cache){
       const cacheUrl=new URL(requestUrl);
       cacheUrl.pathname='/__cache/youtube-search';
-      cacheUrl.search=new URLSearchParams({q:q.toLowerCase()}).toString();
+      cacheUrl.search=new URLSearchParams({q:q.toLowerCase(),order:requestOptions.order,freshness:requestOptions.freshness}).toString();
       cacheKey=new Request(cacheUrl.toString(),{method:'GET'});
-      const cached=await cache.match(cacheKey);
-      if(cached)return cached.json();
+      if(!requestOptions.force){const cached=await cache.match(cacheKey);if(cached)return cached.json()}
     }
   }catch(e){
     console.warn('YouTube cache read skipped',e);
@@ -1557,12 +1565,17 @@ async function searchYouTube(env,query,requestUrl){
   const u=new URL('https://www.googleapis.com/youtube/v3/search');
   u.searchParams.set('part','snippet');
   u.searchParams.set('type','video');
-  u.searchParams.set('maxResults','10');
+  u.searchParams.set('maxResults','16');
   u.searchParams.set('q',q);
   u.searchParams.set('safeSearch','moderate');
   u.searchParams.set('videoEmbeddable','true');
   u.searchParams.set('relevanceLanguage','en');
   u.searchParams.set('regionCode','GB');
+  u.searchParams.set('order',requestOptions.order);
+  if(requestOptions.freshness){
+    const days={week:7,month:31,year:366}[requestOptions.freshness];
+    u.searchParams.set('publishedAfter',new Date(Date.now()-days*86400000).toISOString());
+  }
   u.searchParams.set('key',env.YOUTUBE_API_KEY);
 
   let r;
@@ -1819,6 +1832,61 @@ async function sofascoreFootballSchedule(){
   return {matches,competitions,provider:'SofaScore website feed',dateFrom:dates[0],dateTo:dates.at(-1),updatedAt:new Date().toISOString()};
 }
 
+// FotMob exposes the same read-only JSON consumed by its public match pages.
+// Unlike the previous SofaScore route, this endpoint is reachable from the
+// deployed Worker and returns all competitions for a date in one response.
+const FOTMOB_WEB_BASE='https://www.fotmob.com/api/data';
+const FOTMOB_ID_PREFIX=800000000000;
+async function fotmobWebsiteFetch(path,params={}){
+  const u=new URL(`${FOTMOB_WEB_BASE}/${String(path||'').replace(/^\/+/, '')}`);
+  Object.entries(params).forEach(([key,value])=>{if(value!==undefined&&value!==null&&String(value)!=='')u.searchParams.set(key,String(value))});
+  const r=await fetch(u.toString(),{headers:{
+    accept:'application/json',referer:'https://www.fotmob.com/matches',
+    'user-agent':'Mozilla/5.0 (compatible; CommandCentre/1.0; +https://bcommand-center.wolvesgidaree.workers.dev)'
+  }});
+  const data=await r.json().catch(()=>null);
+  if(!r.ok||!data){const err=new Error(`FotMob website feed HTTP ${r.status}`);err.status=502;throw err}
+  return data;
+}
+function fotmobTeam(team){
+  const rawId=Number(team?.id)||0;
+  return {id:rawId?FOTMOB_ID_PREFIX+rawId:0,name:String(team?.longName||team?.name||'Team'),shortName:String(team?.shortName||team?.name||'Team'),tla:'',crest:rawId?`https://images.fotmob.com/image_resources/logo/teamlogo/${rawId}_small.png`:''};
+}
+function fotmobStatus(row){
+  const status=row?.status||{};
+  if(status.finished)return 'FINISHED';
+  if(status.cancelled||status.awarded)return 'CANCELLED';
+  if(status.started)return /half|pause/i.test(String(status?.reason?.long||status?.reason?.short||''))?'PAUSED':'IN_PLAY';
+  return 'SCHEDULED';
+}
+function cleanFotmobFootballMatch(row,league={}){
+  const rawId=Number(row?.id)||0,status=row?.status||{};
+  const kickoff=status.utcTime||((Number(row?.timeTS)||0)>0?new Date(Number(row.timeTS)).toISOString():'');
+  const minuteMatch=String(status?.liveTime?.short||status?.liveTime?.long||'').match(/\d+/);
+  return {
+    id:rawId?FOTMOB_ID_PREFIX+rawId:0,fotmobId:rawId,utcDate:String(kickoff||''),status:fotmobStatus(row),minute:minuteMatch?Number(minuteMatch[0]):null,
+    competition:{id:Number(league?.primaryId||league?.id)||0,name:String(league?.name||'Football'),code:String(league?.ccode||''),emblem:Number(league?.primaryId||league?.id)?`https://images.fotmob.com/image_resources/logo/leaguelogo/${league.primaryId||league.id}.png`:''},
+    homeTeam:fotmobTeam(row?.home),awayTeam:fotmobTeam(row?.away),
+    score:{fullTime:{home:row?.home?.score==null?null:Number(row.home.score),away:row?.away?.score==null?null:Number(row.away.score)}},
+    source:'fotmob-website'
+  };
+}
+async function fotmobFootballSchedule(){
+  const dates=Array.from({length:10},(_,index)=>isoDayOffset(index-1));
+  const settled=await Promise.allSettled(dates.map(date=>fotmobWebsiteFetch('matches',{date:date.replaceAll('-',''),timezone:'Europe/London',ccode3:'GBR'})));
+  const matches=[];
+  settled.forEach(result=>{
+    if(result.status!=='fulfilled')return;
+    (Array.isArray(result.value?.leagues)?result.value.leagues:[]).forEach(league=>{
+      (Array.isArray(league?.matches)?league.matches:[]).forEach(row=>{const match=cleanFotmobFootballMatch(row,league);if(match.id&&match.utcDate)matches.push(match)});
+    });
+  });
+  if(!matches.length){const reason=settled.find(result=>result.status==='rejected')?.reason;throw reason||new Error('FotMob website feed returned no fixtures.')}
+  const unique=[...new Map(matches.map(match=>[String(match.id),match])).values()].sort((a,b)=>Date.parse(a.utcDate)-Date.parse(b.utcDate));
+  const competitions=[...new Map(unique.map(match=>[String(match.competition.id||match.competition.name),match.competition])).values()];
+  return {matches:unique,competitions,provider:'FotMob website feed',dateFrom:dates[0],dateTo:dates.at(-1),updatedAt:new Date().toISOString()};
+}
+
 async function footballFetch(path,env,extraHeaders={}){
   if(!env.FOOTBALL_DATA_API_KEY){
     const err=new Error('Football is not configured. Add FOOTBALL_DATA_API_KEY as a Cloudflare Worker secret.');
@@ -1847,7 +1915,7 @@ async function getFootballSchedule(env,force=false,requestUrl='https://local/api
   try{
     cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
     if(cache){
-      const u=new URL(requestUrl);u.pathname='/__cache/football-schedule-v1';u.search='';
+      const u=new URL(requestUrl);u.pathname='/__cache/football-schedule-v2';u.search='';
       cacheKey=new Request(u.toString(),{method:'GET'});
       const hit=await cache.match(cacheKey);if(hit){try{cachedPayload=await hit.json()}catch{}}
     }
@@ -1859,10 +1927,10 @@ async function getFootballSchedule(env,force=false,requestUrl='https://local/api
 
   try{
     try{
-      const payload=await sofascoreFootballSchedule();
+      const payload=await fotmobFootballSchedule();
       if(cache&&cacheKey){try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=600'}}))}catch{}}
       return {...payload,cache:'fresh'};
-    }catch(sofaError){
+    }catch(fotmobError){
       const dateFrom=isoDayOffset(-1),dateTo=isoDayOffset(14);
       let matches=[],provider='football-data.org';
       if(env.FOOTBALL_DATA_API_KEY){
@@ -1878,7 +1946,7 @@ async function getFootballSchedule(env,force=false,requestUrl='https://local/api
         const comp=match?.competition||{};
         return [String(comp.id||comp.code||comp.name||''),{id:comp.id||0,code:comp.code||'',name:comp.name||'Competition',emblem:comp.emblem||''}];
       }).filter(([key])=>key)).values()];
-      const payload={matches,competitions,provider,dateFrom,dateTo,updatedAt:new Date().toISOString(),warning:`SofaScore was unavailable; ${provider} fallback is shown.`};
+      const payload={matches,competitions,provider,dateFrom,dateTo,updatedAt:new Date().toISOString(),warning:`FotMob was unavailable; ${provider} fallback is shown.`};
       if(cache&&cacheKey){try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=600'}}))}catch{}}
       return {...payload,cache:'fresh'};
     }
@@ -1994,6 +2062,60 @@ async function getSofascoreFootballMatch(sofascoreId){
   return {match,teams,events,statistics,provider:'SofaScore website feed',updatedAt:new Date().toISOString(),available:{lineups:teams.some(team=>team.starting.length||team.bench.length),timeline:events.length>0,statistics:statItems.length>0}};
 }
 
+function cleanFotmobLineupTeam(side,headerTeam={}){
+  const positionName=value=>({0:'Goalkeeper',1:'Defender',2:'Midfielder',3:'Forward'}[Number(value)]||'');
+  const players=list=>(Array.isArray(list)?list:[]).map(player=>({
+    id:Number(player?.id)||0,name:String(player?.name||'Player').slice(0,120),
+    number:player?.shirtNumber==null?null:Number(player.shirtNumber),
+    position:positionName(player?.usualPlayingPositionId),rating:Number(player?.performance?.rating)||null
+  }));
+  const rawId=Number(side?.id||headerTeam?.id)||0;
+  return {
+    id:rawId?FOTMOB_ID_PREFIX+rawId:0,name:String(side?.name||headerTeam?.name||'Team'),
+    crest:String(headerTeam?.imageUrl||(rawId?`https://images.fotmob.com/image_resources/logo/teamlogo/${rawId}_small.png`:'')),
+    formation:String(side?.formation||''),coach:String(side?.coach?.name||''),
+    starting:players(side?.starters),bench:players(side?.subs),
+    unavailable:players(side?.unavailable)
+  };
+}
+async function getFotmobFootballMatch(fotmobId){
+  const rawId=Number(fotmobId)||0;
+  if(!rawId)throw new Error('A valid FotMob match ID is required.');
+  const data=await fotmobWebsiteFetch('matchDetails',{matchId:rawId});
+  const general=data?.general||{},header=data?.header||{},headerTeams=Array.isArray(header?.teams)?header.teams:[];
+  const status=header?.status||{},homeRaw=headerTeams[0]||general?.homeTeam||{},awayRaw=headerTeams[1]||general?.awayTeam||{};
+  const homeTeam=fotmobTeam({...general?.homeTeam,...homeRaw}),awayTeam=fotmobTeam({...general?.awayTeam,...awayRaw});
+  const match={
+    id:FOTMOB_ID_PREFIX+rawId,fotmobId:rawId,utcDate:String(status?.utcTime||general?.matchTimeUTCDate||''),
+    status:fotmobStatus({status}),minute:Number(String(status?.liveTime?.short||'').match(/\d+/)?.[0])||null,
+    venue:String(data?.content?.matchFacts?.infoBox?.Stadium?.name||''),
+    competition:{id:Number(general?.leagueId)||0,name:String(general?.leagueName||'Football'),code:String(general?.countryCode||''),emblem:Number(general?.leagueId)?`https://images.fotmob.com/image_resources/logo/leaguelogo/${general.leagueId}.png`:''},
+    homeTeam,awayTeam,score:{fullTime:{home:homeRaw?.score==null?null:Number(homeRaw.score),away:awayRaw?.score==null?null:Number(awayRaw.score)}},
+    referees:[data?.content?.matchFacts?.infoBox?.Referee?.text].filter(Boolean)
+  };
+  const lineup=data?.content?.lineup||{};
+  const teams=[cleanFotmobLineupTeam(lineup?.homeTeam,homeRaw),cleanFotmobLineupTeam(lineup?.awayTeam,awayRaw)];
+  const rawEvents=Array.isArray(data?.content?.matchFacts?.events?.events)?data.content.matchFacts.events.events:[];
+  const events=rawEvents.filter(row=>!['AddedTime','Half'].includes(String(row?.type||''))).map(row=>{
+    const swap=Array.isArray(row?.swap)?row.swap:[];
+    const score=Array.isArray(row?.newScore)?{home:row.newScore[0],away:row.newScore[1]}:(row?.homeScore!=null||row?.awayScore!=null?{home:row.homeScore,away:row.awayScore}:null);
+    return {
+      type:String(row?.type||'Event'),detail:String(row?.goalDescription||row?.card||row?.cardReason?.defaultText||row?.type||'Event'),
+      minute:Number(row?.time)||0,extra:Number(row?.overloadTime)||0,team:row?.isHome===true?homeTeam:row?.isHome===false?awayTeam:{id:0,name:''},
+      player:String(row?.player?.name||row?.nameStr||swap[0]?.name||''),assist:String(row?.assistInput||''),playerOut:String(swap[1]?.name||''),score
+    };
+  }).sort((a,b)=>(a.minute+a.extra/100)-(b.minute+b.extra/100));
+  const statGroups=data?.content?.stats?.Periods?.All?.stats;
+  const statItems=[];const seenStats=new Set();
+  (Array.isArray(statGroups)?statGroups:[]).forEach(group=>(Array.isArray(group?.stats)?group.stats:[]).forEach(item=>{
+    if(!Array.isArray(item?.stats)||item.stats.length<2||item.stats.every(value=>value==null))return;
+    const label=String(item?.title||'').trim();if(!label||seenStats.has(label))return;seenStats.add(label);
+    statItems.push({label,home:item.stats[0]??'—',away:item.stats[1]??'—'});
+  }));
+  const statistics=[{team:homeTeam,items:statItems.map(item=>({label:item.label,value:item.home}))},{team:awayTeam,items:statItems.map(item=>({label:item.label,value:item.away}))}];
+  return {match,teams,events,statistics,provider:'FotMob website feed',sourceUrl:`https://www.fotmob.com/matches/x#${rawId}`,updatedAt:new Date().toISOString(),available:{lineups:teams.some(team=>team.starting.length||team.bench.length),timeline:events.length>0,statistics:statItems.length>0}};
+}
+
 async function getFootballMatchCentre(env,matchId,force=false,requestUrl='https://local/api/football/match'){
   const id=Number(matchId)||0;
   if(!id){const err=new Error('A valid football match ID is required.');err.status=400;throw err}
@@ -2010,6 +2132,8 @@ async function getFootballMatchCentre(env,matchId,force=false,requestUrl='https:
   let payload;
   if(id>SOFASCORE_ID_PREFIX){
     payload=await getSofascoreFootballMatch(id-SOFASCORE_ID_PREFIX);
+  }else if(id>FOTMOB_ID_PREFIX){
+    payload=await getFotmobFootballMatch(id-FOTMOB_ID_PREFIX);
   }else if(id>0){
     const match=await footballFetch(`/matches/${encodeURIComponent(id)}`,env,{
       'X-Unfold-Lineups':'true','X-Unfold-Goals':'true','X-Unfold-Bookings':'true','X-Unfold-Subs':'true'
@@ -2685,17 +2809,12 @@ async function getGeneralSportBundle(env,kind='tennis',force=false,requestUrl='h
       payload=await worldAthleticsBundle();
     }else{
       try{
-        payload=await sofascoreTennisBundle();
-      }catch(sofaError){
-        try{
-          payload=await apiTennisBundle(env);
-          payload.warning='SofaScore was unavailable; the configured API-Tennis fallback is shown.';
-        }catch(tennisError){
-          if(tennisError?.setupRequired){
-            payload=await sportsDbFallbackBundle(env,sportKey);
-            payload.warning=`SofaScore was unavailable. ${tennisError.message} ${payload.events.length?'Limited fallback events are shown below.':''}`.trim();
-          }else throw tennisError;
-        }
+        payload=await apiTennisBundle(env);
+      }catch(tennisError){
+        if(tennisError?.setupRequired){
+          payload=await sportsDbFallbackBundle(env,sportKey);
+          payload.warning=`${tennisError.message} ${payload.events.length?'Limited fallback events are shown below.':''}`.trim();
+        }else throw tennisError;
       }
     }
 
@@ -2817,8 +2936,9 @@ async function commandCentreStatus(env,live=false){
     kind:env.NEWSDATA_API_KEY?'info':'warn',
     detail:env.NEWSDATA_API_KEY?'Secret is present. Live calls are skipped here to preserve quota.':'NEWSDATA_API_KEY is missing.'
   });
-  services.push({name:'SofaScore website feed',state:'Built in',kind:'info',detail:'Football and Tennis use the same read-only feed as sofascore.com, with the configured providers retained as fallbacks.'});
+  services.push({name:'FotMob website feed',state:'Built in',kind:'info',detail:'The complete football schedule and Match Centre prefer FotMob’s public website data, including lineups, incidents and available match statistics.'});
   services.push({name:'World Athletics calendar',state:'Built in',kind:'info',detail:'Athletics meetings and result availability come from the official global calendar.'});
+  services.push({name:'Apple Push Notification service',state:apnsConfigured(env)?'Configured':'Needs setup',kind:apnsConfigured(env)?'ok':'warn',detail:apnsConfigured(env)?'APNs credentials are present for immediate native Messages and Transfers alerts.':'Add APNS_KEY_ID, APNS_TEAM_ID and APNS_PRIVATE_KEY secrets after enabling Push Notifications for the app identifier.'});
   services.push({
     name:'Tennis live data',
     state:env.API_TENNIS_KEY?'Configured':'Needs setup',
@@ -3086,6 +3206,15 @@ async function refreshFootballNotifications(env){
     .bind(Date.now()-60*86400000).run();
 }
 async function sendOne(row,env){
+  if(row.apnsToken||row.apns_token){
+    try{return await sendAPNSNotification(row,env)}
+    catch(error){
+      if(error?.invalidToken&&row.deviceId&&env.DB){
+        try{await env.DB.prepare('UPDATE transfer_devices SET apns_token=NULL,apns_updated_at=NULL WHERE id=? AND apns_token=?').bind(row.deviceId,String(row.apnsToken||row.apns_token)).run()}catch{}
+      }
+      throw error;
+    }
+  }
   const sub={endpoint:row.endpoint,keys:{p256dh:row.p256dh,auth:row.auth}};
   const target=String(row.url||'/');
   // Keep the URL both at the top level and inside data. The service worker

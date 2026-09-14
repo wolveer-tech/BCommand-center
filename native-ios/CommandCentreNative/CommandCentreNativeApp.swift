@@ -3,6 +3,7 @@ import AVFAudio
 
 @main
 struct CommandCentreNativeApp: App {
+    @UIApplicationDelegateAdaptor(NativePushAppDelegate.self) private var appDelegate
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var privacyLock = NativePrivacyLockManager.shared
 

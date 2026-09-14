@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import UserNotifications
 import WebKit
 
@@ -11,10 +12,30 @@ final class NativeNotificationHandler: NSObject, WKScriptMessageHandler, UNUserN
     private let nativeInboxTokenKey = "CommandCentreNativeInboxToken"
     private let lastInboxMessageKey = "CommandCentreNativeLastInboxMessage"
     private let lastTransferReadyKey = "CommandCentreNativeLastTransferReady"
+    private var currentAPNSToken: String?
 
     private override init() {
         super.init()
         UNUserNotificationCenter.current().delegate = self
+    }
+
+    func registerForRemoteNotificationsIfEnabled() async {
+        guard UserDefaults.standard.string(forKey: nativeInboxTokenKey)?.isEmpty == false else { return }
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional || settings.authorizationStatus == .ephemeral else { return }
+        UIApplication.shared.registerForRemoteNotifications()
+    }
+
+    func receiveAPNSToken(_ data: Data) async {
+        let token = data.map { String(format: "%02x", $0) }.joined()
+        guard !token.isEmpty else { return }
+        currentAPNSToken = token
+        await syncAPNSTokenToServer(token)
+    }
+
+    func remoteRegistrationFailed(_ error: Error) {
+        print("APNs registration failed: \(error.localizedDescription)")
+        notifyWeb(permission: "granted", message: "Immediate alerts could not register with Apple. Background checks remain enabled: \(error.localizedDescription)")
     }
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -27,7 +48,8 @@ final class NativeNotificationHandler: NSObject, WKScriptMessageHandler, UNUserN
         switch action {
         case "requestPermission":
             let items = body["items"] as? [[String: Any]] ?? []
-            Task { await requestPermissionAndSchedule(items) }
+            let inboxToken = body["inboxToken"] as? String ?? ""
+            Task { await requestPermissionAndSchedule(items, inboxToken: inboxToken) }
         case "schedule":
             let items = body["items"] as? [[String: Any]] ?? []
             Task { await scheduleIfAuthorised(items) }
@@ -47,11 +69,17 @@ final class NativeNotificationHandler: NSObject, WKScriptMessageHandler, UNUserN
         }
     }
 
-    private func requestPermissionAndSchedule(_ items: [[String: Any]]) async {
+    private func requestPermissionAndSchedule(_ items: [[String: Any]], inboxToken: String) async {
         do {
             let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
             if granted {
                 await replaceSchedule(items)
+                if !inboxToken.isEmpty {
+                    UserDefaults.standard.set(inboxToken, forKey: nativeInboxTokenKey)
+                    _ = await refreshNativeInboxAlerts(primeOnly: true)
+                }
+                UIApplication.shared.registerForRemoteNotifications()
+                if let currentAPNSToken, !inboxToken.isEmpty { await syncAPNSTokenToServer(currentAPNSToken) }
                 notifyWeb(permission: "granted", message: "Native iPhone notifications are enabled.")
             } else {
                 notifyWeb(permission: "denied", message: "Notifications were not allowed. You can enable them in iPhone Settings.")
@@ -180,10 +208,34 @@ final class NativeNotificationHandler: NSObject, WKScriptMessageHandler, UNUserN
             }
             UserDefaults.standard.set(token, forKey: nativeInboxTokenKey)
             _ = await refreshNativeInboxAlerts(primeOnly: true)
+            UIApplication.shared.registerForRemoteNotifications()
+            if let currentAPNSToken { await syncAPNSTokenToServer(currentAPNSToken) }
             BackgroundRefreshManager.shared.scheduleNext()
-            notifyWeb(permission: "granted", message: "Native Messages and Transfers alerts are registered. iOS runs closed-app checks opportunistically.")
+            notifyWeb(permission: "granted", message: "Messages and Transfers alerts are enabled. Registering this iPhone for immediate Apple Push notifications…")
         } catch {
             notifyWeb(permission: "default", message: "Could not enable inbox alerts: \(error.localizedDescription)")
+        }
+    }
+
+    private func syncAPNSTokenToServer(_ apnsToken: String) async {
+        guard let token = UserDefaults.standard.string(forKey: nativeInboxTokenKey), !token.isEmpty,
+              let url = URL(string: "api/transfers/apns", relativeTo: AppConfig.commandCentreURL)?.absoluteURL else { return }
+        do {
+            var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+            request.httpMethod = "POST"
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            request.httpBody = try JSONSerialization.data(withJSONObject: ["token": apnsToken])
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                let payload = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])
+                throw NSError(domain: "CommandCentreAPNs", code: (response as? HTTPURLResponse)?.statusCode ?? 0, userInfo: [NSLocalizedDescriptionKey: payload?["error"] as? String ?? "The server did not accept the Apple Push token."])
+            }
+            notifyWeb(permission: "granted", message: "Immediate Messages and Transfers alerts are active on this iPhone.")
+        } catch {
+            print("Could not register APNs token with Command Centre: \(error.localizedDescription)")
+            notifyWeb(permission: "granted", message: "Immediate alerts need server setup. Background checks remain enabled: \(error.localizedDescription)")
         }
     }
 
@@ -303,7 +355,8 @@ final class NativeNotificationHandler: NSObject, WKScriptMessageHandler, UNUserN
         let url = response.notification.request.content.userInfo["url"] as? String
         Task { @MainActor in
             if let url, let data = try? JSONSerialization.data(withJSONObject: url), let literal = String(data: data, encoding: .utf8) {
-                webView?.evaluateJavaScript("location.hash=\(literal);")
+                let navigation = url.hasPrefix("#") ? "location.hash=\(literal);" : "location.href=\(literal);"
+                webView?.evaluateJavaScript(navigation)
             }
             completionHandler()
         }

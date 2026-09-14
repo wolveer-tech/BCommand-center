@@ -45,7 +45,7 @@
 #noteModal .modal-head,#noteModal .field,#noteModal .note-editor-options,#noteModal .note-toolbar{min-width:0;max-width:100%}
 #noteModal .field:has(.note-body-input){flex:1;display:flex;flex-direction:column;min-height:0}
 #noteModal #noteTitle{font-size:17px;font-weight:800;padding:12px 10px;background:transparent;border:none;border-bottom:1px solid var(--line);border-radius:0}
-#noteModal .note-body-input{flex:1;min-height:0;background:transparent;border:none;padding:12px 10px;font-size:14px;overflow:auto;outline:none}
+#noteModal .note-body-input{flex:1;min-height:0;background:transparent;border:none;padding:12px 10px 96px;font-size:16px;line-height:1.55;overflow:auto;outline:none;caret-color:var(--cyan);scroll-padding-block:20px 112px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 #noteModal .note-body-input[data-empty="true"]:before{content:attr(data-placeholder);color:var(--muted);pointer-events:none}
 #noteModal .modal-actions{flex:none;position:sticky;bottom:0;z-index:3;min-height:58px;margin:0 -4px;padding:10px 4px max(10px,env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(7,11,20,.94),var(--bg) 25%);box-shadow:0 -10px 24px rgba(7,11,20,.72);width:calc(100% + 8px)}
 #noteModal .modal-actions .btn{flex:1 1 0;min-width:0;margin-right:0!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -66,7 +66,7 @@ body:has(#noteModal.open) .back-to-top{visibility:hidden!important;pointer-event
 .color-dot{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.18);cursor:pointer;padding:0}
 .color-dot.active{border-color:#fff}
 #noteModal .note-body-input b,#noteModal .note-body-input strong{font-weight:800}
-@media(max-width:520px){#noteModal .modal-card.note-editor-card{padding-left:12px;padding-right:12px}.note-toolbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}.note-toolbar::-webkit-scrollbar{display:none}.note-toolbar>*{flex:0 0 auto}#noteModal .note-body-input{padding-left:6px;padding-right:6px}#noteModal .modal-actions{gap:6px}#noteModal .modal-actions .btn{padding-left:6px;padding-right:6px}}
+@media(max-width:520px){#noteModal .modal-card.note-editor-card{padding-left:12px;padding-right:12px}.note-toolbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}.note-toolbar::-webkit-scrollbar{display:none}.note-toolbar>*{flex:0 0 auto}#noteModal .note-body-input{padding-left:6px;padding-right:6px}#noteModal .modal-actions{gap:6px}#noteModal .modal-actions .btn{padding-left:6px;padding-right:6px}#noteModal.note-keyboard-open.note-body-focused .modal-head,#noteModal.note-keyboard-open.note-body-focused .field:has(#noteTitle),#noteModal.note-keyboard-open.note-body-focused .note-editor-options{display:none}#noteModal.note-keyboard-open.note-body-focused .note-toolbar{margin-top:0}#noteModal.note-keyboard-open.note-body-focused .note-body-input{padding-top:18px}}
 
 .bible-progress{display:flex;align-items:center;gap:10px;margin:10px 0 14px}.bible-progress-bar{flex:1;height:8px;border-radius:99px;background:#ffffff12;overflow:hidden}.bible-progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:99px}.bible-book-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.bible-book{border:1px solid var(--line);background:var(--panel2);border-radius:14px;padding:11px}.bible-book-head{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}.bible-book-title{font-size:12px;font-weight:800}.bible-book-meta{font-size:9px;color:var(--muted);margin-top:2px}.bible-book-chapters{display:none;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px;margin-top:10px}.bible-book.open .bible-book-chapters{display:grid}.chapter-check{position:relative}.chapter-check input{position:absolute;opacity:0;pointer-events:none}.chapter-check label{display:grid;place-items:center;min-height:30px;border:1px solid var(--line);border-radius:8px;background:#0b1220;color:var(--muted);font-size:10px;font-weight:750;cursor:pointer}.chapter-check input:checked+label{background:rgba(39,211,155,.14);border-color:rgba(39,211,155,.45);color:var(--green)}.reading-checks{display:grid;gap:7px;margin-top:10px}.reading-check{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#ffffff08;font-size:11px;cursor:pointer}.reading-check input{accent-color:var(--green)}.bible-actions{display:flex;gap:7px;flex-wrap:wrap}.bible-testament{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px}@media(max-width:700px){.bible-book-grid{grid-template-columns:1fr}.bible-book-chapters{grid-template-columns:repeat(6,minmax(0,1fr))}}
 
@@ -2766,7 +2766,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
           </div>
 
           <article class="card">
-            <div class="setting-note"><b>Live data:</b> Football and Tennis prefer the same feed used by the SofaScore website, with the existing providers kept as fallbacks. Athletics comes from the official World Athletics calendar. The Worker caches results for reliability.</div>
+            <div class="setting-note"><b>Live data:</b> Football prefers FotMob’s public website feed for fixtures, lineups, incidents and available match statistics, with the configured providers retained as fallbacks. Tennis uses the configured tennis feed with a free fallback. Athletics comes from the official World Athletics calendar. The Worker caches results for reliability.</div>
           </article>
         </div>
         <article class="card" id="liveSportStreamingCard">
@@ -3247,9 +3247,10 @@ const DEFAULT_STATE = {
     watchHistory:[],
     youtubeSearchHistory:[],
     youtubeRecommendationHidden:[],
+    youtubeRecommendationSeen:[],
     youtubeHiddenChannels:[],
     youtubeWatchLater:[],
-    youtubeForYouCache:{version:4,items:[],signals:[],reason:'',updatedAt:''},
+    youtubeForYouCache:{version:5,items:[],signals:[],reason:'',updatedAt:''},
     twitchHistory:[],
     gameStats:{best2048:0,bestSnake:0,bestReaction:null,triviaStreak:0,triviaBest:0,triviaLastDate:'',triviaLastCorrect:null,triviaLastAnswer:null,wordleStreak:0,wordleBest:0,wordleDate:'',wordleGuesses:[],wordleCurrent:'',wordleFinished:false,wordleWon:false},
     visit:{lastDate:'',streak:0}
@@ -3304,11 +3305,12 @@ state.entertainment={
   youtubeHistoryDetailed:Array.isArray(state.entertainment?.youtubeHistoryDetailed)?state.entertainment.youtubeHistoryDetailed:[],
   youtubeSearchHistory:Array.isArray(state.entertainment?.youtubeSearchHistory)?state.entertainment.youtubeSearchHistory.map(String).filter(Boolean).slice(0,20):[],
   youtubeRecommendationHidden:Array.isArray(state.entertainment?.youtubeRecommendationHidden)?state.entertainment.youtubeRecommendationHidden.map(String).filter(Boolean).slice(0,100):[],
+  youtubeRecommendationSeen:Array.isArray(state.entertainment?.youtubeRecommendationSeen)?state.entertainment.youtubeRecommendationSeen.filter(x=>x?.id&&Number.isFinite(Number(x.seenAt))).slice(0,240):[],
   youtubeHiddenChannels:Array.isArray(state.entertainment?.youtubeHiddenChannels)?state.entertainment.youtubeHiddenChannels.map(String).filter(Boolean).slice(0,100):[],
   youtubeWatchLater:Array.isArray(state.entertainment?.youtubeWatchLater)?state.entertainment.youtubeWatchLater.filter(x=>x&&x.id).slice(0,100):[],
   youtubeForYouCache:(state.entertainment?.youtubeForYouCache&&typeof state.entertainment.youtubeForYouCache==='object')
     ?state.entertainment.youtubeForYouCache
-    :{version:4,items:[],signals:[],reason:'',updatedAt:''},
+    :{version:5,items:[],signals:[],reason:'',updatedAt:''},
   mediaHistory:Array.isArray(state.entertainment?.mediaHistory)?state.entertainment.mediaHistory:[],
   twitchHistory:Array.isArray(state.entertainment?.twitchHistory)?state.entertainment.twitchHistory:[],
   gameStats:{...DEFAULT_STATE.entertainment.gameStats,...(state.entertainment?.gameStats||{})},
@@ -3986,6 +3988,7 @@ function postNativeNotification(action,extra={}){
   if(!handler)return false;
   handler.postMessage({action,...extra});return true;
 }
+function nativeInboxCredential(){try{return String(JSON.parse(localStorage.getItem('cc_transfer_device_v1')||'null')?.token||'')}catch{return ''}}
 function notificationSupported(){
   return nativeNotificationsSupported()||('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window);
 }
@@ -4072,7 +4075,7 @@ function subscriptionJson(sub){
 async function repairNotifications(){
   if(nativeNotificationsSupported()){
     if(notificationPermission()==='denied'){toast('Allow Command Centre notifications in iPhone Settings, then return and tap Enable');return}
-    state.notificationsEnabled=true;saveState();postNativeNotification('requestPermission',{items:collectNativeNotificationSchedule()});toast('Native notification schedule refreshed');updateNotificationUI();return;
+    state.notificationsEnabled=true;saveState();postNativeNotification('requestPermission',{items:collectNativeNotificationSchedule(),inboxToken:nativeInboxCredential()});toast('Native notification schedule refreshed');updateNotificationUI();return;
   }
   if(!notificationSupported()){toast('This browser does not support Web Push notifications');return}
   try{
@@ -4092,7 +4095,7 @@ async function enableNotifications(){
     state.notificationsEnabled=true;
     if(state.nativeNotificationPermission!=='denied')state.nativeNotificationPermission='granted';
     saveState();
-    postNativeNotification('requestPermission',{items:collectNativeNotificationSchedule()});
+    postNativeNotification('requestPermission',{items:collectNativeNotificationSchedule(),inboxToken:nativeInboxCredential()});
     updateNotificationUI();toast('Native iPhone notifications enabled');return;
   }
   try{
@@ -7025,11 +7028,12 @@ const FOOTBALL_COMPETITIONS={
   FLC:'League Cup'
 };
 let footballCache={competition:'',matches:[],standings:[],competitionName:'',updatedAt:''};
-const FOOTBALL_SCHEDULE_CACHE_KEY='command-centre-football-schedule-v1';
+const FOOTBALL_SCHEDULE_CACHE_KEY='command-centre-football-schedule-v2';
 function loadStoredFootballSchedule(){try{const cached=JSON.parse(localStorage.getItem(FOOTBALL_SCHEDULE_CACHE_KEY)||'null');return Array.isArray(cached?.matches)?cached:{matches:[],competitions:[],provider:'',updatedAt:'',warning:''}}catch{return{matches:[],competitions:[],provider:'',updatedAt:'',warning:''}}}
 function persistFootballSchedule(){try{localStorage.setItem(FOOTBALL_SCHEDULE_CACHE_KEY,JSON.stringify(footballScheduleCache))}catch{}}
 let footballScheduleCache=loadStoredFootballSchedule();
 let footballScheduleFilter=dayKey();
+let footballVisibleLimit=60,footballResultsVisibleLimit=24;
 
 function footballDateTime(iso){
   if(!iso)return 'TBC';
@@ -7059,8 +7063,11 @@ function footballMatchCard(m){
   </div>`;
 }
 function footballLocalDay(iso){const d=new Date(iso);return Number.isNaN(d.getTime())?'':dayKey(d)}
-function setFootballScheduleFilter(value){footballScheduleFilter=String(value||dayKey());renderFootball()}
+function setFootballScheduleFilter(value){footballScheduleFilter=String(value||dayKey());footballVisibleLimit=60;renderFootball()}
 window.setFootballScheduleFilter=setFootballScheduleFilter;
+function showMoreFootballFixtures(){footballVisibleLimit+=60;renderFootball()}
+function showMoreFootballResults(){footballResultsVisibleLimit+=48;renderFootball()}
+window.showMoreFootballFixtures=showMoreFootballFixtures;window.showMoreFootballResults=showMoreFootballResults;
 function renderFootballScheduleTabs(){
   const el=qs('#footballScheduleTabs');if(!el)return;
   const now=new Date(),tabs=[{value:'live',label:'🔴 Live'}];
@@ -7354,20 +7361,21 @@ function renderFootball(){
   const fixtureEl=qs('#footballFixtures'),resultEl=qs('#footballResults');
   if(!fixtureEl||!resultEl)return;
   const matches=footballAllScheduleMatches();
-  const upcoming=matches.filter(m=>footballScheduleFilter==='live'?footballMatchIsLive(m):footballLocalDay(m.utcDate)===footballScheduleFilter)
-    .sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate)).slice(0,60);
-  const results=matches.filter(m=>m.status==='FINISHED')
-    .sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate)).slice(0,24);
+  const matchingUpcoming=matches.filter(m=>footballScheduleFilter==='live'?footballMatchIsLive(m):footballLocalDay(m.utcDate)===footballScheduleFilter)
+    .sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
+  const matchingResults=matches.filter(m=>m.status==='FINISHED')
+    .sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate));
+  const upcoming=matchingUpcoming.slice(0,footballVisibleLimit),results=matchingResults.slice(0,footballResultsVisibleLimit);
 
   renderFootballScheduleTabs();
-  fixtureEl.innerHTML=upcoming.length?upcoming.map(footballMatchCard).join(''):`<div class="empty">No matches found for ${footballScheduleFilter==='live'?'Live':footballScheduleFilter}. Try another day.</div>`;
-  resultEl.innerHTML=results.length?results.map(footballMatchCard).join(''):'<div class="empty">No recent results in the current window.</div>';
+  fixtureEl.innerHTML=upcoming.length?upcoming.map(footballMatchCard).join('')+(matchingUpcoming.length>upcoming.length?`<button class="btn" type="button" onclick="showMoreFootballFixtures()">Show 60 more • ${matchingUpcoming.length-upcoming.length} remaining</button>`:''):`<div class="empty">No matches found for ${footballScheduleFilter==='live'?'Live':footballScheduleFilter}. Try another day.</div>`;
+  resultEl.innerHTML=results.length?results.map(footballMatchCard).join('')+(matchingResults.length>results.length?`<button class="btn" type="button" onclick="showMoreFootballResults()">Show more results • ${matchingResults.length-results.length} remaining</button>`:''):'<div class="empty">No recent results in the current window.</div>';
   renderFootballStandings();renderFootballFavourite();applyFootballNotificationUI();
 
   const sub=qs('#footballStandingsSub');
   if(sub)sub.textContent=footballCache.competitionName?`${footballCache.competitionName} • current season`:'Current season';
   const scheduleSub=qs('#footballScheduleSub');
-  if(scheduleSub)scheduleSub.textContent=`${footballScheduleCache.competitions?.length||new Set(matches.map(m=>m?.competition?.name).filter(Boolean)).size} competitions • ${footballScheduleCache.provider||'football data'} • up to 60 matches per day`;
+  if(scheduleSub)scheduleSub.textContent=`${footballScheduleCache.competitions?.length||new Set(matches.map(m=>m?.competition?.name).filter(Boolean)).size} competitions • ${footballScheduleCache.provider||'football data'} • showing ${upcoming.length} of ${matchingUpcoming.length}`;
 }
 async function loadFootball(force=false){
   const status=qs('#footballStatus'),sel=qs('#footballCompetition');
@@ -7377,10 +7385,12 @@ async function loadFootball(force=false){
   try{
     const params=new URLSearchParams({competition});if(force)params.set('refresh','1');
     const scheduleParams=new URLSearchParams();if(force)scheduleParams.set('refresh','1');
-    const [data,scheduleResult]=await Promise.all([
-      fetchJson(`/api/football?${params.toString()}`,{},18000),
-      fetchJson(`/api/football/schedule?${scheduleParams.toString()}`,{},22000).catch(error=>({error:error?.message||'Expanded schedule unavailable'}))
+    const [dataResult,scheduleResult]=await Promise.all([
+      fetchJson(`/api/football?${params.toString()}`,{},18000).catch(error=>({error:error?.message||'Standings unavailable',matches:[],standings:[]})),
+      fetchJson(`/api/football/schedule?${scheduleParams.toString()}`,{},26000).catch(error=>({error:error?.message||'Expanded schedule unavailable'}))
     ]);
+    if(dataResult.error&&!Array.isArray(scheduleResult.matches))throw new Error(scheduleResult.error||dataResult.error);
+    const data=dataResult.error?{matches:[],standings:[],competition:{name:FOOTBALL_COMPETITIONS[competition]||competition},updatedAt:new Date().toISOString(),warning:dataResult.error}:dataResult;
     footballCache={
       competition,
       matches:Array.isArray(data.matches)?data.matches:[],
@@ -7402,8 +7412,10 @@ async function loadFootball(force=false){
     persistFootballSchedule();
     renderFootball();
     if(nativeNotificationsSupported()&&state.notificationsEnabled)syncNativeNotifications();
-    const note=data.warning?` • ${esc(data.warning)}`:(data.cache==='hit'?' • cached':'');
-    if(status)status.innerHTML=`<span class="status"><span class="dot live"></span>${esc(footballCache.competitionName)} • updated ${new Date(footballCache.updatedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}${note}</span>`;
+    const scheduleProvider=footballScheduleCache.provider||footballCache.competitionName;
+    const warning=[data.warning,footballScheduleCache.warning].filter(Boolean)[0]||'';
+    const note=warning?` • ${esc(warning)}`:(data.cache==='hit'?' • cached':'');
+    if(status)status.innerHTML=`<span class="status"><span class="dot live"></span>${esc(scheduleProvider)} • updated ${new Date(footballScheduleCache.updatedAt||footballCache.updatedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}${note}</span>`;
   }catch(e){
     if(status)status.innerHTML=`<span class="status"><span class="dot error"></span>${esc(e.message||'Football data unavailable')}</span>`;
     if(qs('#footballFixtures'))qs('#footballFixtures').innerHTML='<div class="empty">Could not load fixtures.</div>';
@@ -8170,7 +8182,7 @@ function hideYoutubeChannel(channel){
 function unhideYoutubeChannel(channel){
   const name=decodeHtmlText(channel||'').trim();
   state.entertainment.youtubeHiddenChannels=(state.entertainment.youtubeHiddenChannels||[]).filter(item=>String(item).trim().toLowerCase()!==name.toLowerCase());
-  state.entertainment.youtubeForYouCache={version:4,items:[],signals:[],reason:'',updatedAt:''};
+  state.entertainment.youtubeForYouCache={version:5,items:[],signals:[],reason:'',updatedAt:''};
   saveState();renderYoutubeLibrary();toast(`${name} can appear again`);
 }
 function youtubeLibraryRowHtml(item,view){
@@ -8257,31 +8269,34 @@ function youtubeRecommendationSeeds(){
     :[];
 
   // Recent searches are the strongest explicit signal.
-  searches.slice(0,6).forEach((q,i)=>{
+  searches.slice(0,8).forEach((q,i)=>{
     rows.push({
       kind:'search',
       query:String(q).trim(),
       label:String(q).trim(),
       reason:`Because you searched for “${String(q).trim()}”`,
-      score:100-(i*6)
+      score:112-(i*5)
     });
   });
 
   // Repeated channels are a strong implicit signal.
   const channelStats=new Map();
-  watched.forEach((item,i)=>{
+  watched.slice(0,30).forEach((item,i)=>{
     const name=String(item.channelTitle||'').trim();
     if(!name||name==='YouTube')return;
     const key=name.toLowerCase();
     const current=channelStats.get(key)||{name,count:0,latest:99};
-    current.count+=1;
+    const progress=Math.max(0,Number(item.progressSeconds)||0),duration=Math.max(0,Number(item.durationSeconds)||0);
+    const completion=duration?Math.min(1,progress/duration):(item.completed?1:.35);
+    const recency=Math.max(.25,1-(i/36));
+    current.count+=(0.45+completion)*recency;
     current.latest=Math.min(current.latest,i);
     channelStats.set(key,current);
   });
 
   [...channelStats.values()]
     .sort((a,b)=>(b.count-a.count)||(a.latest-b.latest))
-    .slice(0,5)
+    .slice(0,7)
     .forEach((c,i)=>{
       rows.push({
         kind:'channel',
@@ -8290,12 +8305,12 @@ function youtubeRecommendationSeeds(){
         reason:c.count>1
           ?`Because you often watch ${c.name}`
           :`Because you watched ${c.name}`,
-        score:90+(c.count*7)-(i*3)
+        score:92+(c.count*8)-(i*3)
       });
     });
 
   // Recent titles help when the user watches a topic but not one channel repeatedly.
-  watched.slice(0,8).forEach((item,i)=>{
+  watched.slice(0,14).forEach((item,i)=>{
     const keywords=youtubeTitleKeywords(item.title);
     if(!keywords)return;
     rows.push({
@@ -8303,7 +8318,7 @@ function youtubeRecommendationSeeds(){
       query:keywords,
       label:keywords,
       reason:`Based on “${decodeHtmlText(item.title||'a recent video').slice(0,70)}”`,
-      score:72-(i*4)
+      score:82-(i*3)
     });
   });
 
@@ -8316,17 +8331,19 @@ function youtubeRecommendationSeeds(){
     deduped.push(row);
   });
 
-  return deduped.slice(0,12);
+  const combined=deduped.filter(row=>row.kind==='topic').slice(0,3).map(row=>row.query.split(' ').slice(0,2).join(' ')).filter(Boolean).join(' ');
+  if(combined&&combined.length<90&&!seen.has(combined))deduped.push({kind:'discovery',query:combined,label:'new discoveries',reason:'A fresh mix of your recent interests',score:68});
+  return deduped.slice(0,18);
 }
 
 function youtubeForYouCacheValid(){
   const cache=state.entertainment.youtubeForYouCache||{};
   const updated=Date.parse(cache.updatedAt||'');
-  return Number(cache.version)===4
+  return Number(cache.version)===5
     &&Array.isArray(cache.items)
     &&cache.items.length
     &&Number.isFinite(updated)
-    &&Date.now()-updated<60*60*1000;
+    &&Date.now()-updated<15*60*1000;
 }
 
 function youtubeForYouPlan(force=false){
@@ -8348,12 +8365,12 @@ function youtubeForYouPlan(force=false){
   // relevant remaining interests. Trending is deliberately not part of this
   // plan once the user has supplied any history.
   for(const seed of rotated){
-    if(selected.length>=3)break;
+    if(selected.length>=4)break;
     if(selected.some(x=>x.kind===seed.kind))continue;
     selected.push(seed);
   }
   for(const seed of rotated){
-    if(selected.length>=4)break;
+    if(selected.length>=6)break;
     if(selected.some(x=>x.query.toLowerCase()===seed.query.toLowerCase()))continue;
     selected.push(seed);
   }
@@ -8364,6 +8381,7 @@ function youtubeForYouPlan(force=false){
 function youtubeDiversifyRecommendationGroups(groups,maxItems=14){
   const watchedIds=new Set((state.entertainment.youtubeHistoryDetailed||[]).map(x=>String(x.id)));
   const hiddenIds=new Set(state.entertainment.youtubeRecommendationHidden||[]);
+  const recentSeenIds=new Set((state.entertainment.youtubeRecommendationSeen||[]).filter(x=>Date.now()-Number(x.seenAt)<7*86400000).map(x=>String(x.id)));
   const candidates=[];
   const maxGroupLength=Math.max(0,...groups.map(group=>group.items.length));
 
@@ -8377,10 +8395,11 @@ function youtubeDiversifyRecommendationGroups(groups,maxItems=14){
   }
 
   const result=[],seenIds=new Set(),channelCounts=new Map();
-  const addWithChannelLimit=limit=>{
+  const addWithChannelLimit=(limit,allowRecent=false)=>{
     for(const item of candidates){
       const id=String(item?.videoId||'');
       if(!id||seenIds.has(id)||watchedIds.has(id)||hiddenIds.has(id)||(typeof youtubeChannelHidden==='function'&&youtubeChannelHidden(item?.channelTitle)))continue;
+      if(!allowRecent&&recentSeenIds.has(id))continue;
       const channel=decodeHtmlText(item.channelTitle||'YouTube').trim().toLowerCase()||'youtube';
       if((channelCounts.get(channel)||0)>=limit)continue;
       seenIds.add(id);
@@ -8390,15 +8409,26 @@ function youtubeDiversifyRecommendationGroups(groups,maxItems=14){
     }
   };
 
-  addWithChannelLimit(1);
-  if(result.length<maxItems)addWithChannelLimit(2);
+  addWithChannelLimit(1,false);
+  if(result.length<maxItems)addWithChannelLimit(2,false);
+  if(result.length<Math.min(8,maxItems))addWithChannelLimit(1,true);
+  if(result.length<maxItems)addWithChannelLimit(2,true);
   return result;
 }
 
 function youtubeRecommendationSummary(plan){
   const labels=plan.map(seed=>`“${seed.label}”`).slice(0,3);
   const personal=labels.length?`Based on ${labels.join(' + ')}`:'Based on your activity';
-  return `${personal} • no Trending filler`;
+  return `${personal} • refreshed every 15 minutes • recently shown videos rotated out`;
+}
+
+function rememberYoutubeRecommendationImpressions(items){
+  const now=Date.now(),old=state.entertainment.youtubeRecommendationSeen||[],latest=new Map(old.map(item=>[String(item.id),Number(item.seenAt)||0]));
+  let changed=false;
+  (items||[]).forEach(item=>{const id=String(item?.videoId||'');if(!id)return;if(now-(latest.get(id)||0)>6*60*60*1000){latest.set(id,now);changed=true}});
+  if(!changed)return;
+  state.entertainment.youtubeRecommendationSeen=[...latest.entries()].map(([id,seenAt])=>({id,seenAt})).sort((a,b)=>b.seenAt-a.seenAt).slice(0,240);
+  saveState();
 }
 
 function youtubeExploreCardHtml(v,{forYou=false}={}){
@@ -8436,6 +8466,7 @@ function renderYoutubeForYouItems(items,reason=''){
 
   grid.innerHTML=visible.map(v=>youtubeExploreCardHtml(v,{forYou:true})).join('');
   status.textContent=`${visible.length} personalised videos${reason?` • ${reason}`:''}`;
+  rememberYoutubeRecommendationImpressions(visible);
 }
 
 async function loadYoutubeForYou(force=false){
@@ -8473,7 +8504,14 @@ async function loadYoutubeForYou(force=false){
   try{
     // Every lane comes from explicit searches or watched topics/channels.
     // Trending remains a separate tab and never fills a trained For You feed.
-    const requests=plan.map(seed=>fetchJson(`/api/youtube/search?q=${encodeURIComponent(seed.query)}`,{},15000));
+    const requests=plan.map((seed,index)=>{
+      const params=new URLSearchParams({q:seed.query});
+      if(seed.kind==='search'){params.set('freshness',index%2?'year':'month');params.set('order','relevance')}
+      else if(seed.kind==='channel'){params.set('order','relevance')}
+      else{params.set('freshness',index%2?'year':'month');params.set('order',index%2?'relevance':'date')}
+      if(force)params.set('refresh','1');
+      return fetchJson(`/api/youtube/search?${params.toString()}`,{},18000);
+    });
     const settled=await Promise.allSettled(requests);
     const groups=[];
 
@@ -8491,7 +8529,7 @@ async function loadYoutubeForYou(force=false){
     const items=youtubeDiversifyRecommendationGroups(groups,16);
     const reason=youtubeRecommendationSummary(plan);
     state.entertainment.youtubeForYouCache={
-      version:4,
+      version:5,
       items,
       signals:plan.map(seed=>({kind:seed.kind,query:seed.query,label:seed.label})),
       reason,
@@ -8808,7 +8846,7 @@ function recordYoutubeContinue(id,progress={},invalidateRecommendations=false){
   };
   state.entertainment.youtubeHistoryDetailed=[item,...old.filter(x=>x.id!==id)].slice(0,50);
   if(invalidateRecommendations){
-    state.entertainment.youtubeForYouCache={version:4,items:[],signals:[],reason:'',updatedAt:''};
+    state.entertainment.youtubeForYouCache={version:5,items:[],signals:[],reason:'',updatedAt:''};
   }
   saveState();renderAllContinueWatching();renderYoutubeLibrary();
 }
@@ -9218,11 +9256,29 @@ function syncNoteVisualViewport(){
   const viewport=window.visualViewport;
   const height=Math.max(280,Math.round(viewport?.height||window.innerHeight||document.documentElement.clientHeight));
   const top=Math.max(0,Math.round(viewport?.offsetTop||0));
+  const keyboardOpen=!!viewport&&viewport.height<window.innerHeight*.82;
+  modal.classList.toggle('note-keyboard-open',keyboardOpen);
+  modal.classList.toggle('note-body-focused',document.activeElement===qs('#noteBody'));
   document.documentElement.style.setProperty('--cc-note-vv-height',`${height}px`);
   document.documentElement.style.setProperty('--cc-note-vv-top',`${top}px`);
-  requestAnimationFrame(()=>{
-    const active=document.activeElement;
-    if(active===qs('#noteBody')||active===qs('#noteTitle'))active.scrollIntoView?.({block:'nearest'});
+  requestAnimationFrame(keepNoteCaretVisible);
+}
+let noteCaretFrame=0;
+function keepNoteCaretVisible(){
+  cancelAnimationFrame(noteCaretFrame);
+  noteCaretFrame=requestAnimationFrame(()=>{
+    const body=qs('#noteBody'),modal=qs('#noteModal');
+    if(!body||!modal?.classList.contains('open')||document.activeElement!==body)return;
+    const selection=window.getSelection?.();
+    if(!selection?.rangeCount)return;
+    const range=selection.getRangeAt(0).cloneRange();range.collapse(false);
+    const caret=range.getClientRects?.()[0]||range.getBoundingClientRect?.();
+    if(!caret||(!caret.height&&!caret.width))return;
+    const bodyRect=body.getBoundingClientRect(),actions=modal.querySelector('.modal-actions')?.getBoundingClientRect();
+    const viewport=window.visualViewport,viewTop=viewport?.offsetTop||0,viewBottom=viewTop+(viewport?.height||window.innerHeight);
+    const safeTop=Math.max(bodyRect.top,viewTop)+18,safeBottom=Math.min(bodyRect.bottom,actions?.top||viewBottom,viewBottom)-24;
+    if(caret.bottom>safeBottom)body.scrollTop+=caret.bottom-safeBottom+28;
+    else if(caret.top<safeTop)body.scrollTop-=safeTop-caret.top+18;
   });
 }
 let notesFilter='all';
@@ -9234,7 +9290,7 @@ function openNote(id=null){editingNoteId=id;const n=id?state.notes.find(x=>x.id=
 function normalizeFontTags(root){const sizeMap={'1':'11px','2':'12px','3':'14px','4':'16px','5':'19px','6':'23px','7':'28px'};root.querySelectorAll('font[size]').forEach(f=>{const span=document.createElement('span');span.style.fontSize=sizeMap[f.getAttribute('size')]||'14px';span.innerHTML=f.innerHTML;f.replaceWith(span)})}
 function noteExec(cmd,value=null){const el=qs('#noteBody');if(!el)return;el.focus();document.execCommand(cmd,false,value);normalizeFontTags(el);updateNoteBodyEmptyState();refreshToolbarState()}
 function refreshToolbarState(){['bold','italic','underline','strikeThrough','insertUnorderedList'].forEach(cmd=>{const btn=qs(`#noteToolbar [data-cmd="${cmd}"]`);if(!btn)return;let active=false;try{active=document.queryCommandState(cmd)}catch{}btn.classList.toggle('active',active)})}
-function bindNoteToolbar(){qsa('#noteToolbar [data-cmd]').forEach(btn=>btn.addEventListener('click',()=>{const cmd=btn.dataset.cmd;if(cmd==='removeFormat'){noteExec('removeFormat');noteExec('unlink');return}noteExec(cmd)}));qs('#noteFontSize')?.addEventListener('change',e=>noteExec('fontSize',e.target.value));qsa('#noteColorSwatches .color-dot').forEach(dot=>dot.addEventListener('click',()=>{qsa('#noteColorSwatches .color-dot').forEach(d=>d.classList.remove('active'));dot.classList.add('active');noteExec('foreColor',dot.dataset.color)}));const body=qs('#noteBody');if(body){body.addEventListener('input',()=>{updateNoteBodyEmptyState();syncNoteVisualViewport()});body.addEventListener('focus',syncNoteVisualViewport);body.addEventListener('keyup',refreshToolbarState);body.addEventListener('mouseup',refreshToolbarState);body.addEventListener('paste',e=>{e.preventDefault();const text=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,text)})}qs('#noteTitle')?.addEventListener('focus',syncNoteVisualViewport);window.visualViewport?.addEventListener('resize',syncNoteVisualViewport,{passive:true});window.visualViewport?.addEventListener('scroll',syncNoteVisualViewport,{passive:true});window.addEventListener('resize',syncNoteVisualViewport,{passive:true})}
+function bindNoteToolbar(){qsa('#noteToolbar [data-cmd]').forEach(btn=>btn.addEventListener('click',()=>{const cmd=btn.dataset.cmd;if(cmd==='removeFormat'){noteExec('removeFormat');noteExec('unlink');return}noteExec(cmd)}));qs('#noteFontSize')?.addEventListener('change',e=>noteExec('fontSize',e.target.value));qsa('#noteColorSwatches .color-dot').forEach(dot=>dot.addEventListener('click',()=>{qsa('#noteColorSwatches .color-dot').forEach(d=>d.classList.remove('active'));dot.classList.add('active');noteExec('foreColor',dot.dataset.color)}));const body=qs('#noteBody');if(body){body.addEventListener('beforeinput',keepNoteCaretVisible);body.addEventListener('input',()=>{updateNoteBodyEmptyState();syncNoteVisualViewport();keepNoteCaretVisible()});body.addEventListener('focus',()=>{syncNoteVisualViewport();keepNoteCaretVisible()});body.addEventListener('blur',syncNoteVisualViewport);body.addEventListener('keyup',()=>{refreshToolbarState();keepNoteCaretVisible()});body.addEventListener('mouseup',keepNoteCaretVisible);body.addEventListener('paste',e=>{e.preventDefault();const text=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,text);keepNoteCaretVisible()})}qs('#noteTitle')?.addEventListener('focus',syncNoteVisualViewport);window.visualViewport?.addEventListener('resize',syncNoteVisualViewport,{passive:true});window.visualViewport?.addEventListener('scroll',syncNoteVisualViewport,{passive:true});window.addEventListener('resize',syncNoteVisualViewport,{passive:true})}
 window.editNote=id=>openNote(id);
 function renderNotes(){renderHomeLauncher();renderNotesNavigation();const el=qs('#notesList');if(!el)return;const q=(qs('#notesSearch')?.value||'').trim().toLowerCase();let notes=[...state.notes];if(notesFilter==='deleted')notes=notes.filter(n=>n.deletedAt);else{notes=notes.filter(n=>!n.deletedAt);if(notesFilter==='pinned')notes=notes.filter(n=>n.pinned);else if(notesFilter.startsWith('folder:'))notes=notes.filter(n=>n.folder===notesFilter.slice(7))}if(q)notes=notes.filter(n=>(`${n.title||''} ${notePreview(n.body)} ${n.folder||''}`).toLowerCase().includes(q));notes.sort((a,b)=>{if(!a.deletedAt&&!b.deletedAt&&a.pinned!==b.pinned)return a.pinned?-1:1;return new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt)});if(!notes.length){el.innerHTML=q?'<div class="notes-empty"><strong>No matching notes</strong>Try another search.</div>':'<div class="notes-empty"><strong>Nothing here</strong>Create a note or choose another folder.</div>';return}const card=n=>`<div class="note-card ${n.pinned?'pinned':''}" data-note-id="${esc(n.id)}"><div class="note-icon">${n.deletedAt?'🗑':(n.pinned?'📌':'📝')}</div><div class="note-card-main"><div class="note-card-title">${esc(n.title||'Untitled note')}</div><div class="note-card-preview">${esc(notePreview(n.body)||'No text')}</div><div class="note-card-meta"><span class="note-folder-pill">${esc(n.folder||'Notes')}</span><span>${esc(noteDateLabel(n.updatedAt||n.createdAt))}</span></div></div></div>`;const pinned=notesFilter!=='deleted'?notes.filter(n=>n.pinned):[],other=notesFilter!=='deleted'?notes.filter(n=>!n.pinned):notes;el.innerHTML=pinned.length&&other.length?`<div class="notes-section-label">Pinned</div><div class="notes-list">${pinned.map(card).join('')}</div><div class="notes-section-label">Notes</div><div class="notes-list">${other.map(card).join('')}</div>`:`<div class="notes-list">${notes.map(card).join('')}</div>`;qsa('#notesList [data-note-id]').forEach(c=>c.addEventListener('click',()=>openNote(c.dataset.noteId)))}
 function saveNote(){const title=qs('#noteTitle').value.trim()||'Untitled note',body=qs('#noteBody').innerHTML,folder=qs('#noteFolder')?.value||'Notes',pinned=!!qs('#notePinned')?.checked,now=nowIso();if(!state.noteFolders.includes(folder))state.noteFolders.push(folder);if(editingNoteId)state.notes=state.notes.map(n=>n.id===editingNoteId?{...n,title,body,folder,pinned,updatedAt:now}:n);else state.notes=[{id:makeId('note'),title,body,folder,pinned,createdAt:now,updatedAt:now,deletedAt:''},...state.notes];saveState();closeModal('noteModal');renderNotes();renderTodayPage();toast(editingNoteId?'Note updated':'Note saved');editingNoteId=null}

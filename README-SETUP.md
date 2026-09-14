@@ -1,5 +1,17 @@
 # Command Centre setup
 
+## v10.21.0 — visible Notes typing, FotMob, fresher For You and APNs
+
+This release keeps the active note caret visible above the iPhone keyboard,
+uses FotMob's public match-page data for the football schedule and Match Centre,
+rotates recently shown YouTube recommendations out of For You, and adds genuine
+Apple Push Notification service delivery for native Messages and Transfers.
+
+APNs requires migration `0010_native_apns.sql`, an Apple `.p8` push key and the
+three Worker secrets documented in [RELEASE-v10.21.0.md](RELEASE-v10.21.0.md).
+Build and install iOS **1.8.0 (build 14)** over the existing app after deploying
+the Worker. The old opportunistic background inbox check remains as a fallback.
+
 ## v10.20.0 — iPhone foundations and white-list improvements
 
 - The space intro now runs once per WKWebView session, with a lighter iPhone

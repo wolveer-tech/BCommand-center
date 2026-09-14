@@ -1,4 +1,17 @@
-# Command Centre iOS 26 Mirror — Signulous-friendly build
+# Command Centre iOS 26 — Signulous-friendly build
+
+## v1.8.0 immediate native alerts and Notes visibility
+
+Version **1.8.0 (build 14)** registers the app with APNs after notification
+permission is granted, receives a fresh device token at launch and sends it to
+the Worker using the existing paired-device bearer credential. The main app has
+the production `aps-environment` entitlement; the re-signing profile must also
+support Push Notifications and preserve that entitlement.
+
+The `.p8` provider key stays in Cloudflare and is never embedded in the IPA.
+Run `migrations/0010_native_apns.sql` and configure the Worker secrets listed in
+the root `RELEASE-v10.21.0.md`. Background refresh remains enabled as a delayed
+fallback if APNs registration or delivery is temporarily unavailable.
 
 ## v1.7.0 cold-launch privacy and Mirror retry
 

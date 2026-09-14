@@ -34,16 +34,20 @@ test('Face ID only relocks on cold launch or an explicit lock',()=>{
 test('note editor follows the iPhone visual viewport and keeps every action reachable',()=>{
   assert.match(html,/--cc-note-vv-height/);
   assert.match(html,/function syncNoteVisualViewport/);
+  assert.match(html,/function keepNoteCaretVisible/);
   assert.match(html,/window\.visualViewport\?\.addEventListener\('resize'/);
   assert.match(html,/#noteModal \.modal-actions \.btn\{[^}]*flex:1 1 0/);
   assert.match(html,/\.note-toolbar\{flex-wrap:nowrap;overflow-x:auto/);
+  assert.match(html,/note-keyboard-open\.note-body-focused/);
+  assert.match(html,/caret-color:var\(--cyan\)/);
 });
 
 test('Sport replaces Basketball with Athletics and prefers website-native sources',()=>{
   assert.match(html,/data-sport-tab="athletics">🏃 Athletics/);
   assert.doesNotMatch(html,/data-sport-tab="basketball"/);
-  assert.match(worker,/SOFASCORE_WEB_BASE='https:\/\/www\.sofascore\.com\/api\/v1'/);
-  assert.match(worker,/provider:'SofaScore website feed'/);
+  assert.match(worker,/FOTMOB_WEB_BASE='https:\/\/www\.fotmob\.com\/api\/data'/);
+  assert.match(worker,/provider:'FotMob website feed'/);
+  assert.match(worker,/fotmobWebsiteFetch\('matchDetails',\{matchId:rawId\}\)/);
   assert.match(worker,/async function worldAthleticsBundle/);
   assert.match(worker,/worldathletics\.org\/competition\/calendar-results/);
   assert.match(worker,/const GENERAL_SPORTS=new Set\(\['tennis','athletics'\]\)/);

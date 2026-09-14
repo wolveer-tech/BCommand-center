@@ -36,7 +36,7 @@ test('trained YouTube For You contains no Trending filler',()=>{
   const source=html.slice(start,end);
   assert.match(source,/Trending remains a separate tab/);
   assert.doesNotMatch(source,/requests=\[[\s\S]*section=trending/);
-  assert.match(html,/youtubeForYouCache:\{version:4/);
+  assert.match(html,/youtubeForYouCache:\{version:5/);
 });
 
 test('YouTube progress cache resumes the embed from its saved timestamp',()=>{

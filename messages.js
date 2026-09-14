@@ -136,21 +136,29 @@ export async function handleMessages(request,env,ctx,sendOne) {
 }
 
 export async function flushMessagePushes(env,sendOne){
-  if(!env.DB||!env.VAPID_PUBLIC_KEY||!env.VAPID_PRIVATE_KEY)return;
+  const webReady=!!(env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY),nativeReady=!!(env.APNS_KEY_ID&&env.APNS_TEAM_ID&&env.APNS_PRIVATE_KEY);
+  if(!env.DB||(!webReady&&!nativeReady))return;
   try{
-    const pending=await rows(env,`SELECT o.message_id,o.recipient_id,d.push_subscription,m.sender_id
-      FROM message_deliveries o JOIN device_messages m ON m.id=o.message_id
+    const base=`FROM message_deliveries o JOIN device_messages m ON m.id=o.message_id
       JOIN transfer_devices d ON d.id=o.recipient_id
       LEFT JOIN message_reads r ON r.device_id=o.recipient_id AND r.peer_id=m.sender_id
       WHERE o.sent_at IS NULL AND o.attempts<5 AND o.next_try<=? AND m.created_at>?
-        AND d.revoked_at IS NULL AND d.push_subscription IS NOT NULL AND m.id>COALESCE(r.last_read_id,0) LIMIT 30`,Date.now(),Date.now()-86400000);
+        AND d.revoked_at IS NULL AND TARGETS AND m.id>COALESCE(r.last_read_id,0) LIMIT 30`;
+    let pending;
+    try{pending=await rows(env,`SELECT o.message_id,o.recipient_id,d.push_subscription,d.apns_token,m.sender_id ${base.replace('TARGETS','(d.push_subscription IS NOT NULL OR d.apns_token IS NOT NULL)')}`,Date.now(),Date.now()-86400000)}
+    catch(error){if(!/no such column: d\.apns_token/i.test(String(error?.message||'')))throw error;pending=await rows(env,`SELECT o.message_id,o.recipient_id,d.push_subscription,NULL AS apns_token,m.sender_id ${base.replace('TARGETS','d.push_subscription IS NOT NULL')}`,Date.now(),Date.now()-86400000)}
     for(const delivery of pending){
       const claimed=await first(env,`UPDATE message_deliveries SET attempts=attempts+1,next_try=?
         WHERE message_id=? AND sent_at IS NULL AND next_try<=? RETURNING message_id`,Date.now()+120000,delivery.message_id,Date.now());
       if(!claimed)continue;
       try{
-        const sub=JSON.parse(delivery.push_subscription);
-        await sendOne({endpoint:sub.endpoint,p256dh:sub.keys.p256dh,auth:sub.keys.auth,title:'Command Centre Messages',body:'You have a new message.',url:'/#messages/'+delivery.sender_id,id:'chat-'+delivery.sender_id},env);
+        if(delivery.apns_token){
+          await sendOne({apnsToken:delivery.apns_token,deviceId:delivery.recipient_id,title:'Command Centre Messages',body:'You have a new message.',url:'/#messages/'+delivery.sender_id,id:'chat-'+delivery.sender_id},env);
+        }else{
+          if(!webReady)throw new Error('Web Push credentials are not configured.');
+          const sub=JSON.parse(delivery.push_subscription);
+          await sendOne({endpoint:sub.endpoint,p256dh:sub.keys.p256dh,auth:sub.keys.auth,title:'Command Centre Messages',body:'You have a new message.',url:'/#messages/'+delivery.sender_id,id:'chat-'+delivery.sender_id},env);
+        }
         await run(env,'UPDATE message_deliveries SET sent_at=? WHERE message_id=?',Date.now(),delivery.message_id);
       }catch{console.error('Message notification will retry',delivery.message_id);}
     }

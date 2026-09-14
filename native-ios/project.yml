@@ -23,8 +23,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: tech.wolveer.commandcentre.native
         PRODUCT_NAME: Command Centre
-        MARKETING_VERSION: 1.7.0
-        CURRENT_PROJECT_VERSION: 13
+        MARKETING_VERSION: 1.8.0
+        CURRENT_PROJECT_VERSION: 14
         INFOPLIST_KEY_CFBundleShortVersionString: "$(MARKETING_VERSION)"
         INFOPLIST_KEY_CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         SWIFT_VERSION: 5.0
@@ -38,6 +38,7 @@ targets:
           - fetch
         INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers:
           - tech.wolveer.commandcentre.native.refresh
+        CODE_SIGN_ENTITLEMENTS: CommandCentreNative/CommandCentreNative.entitlements
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: ""
         SUPPORTS_MACCATALYST: NO
@@ -54,8 +55,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: tech.wolveer.commandcentre.native.broadcast
         PRODUCT_NAME: Command Centre Mirror
-        MARKETING_VERSION: 1.7.0
-        CURRENT_PROJECT_VERSION: 13
+        MARKETING_VERSION: 1.8.0
+        CURRENT_PROJECT_VERSION: 14
         SWIFT_VERSION: 5.0
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: BroadcastUploadExtension/Info.plist

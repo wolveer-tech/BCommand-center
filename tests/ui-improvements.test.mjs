@@ -222,6 +222,6 @@ test('native iOS wrapper enables background audio and system PiP',()=>{
   assert.match(nativeApp,/setCategory\(\.playback/);
   assert.match(nativeWebView,/allowsPictureInPictureMediaPlayback = true/);
   assert.match(nativeProject,/INFOPLIST_KEY_UIBackgroundModes:[\s\S]*- audio[\s\S]*- fetch/);
-  assert.match(nativeProject,/MARKETING_VERSION: 1\.7\.0/);
-  assert.match(nativeProject,/CURRENT_PROJECT_VERSION: 13/);
+  assert.match(nativeProject,/MARKETING_VERSION: 1\.8\.0/);
+  assert.match(nativeProject,/CURRENT_PROJECT_VERSION: 14/);
 });

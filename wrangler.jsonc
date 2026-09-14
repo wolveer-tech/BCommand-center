@@ -23,7 +23,9 @@
     "MEDIA_ATLANTIC_BASE_URL": "https://atlantic.st",
     "MEDIA_ATLANTIC_ALLOWED_HOSTS": "atlantic.st",
     "MEDIA_BOOMFLIX_BASE_URL": "https://boomflix.qzz.io",
-    "MEDIA_BOOMFLIX_ALLOWED_HOSTS": "boomflix.qzz.io"
+    "MEDIA_BOOMFLIX_ALLOWED_HOSTS": "boomflix.qzz.io",
+    "APNS_BUNDLE_ID": "tech.wolveer.commandcentre.native",
+    "APNS_ENVIRONMENT": "production"
   },
   "triggers": {
     "crons": [
