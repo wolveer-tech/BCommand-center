@@ -48,9 +48,9 @@ enum NativeStateVault {
             row["id"] = id
             row["reason"] = reason == "restored" ? "native before restore" : "native snapshot"
             let snapshot = try JSONSerialization.data(withJSONObject: row, options: [.sortedKeys])
-            try snapshot.write(to: dir.appendingPathComponent(id + ".json"), options: [.atomic, .completeUntilFirstUserAuthentication])
+            try snapshot.write(to: dir.appendingPathComponent(id + ".json"), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
         }
-        try data.write(to: dir.appendingPathComponent("current.json"), options: [.atomic, .completeUntilFirstUserAuthentication])
+        try data.write(to: dir.appendingPathComponent("current.json"), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
         for row in rows().filter({ ($0["id"] as? String) != "native-current" }).dropFirst(20) {
             if let id = row["id"] as? String, id.hasPrefix("native-"), !id.contains("/") {
                 try? FileManager.default.removeItem(at: dir.appendingPathComponent(id + ".json"))

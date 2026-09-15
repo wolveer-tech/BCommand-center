@@ -28,7 +28,7 @@ enum CommandCentreSharedStore {
             throw NSError(domain: "WidgetStorage", code: 1, userInfo: [NSLocalizedDescriptionKey: "Widget sync blocked: this signed app cannot access its App Group. Sign the app and widget extension with the same provisioned App Group: \(appGroup)."])
         }
         let data = try JSONEncoder().encode(snapshot)
-        try data.write(to: url, options: [.atomic, .completeUntilFirstUserAuthentication])
+        try data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
         guard try Data(contentsOf: url) == data else {
             throw NSError(domain: "WidgetStorage", code: 2, userInfo: [NSLocalizedDescriptionKey: "Widget shared-file verification failed. Please retry."])
         }
@@ -37,7 +37,7 @@ enum CommandCentreSharedStore {
     static func acknowledgeRead(_ snapshot: CommandCentreWidgetSnapshot) {
         guard snapshot.updatedAt > .distantPast, let url = receiptURL,
               let data = try? JSONEncoder().encode(snapshot.updatedAt) else { return }
-        try? data.write(to: url, options: [.atomic, .completeUntilFirstUserAuthentication])
+        try? data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     }
 
     static func hasRead(_ date: Date) -> Bool {
