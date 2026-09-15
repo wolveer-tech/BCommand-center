@@ -21,6 +21,7 @@ struct CommandCentreTimelineProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<CommandCentreWidgetEntry>) -> Void) {
         let snapshot = CommandCentreSharedStore.loadSnapshot()
+        CommandCentreSharedStore.acknowledgeRead(snapshot)
         let entry = CommandCentreWidgetEntry(date: .now, snapshot: snapshot)
         completion(Timeline(entries: [entry], policy: .after(.now.addingTimeInterval(30 * 60))))
     }
@@ -99,7 +100,7 @@ private struct CommandCentreWeatherWidgetView: View {
                 Text(weather.map { "\($0.temperature)°" } ?? "—°")
                     .font(.system(size: 38, weight: .bold, design: .rounded))
                     .minimumScaleFactor(0.75)
-                Text(weather?.condition ?? "Open Command Centre to sync")
+                Text(weather?.condition ?? (CommandCentreSharedStore.container == nil ? "App Group missing in signing" : "Open Command Centre to sync"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -120,7 +121,7 @@ struct CommandCentreNextEventWidget: Widget {
         StaticConfiguration(kind: kind, provider: CommandCentreTimelineProvider()) { entry in
             CommandCentreScheduleWidgetView(
                 item: entry.snapshot.nextEvent,
-                emptyTitle: "No upcoming events",
+                emptyTitle: CommandCentreSharedStore.container == nil ? "Widget signing needs App Group" : "No upcoming events",
                 eyebrow: "NEXT EVENT",
                 symbol: "calendar.badge.clock"
             )
@@ -140,7 +141,7 @@ struct CommandCentreReminderWidget: Widget {
         StaticConfiguration(kind: kind, provider: CommandCentreTimelineProvider()) { entry in
             CommandCentreScheduleWidgetView(
                 item: entry.snapshot.reminders.first,
-                emptyTitle: "No upcoming reminders",
+                emptyTitle: CommandCentreSharedStore.container == nil ? "Widget signing needs App Group" : "No upcoming reminders",
                 eyebrow: "NEXT REMINDER",
                 symbol: "checklist"
             )
@@ -263,6 +264,7 @@ struct CommandCentreFootballLiveActivityWidget: Widget {
     }
 
     private func activityStatus(_ context: ActivityViewContext<FootballMatchAttributes>) -> String {
+        if context.isStale { return "OPEN APP TO REFRESH" }
         if context.state.isFinished { return context.state.phase == "FINISHED" ? "FULL TIME" : context.state.phase.replacingOccurrences(of: "_", with: " ") }
         if context.state.isLive { return context.state.minute.map { "\($0)′" } ?? "LIVE" }
         return context.attributes.kickoff.formatted(date: .omitted, time: .shortened)

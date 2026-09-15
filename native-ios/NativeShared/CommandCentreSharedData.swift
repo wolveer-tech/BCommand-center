@@ -6,21 +6,44 @@ enum CommandCentreSharedStore {
     static let widgetSnapshotKey = "CommandCentreWidgetSnapshot.v1"
     static let followedMatchIDsKey = "CommandCentreFollowedMatchIDs.v1"
 
-    static var defaults: UserDefaults {
-        UserDefaults(suiteName: appGroup) ?? .standard
-    }
+    // Followed matches are app-private and must work even without App Group provisioning.
+    static var defaults: UserDefaults { .standard }
+
+    static var container: URL? { FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup) }
+    private static var snapshotURL: URL? { container?.appendingPathComponent("dashboard-v2.json") }
+    private static var receiptURL: URL? { container?.appendingPathComponent("dashboard-read-v2.json") }
 
     static func loadSnapshot() -> CommandCentreWidgetSnapshot {
-        guard let data = defaults.data(forKey: widgetSnapshotKey),
+        let fileData = snapshotURL.flatMap { try? Data(contentsOf: $0) }
+        let legacyData = container == nil ? nil : UserDefaults(suiteName: appGroup)?.data(forKey: widgetSnapshotKey)
+        guard let data = fileData ?? legacyData,
               let snapshot = try? JSONDecoder().decode(CommandCentreWidgetSnapshot.self, from: data) else {
             return .empty
         }
         return snapshot
     }
 
-    static func saveSnapshot(_ snapshot: CommandCentreWidgetSnapshot) {
-        guard let data = try? JSONEncoder().encode(snapshot) else { return }
-        defaults.set(data, forKey: widgetSnapshotKey)
+    static func saveSnapshot(_ snapshot: CommandCentreWidgetSnapshot) throws {
+        guard let url = snapshotURL else {
+            throw NSError(domain: "WidgetStorage", code: 1, userInfo: [NSLocalizedDescriptionKey: "Widget sync blocked: this signed app cannot access its App Group. Sign the app and widget extension with the same provisioned App Group: \(appGroup)."])
+        }
+        let data = try JSONEncoder().encode(snapshot)
+        try data.write(to: url, options: [.atomic, .completeUntilFirstUserAuthentication])
+        guard try Data(contentsOf: url) == data else {
+            throw NSError(domain: "WidgetStorage", code: 2, userInfo: [NSLocalizedDescriptionKey: "Widget shared-file verification failed. Please retry."])
+        }
+    }
+
+    static func acknowledgeRead(_ snapshot: CommandCentreWidgetSnapshot) {
+        guard snapshot.updatedAt > .distantPast, let url = receiptURL,
+              let data = try? JSONEncoder().encode(snapshot.updatedAt) else { return }
+        try? data.write(to: url, options: [.atomic, .completeUntilFirstUserAuthentication])
+    }
+
+    static func hasRead(_ date: Date) -> Bool {
+        guard let url = receiptURL, let data = try? Data(contentsOf: url),
+              let received = try? JSONDecoder().decode(Date.self, from: data) else { return false }
+        return received >= date
     }
 }
 

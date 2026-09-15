@@ -1,3 +1,7 @@
+# Latest release: v10.25.0
+
+Use [RELEASE-v10.25.0.md](RELEASE-v10.25.0.md) for recovery, widget signing and installation instructions. This release requires native iOS 1.10.0 build 16. Install over the existing app to keep its data.
+
 # Command Centre setup
 
 ## v10.24.0 — Native widgets and followed-match Live Activities

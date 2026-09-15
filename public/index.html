@@ -3042,8 +3042,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </article>
   <article class="card settings-card-clean">
     <div class="title">🛡 Local safety snapshots</div>
-    <div class="settings-description">Command Centre keeps five rolling on-device snapshots in a transactional database, separate from the live settings record.</div>
-    <div class="backup-actions"><button class="btn" id="createSafetySnapshotBtn" type="button">Create snapshot</button><button class="btn" id="restoreSafetySnapshotBtn" type="button">Restore latest</button></div>
+    <div class="settings-description">Your data has a separate recovery record. Keep up to 20 spaced automatic snapshots and 10 manual or restore snapshots, plus native iPhone recovery copies.</div>
+    <label for="safetySnapshotList">Choose a snapshot by date and contents</label><select id="safetySnapshotList" style="width:100%;margin-top:8px" aria-label="Saved safety snapshots"></select><div class="backup-actions"><button class="btn" id="createSafetySnapshotBtn" type="button">Create snapshot</button><button class="btn" id="restoreSafetySnapshotBtn" type="button">Restore selected</button></div>
     <div class="foundation-status" id="foundationStorageStatus"><span>●</span><span>Checking durable storage…</span></div>
   </article></section>
 
@@ -3214,6 +3214,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   onclick="backToTop()"
 >↑</button>
 
+<script src="/state-safety.js"></script>
 <script>
 'use strict';
 
@@ -3292,7 +3293,9 @@ const DEFAULT_STATE = {
     {id:'tun',symbol:'TUN',exchange:'LSE',name:'Tungsten West',shares:220,buyPrice:0.085,currency:'GBP',note:''}
   ]
 };
+const stateSafety=CommandCentreSafety.create({onError:message=>{console.error(message);const el=document.querySelector('#foundationStorageStatus');if(el)el.textContent=message;}});
 let state = loadState();
+function normalizeLoadedState(){
 document.body.classList.add('home-fullscreen');
 state.noteFolders=Array.isArray(state.noteFolders)&&state.noteFolders.length?state.noteFolders:['Notes','Personal','Work'];
 state.homeLayout=Array.isArray(state.homeLayout)&&state.homeLayout.length?state.homeLayout:['today','continue','words','reading','markets','reminders','assistant'];
@@ -3346,6 +3349,8 @@ state.entertainment={
   visit:{...DEFAULT_STATE.entertainment.visit,...(state.entertainment?.visit||{})}
 };
 state.holdings = state.holdings.map(h=>({...h, exchange:h.exchange || (String(h.symbol).toUpperCase().endsWith('.L')?'LSE':'NASDAQ'), symbol:String(h.symbol).replace(/\.L$/i,'')}));
+}
+normalizeLoadedState();
 let quoteCache = {};
 let editingHoldingId = null;
 const FALLBACK_MANGA=[
@@ -3369,50 +3374,28 @@ const esc = s => String(s ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;',
 const money = (n,c='GBP') => Number.isFinite(n) ? new Intl.NumberFormat('en-GB',{style:'currency',currency:c,maximumFractionDigits:2}).format(n) : '—';
 const gbp = n => money(n,'GBP');
 const pct = n => Number.isFinite(n) ? `${n>=0?'+':''}${n.toFixed(2)}%` : '—';
-const nowIso = () => new Date().toISOString();
+function nowIso(){return new Date().toISOString()}
 function cloneDefault(){return JSON.parse(JSON.stringify(DEFAULT_STATE))}
-function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE)||'{}');const merged={...cloneDefault(),...saved,holdings:Array.isArray(saved.holdings)?saved.holdings:cloneDefault().holdings,reminders:Array.isArray(saved.reminders)?saved.reminders:[],reminderCategories:Array.isArray(saved.reminderCategories)&&saved.reminderCategories.length?saved.reminderCategories:cloneDefault().reminderCategories};merged.reminders=merged.reminders.map(r=>({...r,id:r.id||makeId('rem'),text:r.text,category:r.category||'General',createdAt:r.createdAt||new Date().toISOString(),startDate:r.startDate||dayKey(new Date(r.createdAt||Date.now())),time:r.time||'',frequency:r.frequency||'none'}));merged.events=Array.isArray(saved.events)?saved.events.map(e=>({...e,id:e.id||makeId('event'),title:e.title||'Event',date:e.date||dayKey(),time:e.time||'',notes:e.notes||''})):[];merged.notes=Array.isArray(saved.notes)?saved.notes.map(n=>({...n,id:n.id||makeId('note'),title:n.title||'Untitled note',body:n.body||'',createdAt:n.createdAt||nowIso(),updatedAt:n.updatedAt||n.createdAt||nowIso()})):[];if(!merged.reminderCategories.includes('General'))merged.reminderCategories.unshift('General');return merged}catch{return cloneDefault()}}
-let safetyDbPromise=null,safetySnapshotTimer=null;
-function openSafetyDb(){
-  if(!('indexedDB' in window))return Promise.reject(new Error('Durable browser storage is unavailable.'));
-  if(safetyDbPromise)return safetyDbPromise;
-  safetyDbPromise=new Promise((resolve,reject)=>{
-    const request=indexedDB.open(SAFETY_DB_NAME,1);
-    request.onupgradeneeded=()=>{const db=request.result;if(!db.objectStoreNames.contains(SAFETY_STORE))db.createObjectStore(SAFETY_STORE,{keyPath:'id'})};
-    request.onsuccess=()=>resolve(request.result);
-    request.onerror=()=>reject(request.error||new Error('Could not open durable storage.'));
-  });
-  return safetyDbPromise;
-}
-function safetyRequest(request){return new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error||new Error('Storage request failed.'))})}
-function safetyTransaction(transaction){return new Promise((resolve,reject)=>{transaction.oncomplete=()=>resolve();transaction.onerror=()=>reject(transaction.error||new Error('Storage transaction failed.'));transaction.onabort=()=>reject(transaction.error||new Error('Storage transaction was cancelled.'))})}
-async function safetySnapshots(){const db=await openSafetyDb(),tx=db.transaction(SAFETY_STORE,'readonly'),done=safetyTransaction(tx),rows=await safetyRequest(tx.objectStore(SAFETY_STORE).getAll());await done;return (Array.isArray(rows)?rows:[]).sort((a,b)=>Number(b.savedAt)-Number(a.savedAt))}
-async function writeSafetySnapshot(reason='automatic'){
-  const db=await openSafetyDb(),savedAt=Date.now(),snapshot={id:`snapshot-${savedAt}`,savedAt,reason,state:JSON.parse(JSON.stringify(state))};
-  const writeTx=db.transaction(SAFETY_STORE,'readwrite'),writeDone=safetyTransaction(writeTx);writeTx.objectStore(SAFETY_STORE).put(snapshot);await writeDone;
-  const rows=await safetySnapshots();
-  if(rows.length>5){const pruneTx=db.transaction(SAFETY_STORE,'readwrite'),pruneDone=safetyTransaction(pruneTx),store=pruneTx.objectStore(SAFETY_STORE);rows.slice(5).forEach(row=>store.delete(row.id));await pruneDone}
-  updateSafetySnapshotStatus();return snapshot;
-}
-function queueSafetySnapshot(reason='automatic'){clearTimeout(safetySnapshotTimer);safetySnapshotTimer=setTimeout(()=>writeSafetySnapshot(reason).catch(error=>console.warn('Safety snapshot skipped',error)),600)}
+function loadState(savedOverride=null){try{const saved=savedOverride||stateSafety.initial()||{};const merged={...cloneDefault(),...saved,holdings:Array.isArray(saved.holdings)?saved.holdings:cloneDefault().holdings,reminders:Array.isArray(saved.reminders)?saved.reminders:[],reminderCategories:Array.isArray(saved.reminderCategories)&&saved.reminderCategories.length?saved.reminderCategories:cloneDefault().reminderCategories};merged.reminders=merged.reminders.map(r=>({...r,id:r.id||makeId('rem'),text:r.text,category:r.category||'General',createdAt:r.createdAt||new Date().toISOString(),startDate:r.startDate||dayKey(new Date(r.createdAt||Date.now())),time:r.time||'',frequency:r.frequency||'none'}));merged.events=Array.isArray(saved.events)?saved.events.map(e=>({...e,id:e.id||makeId('event'),title:e.title||'Event',date:e.date||dayKey(),time:e.time||'',notes:e.notes||''})):[];merged.notes=Array.isArray(saved.notes)?saved.notes.map(n=>({...n,id:n.id||makeId('note'),title:n.title||'Untitled note',body:n.body||'',createdAt:n.createdAt||nowIso(),updatedAt:n.updatedAt||n.createdAt||nowIso()})):[];if(!merged.reminderCategories.includes('General'))merged.reminderCategories.unshift('General');return merged}catch{return cloneDefault()}}
+async function safetySnapshots(){return stateSafety.list()}
+function queueSafetySnapshot(){stateSafety.save(state)}
+async function writeSafetySnapshot(reason='manual'){await stateSafety.snapshot(state,reason);await updateSafetySnapshotStatus()}
 async function updateSafetySnapshotStatus(){
-  const el=qs('#foundationStorageStatus');if(!el)return;
-  try{const rows=await safetySnapshots(),latest=rows[0];el.innerHTML=latest?`<span>●</span><span><strong>${rows.length} safety snapshot${rows.length===1?'':'s'}</strong> • latest ${new Date(latest.savedAt).toLocaleString('en-GB')}</span>`:'<span>●</span><span>Durable storage is ready. A snapshot will be created after your next change.</span>';}
-  catch(error){el.innerHTML=`<span>●</span><span>${esc(error.message||'Durable storage is unavailable.')}</span>`}
+ const el=qs('#foundationStorageStatus'),list=qs('#safetySnapshotList');if(!el)return;
+ try{const rows=await safetySnapshots();el.textContent=stateSafety.error||`${rows.length} saved snapshots • automatic history is spaced at least 30 minutes apart.`;
+ if(list){const selectedId=list.value;list.replaceChildren();for(const row of rows){const counts=CommandCentreSafety.counts(row.state),option=document.createElement('option');option.value=row.id;option.textContent=`${new Date(row.savedAt).toLocaleString('en-GB')} • ${row.reason||'snapshot'} • ${counts.notes} notes, ${counts.events} events, ${counts.reminders} reminders, ${counts.bible} chapters`;list.append(option)}list.value=rows.some(row=>row.id===selectedId)?selectedId:(rows.find(row=>CommandCentreSafety.total(row.state)>0)||rows[0])?.id||'';list.disabled=!rows.length;}
+ }catch(error){el.textContent=error.message||'Could not read snapshots. Existing history has been preserved.'}
 }
 async function createSafetySnapshot(){try{await writeSafetySnapshot('manual');toast('Safety snapshot created')}catch(error){toast(error.message||'Could not create a snapshot')}}
 async function restoreLatestSafetySnapshot(){
-  try{
-    const latest=(await safetySnapshots())[0];if(!latest){toast('No safety snapshot is available yet');return}
-    if(!confirm(`Restore the snapshot from ${new Date(latest.savedAt).toLocaleString('en-GB')}? Your current local state will be replaced.`))return;
-    localStorage.setItem(STORAGE,JSON.stringify(latest.state));location.reload();
-  }catch(error){toast(error.message||'Could not restore the safety snapshot')}
+ try{const id=qs('#safetySnapshotList')?.value,selected=(await safetySnapshots()).find(row=>row.id===id);if(!selected){toast('Choose a saved snapshot first');return}
+ if(!confirm(`Restore the selected snapshot from ${new Date(selected.savedAt).toLocaleString('en-GB')}? A copy of your current data will be kept for undo.`))return;
+ await stateSafety.restore(id);location.reload();
+ }catch(error){toast(error.message||'Could not restore the selected snapshot')}
 }
 function saveState(){
-  try{localStorage.setItem(STORAGE,JSON.stringify(state))}
-  catch(error){console.error('Primary state save failed',error);toast('This device is running out of app storage. Export a backup now.');}
-  queueSafetySnapshot();
-  queueNativeDashboardSync();
+ if(!stateSafety.save(state))return false;
+ queueNativeDashboardSync();return true;
 }
 const BACKUP_DEVICE_KEY='cc_transfer_device_v1',BACKUP_DEVICE_AAD='command-centre-paired-device-v1';
 function backupBase64(bytes){let value='';for(const byte of bytes)value+=String.fromCharCode(byte);return btoa(value)}
@@ -4022,7 +4005,8 @@ function postNativeNotification(action,extra={}){
   if(!handler)return false;
   handler.postMessage({action,...extra});return true;
 }
-let nativeDashboardSyncTimer=null,nativeLiveActivityRefreshPromise=null;
+let nativeDashboardSyncTimer=null,nativeLiveActivityRefreshPromise=null,nativeSyncNotice=false,nativeSyncTimeout=null;
+const nativeLiveMatches=new Map();
 function nativeDashboardSupported(){return !!(window.CommandCentreNative?.nativeWidgets&&nativeMessageHandler('nativeDashboard'))}
 function nativeWeatherSymbol(code){
   if(code===0)return'sun.max.fill';if([1,2].includes(code))return'cloud.sun.fill';if(code===3)return'cloud.fill';if([45,48].includes(code))return'cloud.fog.fill';
@@ -4057,7 +4041,7 @@ function nativeWeatherPayload(){
 function nativeFootballMatchPayload(extra=[]){
   const followed=new Set((state.footballFollowedMatches||[]).map(Number)),seen=new Map();
   const runtime=typeof footballMatchRuntime!=='undefined'?footballMatchRuntime?.data?.match:null;
-  [...footballAllScheduleMatches(),runtime,...extra].filter(Boolean).forEach(match=>{const id=Number(match.id)||0;if(id&&followed.has(id))seen.set(id,match)});
+  [...footballAllScheduleMatches(),runtime,...nativeLiveMatches.values(),...extra].filter(Boolean).forEach(match=>{const id=Number(match.id)||0;if(id&&followed.has(id))seen.set(id,match)});
   return [...seen.values()].map(match=>({id:Number(match.id),competition:String(match?.competition?.name||'Football'),homeTeam:footballTeamName(match.homeTeam),awayTeam:footballTeamName(match.awayTeam),kickoff:Date.parse(match.utcDate||''),homeScore:Number.isFinite(match?.score?.fullTime?.home)?Number(match.score.fullTime.home):null,awayScore:Number.isFinite(match?.score?.fullTime?.away)?Number(match.score.fullTime.away):null,status:String(match.status||'SCHEDULED').toUpperCase(),minute:Number.isFinite(Number(match.minute))?Number(match.minute):null})).filter(match=>Number.isFinite(match.kickoff));
 }
 function nativeDashboardPayload(extraMatches=[]){
@@ -4070,21 +4054,26 @@ function updateNativeDashboardStatus(message=''){
 function syncNativeDashboard(showToast=false,extraMatches=[]){
   clearTimeout(nativeDashboardSyncTimer);nativeDashboardSyncTimer=null;
   if(!nativeDashboardSupported()){updateNativeDashboardStatus();if(showToast)toast('Install the widget-enabled IPA first');return false}
-  const handler=nativeMessageHandler('nativeDashboard');handler.postMessage({action:'sync',...nativeDashboardPayload(extraMatches)});updateNativeDashboardStatus('Synced just now • followed matches update near kick-off.');if(showToast)toast('Widgets and Live Activities synced');return true;
+  if(!stateSafety.ready)return false;
+  nativeSyncNotice=nativeSyncNotice||showToast;const handler=nativeMessageHandler('nativeDashboard');handler.postMessage({action:'sync',...nativeDashboardPayload(extraMatches)});updateNativeDashboardStatus('Waiting for the iPhone to verify widget storage…');clearTimeout(nativeSyncTimeout);nativeSyncTimeout=setTimeout(()=>{updateNativeDashboardStatus('No confirmation from the iPhone. Install the latest IPA and retry.');nativeSyncNotice=false},10000);return true;
 }
 function queueNativeDashboardSync(delay=350){if(!nativeDashboardSupported())return;clearTimeout(nativeDashboardSyncTimer);nativeDashboardSyncTimer=setTimeout(()=>syncNativeDashboard(false),delay)}
 async function refreshNativeLiveActivities(force=false){
   if(!nativeDashboardSupported()||document.visibilityState==='hidden'||navigator.onLine===false)return false;
   if(nativeLiveActivityRefreshPromise)return nativeLiveActivityRefreshPromise;
-  const now=Date.now(),candidates=nativeFootballMatchPayload().filter(match=>!['FINISHED','CANCELLED','POSTPONED'].includes(match.status)&&Math.abs(match.kickoff-now)<=5*60*60*1000).slice(0,3);
-  if(!candidates.length){queueNativeDashboardSync();return false}
-  nativeLiveActivityRefreshPromise=Promise.allSettled(candidates.map(async match=>{const params=new URLSearchParams({matchId:String(match.id)});if(force)params.set('refresh','1');return (await fetchJson(`/api/football/match?${params}`,{},18000))?.match})).then(results=>{
-    const matches=results.filter(result=>result.status==='fulfilled'&&result.value).map(result=>result.value);const handler=nativeMessageHandler('nativeDashboard');handler?.postMessage({action:'matches',followedMatchIDs:(state.footballFollowedMatches||[]).map(Number).filter(Boolean),matches:nativeFootballMatchPayload(matches)});return matches.length>0;
+  const followed=new Set((state.footballFollowedMatches||[]).map(Number));for(const id of nativeLiveMatches.keys())if(!followed.has(id))nativeLiveMatches.delete(id);
+  const now=Date.now(),isLive=match=>['IN_PLAY','LIVE','PAUSED','EXTRA_TIME','PENALTY_SHOOTOUT'].includes(match.status),candidates=nativeFootballMatchPayload().filter(match=>!['FINISHED','CANCELLED','POSTPONED'].includes(match.status)&&Math.abs(match.kickoff-now)<=5*60*60*1000).sort((a,b)=>Number(isLive(b))-Number(isLive(a))||Math.abs(a.kickoff-now)-Math.abs(b.kickoff-now)).slice(0,3);
+  if(!candidates.length)return false;
+  nativeLiveActivityRefreshPromise=Promise.allSettled(candidates.map(async match=>{const params=new URLSearchParams({matchId:String(match.id),live:'1'});return await fetchJson(`/api/football/match?${params}`,{cache:'no-store'},12000)})).then(results=>{
+    const payloads=results.filter(result=>result.status==='fulfilled'&&result.value?.match).map(result=>result.value),matches=payloads.map(payload=>payload.match);
+    payloads.forEach(payload=>{const match=payload.match;nativeLiveMatches.set(Number(match.id),match);if(Number(footballMatchRuntime.matchId)===Number(match.id)&&footballMatchRuntime.data){footballMatchRuntime.data=payload;renderFootballMatchCentre()}});
+    if(matches.length&&appCurrentPage==='football')renderFootball();
+    const handler=nativeMessageHandler('nativeDashboard');handler?.postMessage({action:'matches',followedMatchIDs:(state.footballFollowedMatches||[]).map(Number).filter(Boolean),matches:nativeFootballMatchPayload(matches)});return matches.length>0;
   }).catch(error=>{console.warn('Native Live Activity refresh failed',error);return false}).finally(()=>{nativeLiveActivityRefreshPromise=null});
   return nativeLiveActivityRefreshPromise;
 }
 window.CommandCentreSyncNativeDashboard=syncNativeDashboard;
-window.addEventListener('cc-native-dashboard-status',event=>{const detail=event.detail||{};updateNativeDashboardStatus(String(detail.message||''));if(detail.error)console.warn('Native dashboard',detail.message||'Live Activity warning')});
+window.addEventListener('cc-native-dashboard-status',event=>{const detail=event.detail||{};clearTimeout(nativeSyncTimeout);updateNativeDashboardStatus(String(detail.message||''));if(nativeSyncNotice){toast(String(detail.message||'Native sync response received'));nativeSyncNotice=false}if(detail.error)console.warn('Native dashboard',detail.message||'Live Activity warning')});
 function nativeInboxCredential(){try{return String(JSON.parse(localStorage.getItem('cc_transfer_device_v1')||'null')?.token||'')}catch{return ''}}
 function notificationCompanionJson(key){try{return JSON.parse(localStorage.getItem(key)||'null')}catch{return null}}
 function notificationCompanionOwner(){return notificationCompanionJson(NOTIFICATION_COMPANION_OWNER_KEY)}
@@ -4687,7 +4676,9 @@ function init(){
     if('requestIdleCallback' in window)window.requestIdleCallback(startHomeWeather,{timeout:1200});
     else setTimeout(startHomeWeather,250);
     setTimeout(()=>queueNativeDashboardSync(0),900);
-    setInterval(()=>refreshNativeLiveActivities(false),90*1000);
+    setInterval(()=>refreshNativeLiveActivities(false),15*1000);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshNativeLiveActivities(true)});
+    window.addEventListener('online',()=>refreshNativeLiveActivities(true));
     setInterval(()=>{const fw=qs('#featuredWord');if(fw)fw.textContent=yourWords[Math.floor(Math.random()*yourWords.length)]},30000);
     window.addEventListener('pagehide',()=>{captureYoutubeProgress(true);captureMediaProgress(true)});
     document.addEventListener('visibilitychange',()=>{
@@ -5420,6 +5411,7 @@ window.completeBibleReadingBlock=completeBibleReadingBlock;
 function parseBibleSearch(raw){const q=String(raw||'').trim();if(!q)return{book:'',chapter:null};const m=q.match(/^(.*?)(?:\s+(\d+))?$/);return{book:(m?.[1]||q).trim().toLowerCase(),chapter:m?.[2]?Number(m[2]):null}}
 function applyBibleSearch(){const input=qs('#bibleSearch');if(!input)return;const {book,chapter}=parseBibleSearch(input.value);qsa('.bible-book').forEach(card=>{const title=card.querySelector('.bible-book-title')?.textContent?.trim().toLowerCase()||'';const match=!book||title.includes(book);card.classList.toggle('search-hidden',!match);card.classList.toggle('search-match',!!book&&match);card.querySelectorAll('.chapter-check').forEach((ch,i)=>ch.classList.toggle('search-hit',match&&chapter===i+1));if(match&&chapter)card.classList.add('open')})}
 function showSettingsSection(name){
+  updateSafetySnapshotStatus();
   qsa('#settingsModal .settings-section').forEach(x=>x.classList.toggle('active',x.dataset.settingsPanel===name));
   qsa('#settingsModal .settings-tab').forEach(x=>x.classList.toggle('active',x.dataset.settingsSection===name));
   const s=qs('#settingsSectionSelect');if(s)s.value=name;
@@ -7364,7 +7356,7 @@ function renderFootballScheduleTabs(){
   el.innerHTML=tabs.map(tab=>`<button class="football-schedule-tab ${footballScheduleFilter===tab.value?'active':''}" type="button" onclick="setFootballScheduleFilter('${esc(tab.value)}')">${esc(tab.label)}</button>`).join('');
 }
 function footballAllScheduleMatches(){
-  const rows=[...(footballScheduleCache.matches||[]),...(footballCache.matches||[])];
+  const rows=[...nativeLiveMatches.values(),...(footballScheduleCache.matches||[]),...(footballCache.matches||[])];
   const seen=new Map();
   rows.forEach(match=>{
     const kickoff=Date.parse(match?.utcDate||''),minute=Number.isFinite(kickoff)?Math.round(kickoff/60000):String(match?.utcDate||'');
@@ -10505,7 +10497,13 @@ window.addEventListener('storage',event=>{
     updateNotificationUI();
   },150);
 });
-init();
+(async()=>{
+ const recovered=await stateSafety.initialize();
+ if(recovered){state=loadState(recovered);normalizeLoadedState()}
+ init();
+ updateSafetySnapshotStatus();
+ navigator.storage?.persist?.().catch(()=>{});
+})();
 updateNotificationUI();
 loadNews(false);
 if(notificationPermission()==='granted')syncNewsPreferences();

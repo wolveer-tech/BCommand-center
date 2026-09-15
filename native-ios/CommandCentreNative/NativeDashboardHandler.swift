@@ -8,6 +8,7 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
     static let shared = NativeDashboardHandler()
 
     weak var webView: WKWebView?
+    private var receiptTask: Task<Void, Never>?
 
     private override init() {}
 
@@ -22,21 +23,37 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
         case "sync":
             if let rawSnapshot = body["snapshot"] as? [String: Any],
                let snapshot = widgetSnapshot(rawSnapshot) {
-                CommandCentreSharedStore.saveSnapshot(snapshot)
-                WidgetCenter.shared.reloadAllTimelines()
+                do {
+                    try CommandCentreSharedStore.saveSnapshot(snapshot)
+                    WidgetCenter.shared.reloadAllTimelines()
+                    publishStatus(message: "Widget data saved and verified. Waiting for iOS to reload the widget.")
+                    receiptTask?.cancel()
+                    receiptTask = Task {
+                        for _ in 0..<10 {
+                            try? await Task.sleep(for: .seconds(2))
+                            guard !Task.isCancelled else { return }
+                            if CommandCentreSharedStore.hasRead(snapshot.updatedAt) {
+                                publishStatus(message: "Widget extension received the latest data. iOS controls when it appears on screen.")
+                                return
+                            }
+                        }
+                        publishStatus(message: "Data saved, but no widget receipt yet. Add a widget or check that its signed extension has the same App Group.")
+                    }
+                } catch {
+                    publishStatus(message: error.localizedDescription, error: true)
+                }
             }
             let followed = matchIDs(body["followedMatchIDs"])
             CommandCentreSharedStore.defaults.set(followed.map { String($0) }, forKey: CommandCentreSharedStore.followedMatchIDsKey)
             let matches = footballMatches(body["matches"])
             Task { await updateLiveActivities(matches: matches, followedMatchIDs: Set(followed), allowStarting: true) }
-            publishStatus(message: "Widgets and followed matches synced.")
         case "matches":
             let followed = matchIDs(body["followedMatchIDs"])
             CommandCentreSharedStore.defaults.set(followed.map { String($0) }, forKey: CommandCentreSharedStore.followedMatchIDsKey)
             let matches = footballMatches(body["matches"])
             Task { await updateLiveActivities(matches: matches, followedMatchIDs: Set(followed), allowStarting: true) }
         case "status":
-            publishStatus(message: "Native widgets and Live Activities are available.")
+            publishStatus(message: CommandCentreSharedStore.container == nil ? "Widget App Group is unavailable in this signed IPA." : "Widget storage is available. Tap Sync now to verify delivery.", error: CommandCentreSharedStore.container == nil)
         default:
             break
         }
@@ -67,7 +84,7 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
                 longitude: double(raw["longitude"])
             )
         } else {
-            weather = nil
+            weather = CommandCentreSharedStore.loadSnapshot().weather
         }
 
         let nextEvent = scheduleItem(payload["nextEvent"])
@@ -120,6 +137,7 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
     }
 
     private func updateLiveActivities(matches: [CommandCentreFootballMatch], followedMatchIDs: Set<Int64>, allowStarting: Bool) async {
+        guard !followedMatchIDs.isEmpty || !Activity<FootballMatchAttributes>.activities.isEmpty else { return }
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
             publishStatus(message: "Allow Live Activities for Command Centre in iPhone Settings.", error: true)
             return
@@ -141,7 +159,7 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
         for match in ordered {
             let content = ActivityContent(
                 state: match.contentState,
-                staleDate: match.contentState.isLive ? .now.addingTimeInterval(5 * 60) : match.kickoff.addingTimeInterval(15 * 60),
+                staleDate: match.contentState.isLive ? .now.addingTimeInterval(45) : match.kickoff.addingTimeInterval(15 * 60),
                 relevanceScore: match.contentState.isLive ? 100 : 50
             )
 
@@ -227,8 +245,12 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
                 latitude: latitude,
                 longitude: longitude
             )
-            snapshot.updatedAt = .now
-            CommandCentreSharedStore.saveSnapshot(snapshot)
+            // Re-read after the network await so a new calendar/reminder sync isn't overwritten.
+            var latestSnapshot = CommandCentreSharedStore.loadSnapshot()
+            guard latestSnapshot.weather?.latitude == latitude, latestSnapshot.weather?.longitude == longitude else { return false }
+            latestSnapshot.weather = snapshot.weather
+            latestSnapshot.updatedAt = .now
+            try CommandCentreSharedStore.saveSnapshot(latestSnapshot)
             return true
         } catch {
             print("Widget weather refresh failed: \(error.localizedDescription)")
@@ -238,21 +260,41 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
 
     private func refreshLiveActivitiesFromNetwork() async -> Bool {
         let ids = Set((CommandCentreSharedStore.defaults.stringArray(forKey: CommandCentreSharedStore.followedMatchIDsKey) ?? []).compactMap { Int64($0) })
-        guard !ids.isEmpty,
-              let url = URL(string: "api/football/schedule", relativeTo: AppConfig.commandCentreURL)?.absoluteURL else { return false }
-        do {
-            var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 25)
-            request.setValue("application/json", forHTTPHeaderField: "Accept")
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
-                  let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { return false }
-            let matches = footballMatches(payload["matches"]).filter { ids.contains($0.id) }
-            await updateLiveActivities(matches: matches, followedMatchIDs: ids, allowStarting: false)
-            return true
-        } catch {
-            print("Live Activity background refresh failed: \(error.localizedDescription)")
-            return false
+        let activeIDs = Activity<FootballMatchAttributes>.activities.map { $0.attributes.matchID }.filter { ids.contains($0) }
+        guard !activeIDs.isEmpty else { return false }
+        var matches: [CommandCentreFootballMatch] = []
+        for id in activeIDs.prefix(3) {
+            guard let url = URL(string: "api/football/match?matchId=\(id)&live=1", relativeTo: AppConfig.commandCentreURL)?.absoluteURL else { continue }
+            do {
+                var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 8)
+                request.setValue("application/json", forHTTPHeaderField: "Accept")
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+                      let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let raw = payload["match"] as? [String: Any], let match = networkMatch(raw), match.id == id else { continue }
+                matches.append(match)
+            } catch { print("Live Activity refresh failed: \(error.localizedDescription)") }
         }
+        // Re-read follow state after network awaits; an unfollow must not be undone.
+        let latestIDs = Set((CommandCentreSharedStore.defaults.stringArray(forKey: CommandCentreSharedStore.followedMatchIDsKey) ?? []).compactMap { Int64($0) })
+        await updateLiveActivities(matches: matches, followedMatchIDs: latestIDs, allowStarting: false)
+        return !matches.isEmpty
+    }
+
+    private func networkMatch(_ raw: [String: Any]) -> CommandCentreFootballMatch? {
+        guard let id = int64(raw["id"]), let utc = raw["utcDate"] as? String else { return nil }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        var kickoff = formatter.date(from: utc)
+        if kickoff == nil { formatter.formatOptions = [.withInternetDateTime]; kickoff = formatter.date(from: utc) }
+        guard let kickoff else { return nil }
+        let score = (raw["score"] as? [String: Any])?["fullTime"] as? [String: Any] ?? [:]
+        let home = raw["homeTeam"] as? [String: Any] ?? [:], away = raw["awayTeam"] as? [String: Any] ?? [:]
+        return CommandCentreFootballMatch(id: id,
+            competition: clean((raw["competition"] as? [String: Any])?["name"], fallback: "Football", max: 120),
+            homeTeam: clean(home["name"], fallback: "Home", max: 100), awayTeam: clean(away["name"], fallback: "Away", max: 100),
+            kickoff: kickoff, homeScore: integer(score["home"]), awayScore: integer(score["away"]),
+            status: clean(raw["status"], fallback: "SCHEDULED", max: 40), minute: integer(raw["minute"]))
     }
 
     private func firstInteger(_ value: Any?) -> Int? {

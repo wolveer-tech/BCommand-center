@@ -18,11 +18,11 @@ const codemagic=read('../codemagic.yaml');
 test('native project embeds a widget and Live Activity extension',()=>{
   assert.match(project,/CommandCentreWidgets:[\s\S]*type: app-extension/);
   assert.match(project,/target: CommandCentreWidgets/);
-  assert.match(project,/MARKETING_VERSION: 1\.9\.0/);
-  assert.match(project,/CURRENT_PROJECT_VERSION: 15/);
+  assert.match(project,/MARKETING_VERSION: 1\.10\.0/);
+  assert.match(project,/CURRENT_PROJECT_VERSION: 16/);
   assert.match(appInfo,/NSSupportsLiveActivities/);
   assert.match(codemagic,/Expected the ReplayKit and Widget extensions/);
-  assert.match(codemagic,/CommandCentre-iOS26-v1\.9\.0\.ipa/);
+  assert.match(codemagic,/CommandCentre-iOS26-v1\.10\.0\.ipa/);
 });
 
 test('app and widgets share only the native dashboard snapshot',()=>{
@@ -65,7 +65,7 @@ test('web state syncs widgets and refreshes active followed matches',()=>{
   assert.match(html,/function nativeReminderPayload/);
   assert.match(html,/function nativeWeatherPayload/);
   assert.match(html,/function nativeFootballMatchPayload/);
-  assert.match(html,/setInterval\(\(\)=>refreshNativeLiveActivities\(false\),90\*1000\)/);
+  assert.match(html,/setInterval\(\(\)=>refreshNativeLiveActivities\(false\),15\*1000\)/);
   assert.match(html,/Match followed — Live Activity and fixture alerts are ready/);
 });
 
@@ -83,6 +83,6 @@ test('background refresh keeps weather widgets and Live Activities fresher',()=>
   assert.match(dashboard,/func performBackgroundRefresh\(\) async -> Bool/);
   assert.match(dashboard,/refreshWeatherFromNetwork/);
   assert.match(dashboard,/refreshLiveActivitiesFromNetwork/);
-  assert.match(dashboard,/api\/football\/schedule/);
+  assert.match(dashboard,/api\/football\/match/);
   assert.match(dashboard,/api\.open-meteo\.com/);
 });

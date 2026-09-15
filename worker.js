@@ -2292,11 +2292,12 @@ async function getFotmobFootballMatch(fotmobId){
 async function getFootballMatchCentre(env,matchId,force=false,requestUrl='https://local/api/football/match'){
   const id=Number(matchId)||0;
   if(!id){const err=new Error('A valid football match ID is required.');err.status=400;throw err}
+  const live=new URL(requestUrl).searchParams.get('live')==='1';
   let cache=null,cacheKey=null;
   try{
     cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
     if(cache){
-      const u=new URL(requestUrl);u.pathname='/__cache/football-match-centre-v1';u.search=new URLSearchParams({matchId:String(id)}).toString();
+      const u=new URL(requestUrl);u.pathname=live?'/__cache/football-match-live-v2':'/__cache/football-match-centre-v2';u.search=new URLSearchParams({matchId:String(id)}).toString();
       cacheKey=new Request(u.toString(),{method:'GET'});
       if(!force){const hit=await cache.match(cacheKey);if(hit)return hit.json()}
     }
@@ -2346,7 +2347,7 @@ async function getFootballMatchCentre(env,matchId,force=false,requestUrl='https:
     payload={match:cleaned,teams:rawLineups.map(cleanApiFootballLineupTeam),events,statistics,provider:'API-Football',updatedAt:new Date().toISOString()};
   }
   payload.available={lineups:payload.teams.some(team=>team.starting?.length||team.bench?.length),timeline:payload.events.length>0,statistics:payload.statistics.length>0};
-  if(cache&&cacheKey){try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=60'}}))}catch{}}
+  if(cache&&cacheKey){try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':`public,max-age=${live?10:60}`}}))}catch{}}
   return payload;
 }
 

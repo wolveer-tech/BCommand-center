@@ -7,6 +7,7 @@ struct CommandCentreWebView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .default()
         configuration.allowsInlineMediaPlayback = true
         configuration.allowsPictureInPictureMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
@@ -17,6 +18,8 @@ struct CommandCentreWebView: UIViewRepresentable {
         configuration.userContentController.add(context.coordinator.credentialHandler, name: "nativeCredentials")
         configuration.userContentController.add(context.coordinator.privacyHandler, name: "nativePrivacy")
         configuration.userContentController.add(context.coordinator.dashboardHandler, name: "nativeDashboard")
+
+        configuration.userContentController.addUserScript(WKUserScript(source: NativeStateVault.bootstrapJavaScript(), injectionTime: .atDocumentStart, forMainFrameOnly: true))
 
         let credentialScript = WKUserScript(
             source: context.coordinator.credentialHandler.bootstrapJavaScript(),
@@ -34,7 +37,7 @@ struct CommandCentreWebView: UIViewRepresentable {
 
         let bridgeScript = WKUserScript(
             source: """
-            window.CommandCentreNative = { replayKit: true, nativeScreenMirror: true, nativeNotifications: true, backgroundRefresh: true, dataBridge: true, credentialVault: true, privacyLock: true, nativeHaptics: true, nativeWidgets: true, liveActivities: true, platform: 'ios', minimumRuntime: 'iOS 26' };
+            window.CommandCentreNative = { replayKit: true, nativeScreenMirror: true, nativeNotifications: true, backgroundRefresh: true, dataBridge: true, credentialVault: true, privacyLock: true, nativeHaptics: true, nativeWidgets: true, liveActivities: true, stateVault: true, platform: 'ios', minimumRuntime: 'iOS 26' };
             """,
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true

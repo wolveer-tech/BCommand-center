@@ -1,0 +1,54 @@
+<!doctype html><html><meta charset="utf-8"><title>Command Centre recovery tests</title>
+<style>body{font:16px system-ui;margin:40px;background:#101828;color:#eef}li{margin:12px}h1{font-size:26px}</style>
+<h1>Recovery regression tests</h1><ol id="results"></ol><p id="summary">Running…</p>
+<script src="/state-safety.js"></script><script>
+const results=document.querySelector('#results'),summary=document.querySelector('#summary');let failed=0,passed=0;
+const key='commandCenterV3';
+function memory(){const map=new Map();return {getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,String(v)),removeItem:k=>map.delete(k),clear:()=>map.clear()}}
+const state=n=>({notes:Array.from({length:n},(_,i)=>({id:'n'+i,title:'Note '+i,body:'Saved writing'})),events:[{id:'e',title:'Event'}],reminders:[{id:'r',text:'Reminder'}],bibleRead:{'Genesis-1':true}});
+const empty=()=>({notes:[],events:[],reminders:[],bibleRead:{}});
+function assert(ok,msg){if(!ok)throw Error(msg)}
+async function test(name,fn){try{await fn();passed++;results.insertAdjacentHTML('beforeend','<li>PASS: '+name+'</li>')}catch(e){failed++;const li=document.createElement('li');li.textContent='FAIL: '+name+': '+e.message;results.append(li)}}
+function config(storage=memory()){return {storage,dbName:'cc-test-'+crypto.randomUUID()}}
+async function seed(opts,rows){return new Promise((resolve,reject)=>{const req=indexedDB.open(opts.dbName,1);req.onupgradeneeded=()=>req.result.createObjectStore('snapshots',{keyPath:'id'});req.onsuccess=()=>{const db=req.result,tx=db.transaction('snapshots','readwrite');rows.forEach(row=>tx.objectStore('snapshots').put(row));tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>reject(tx.error)}})}
+(async()=>{
+await test('Missing primary data recovers the last committed notes, calendar and Bible',async()=>{
+ const opts=config(),a=CommandCentreSafety.create(opts);await a.initialize();a.save(state(3));await a.flush();opts.storage.clear();
+ const b=CommandCentreSafety.create(opts),recovered=await b.initialize();assert(recovered.notes.length===3&&recovered.events.length===1&&recovered.bibleRead['Genesis-1'],'Data not recovered');
+});
+await test('Corrupt JSON recovers from the independent local mirror',async()=>{
+ const opts=config(),a=CommandCentreSafety.create(opts);await a.initialize();a.save(state(2));await a.flush();opts.storage.setItem(key,'{broken');const b=CommandCentreSafety.create(opts);assert(b.initial().notes.length===2,'Mirror lost');await b.initialize();assert(JSON.parse(opts.storage.getItem(key)).notes.length===2,'Primary not repaired');
+});
+await test('Legacy five snapshots remain selectable and each older one can be restored',async()=>{
+ const opts=config();await seed(opts,Array.from({length:5},(_,i)=>({id:'legacy-'+i,savedAt:Date.now()-60000*(i+1),state:state(i+1),reason:'automatic'})));
+ const a=CommandCentreSafety.create(opts);await a.initialize();for(let i=1;i<5;i++){const restored=await a.restore('legacy-'+i);assert(restored.notes.length===i+1,'Wrong older snapshot');}
+ assert((await a.list()).some(row=>row.reason==='before restore'),'No undo copy');
+});
+await test('An empty newest snapshot cannot hide populated older history',async()=>{
+ const opts=config();opts.storage.setItem(key,JSON.stringify(empty()));await seed(opts,[{id:'blank',savedAt:Date.now(),state:empty()},{id:'good',savedAt:Date.now()-1000,state:state(4)}]);
+ const a=CommandCentreSafety.create(opts),recovered=await a.initialize();assert(recovered.notes.length===4,'Selected blank snapshot');
+});
+await test('Repeated blank saves do not overwrite current data or rotate snapshots',async()=>{
+ const opts=config(),a=CommandCentreSafety.create(opts);await a.initialize();a.save(state(4));await a.flush();const before=await a.list();for(let i=0;i<30;i++)assert(a.save(empty())===false,'Allowed blank overwrite');await a.flush();assert((await a.list()).length===before.length,'Rotated safe history');assert(JSON.parse(opts.storage.getItem(key)).notes.length===4,'Lost data');
+});
+await test('Frequent ordinary saves preserve spaced history and save the newest content',async()=>{
+ const opts=config(),a=CommandCentreSafety.create(opts);await a.initialize();for(let i=1;i<=30;i++)a.save(state(i));await a.flush();assert((await a.list()).length===1,'Too many automatic snapshots');opts.storage.clear();const b=CommandCentreSafety.create(opts);assert((await b.initialize()).notes.length===30,'Latest committed content lost');
+});
+await test('Manual snapshot bursts do not evict the automatic baseline',async()=>{
+ const opts=config(),a=CommandCentreSafety.create(opts);await a.initialize();a.save(state(1));await a.flush();for(let i=2;i<16;i++)await a.snapshot(state(i));const rows=await a.list();assert(rows.some(row=>row.reason==='automatic'&&row.state.notes.length===1),'Baseline evicted');assert(rows.filter(row=>row.reason==='manual').length===10,'Manual retention wrong');
+});
+await test('Storage quota failures still commit data to IndexedDB',async()=>{
+ const storage={getItem:()=>null,setItem:()=>{throw Error('QuotaExceededError')}},opts=config(storage),a=CommandCentreSafety.create(opts);await a.initialize();assert(a.save(state(7)),'Save rejected');await a.flush();const b=CommandCentreSafety.create(opts);assert((await b.initialize()).notes.length===7,'Durable copy missing');
+});
+await test('Unavailable storage locks writes until recovery can be checked',async()=>{
+ const opts={storage:memory(),indexedDB:null},a=CommandCentreSafety.create(opts);await a.initialize();assert(!a.ready&&!a.save(state(1)),'Unsafe startup writes allowed');
+});
+await test('Native recovery restores data after all website storage is empty',async()=>{
+ const opts=config();opts.nativeRows=[{id:'native-current',savedAt:Date.now(),state:state(8)}];const a=CommandCentreSafety.create(opts);assert((await a.initialize()).notes.length===8,'Native recovery ignored');
+});
+await test('Malformed states are rejected without replacing a valid saved record',async()=>{
+ const opts=config(),a=CommandCentreSafety.create(opts);await a.initialize();a.save(state(3));await a.flush();assert(!a.save({...state(0),notes:null}),'Malformed state accepted');assert(JSON.parse(opts.storage.getItem(key)).notes.length===3,'Valid record overwritten');
+});
+summary.textContent=passed+' passed, '+failed+' failed';document.title=summary.textContent;
+})();
+</script></html>

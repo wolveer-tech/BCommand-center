@@ -1,23 +1,21 @@
-Command Centre Messages v10.8
-Upload these files and folders into the existing repository root.
-Run migrations/0009_messages.sql first. See MESSAGES-SETUP.md.
-
-client/messages-client.js
-client/transfers-client.js
-MESSAGES-SETUP.md
-messages-ui.html
-MESSAGES-VALIDATION.md
-messages.js
-migrations/0009_messages.sql
+codemagic.yaml
+native-ios/CommandCentreNative/CommandCentreWebView.swift
+native-ios/CommandCentreNative/NativeDashboardHandler.swift
+native-ios/CommandCentreNative/NativeDataHandler.swift
+native-ios/CommandCentreNative/NativeStateVault.swift
+native-ios/CommandCentreWidgets/CommandCentreWidgets.swift
+native-ios/NativeShared/CommandCentreSharedData.swift
+native-ios/project.yml
 public/index.html
-public/messages.bundle.js
-public/messages.css
-public/transfers.bundle.js
+public/state-safety.js
+public/sw.js
 README-SETUP.md
-scripts/build-transfers.mjs
+RELEASE-v10.25.0.md
 scripts/check-project.mjs
-scripts/integrate-messages.mjs
-tests/messages.test.mjs
-tests/preview-server.mjs
-transfers.js
+tests/foundation-v10-24.test.mjs
+tests/live-freshness.test.mjs
+tests/recovery-fixture.html
+tests/stability-flow.test.mjs
+tests/state-recovery.browser.html
+tests/ui-improvements.test.mjs
 worker.js

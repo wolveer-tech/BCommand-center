@@ -1,0 +1,5 @@
+<!doctype html><title>Preparing recovery UI fixture</title><p>Preparing sample data for the local app preview…</p><script>
+const sample={notes:[{id:'fixture-note',title:'Recovered test note',body:'This is a recovery test note.',folder:'Notes',createdAt:'2026-09-15T10:00:00Z'}],events:[{id:'fixture-event',title:'Recovered calendar event',date:'2026-09-20',time:'10:00'}],reminders:[],bibleRead:{'Genesis-1':true}};
+localStorage.setItem('commandCenterV3',JSON.stringify({notes:[],events:[],reminders:[],bibleRead:{}}));
+const req=indexedDB.open('command-centre-safety-v1',1);req.onupgradeneeded=()=>req.result.createObjectStore('snapshots',{keyPath:'id'});req.onsuccess=()=>{const db=req.result,tx=db.transaction('snapshots','readwrite');for(let i=0;i<5;i++)tx.objectStore('snapshots').put({id:'ui-legacy-'+i,savedAt:Date.now()-i*3600000,reason:'automatic',state:i===0?{notes:[],events:[],reminders:[],bibleRead:{}}:{...sample,notes:[{...sample.notes[0],title:'Recovered test note '+i}]}});tx.oncomplete=()=>{db.close();location.href='/app'}};
+</script>

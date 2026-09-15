@@ -13,7 +13,15 @@ final class NativeDataHandler: NSObject, WKScriptMessageHandler, UIDocumentPicke
               message.name == "nativeData",
               let body = message.body as? [String: Any],
               let action = body["action"] as? String else { return }
-        if action == "export" {
+        if action == "saveState", let state = body["state"] as? [String: Any] {
+            do { try NativeStateVault.save(state, reason: body["reason"] as? String ?? "automatic") }
+            catch { reportError(error.localizedDescription) }
+        } else if action == "stateHistory" || action == "stateRecovery" {
+            let rows = action == "stateRecovery" ? Array(NativeStateVault.rows().prefix(1)) : NativeStateVault.rows()
+            if let data = try? JSONSerialization.data(withJSONObject: rows), let json = String(data: data, encoding: .utf8) {
+                webView?.evaluateJavaScript("window.dispatchEvent(new CustomEvent('cc-native-state-history',{detail:\(json)}));")
+            }
+        } else if action == "export" {
             exportFile(name: body["filename"] as? String ?? "command-centre-backup.json", contents: body["contents"] as? String ?? "")
         } else if action == "import" {
             presentImporter()
@@ -52,7 +60,7 @@ final class NativeDataHandler: NSObject, WKScriptMessageHandler, UIDocumentPicke
                 throw NSError(domain: "CommandCentreBackup", code: 1, userInfo: [NSLocalizedDescriptionKey: "The backup is larger than 10 MB."])
             }
             let contents = try String(contentsOf: url, encoding: .utf8)
-            guard let data = try? JSONSerialization.data(withJSONObject: contents),
+            guard let data = try? JSONSerialization.data(withJSONObject: contents, options: .fragmentsAllowed),
                   let literal = String(data: data, encoding: .utf8) else { return }
             webView?.evaluateJavaScript("window.CommandCentreReceiveBackup(\(literal));")
         } catch {
@@ -61,7 +69,7 @@ final class NativeDataHandler: NSObject, WKScriptMessageHandler, UIDocumentPicke
     }
 
     private func reportError(_ message: String) {
-        guard let data = try? JSONSerialization.data(withJSONObject: message),
+        guard let data = try? JSONSerialization.data(withJSONObject: message, options: .fragmentsAllowed),
               let literal = String(data: data, encoding: .utf8) else { return }
         webView?.evaluateJavaScript("window.CommandCentreNativeDataError(\(literal));")
     }
