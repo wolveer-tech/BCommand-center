@@ -30,6 +30,7 @@ test('football scope and priority functions order representative matches correct
   const start=html.indexOf('const FOOTBALL_COMPETITIONS=');
   const end=html.indexOf('function footballScoreText',start);
   const context={localStorage:{getItem:()=>null,setItem:()=>{}},dayKey:()=> '2026-09-14',state:{footballFollowedMatches:[],footballFavouriteTeams:[{id:1,name:'Arsenal'}]}};
+  context.effectiveFollowedMatchIDs=()=>context.state.footballFollowedMatches;
   context.footballFavouriteTeams=()=>context.state.footballFavouriteTeams;
   vm.createContext(context);
   vm.runInContext(`${html.slice(start,end)}\nglobalThis.footballApi={footballMatchInCompetition,footballPrioritiseWorldwide};`,context);

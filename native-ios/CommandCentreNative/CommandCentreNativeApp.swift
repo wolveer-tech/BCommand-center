@@ -10,6 +10,7 @@ struct CommandCentreNativeApp: App {
     init() {
         _ = NativeNotificationHandler.shared
         _ = NativeDashboardHandler.shared
+        NativeLiveActivityPushManager.shared.start()
         BackgroundRefreshManager.shared.register()
         configureBackgroundPlayback()
     }
@@ -41,6 +42,7 @@ struct CommandCentreNativeApp: App {
             if newPhase == .background {
                 BackgroundRefreshManager.shared.scheduleNext()
             }
+            if newPhase == .active { Task { await NativeLiveActivityPushManager.shared.sync(force: true) } }
         }
     }
 

@@ -1,8 +1,9 @@
-const SHELL_CACHE = 'command-centre-shell-v10.25.0';
+const SHELL_CACHE = 'command-centre-shell-v10.26.1';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/state-safety.js',
+  '/football-following.js',
   '/manifest.webmanifest',
   '/icon-192.png',
   '/icon-512.png',

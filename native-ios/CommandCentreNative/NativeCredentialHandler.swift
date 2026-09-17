@@ -12,6 +12,11 @@ final class NativeCredentialHandler: NSObject, WKScriptMessageHandler {
 
     private override init() {}
 
+    func bearerToken() -> String? {
+        guard let data = load(), let value = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        return value["token"] as? String
+    }
+
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard message.frameInfo.isMainFrame,
               let body = message.body as? [String: Any],

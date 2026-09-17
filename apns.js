@@ -88,3 +88,15 @@ export async function sendAPNSNotification(row,env){
   error.invalidToken=response.status===410||['BadDeviceToken','DeviceTokenNotForTopic','Unregistered'].includes(reason);
   throw error;
 }
+
+export async function sendActivityPush(token,aps,env,collapse='live-match'){
+  if(!/^[a-f0-9]{32,512}$/i.test(token))throw new Error('Invalid ActivityKit push token');
+  const settings=apnsSettings(env);
+  if(!/^[A-Za-z0-9.-]{3,200}$/.test(settings.bundleId))throw new Error('Invalid APNs bundle identifier');
+  const response=await fetch(`https://${settings.environment==='sandbox'?'api.sandbox.push.apple.com':'api.push.apple.com'}/3/device/${token}`,{
+    method:'POST',headers:{authorization:`bearer ${await providerToken(env,settings)}`,'content-type':'application/json','apns-topic':`${settings.bundleId}.push-type.liveactivity`,'apns-push-type':'liveactivity','apns-priority':aps.event==='update'?'5':'10','apns-expiration':String(Math.floor(Date.now()/1000)+120),'apns-collapse-id':collapse.slice(0,64)},body:JSON.stringify({aps}),signal:AbortSignal.timeout(10000)
+  });
+  if(response.ok)return;
+  const result=await response.json().catch(()=>({})),reason=result.reason||`HTTP ${response.status}`;
+  throw Object.assign(new Error(`ActivityKit APNs: ${reason}`),{status:response.status,invalidToken:response.status===410||['BadDeviceToken','DeviceTokenNotForTopic','Unregistered'].includes(reason)});
+}

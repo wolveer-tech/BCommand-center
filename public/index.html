@@ -3070,7 +3070,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
   <section class="settings-section" data-settings-panel="notifications">
     <article class="card settings-card-clean"><div class="card-head"><div><div class="title">🔔 Mobile notifications</div><div class="sub" id="notificationStatus">Checking notification support…</div></div><button class="btn primary" id="enableNotificationsBtn">Enable</button></div><div class="toolbar"><button class="btn" id="testNotificationBtn">Send test</button><button class="btn" id="repairNotificationsBtn">Repair</button><button class="btn" id="rescheduleNotificationsBtn">Reschedule</button></div><div class="setting-note" style="margin-top:8px">The IPA schedules native iPhone alerts for reminders and calendar events. Browser installations use Web Push when supported.</div></article>
-    <article class="card settings-card-clean"><div class="card-head"><div><div class="title">🏝️ Widgets &amp; Live Activities</div><div class="sub" id="nativeDashboardStatus">Checking native widget support…</div></div><button class="btn primary" id="syncNativeDashboardBtn" type="button">Sync now</button></div><div class="setting-note">The native IPA supplies Weather, Next Event and Next Reminder widgets for the Home and Lock Screens. Following a football match prepares its Live Activity and Dynamic Island score view near kick-off.</div></article>
+    <article class="card settings-card-clean"><div class="card-head"><div><div class="title">🏝️ Widgets &amp; Live Activities</div><div class="sub" id="nativeDashboardStatus">Checking native widget support…</div><div class="setting-note" id="nativeLivePushStatus">Closed-app match updates require the push-enabled IPA and Apple push server setup.</div><label style="display:flex;gap:8px;margin-top:12px"><input type="checkbox" id="footballAutoFollowTeams">Automatically follow favourite-team matches</label></div><button class="btn primary" id="syncNativeDashboardBtn" type="button">Sync now</button></div><div class="setting-note">The native IPA supplies Weather, Next Event and Next Reminder widgets for the Home and Lock Screens. Following a football match prepares its Live Activity and Dynamic Island score view near kick-off.</div></article>
     <article class="card settings-card-clean"><div class="card-head"><div><div class="title">📲 Safari notification companion</div><div class="sub" id="notificationCompanionStatus">Checking link status…</div></div><button class="btn primary" id="notificationCompanionBtn" type="button">Set up</button></div><div class="toolbar"><button class="btn" id="notificationCompanionTestBtn" type="button">Send companion test</button><button class="btn red" id="notificationCompanionUnlinkBtn" type="button">Unlink</button></div><div class="setting-note" style="margin-top:8px">Links the Safari Home Screen app to this IPA device for Web Push. It reuses the same Messages &amp; Transfers identity, so it does not create another device.</div></article>
     <article class="card settings-card-clean"><div class="title">☀️ Morning briefing</div><div class="form"><div class="field"><label>Morning briefing</label><select id="settingsMorningBriefing"><option value="on">On</option><option value="off">Off</option></select></div><div class="field"><label>Delivery time</label><input id="settingsMorningBriefingTime" type="time" value="07:30" /></div></div><div class="toolbar"><button class="btn" id="testMorningBriefingBtn">Send briefing test</button></div></article>
   </section>
@@ -3214,6 +3214,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   onclick="backToTop()"
 >↑</button>
 
+<script src="/football-following.js"></script>
 <script src="/state-safety.js"></script>
 <script>
 'use strict';
@@ -3271,6 +3272,8 @@ const DEFAULT_STATE = {
   footballNotifyKickoff:true,
   footballNotifyFinal:true,
   footballFollowedMatches:[],
+  footballExcludedMatches:[],
+  footballAutoFollowTeams:true,
   entertainment:{
     likes:{},
     hidden:{},
@@ -3395,7 +3398,7 @@ async function restoreLatestSafetySnapshot(){
 }
 function saveState(){
  if(!stateSafety.save(state))return false;
- queueNativeDashboardSync();return true;
+ queueNativeDashboardSync();queueNotificationCompanionSync();return true;
 }
 const BACKUP_DEVICE_KEY='cc_transfer_device_v1',BACKUP_DEVICE_AAD='command-centre-paired-device-v1';
 function backupBase64(bytes){let value='';for(const byte of bytes)value+=String.fromCharCode(byte);return btoa(value)}
@@ -4038,14 +4041,16 @@ function nativeWeatherPayload(){
   const daily=weatherCache?.data?.daily,info=weatherInfo(Number(current.weather_code));
   return {city:weatherCache?.loc?.name||state.city||'Weather',temperature:Math.round(Number(current.temperature_2m)||0),apparentTemperature:Math.round(Number(current.apparent_temperature??current.temperature_2m)||0),condition:info[1],symbolName:nativeWeatherSymbol(Number(current.weather_code)),high:Number.isFinite(Number(daily?.temperature_2m_max?.[0]))?Math.round(Number(daily.temperature_2m_max[0])):null,low:Number.isFinite(Number(daily?.temperature_2m_min?.[0]))?Math.round(Number(daily.temperature_2m_min[0])):null,precipitationChance:Number.isFinite(Number(daily?.precipitation_probability_max?.[0]))?Math.round(Number(daily.precipitation_probability_max[0])):null,latitude:Number(weatherCache?.loc?.latitude)||null,longitude:Number(weatherCache?.loc?.longitude)||null};
 }
+function effectiveFollowedMatchIDs(){return CommandCentreFootballFollowing.followed(state,footballAllScheduleMatches())}
+function nativeLivePreferences(){return {teams:footballFavouriteTeams(),followed:state.footballFollowedMatches||[],excluded:state.footballExcludedMatches||[],autoFollow:state.footballAutoFollowTeams!==false}}
 function nativeFootballMatchPayload(extra=[]){
-  const followed=new Set((state.footballFollowedMatches||[]).map(Number)),seen=new Map();
+  const followed=new Set(effectiveFollowedMatchIDs().map(Number)),seen=new Map();
   const runtime=typeof footballMatchRuntime!=='undefined'?footballMatchRuntime?.data?.match:null;
   [...footballAllScheduleMatches(),runtime,...nativeLiveMatches.values(),...extra].filter(Boolean).forEach(match=>{const id=Number(match.id)||0;if(id&&followed.has(id))seen.set(id,match)});
-  return [...seen.values()].map(match=>({id:Number(match.id),competition:String(match?.competition?.name||'Football'),homeTeam:footballTeamName(match.homeTeam),awayTeam:footballTeamName(match.awayTeam),kickoff:Date.parse(match.utcDate||''),homeScore:Number.isFinite(match?.score?.fullTime?.home)?Number(match.score.fullTime.home):null,awayScore:Number.isFinite(match?.score?.fullTime?.away)?Number(match.score.fullTime.away):null,status:String(match.status||'SCHEDULED').toUpperCase(),minute:Number.isFinite(Number(match.minute))?Number(match.minute):null})).filter(match=>Number.isFinite(match.kickoff));
+  return [...seen.values()].map(match=>({id:Number(match.id),competition:String(match?.competition?.name||'Football'),homeTeam:footballTeamName(match.homeTeam),awayTeam:footballTeamName(match.awayTeam),kickoff:Date.parse(match.utcDate||''),homeScore:Number.isFinite(match?.score?.fullTime?.home)?Number(match.score.fullTime.home):null,awayScore:Number.isFinite(match?.score?.fullTime?.away)?Number(match.score.fullTime.away):null,status:String(match.status||'SCHEDULED').toUpperCase(),minute:match.minute!=null&&Number.isFinite(Number(match.minute))?Number(match.minute):null})).filter(match=>Number.isFinite(match.kickoff));
 }
 function nativeDashboardPayload(extraMatches=[]){
-  return {snapshot:{weather:nativeWeatherPayload(),nextEvent:nativeNextEventPayload(),reminders:nativeReminderPayload()},followedMatchIDs:(state.footballFollowedMatches||[]).map(Number).filter(Boolean),matches:nativeFootballMatchPayload(extraMatches)};
+  return {livePreferences:nativeLivePreferences(),snapshot:{weather:nativeWeatherPayload(),nextEvent:nativeNextEventPayload(),reminders:nativeReminderPayload()},followedMatchIDs:effectiveFollowedMatchIDs().map(Number).filter(Boolean),matches:nativeFootballMatchPayload(extraMatches)};
 }
 function updateNativeDashboardStatus(message=''){
   const el=qs('#nativeDashboardStatus');if(!el)return;
@@ -4061,18 +4066,25 @@ function queueNativeDashboardSync(delay=350){if(!nativeDashboardSupported())retu
 async function refreshNativeLiveActivities(force=false){
   if(!nativeDashboardSupported()||document.visibilityState==='hidden'||navigator.onLine===false)return false;
   if(nativeLiveActivityRefreshPromise)return nativeLiveActivityRefreshPromise;
-  const followed=new Set((state.footballFollowedMatches||[]).map(Number));for(const id of nativeLiveMatches.keys())if(!followed.has(id))nativeLiveMatches.delete(id);
+  const followed=new Set(effectiveFollowedMatchIDs().map(Number));for(const id of nativeLiveMatches.keys())if(!followed.has(id))nativeLiveMatches.delete(id);
   const now=Date.now(),isLive=match=>['IN_PLAY','LIVE','PAUSED','EXTRA_TIME','PENALTY_SHOOTOUT'].includes(match.status),candidates=nativeFootballMatchPayload().filter(match=>!['FINISHED','CANCELLED','POSTPONED'].includes(match.status)&&Math.abs(match.kickoff-now)<=5*60*60*1000).sort((a,b)=>Number(isLive(b))-Number(isLive(a))||Math.abs(a.kickoff-now)-Math.abs(b.kickoff-now)).slice(0,3);
   if(!candidates.length)return false;
-  nativeLiveActivityRefreshPromise=Promise.allSettled(candidates.map(async match=>{const params=new URLSearchParams({matchId:String(match.id),live:'1'});return await fetchJson(`/api/football/match?${params}`,{cache:'no-store'},12000)})).then(results=>{
-    const payloads=results.filter(result=>result.status==='fulfilled'&&result.value?.match).map(result=>result.value),matches=payloads.map(payload=>payload.match);
+  nativeLiveActivityRefreshPromise=Promise.allSettled(candidates.map(async match=>{const params=new URLSearchParams({matchId:String(match.id),live:'1'});return await fetchJson(`/api/football/match?${params}`,{cache:'no-store'},12000)})).then(async results=>{
+    const payloads=results.flatMap((result,index)=>result.status==='fulfilled'&&Number(result.value?.match?.id)===candidates[index].id?[result.value]:[]);
+    const received=new Set(payloads.map(payload=>Number(payload.match.id))),missing=new Set(candidates.filter(match=>!received.has(match.id)).map(match=>match.id));
+    if(missing.size){
+      try{const schedule=await fetchJson('/api/football/schedule',{cache:'no-store'},8000);for(const match of schedule.matches||[])if(missing.has(Number(match.id)))payloads.push({match})}
+      catch(error){console.warn('Live Activity schedule fallback unavailable',error)}
+    }
+    const matches=payloads.map(payload=>payload.match);
     payloads.forEach(payload=>{const match=payload.match;nativeLiveMatches.set(Number(match.id),match);if(Number(footballMatchRuntime.matchId)===Number(match.id)&&footballMatchRuntime.data){footballMatchRuntime.data=payload;renderFootballMatchCentre()}});
     if(matches.length&&appCurrentPage==='football')renderFootball();
-    const handler=nativeMessageHandler('nativeDashboard');handler?.postMessage({action:'matches',followedMatchIDs:(state.footballFollowedMatches||[]).map(Number).filter(Boolean),matches:nativeFootballMatchPayload(matches)});return matches.length>0;
+    const handler=nativeMessageHandler('nativeDashboard');handler?.postMessage({action:'matches',followedMatchIDs:effectiveFollowedMatchIDs().map(Number).filter(Boolean),matches:nativeFootballMatchPayload(matches)});return matches.length>0;
   }).catch(error=>{console.warn('Native Live Activity refresh failed',error);return false}).finally(()=>{nativeLiveActivityRefreshPromise=null});
   return nativeLiveActivityRefreshPromise;
 }
 window.CommandCentreSyncNativeDashboard=syncNativeDashboard;
+window.addEventListener('cc-native-live-push-status',event=>{const el=qs('#nativeLivePushStatus');if(el)el.textContent=String(event.detail||'')});
 window.addEventListener('cc-native-dashboard-status',event=>{const detail=event.detail||{};clearTimeout(nativeSyncTimeout);updateNativeDashboardStatus(String(detail.message||''));if(nativeSyncNotice){toast(String(detail.message||'Native sync response received'));nativeSyncNotice=false}if(detail.error)console.warn('Native dashboard',detail.message||'Live Activity warning')});
 function nativeInboxCredential(){try{return String(JSON.parse(localStorage.getItem('cc_transfer_device_v1')||'null')?.token||'')}catch{return ''}}
 function notificationCompanionJson(key){try{return JSON.parse(localStorage.getItem(key)||'null')}catch{return null}}
@@ -4161,17 +4173,30 @@ async function claimNotificationCompanion(){
 }
 async function refreshNotificationCompanionReceiver(showToast=false){
   const receiver=notificationCompanionReceiver();if(!receiver?.token)return false;
-  try{const sub=await getPushSubscription(),data=await notificationCompanionFetch('/refresh',{method:'POST',token:receiver.token,body:{subscription:subscriptionJson(sub),timezone:notificationCompanionTimezone()}});localStorage.setItem(NOTIFICATION_COMPANION_RECEIVER_KEY,JSON.stringify({...receiver,deviceName:data.deviceName||receiver.deviceName}));if(showToast)toast('Safari notification connection refreshed');return true}catch(e){if(showToast)toast(e.message||'Could not refresh the connection');return false}
+  try{if(showToast&&notificationPermission()==='default')await Notification.requestPermission();if(notificationPermission()!=='granted')throw new Error('Allow notifications for this Home Screen app in iPhone Settings.');
+  if(!showToast){const reg=notificationSWRegistration||await registerNotificationSW();if(!await reg?.pushManager.getSubscription())throw new Error('Open Safari notification companion and tap Refresh connection to renew notifications.')}
+  const sub=await getPushSubscription({renew:showToast}),data=await notificationCompanionFetch('/refresh',{method:'POST',token:receiver.token,body:{subscription:subscriptionJson(sub),timezone:notificationCompanionTimezone()}});localStorage.setItem(NOTIFICATION_COMPANION_RECEIVER_KEY,JSON.stringify({...receiver,deviceName:data.deviceName||receiver.deviceName}));if(showToast)toast('Safari notification connection refreshed');return true}catch(e){const el=qs('#notificationCompanionStatus');if(el)el.textContent=e.status===401?'The companion link needs to be set up again. Open Set up and enter a new code.':e.message||'Could not refresh the connection';if(e.status===401){localStorage.removeItem(NOTIFICATION_COMPANION_RECEIVER_KEY);renderNotificationCompanionReceiver()}if(showToast)toast(e.message||'Could not refresh the connection');return false}
 }
 async function syncNotificationCompanionFromIPA(showToast=false){
   if(!nativeNotificationsSupported()||!notificationCompanionOwner()?.linked||!nativeInboxCredential())return false;
   try{const data=await notificationCompanionFetch('/sync',{method:'POST',body:notificationCompanionPayload()});if(showToast)toast(`Safari notifications synced • ${Number(data.scheduled)||0} scheduled`);return true}catch(e){if(e.status===409){localStorage.removeItem(NOTIFICATION_COMPANION_OWNER_KEY);updateNotificationCompanionUI()}if(showToast)toast(e.message||'Could not sync Safari notifications');return false}
 }
+let companionRepairPromise=null,companionLastRepair=0;
+async function repairNotificationConnections(force=false){
+ if(companionRepairPromise)return companionRepairPromise;if(!force&&Date.now()-companionLastRepair<60000)return;
+ companionRepairPromise=(async()=>{
+  if(nativeNotificationsSupported()&&nativeInboxCredential()){
+   const status=await notificationCompanionFetch('/status');
+   if(status.linked){localStorage.setItem(NOTIFICATION_COMPANION_OWNER_KEY,JSON.stringify({linked:true,deviceName:status.deviceName||''}));updateNotificationCompanionUI();await syncNotificationCompanionFromIPA(false)}
+   else{localStorage.removeItem(NOTIFICATION_COMPANION_OWNER_KEY);updateNotificationCompanionUI()}
+  }else if(notificationCompanionReceiver())await refreshNotificationCompanionReceiver(false);
+ })().catch(error=>{const el=qs('#notificationCompanionStatus');if(el)el.textContent=error.message||'Notification connection needs attention.'}).finally(()=>{companionLastRepair=Date.now();companionRepairPromise=null});return companionRepairPromise;
+}
 function queueNotificationCompanionSync(){
   if(!nativeNotificationsSupported()||!notificationCompanionOwner()?.linked)return;clearTimeout(notificationCompanionSyncTimer);notificationCompanionSyncTimer=setTimeout(()=>syncNotificationCompanionFromIPA(false),700);
 }
 async function testNotificationCompanion(){
-  try{const receiver=notificationCompanionReceiver();await notificationCompanionFetch(receiver?'/receiver/test':'/test',{method:'POST',token:receiver?.token||nativeInboxCredential(),body:{}});toast('Companion test notification sent')}catch(e){toast(e.message||'Could not send companion test')}
+  try{const receiver=notificationCompanionReceiver();if(receiver&&!await refreshNotificationCompanionReceiver(false))throw new Error('Refresh the companion connection in this Home Screen app, then send a test.');await notificationCompanionFetch(receiver?'/receiver/test':'/test',{method:'POST',token:receiver?.token||nativeInboxCredential(),body:{}});toast('Push service accepted the test. Check the Home Screen app’s notification permissions if it does not appear.')}catch(e){toast(e.message||'Could not send companion test')}
 }
 async function unlinkNotificationCompanion(){
   const receiver=notificationCompanionReceiver(),owner=notificationCompanionOwner();if(!receiver&&!owner?.linked)return;if(!confirm('Unlink the Safari notification receiver from this IPA device?'))return;
@@ -4205,7 +4230,7 @@ async function registerNotificationSW(){
   if(!('serviceWorker' in navigator)) return null;
   try{
     notificationSWRegistration=await navigator.serviceWorker.register('./sw.js',{scope:'./'});
-    await navigator.serviceWorker.ready;
+    await Promise.race([navigator.serviceWorker.ready,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Notification service worker timed out. Close and reopen the Home Screen app.')),10000))]);
     return notificationSWRegistration;
   }catch(e){console.warn('Notification service worker registration failed',e);return null}
 }
@@ -4224,14 +4249,14 @@ function sameApplicationServerKey(subscription,publicKey){
   try{
     const expected=urlBase64ToUint8Array(publicKey);
     const current=subscription?.options?.applicationServerKey;
-    if(!current)return false;
+    if(!current){const known=localStorage.getItem('cc_push_vapid_public_key');return !known||known===publicKey;}
     const actual=new Uint8Array(current);
     if(actual.length!==expected.length)return false;
     for(let i=0;i<actual.length;i++)if(actual[i]!==expected[i])return false;
     return true;
   }catch{return false}
 }
-async function getPushSubscription(){
+async function getPushSubscription({renew=false}={}){
   const reg=notificationSWRegistration||await registerNotificationSW();
   if(!reg) throw new Error('Could not start the notification service worker.');
   const keyRes=await fetch(PUSH_API+'/public-key',{headers:{Accept:'application/json'},cache:'no-store'});
@@ -4246,13 +4271,14 @@ async function getPushSubscription(){
 
   // A push subscription is tied to the VAPID public key that created it.
   // If the Cloudflare VAPID key changes, the old iPhone subscription must be replaced.
-  if(sub&&!sameApplicationServerKey(sub,publicKey)){
+  if(sub&&(renew||(sub.expirationTime&&sub.expirationTime<=Date.now())||!sameApplicationServerKey(sub,publicKey))){
     try{await sub.unsubscribe()}catch(e){console.warn('Could not remove old push subscription',e)}
     sub=null;
   }
 
   if(!sub){
     sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey});
+    localStorage.setItem('cc_push_vapid_public_key',publicKey);
   }
   return sub;
 }
@@ -4384,7 +4410,7 @@ function collectNativeFootballNotifications(){
   if(state.footballNotificationsEnabled===false)return [];
   const favouriteIds=new Set(footballFavouriteTeams().map(team=>Number(team.id)));
   const favouriteNames=new Set(footballFavouriteTeams().map(team=>footballTeamKey(team.name)).filter(Boolean));
-  const followedIds=new Set((state.footballFollowedMatches||[]).map(Number));
+  const followedIds=new Set(effectiveFollowedMatchIDs().map(Number));
   if(!favouriteIds.size&&!followedIds.size)return [];
   const now=Date.now(),items=[];
   footballAllScheduleMatches().forEach(match=>{
@@ -4563,6 +4589,7 @@ function init(){
      bind('testNotificationBtn','click',testNotification);
      bind('repairNotificationsBtn','click',repairNotifications);
      bind('notificationCompanionBtn','click',openNotificationCompanion);
+     const autoFollow=qs('#footballAutoFollowTeams');if(autoFollow){autoFollow.checked=state.footballAutoFollowTeams!==false;autoFollow.addEventListener('change',()=>{state.footballAutoFollowTeams=autoFollow.checked;saveState();renderFootball();refreshNativeLiveActivities(true)})}
      bind('notificationCompanionTestBtn','click',testNotificationCompanion);
      bind('notificationCompanionUnlinkBtn','click',unlinkNotificationCompanion);
      bind('testMorningBriefingBtn','click',testMorningBriefing);
@@ -4655,6 +4682,9 @@ function init(){
     runInitStep('foundation refresh',bindFoundationRefresh);
     runInitStep('notification controls',updateNotificationUI);
     runInitStep('notification companion controls',updateNotificationCompanionUI);
+    repairNotificationConnections(true);
+    window.addEventListener('online',()=>repairNotificationConnections(true));
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')repairNotificationConnections()});
     runInitStep('native widget controls',updateNativeDashboardStatus);
     if(state.notificationsEnabled&&notificationPermission()==='granted')scheduleAllNotifications();
     setTimeout(()=>runInitStep('launch route',applyLaunchRoute),60);
@@ -4717,7 +4747,7 @@ function setLauncherBadge(id,count){
   else{el.textContent='';el.classList.remove('show');}
 }
 function nextLauncherFootballMatch(){
-  const followed=new Set((state.footballFollowedMatches||[]).map(Number));
+  const followed=new Set(effectiveFollowedMatchIDs().map(Number));
   const teams=new Set((state.footballFavouriteTeams||[]).map(team=>Number(team?.id)).filter(Boolean));
   const teamNames=new Set((state.footballFavouriteTeams||[]).map(team=>footballTeamKey(team?.name)).filter(Boolean));
   if(!followed.size&&!teams.size)return null;
@@ -7292,7 +7322,7 @@ function footballMatchInCompetition(match,selection){
   return nameMatches&&countryMatches;
 }
 function footballMatchIsPersonal(match){
-  const id=Number(match?.id)||0;if((state.footballFollowedMatches||[]).includes(id))return true;
+  const id=Number(match?.id)||0;if(effectiveFollowedMatchIDs().includes(id))return true;
   const homeId=Number(match?.homeTeam?.id)||0,awayId=Number(match?.awayTeam?.id)||0;
   const homeKey=footballTeamKey(footballTeamName(match?.homeTeam)),awayKey=footballTeamKey(footballTeamName(match?.awayTeam));
   return footballFavouriteTeams().some(team=>{const teamId=Number(team.id)||0,teamKey=footballTeamKey(team.name);return (teamId&&(teamId===homeId||teamId===awayId))||(teamKey&&(teamKey===homeKey||teamKey===awayKey))});
@@ -7337,7 +7367,7 @@ function footballMatchCard(m){
       <div class="football-score">${esc(footballScoreText(m))}<small>${esc(statusLabel)}</small></div>
       <div class="football-team away"><span>${esc(away)}</span>${m.awayTeam?.crest?`<img src="${esc(m.awayTeam.crest)}" alt="">`:''}</div>
     </div>
-    <div class="football-match-actions"><span class="football-competition">${esc(competition)} • ${esc(footballDateTime(m.utcDate))}</span><button class="btn small" type="button" onclick="openFootballMatchCentre(${Number(m.id)||0})">${(state.footballFollowedMatches||[]).includes(Number(m.id))?'★ Following':'Match Centre'}</button></div>
+    <div class="football-match-actions"><span class="football-competition">${esc(competition)} • ${esc(footballDateTime(m.utcDate))}</span><button class="btn small" type="button" onclick="openFootballMatchCentre(${Number(m.id)||0})">${effectiveFollowedMatchIDs().includes(Number(m.id))?'★ Following':'Match Centre'}</button></div>
   </div>`;
 }
 function footballLocalDay(iso){const d=new Date(iso);return Number.isNaN(d.getTime())?'':dayKey(d)}
@@ -7394,7 +7424,7 @@ function renderFootballMatchCentre(){
   else if(footballMatchRuntime.tab==='lineups')content.innerHTML=`<section class="match-centre-panel active">${data.available?.lineups?`<div class="football-lineup-grid">${(data.teams||[]).map(footballLineupTeamHtml).join('')}</div>`:'<div class="empty">Lineups have not been announced yet. Check again closer to kick-off.</div>'}</section>`;
   else if(footballMatchRuntime.tab==='timeline')content.innerHTML=`<section class="match-centre-panel active"><div class="match-timeline">${data.available?.timeline?(data.events||[]).map(footballMatchEventHtml).join(''):'<div class="empty">The match timeline will appear when events are available.</div>'}</div></section>`;
   else content.innerHTML=`<section class="match-centre-panel active">${footballMatchStatsHtml(data)}</section>`;
-  const following=(state.footballFollowedMatches||[]).includes(Number(match.id)),follow=qs('#footballMatchFollowBtn');if(follow)follow.textContent=following?'★ Following':'☆ Follow match';
+  const following=effectiveFollowedMatchIDs().includes(Number(match.id)),follow=qs('#footballMatchFollowBtn');if(follow)follow.textContent=following?'★ Following':'☆ Follow match';
 }
 async function openFootballMatchCentre(matchId,force=false,tab='overview'){
   const id=Number(matchId)||0;if(!id)return;
@@ -7405,7 +7435,8 @@ async function openFootballMatchCentre(matchId,force=false,tab='overview'){
   catch(e){qs('#footballLineupStatus').textContent='Match Centre unavailable';qs('#footballLineupContent').innerHTML=`<div class="danger">${esc(e.message||'Could not load match details.')}</div>`}
 }
 function followFootballMatch(){
-  const id=Number(footballMatchRuntime.matchId)||0;if(!id)return;const current=state.footballFollowedMatches||[],following=current.includes(id);
+  const id=Number(footballMatchRuntime.matchId)||0;if(!id)return;const current=state.footballFollowedMatches||[],following=effectiveFollowedMatchIDs().includes(id);
+  const excluded=(state.footballExcludedMatches||[]).filter(item=>item!==id);state.footballExcludedMatches=following?[id,...excluded].slice(0,200):excluded;
   state.footballFollowedMatches=following?current.filter(item=>item!==id):[id,...current].slice(0,30);saveState();renderFootballMatchCentre();renderFootball();queueNativeDashboardSync(0);if(!following)refreshNativeLiveActivities(true);if(state.notificationsEnabled)syncNativeNotifications();toast(following?'Match unfollowed':'Match followed — Live Activity and fixture alerts are ready');
 }
 function addFootballMatchToCalendar(){
@@ -7573,6 +7604,7 @@ function setFootballFavourite(id,name,crest){
   renderFootball();
   applyFootballNotificationUI();
   syncFootballNotificationPreferences(false);
+  queueNativeDashboardSync(0);refreshNativeLiveActivities(true);
   toast(exists?`${team.name} removed from favourites`:`${team.name} added to favourites`);
 }
 function removeFootballFavourite(id){

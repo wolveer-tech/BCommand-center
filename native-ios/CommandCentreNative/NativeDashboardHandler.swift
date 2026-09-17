@@ -21,6 +21,7 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
 
         switch action {
         case "sync":
+            if let preferences = body["livePreferences"] as? [String: Any] { NativeLiveActivityPushManager.shared.configure(preferences) }
             if let rawSnapshot = body["snapshot"] as? [String: Any],
                let snapshot = widgetSnapshot(rawSnapshot) {
                 do {
@@ -159,7 +160,7 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
         for match in ordered {
             let content = ActivityContent(
                 state: match.contentState,
-                staleDate: match.contentState.isLive ? .now.addingTimeInterval(45) : match.kickoff.addingTimeInterval(15 * 60),
+                staleDate: match.contentState.isLive ? .now.addingTimeInterval(5 * 60) : match.kickoff.addingTimeInterval(15 * 60),
                 relevanceScore: match.contentState.isLive ? 100 : 50
             )
 
@@ -183,6 +184,7 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
                 kickoff: match.kickoff
             )
             do {
+                let pushType: PushType? = NativeLiveActivityPushManager.shared.serverConfigured ? .token : nil
                 let scheduledStart = match.kickoff.addingTimeInterval(-5 * 60)
                 if !match.contentState.isLive && secondsUntilKickoff > 90 * 60 && scheduledStart > .now {
                     let alert = AlertConfiguration(
@@ -190,22 +192,41 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
                         body: "\(match.homeTeam) vs \(match.awayTeam) is about to start.",
                         sound: .default
                     )
-                    _ = try Activity.request(
+                    let activity = try Activity.request(
                         attributes: attributes,
                         content: content,
-                        pushType: nil,
+                        pushType: pushType,
                         style: .standard,
                         alertConfiguration: alert,
                         start: scheduledStart
                     )
+                    NativeLiveActivityPushManager.shared.observe(activity)
                 } else {
                     guard match.contentState.isLive || secondsUntilKickoff >= -4 * 60 * 60 else { continue }
-                    _ = try Activity.request(attributes: attributes, content: content, pushType: nil)
+                    let activity = try Activity.request(attributes: attributes, content: content, pushType: pushType)
+                    NativeLiveActivityPushManager.shared.observe(activity)
                 }
                 activeCount += 1
             } catch {
+                // A signer without push entitlements can still provide foreground updates.
+                let fallback: Activity<FootballMatchAttributes>?
+                if !match.contentState.isLive && secondsUntilKickoff > 90 * 60 {
+                    fallback = try? Activity.request(
+                        attributes: attributes, content: content, pushType: nil, style: .standard,
+                        alertConfiguration: AlertConfiguration(title: "Football Live Activity", body: "\(match.homeTeam) vs \(match.awayTeam) is about to start.", sound: .default),
+                        start: match.kickoff.addingTimeInterval(-5 * 60)
+                    )
+                } else {
+                    fallback = try? Activity.request(attributes: attributes, content: content, pushType: nil)
+                }
+                if let activity = fallback {
+                    NativeLiveActivityPushManager.shared.observe(activity)
+                    activeCount += 1
+                    publishStatus(message: "Live Activity created, but closed-app updates need Push Notifications signing.", error: true)
+                } else {
+                    publishStatus(message: "A followed match could not start its Live Activity: \(error.localizedDescription)", error: true)
+                }
                 print("Could not start football Live Activity: \(error.localizedDescription)")
-                publishStatus(message: "A followed match could not start its Live Activity: \(error.localizedDescription)", error: true)
             }
         }
     }
@@ -266,7 +287,7 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
         for id in activeIDs.prefix(3) {
             guard let url = URL(string: "api/football/match?matchId=\(id)&live=1", relativeTo: AppConfig.commandCentreURL)?.absoluteURL else { continue }
             do {
-                var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 8)
+                var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 6)
                 request.setValue("application/json", forHTTPHeaderField: "Accept")
                 let (data, response) = try await URLSession.shared.data(for: request)
                 guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
@@ -274,6 +295,19 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
                       let raw = payload["match"] as? [String: Any], let match = networkMatch(raw), match.id == id else { continue }
                 matches.append(match)
             } catch { print("Live Activity refresh failed: \(error.localizedDescription)") }
+        }
+        // Preserve the earlier schedule path as a fallback for unavailable match details.
+        let missing = Set(activeIDs).subtracting(matches.map { $0.id })
+        if !missing.isEmpty, let url = URL(string: "api/football/schedule", relativeTo: AppConfig.commandCentreURL)?.absoluteURL {
+            do {
+                let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 6)
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+                   let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let rows = payload["matches"] as? [[String: Any]] {
+                    matches.append(contentsOf: rows.compactMap(networkMatch).filter { missing.contains($0.id) })
+                }
+            } catch { print("Live Activity schedule fallback failed: \(error.localizedDescription)") }
         }
         // Re-read follow state after network awaits; an unfollow must not be undone.
         let latestIDs = Set((CommandCentreSharedStore.defaults.stringArray(forKey: CommandCentreSharedStore.followedMatchIDsKey) ?? []).compactMap { Int64($0) })

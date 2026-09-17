@@ -54,6 +54,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         context.coordinator.dataHandler.webView = webView
         context.coordinator.privacyHandler.attach(webView: webView)
         context.coordinator.dashboardHandler.webView = webView
+        NativeLiveActivityPushManager.shared.webView = webView
         NativeDeepLinkRouter.shared.attach(webView: webView)
         NativeMirrorManager.shared.webView = webView
         webView.load(URLRequest(url: AppConfig.commandCentreURL))

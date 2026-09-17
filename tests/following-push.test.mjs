@@ -1,0 +1,65 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+import {readFile} from 'node:fs/promises';
+import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
+import {handleTransfers} from '../transfers.js';
+import {activityContent,handleLiveActivities,refreshLiveActivityPushes} from '../live-activities.js';
+const following=globalThis.CommandCentreFootballFollowing;
+const now=Date.now(),fixture=(id,status='IN_PLAY')=>({id,status,utcDate:new Date(now-60000).toISOString(),homeTeam:{id:1,name:'Wolves'},awayTeam:{id:2,name:'Arsenal'},competition:{name:'Premier League'},score:{fullTime:{home:1,away:0}},minute:12});
+test('favourite teams automatically follow upcoming and live matches with explicit opt-out',()=>{
+ const prefs={footballFavouriteTeams:[{id:1,name:'Wolves'}],footballFollowedMatches:[99]};
+ assert.deepEqual(following.followed(prefs,[fixture(10),fixture(11,'FINISHED')],now),[99,10,11]);
+ assert.deepEqual(following.followed({...prefs,footballExcludedMatches:[10]},[fixture(10)],now),[99]);
+ assert.deepEqual(following.followed({...prefs,footballAutoFollowTeams:false},[fixture(10)],now),[99]);
+ assert.deepEqual(following.followed({...prefs,footballFavouriteTeams:[]},[fixture(10)],now),[99]);
+ assert.equal(following.favourite(fixture(10),[{id:800000000001,name:'Wolves FC'}]),true);
+});
+test('ActivityKit payload uses Foundation date epoch, nullable scores and final dismissal',()=>{
+ const payload=activityContent(fixture(10),now);assert.equal(payload['content-state'].updatedAt,now/1000-978307200);assert.equal(payload.timestamp,Math.floor(now/1000));assert.equal(payload.event,'update');
+ assert.equal(activityContent({...fixture(1),score:{fullTime:{home:null,away:null}}},now)['content-state'].homeScore,null);
+ assert.equal(activityContent(fixture(1,'FINISHED'),now).event,'end');
+});
+test('expired Web Push subscriptions are surfaced instead of acknowledged',async()=>{
+ const source=readFileSync(new URL('../worker.js',import.meta.url),'utf8'),start=source.indexOf('async function sendOne('),end=source.indexOf('\n}',start)+2;
+ let accepted=false;const context=vm.createContext({sendPushNotification:async()=>accepted});vm.runInContext(source.slice(start,end),context);
+ await assert.rejects(context.sendOne({endpoint:'https://web.push.apple.com/test'},{}),error=>error.status===410&&/expired/.test(error.message));
+ accepted=true;await context.sendOne({endpoint:'https://web.push.apple.com/test'},{});
+});
+test('server Live Activities use authenticated device state and deduplicated remote updates',async t=>{
+ const mf=new Miniflare(convertV4MiniflareOptions({name:'live-tests',modules:true,script:'export default {fetch(){return new Response("ok")}}',compatibilityDate:'2026-08-31',d1Databases:{DB:'live-tests'}}));t.after(()=>mf.dispose());
+ const env={DB:await mf.getD1Database('DB'),TRANSFER_SETUP_KEY:'test-setup-secret-long-enough-for-testing'};
+ for(const sql of (await readFile(new URL('../migrations/0008_transfers.sql',import.meta.url),'utf8')).split(';').map(s=>s.trim()).filter(Boolean))await env.DB.prepare(sql).run();
+ const registered=await handleTransfers(new Request('https://test/api/transfers/bootstrap',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:'Phone',key:env.TRANSFER_SETUP_KEY})}),env,{waitUntil:()=>{}},()=>{});
+ const device=await registered.json();assert.equal(registered.status,201,JSON.stringify(device));
+ const call=(path,body,auth=device.token)=>handleLiveActivities(new Request('https://test/api/live-activities/'+path,{method:body===undefined?'GET':'POST',headers:{'content-type':'application/json',...(auth?{authorization:'Bearer '+auth}:{})},body:body===undefined?undefined:JSON.stringify(body)}),env);
+ assert.equal((await call('status',undefined,'')).status,401);
+ assert.equal((await call('preferences',{autoFollow:true,teams:[{id:1,name:'Wolves'}],followed:[],excluded:[]})).status,200);
+ assert.equal((await call('start-token',{token:'bad'})).status,400);
+ assert.equal((await call('start-token',{token:'ab'.repeat(32)})).status,200);
+ assert.equal((await (await call('status')).json()).configured,false);
+ const pair=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
+ env.APNS_CONFIG=JSON.stringify({keyId:'TESTKEY',teamId:'TESTTEAM',privateKey:Buffer.from(await crypto.subtle.exportKey('pkcs8',pair.privateKey)).toString('base64')});
+ const fetchOriginal=globalThis.fetch,sent=[];
+ globalThis.fetch=async(url,init)=>{assert.match(String(url),/^https:\/\/api.push.apple.com\/3\/device\//);sent.push({url,headers:init.headers,aps:JSON.parse(init.body).aps});return new Response('',{status:200})};t.after(()=>{globalThis.fetch=fetchOriginal});
+ const schedule=async()=>({matches:[fixture(10)]}),detail=async id=>({match:fixture(id)});
+ await refreshLiveActivityPushes(env,schedule,detail);assert.equal(sent.length,1);assert.equal(sent[0].aps.event,'start');assert.equal(sent[0].headers['apns-push-type'],'liveactivity');assert.equal(sent[0].headers['apns-topic'],'tech.wolveer.commandcentre.native.push-type.liveactivity');
+ await refreshLiveActivityPushes(env,schedule,detail);assert.equal(sent.length,1,'Duplicate remote start');
+ assert.equal((await call('register',{matchId:10,activityId:'activity-10',token:'cd'.repeat(32)})).status,200);
+ assert.equal((await call('register',{matchId:10,activityId:'activity-10',pending:true,token:''})).status,200);
+ let row=await env.DB.prepare('SELECT * FROM live_activity_matches WHERE match_id=10').first();assert.equal(row.update_token,'cd'.repeat(32),'Reservation erased a rotated token');
+ await env.DB.prepare('UPDATE live_activity_matches SET lease_until=0').run();
+ await refreshLiveActivityPushes(env,schedule,detail);assert.equal(sent.at(-1).aps.event,'update');assert.equal(sent.length,2);
+ await refreshLiveActivityPushes(env,schedule,detail);assert.equal(sent.length,2,'Duplicate minute update');
+ await call('preferences',{autoFollow:true,teams:[{id:1,name:'Wolves'}],followed:[],excluded:[10]});
+ await env.DB.prepare('UPDATE live_activity_matches SET lease_until=0,last_sent=0').run();
+ await refreshLiveActivityPushes(env,schedule,detail);assert.equal(sent.at(-1).aps.event,'end');
+ row=await env.DB.prepare('SELECT * FROM live_activity_matches WHERE match_id=10').first();assert.equal(row.ended,1);
+ await call('register',{matchId:10,activityId:'replacement',pending:true,token:''});
+ row=await env.DB.prepare('SELECT * FROM live_activity_matches WHERE match_id=10').first();assert.equal(row.update_token,null,'New activity inherited a stale token');
+ // A revoked owner cannot receive new starts even with a stored token.
+ await env.DB.prepare('UPDATE transfer_devices SET revoked_at=? WHERE id=?').bind(Date.now(),device.device.id).run();
+ await refreshLiveActivityPushes(env,async()=>({matches:[fixture(20)]}),detail);assert.equal(sent.length,3);
+ assert.equal((await call('status')).status,401);
+});
