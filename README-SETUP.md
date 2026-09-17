@@ -1,6 +1,6 @@
-# Latest release: v10.25.0
+# Latest release: v10.26.1
 
-Use [RELEASE-v10.25.0.md](RELEASE-v10.25.0.md) for recovery, widget signing and installation instructions. This release requires native iOS 1.10.0 build 16. Install over the existing app to keep its data.
+Use [RELEASE-v10.26.1.md](RELEASE-v10.26.1.md) for the combined local Live Activity behaviour, score fallback, recovery fixes and installation instructions. This release requires native iOS 1.11.1 build 18. Back up first, then install with the same signing identity over the existing app to keep its data.
 
 # Command Centre setup
 

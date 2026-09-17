@@ -1,3 +1,4 @@
+import {handleLiveActivities,refreshLiveActivityPushes} from './live-activities.js';
 import { sendPushNotification } from '@mmmike/web-push/send';
 import { handleTransfers, cleanTransfers, flushTransferPushes, authenticateTransferDevice, readTransferJSON } from './transfers.js';
 import { handleMessages, cleanMessages, flushMessagePushes } from './messages.js';
@@ -108,7 +109,7 @@ async function handleNotificationCompanion(request,env,ctx,sendOne){
       if(!code)throw Object.assign(new Error('Could not create a unique link code. Try again.'),{status:503});return json({code:code.replace(/(\d{3})(?=\d)/g,'$1 '),expiresAt:Date.now()+10*60*1000});
     }
     if(path==='/status'&&method==='GET'){
-      const row=await env.DB.prepare('SELECT l.updated_at,d.updated_at AS receiver_updated FROM notification_companion_links l LEFT JOIN devices d ON d.device_id=l.device_id WHERE l.device_id=?').bind(device.id).first();return json({linked:!!row,updatedAt:Number(row?.receiver_updated||row?.updated_at)||0,deviceId:device.id,deviceName:device.name});
+      const row=await env.DB.prepare('SELECT l.updated_at,d.updated_at AS receiver_updated FROM notification_companion_links l LEFT JOIN devices d ON d.device_id=l.device_id WHERE l.device_id=?').bind(device.id).first();return json({linked:!!row,receiverReady:!!row?.receiver_updated,webPushConfigured:!!(env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY),updatedAt:Number(row?.receiver_updated||row?.updated_at)||0,deviceId:device.id,deviceName:device.name});
     }
     if(path==='/sync'&&method==='POST')return json(await syncNotificationCompanion(device,await readTransferJSON(request),env,ctx));
     if(path==='/test'&&method==='POST'){
@@ -3401,7 +3402,7 @@ async function sendOne(row,env){
   const target=String(row.url||'/');
   // Keep the URL both at the top level and inside data. The service worker
   // accepts either shape, which also keeps older subscriptions compatible.
-  await sendPushNotification(
+  const accepted=await sendPushNotification(
     sub,
     {
       title:row.title,
@@ -3418,6 +3419,7 @@ async function sendOne(row,env){
       subject:env.VAPID_SUBJECT||'mailto:command-centre@example.com'
     }
   );
+  if(accepted===false)throw Object.assign(new Error('The Safari push subscription has expired. Open the Home Screen web app → Settings → Notifications → Safari notification companion → Refresh connection, then send a test.'),{status:410});
 }
 
 
@@ -3727,7 +3729,8 @@ async function audiusStreamResponse(request,env,trackId){
 export default {
   async fetch(request,env,ctx){
     const url=new URL(request.url);
-    if(url.pathname.startsWith('/api/notification-companion')) return handleNotificationCompanion(request,env,ctx,sendOne);
+    if(url.pathname.startsWith('/api/live-activities/'))return handleLiveActivities(request,env);
+      if(url.pathname.startsWith('/api/notification-companion')) return handleNotificationCompanion(request,env,ctx,sendOne);
     if(url.pathname.startsWith('/api/transfers/')) return handleTransfers(request,env,ctx,sendOne);
     if(url.pathname.startsWith('/api/messages/')) return handleMessages(request,env,ctx,sendOne);
     if(request.method==='OPTIONS') return new Response(null,{headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET,POST,DELETE,OPTIONS','access-control-allow-headers':'content-type'}});
@@ -4119,6 +4122,7 @@ export default {
     }catch(e){console.error(e);return json({error:e?.message||String(e)},Number(e?.status)||500)}
   },
   async scheduled(_controller,env,ctx){
+    ctx.waitUntil(refreshLiveActivityPushes(env,()=>getFootballSchedule(env,false),id=>getFootballMatchCentre(env,id,false,`https://local/api/football/match?matchId=${id}&live=1`)));
     ctx.waitUntil(cleanTransfers(env));
     ctx.waitUntil(flushTransferPushes(env,sendOne));
     ctx.waitUntil(cleanMessages(env));
