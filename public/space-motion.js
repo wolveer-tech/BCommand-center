@@ -3,12 +3,16 @@
   'use strict';
   const root = document.documentElement;
   const media = matchMedia('(prefers-reduced-motion: reduce)');
-  const introSessionKey = 'cc_space_intro_played_v1';
+  const introSessionKey = 'cc_space_intro_session_v2';
   let preference = 'cinematic';
   try { preference = localStorage.getItem('cc_motion_mode') || preference; } catch {}
-  let playedThisSession = !!window.CommandCentreIntroPlayed;
-  try { playedThisSession = playedThisSession || sessionStorage.getItem(introSessionKey) === '1'; } catch {}
-  try { playedThisSession = playedThisSession || localStorage.getItem(introSessionKey) === '1'; } catch {}
+  const nativeSessionManaged = window.CommandCentreIntroSessionManaged === true;
+  // The native process is authoritative, including false on a new launch.
+  // Ignore the old permanent browser/native flags from v10.27.0.
+  let playedThisSession = nativeSessionManaged && window.CommandCentreIntroPlayed === true;
+  if (!nativeSessionManaged) {
+    try { playedThisSession = sessionStorage.getItem(introSessionKey) === '1'; } catch {}
+  }
   const mode = () => preference === 'off' ? 'off' : media.matches || preference === 'gentle' ? 'gentle' : 'cinematic';
   root.dataset.ccMotion = mode();
   if (mode() !== 'off' && !playedThisSession) root.dataset.ccLaunch = 'pending';
@@ -38,7 +42,7 @@
   function markPlayed() {
     playedThisSession=true;
     try { sessionStorage.setItem(introSessionKey, '1'); } catch {}
-    try { localStorage.setItem(introSessionKey, '1'); } catch {}
+    if (nativeSessionManaged) window.CommandCentreIntroPlayed = true;
     try { window.webkit?.messageHandlers?.nativeIntro?.postMessage({action:'played'}); } catch {}
   }
   function restoreApp() {
@@ -218,7 +222,15 @@
     if (!nativeLocked) {
       start();
       if(running&&!finishing){cancelAnimationFrame(raf);previousTime=0;raf=requestAnimationFrame(frame);}
-    } else cancelAnimationFrame(raf);
+    } else {
+      cancelAnimationFrame(raf);
+      // A confirmed native lock owns the screen. Wait for its first unlock
+      // without consuming the intro or leaving a second blocking overlay.
+      if (!playedThisSession && startRequested) {
+        clearTimeout(safetyTimer);
+        root.removeAttribute('data-cc-launch');
+      }
+    }
   });
   addEventListener('resize',resize,{passive:true});
   document.addEventListener('visibilitychange',()=>{

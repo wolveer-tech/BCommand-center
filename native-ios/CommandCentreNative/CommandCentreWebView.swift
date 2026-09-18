@@ -13,7 +13,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         configuration.mediaTypesRequiringUserActionForPlayback = []
         configuration.userContentController.add(context.coordinator, name: "nativeMirror")
         configuration.userContentController.add(context.coordinator, name: "nativeIntro")
-        configuration.userContentController.addUserScript(WKUserScript(source: "window.CommandCentreIntroPlayed = \(UserDefaults.standard.bool(forKey: "cc.intro.played.v1") ? "true" : "false");", injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        configuration.userContentController.addUserScript(WKUserScript(source: "window.CommandCentreIntroSessionManaged = true; window.CommandCentreIntroPlayed = \(Coordinator.introPlayedThisLaunch ? "true" : "false");", injectionTime: .atDocumentStart, forMainFrameOnly: true))
         configuration.userContentController.add(context.coordinator.transferHandler, name: "nativeTransfer")
         configuration.userContentController.add(context.coordinator.notificationHandler, name: "nativeNotifications")
         configuration.userContentController.add(context.coordinator.dataHandler, name: "nativeData")
@@ -79,6 +79,8 @@ struct CommandCentreWebView: UIViewRepresentable {
     }
 
     @MainActor final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
+        // Shared by web views in this app process, reset on the next cold launch.
+        static var introPlayedThisLaunch = false
         let transferHandler = NativeTransferHandler()
         let notificationHandler = NativeNotificationHandler.shared
         let dataHandler = NativeDataHandler()
@@ -95,7 +97,14 @@ struct CommandCentreWebView: UIViewRepresentable {
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             if message.name == "nativeIntro" {
-                if trustedMainFrame(message.frameInfo) { UserDefaults.standard.set(true, forKey: "cc.intro.played.v1") }
+                if trustedMainFrame(message.frameInfo),
+                   let body = message.body as? [String: Any], body["action"] as? String == "played",
+                   !Self.introPlayedThisLaunch {
+                    Self.introPlayedThisLaunch = true
+                    // The original document-start script is a snapshot. Override it for
+                    // reloads of this web view as well as using the process flag for new views.
+                    message.webView?.configuration.userContentController.addUserScript(WKUserScript(source: "window.CommandCentreIntroPlayed = true;", injectionTime: .atDocumentStart, forMainFrameOnly: true))
+                }
                 return
             }
             guard message.name == "nativeMirror",

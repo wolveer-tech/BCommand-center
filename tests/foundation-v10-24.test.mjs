@@ -18,11 +18,11 @@ const codemagic=read('../codemagic.yaml');
 test('native project embeds a widget and Live Activity extension',()=>{
   assert.match(project,/CommandCentreWidgets:[\s\S]*type: app-extension/);
   assert.match(project,/target: CommandCentreWidgets/);
-  assert.match(project,/MARKETING_VERSION: 1\.12\.0/);
-  assert.match(project,/CURRENT_PROJECT_VERSION: 19/);
+  assert.match(project,/MARKETING_VERSION: 1\.12\.1/);
+  assert.match(project,/CURRENT_PROJECT_VERSION: 20/);
   assert.match(appInfo,/NSSupportsLiveActivities/);
   assert.match(codemagic,/Expected the ReplayKit and Widget extensions/);
-  assert.match(codemagic,/CommandCentre-iOS26-v1\.12\.0\.ipa/);
+  assert.match(codemagic,/CommandCentre-iOS26-v1\.12\.1\.ipa/);
 });
 
 test('app and widgets share only the native dashboard snapshot',()=>{
