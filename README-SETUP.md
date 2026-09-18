@@ -1,6 +1,6 @@
-# Latest release: v10.26.1
+# Latest release: v10.27.0
 
-Use [RELEASE-v10.26.1.md](RELEASE-v10.26.1.md) for the combined local Live Activity behaviour, score fallback, recovery fixes and installation instructions. This release requires native iOS 1.11.1 build 18. Back up first, then install with the same signing identity over the existing app to keep its data.
+Use [RELEASE-v10.27.0.md](RELEASE-v10.27.0.md) for Sport performance, intro reliability, player popup protection and YouTube improvements. This release requires native iOS 1.12.0 build 19. Back up first, then install with the same signing identity over the existing app to keep its data.
 
 # Command Centre setup
 
