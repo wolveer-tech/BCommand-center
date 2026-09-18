@@ -2632,7 +2632,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
                     </div>
 
                     <div class="media-player-stage app-video-stage" id="mediaPlayerStage">
-                      <iframe id="mediaWatchFrame" class="media-player"
+                      <iframe sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" id="mediaWatchFrame" class="media-player"
                         allow="autoplay; fullscreen; picture-in-picture"
                         allowfullscreen
                       referrerpolicy="strict-origin-when-cross-origin"></iframe>
@@ -2795,7 +2795,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
           <div id="liveFootballPlayerWrap" style="display:none;margin-top:12px">
             <div class="card-head"><div><div class="title" id="liveFootballPlayerTitle">Live stream</div><div class="sub" id="liveFootballPlayerMeta"></div></div><button class="btn small" id="closeLiveFootballBtn">Close player</button></div>
             <div id="liveFootballSources" class="live-source-switcher"></div>
-            <iframe id="liveFootballFrame" class="live-stream-frame" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+            <iframe sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" id="liveFootballFrame" class="live-stream-frame" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
             <video id="liveFootballVideo" class="live-stream-frame" controls playsinline preload="metadata" style="display:none;background:#000"></video>
           </div>
           <div class="setting-note">This section changes automatically with Football, Tennis and Athletics. Command Centre only displays streams from providers you configure and are authorised to access and embed.</div>
@@ -3283,7 +3283,7 @@ const DEFAULT_STATE = {
     youtubeRecommendationSeen:[],
     youtubeHiddenChannels:[],
     youtubeWatchLater:[],
-    youtubeForYouCache:{version:5,items:[],signals:[],reason:'',updatedAt:''},
+    youtubeForYouCache:{version:6,items:[],signals:[],reason:'',updatedAt:''},
     twitchHistory:[],
     gameStats:{best2048:0,bestSnake:0,bestReaction:null,triviaStreak:0,triviaBest:0,triviaLastDate:'',triviaLastCorrect:null,triviaLastAnswer:null,wordleStreak:0,wordleBest:0,wordleDate:'',wordleGuesses:[],wordleCurrent:'',wordleFinished:false,wordleWon:false},
     visit:{lastDate:'',streak:0}
@@ -3345,7 +3345,7 @@ state.entertainment={
   youtubeWatchLater:Array.isArray(state.entertainment?.youtubeWatchLater)?state.entertainment.youtubeWatchLater.filter(x=>x&&x.id).slice(0,100):[],
   youtubeForYouCache:(state.entertainment?.youtubeForYouCache&&typeof state.entertainment.youtubeForYouCache==='object')
     ?state.entertainment.youtubeForYouCache
-    :{version:5,items:[],signals:[],reason:'',updatedAt:''},
+    :{version:6,items:[],signals:[],reason:'',updatedAt:''},
   mediaHistory:Array.isArray(state.entertainment?.mediaHistory)?state.entertainment.mediaHistory:[],
   twitchHistory:Array.isArray(state.entertainment?.twitchHistory)?state.entertainment.twitchHistory:[],
   gameStats:{...DEFAULT_STATE.entertainment.gameStats,...(state.entertainment?.gameStats||{})},
@@ -4041,7 +4041,14 @@ function nativeWeatherPayload(){
   const daily=weatherCache?.data?.daily,info=weatherInfo(Number(current.weather_code));
   return {city:weatherCache?.loc?.name||state.city||'Weather',temperature:Math.round(Number(current.temperature_2m)||0),apparentTemperature:Math.round(Number(current.apparent_temperature??current.temperature_2m)||0),condition:info[1],symbolName:nativeWeatherSymbol(Number(current.weather_code)),high:Number.isFinite(Number(daily?.temperature_2m_max?.[0]))?Math.round(Number(daily.temperature_2m_max[0])):null,low:Number.isFinite(Number(daily?.temperature_2m_min?.[0]))?Math.round(Number(daily.temperature_2m_min[0])):null,precipitationChance:Number.isFinite(Number(daily?.precipitation_probability_max?.[0]))?Math.round(Number(daily.precipitation_probability_max[0])):null,latitude:Number(weatherCache?.loc?.latitude)||null,longitude:Number(weatherCache?.loc?.longitude)||null};
 }
-function effectiveFollowedMatchIDs(){return CommandCentreFootballFollowing.followed(state,footballAllScheduleMatches())}
+let footballFollowCache=null;
+function effectiveFollowedMatchIDs(){
+  const matches=footballAllScheduleMatches(),teams=state.footballFavouriteTeams,manual=state.footballFollowedMatches,excluded=state.footballExcludedMatches,auto=state.footballAutoFollowTeams,second=Math.floor(Date.now()/1000);
+  const old=footballFollowCache;
+  if(old&&old.matches===matches&&old.teams===teams&&old.manual===manual&&old.excluded===excluded&&old.auto===auto&&old.second===second)return old.ids;
+  const ids=CommandCentreFootballFollowing.followed(state,matches);
+  footballFollowCache={matches,teams,manual,excluded,auto,second,ids};return ids;
+}
 function nativeLivePreferences(){return {teams:footballFavouriteTeams(),followed:state.footballFollowedMatches||[],excluded:state.footballExcludedMatches||[],autoFollow:state.footballAutoFollowTeams!==false}}
 function nativeFootballMatchPayload(extra=[]){
   const followed=new Set(effectiveFollowedMatchIDs().map(Number)),seen=new Map();
@@ -7385,8 +7392,11 @@ function renderFootballScheduleTabs(){
   }
   el.innerHTML=tabs.map(tab=>`<button class="football-schedule-tab ${footballScheduleFilter===tab.value?'active':''}" type="button" onclick="setFootballScheduleFilter('${esc(tab.value)}')">${esc(tab.label)}</button>`).join('');
 }
+let footballScheduleDerived=null;
 function footballAllScheduleMatches(){
-  const rows=[...nativeLiveMatches.values(),...(footballScheduleCache.matches||[]),...(footballCache.matches||[])];
+  const live=[...nativeLiveMatches.values()],schedule=footballScheduleCache.matches,league=footballCache.matches,old=footballScheduleDerived;
+  if(old&&old.schedule===schedule&&old.league===league&&old.live.length===live.length&&live.every((item,i)=>item===old.live[i]))return old.matches;
+  const rows=[...live,...(schedule||[]),...(league||[])];
   const seen=new Map();
   rows.forEach(match=>{
     const kickoff=Date.parse(match?.utcDate||''),minute=Number.isFinite(kickoff)?Math.round(kickoff/60000):String(match?.utcDate||'');
@@ -7394,7 +7404,7 @@ function footballAllScheduleMatches(){
     const key=teams?`${minute}:${teams}`:`id:${match?.id}`;
     if(!seen.has(key))seen.set(key,match);
   });
-  return [...seen.values()];
+  const matches=[...seen.values()];footballScheduleDerived={schedule,league,live,matches};return matches;
 }
 function footballLineupPlayerHtml(player){return `<div class="football-player"><span class="football-player-number">${player.number==null?'—':esc(player.number)}</span><span>${esc(player.name||'Player')}${player.position?`<small class="football-player-position">${esc(player.position)}</small>`:''}</span></div>`}
 function footballLineupTeamHtml(team){return `<section class="football-lineup-team"><div class="football-lineup-team-head">${team.crest?`<img src="${esc(team.crest)}" alt="">`:''}<div><strong>${esc(team.name||'Team')}</strong><div class="sub">${esc([team.formation?`Formation ${team.formation}`:'',team.coach?`Coach ${team.coach}`:''].filter(Boolean).join(' • ')||'Team sheet')}</div></div></div><div class="section-note">Starting XI</div>${team.starting?.length?team.starting.map(footballLineupPlayerHtml).join(''):'<div class="empty">Not announced</div>'}<div class="section-note" style="margin-top:8px">Bench</div>${team.bench?.length?team.bench.map(footballLineupPlayerHtml).join(''):'<div class="empty">Not announced</div>'}</section>`}
@@ -7695,55 +7705,40 @@ function renderFootball(){
   if(scheduleSub)scheduleSub.textContent=allMode?`All worldwide • biggest and most relevant leagues first • showing ${upcoming.length} of ${matchingUpcoming.length}`:`${FOOTBALL_COMPETITIONS[selection]||footballCache.competitionName||selection} • ${footballScheduleCache.provider||'football data'} • showing ${upcoming.length} of ${matchingUpcoming.length}`;
   const resultsSub=qs('#footballResultsSub');if(resultsSub)resultsSub.textContent=allMode?`All worldwide • prioritised by competition`:`${FOOTBALL_COMPETITIONS[selection]||footballCache.competitionName||selection} • ${matchingResults.length} recent result${matchingResults.length===1?'':'s'}`;
 }
+let footballLoadPromise=null,footballLoadCompetition='',footballLoadGeneration=0;
 async function loadFootball(force=false){
   const status=qs('#footballStatus'),sel=qs('#footballCompetition');
   const competition=(sel?.value||state.footballCompetition||'PL').toUpperCase();
   const allMode=competition==='ALL';
-  state.footballCompetition=competition;saveState();
-  if(status)status.innerHTML='<span class="status"><span class="dot loading"></span>Loading football data…</span>';
-  try{
+  if(footballLoadPromise&&footballLoadCompetition===competition&&!force)return footballLoadPromise;
+  const generation=++footballLoadGeneration;footballLoadCompetition=competition;
+  if(state.footballCompetition!==competition){state.footballCompetition=competition;saveState()}
+  if(status)status.textContent='Refreshing football… saved fixtures remain available.';
+  const current=()=>generation===footballLoadGeneration;
+  const paint=()=>{if(current()&&appCurrentPage==='football')renderFootball()};
+  footballLoadPromise=(async()=>{
+    await new Promise(resolve=>setTimeout(resolve,0));paint();
     const params=new URLSearchParams({competition});if(force)params.set('refresh','1');
     const scheduleParams=new URLSearchParams();if(force)scheduleParams.set('refresh','1');
-    const leagueRequest=allMode?Promise.resolve({matches:[],standings:[],competition:{name:'All — worldwide'},updatedAt:new Date().toISOString()}):fetchJson(`/api/football?${params.toString()}`,{},18000).catch(error=>({error:error?.message||'Standings unavailable',matches:[],standings:[]}));
-    const [dataResult,scheduleResult]=await Promise.all([
-      leagueRequest,
-      fetchJson(`/api/football/schedule?${scheduleParams.toString()}`,{},26000).catch(error=>({error:error?.message||'Expanded schedule unavailable'}))
+    let received=0;const errors=[];
+    const leagueRequest=allMode?Promise.resolve({matches:[],standings:[],competition:{name:'All — worldwide'},updatedAt:nowIso()}):fetchJson('/api/football?'+params,{},18000);
+    await Promise.allSettled([
+      leagueRequest.then(data=>{
+        if(!current())return;if(data.error)throw Error(data.error);
+        footballCache={competition,matches:Array.isArray(data.matches)?data.matches:[],standings:Array.isArray(data.standings)?data.standings:[],competitionName:data.competition?.name||FOOTBALL_COMPETITIONS[competition]||competition,updatedAt:data.updatedAt||nowIso()};received++;paint();
+        if(status)status.textContent='League loaded • refreshing wider schedule…';
+      }).catch(error=>errors.push(error.message||'League unavailable')),
+      fetchJson('/api/football/schedule?'+scheduleParams,{},20000).then(data=>{
+        if(!current())return;if(!Array.isArray(data.matches))throw Error(data.error||'Schedule unavailable');
+        footballScheduleCache={matches:data.matches,competitions:data.competitions||[],provider:data.provider||'football data',updatedAt:data.updatedAt||nowIso(),warning:data.warning||''};received++;paint();
+        if(status)status.textContent='Fixtures loaded • refreshing league table…';
+      }).catch(error=>errors.push(error.message||'Schedule unavailable'))
     ]);
-    if(dataResult.error&&!Array.isArray(scheduleResult.matches))throw new Error(scheduleResult.error||dataResult.error);
-    const data=dataResult.error?{matches:[],standings:[],competition:{name:FOOTBALL_COMPETITIONS[competition]||competition},updatedAt:new Date().toISOString(),warning:dataResult.error}:dataResult;
-    footballCache={
-      competition,
-      matches:Array.isArray(data.matches)?data.matches:[],
-      standings:Array.isArray(data.standings)?data.standings:[],
-      competitionName:data.competition?.name||FOOTBALL_COMPETITIONS[competition]||competition,
-      updatedAt:data.updatedAt||new Date().toISOString()
-    };
-    if(Array.isArray(scheduleResult.matches)){
-      footballScheduleCache={
-        matches:scheduleResult.matches,
-        competitions:Array.isArray(scheduleResult.competitions)?scheduleResult.competitions:[],
-        provider:scheduleResult.provider||'football data',
-        updatedAt:scheduleResult.updatedAt||new Date().toISOString(),
-        warning:scheduleResult.warning||''
-      };
-    }else{
-      footballScheduleCache={matches:data.matches||[],competitions:[data.competition].filter(Boolean),provider:data.provider||'football data',updatedAt:data.updatedAt||new Date().toISOString(),warning:scheduleResult.error||''};
-    }
-    persistFootballSchedule();
-    renderFootball();
-    queueNativeDashboardSync();
-    refreshNativeLiveActivities(false);
-    if(nativeNotificationsSupported()&&state.notificationsEnabled)syncNativeNotifications();
-    const scheduleProvider=footballScheduleCache.provider||footballCache.competitionName;
-    const warning=[data.warning,footballScheduleCache.warning].filter(Boolean)[0]||'';
-    const note=warning?` • ${esc(warning)}`:(data.cache==='hit'?' • cached':'');
-    if(status)status.innerHTML=`<span class="status"><span class="dot live"></span>${esc(scheduleProvider)} • updated ${new Date(footballScheduleCache.updatedAt||footballCache.updatedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}${note}</span>`;
-  }catch(e){
-    if(status)status.innerHTML=`<span class="status"><span class="dot error"></span>${esc(e.message||'Football data unavailable')}</span>`;
-    if(qs('#footballFixtures'))qs('#footballFixtures').innerHTML='<div class="empty">Could not load fixtures.</div>';
-    if(qs('#footballResults'))qs('#footballResults').innerHTML='<div class="empty">Could not load results.</div>';
-    if(qs('#footballStandings'))qs('#footballStandings').innerHTML='<div class="empty">Could not load standings.</div>';
-  }
+    if(!current())return;
+    if(received){persistFootballSchedule();queueNativeDashboardSync();refreshNativeLiveActivities(false);if(nativeNotificationsSupported()&&state.notificationsEnabled)syncNativeNotifications()}
+    if(status)status.textContent=received?'Football updated'+(errors.length?' • '+errors.join(' • '):''):'Could not refresh • showing saved fixtures. '+errors.join(' • ');
+  })().finally(()=>{if(current())footballLoadPromise=null});
+  return footballLoadPromise;
 }
 
 let foundationRefreshPromise=null,lastFoundationRefresh=0;
@@ -8506,7 +8501,7 @@ function hideYoutubeChannel(channel){
 function unhideYoutubeChannel(channel){
   const name=decodeHtmlText(channel||'').trim();
   state.entertainment.youtubeHiddenChannels=(state.entertainment.youtubeHiddenChannels||[]).filter(item=>String(item).trim().toLowerCase()!==name.toLowerCase());
-  state.entertainment.youtubeForYouCache={version:5,items:[],signals:[],reason:'',updatedAt:''};
+  state.entertainment.youtubeForYouCache={version:6,items:[],signals:[],reason:'',updatedAt:''};
   saveState();renderYoutubeLibrary();toast(`${name} can appear again`);
 }
 function youtubeLibraryRowHtml(item,view){
@@ -8589,8 +8584,13 @@ function youtubeRecommendationSeeds(){
     ?state.entertainment.youtubeSearchHistory
     :[];
   const watched=Array.isArray(state.entertainment.youtubeHistoryDetailed)
-    ?state.entertainment.youtubeHistoryDetailed
+    ?state.entertainment.youtubeHistoryDetailed.filter(item=>!youtubeChannelHidden(item.channelTitle)&&!(state.entertainment.youtubeRecommendationHidden||[]).includes(String(item.id))&&
+      (item.completed||item.progressSeconds==null||Number(item.progressSeconds)>=30||(Number(item.durationSeconds)>0&&Number(item.progressSeconds)/Number(item.durationSeconds)>=.25)))
     :[];
+  (state.entertainment.youtubeWatchLater||[]).slice(0,6).forEach((item,i)=>{
+    if(youtubeChannelHidden(item.channelTitle))return;
+    const query=youtubeTitleKeywords(item.title);if(query)rows.push({kind:'saved',query,label:query,reason:'Because you saved “'+decodeHtmlText(item.title||'a video')+'”',score:108-i*4});
+  });
 
   // Recent searches are the strongest explicit signal.
   searches.slice(0,8).forEach((q,i)=>{
@@ -8660,10 +8660,14 @@ function youtubeRecommendationSeeds(){
   return deduped.slice(0,18);
 }
 
+function youtubeRecommendationFingerprint(){
+  return JSON.stringify({seeds:youtubeRecommendationSeeds().map(seed=>[seed.kind,seed.query]),hidden:state.entertainment.youtubeRecommendationHidden||[],channels:state.entertainment.youtubeHiddenChannels||[]});
+}
 function youtubeForYouCacheValid(){
   const cache=state.entertainment.youtubeForYouCache||{};
   const updated=Date.parse(cache.updatedAt||'');
-  return Number(cache.version)===5
+  return Number(cache.version)===6
+    &&cache.fingerprint===youtubeRecommendationFingerprint()
     &&Array.isArray(cache.items)
     &&cache.items.length
     &&Number.isFinite(updated)
@@ -8703,7 +8707,7 @@ function youtubeForYouPlan(force=false){
 }
 
 function youtubeDiversifyRecommendationGroups(groups,maxItems=14){
-  const watchedIds=new Set((state.entertainment.youtubeHistoryDetailed||[]).map(x=>String(x.id)));
+  const watchedIds=new Set([...(state.entertainment.youtubeHistoryDetailed||[]),...(state.entertainment.youtubeWatchLater||[])].map(x=>String(x.id)));
   const hiddenIds=new Set(state.entertainment.youtubeRecommendationHidden||[]);
   const recentSeenIds=new Set((state.entertainment.youtubeRecommendationSeen||[]).filter(x=>Date.now()-Number(x.seenAt)<7*86400000).map(x=>String(x.id)));
   const candidates=[];
@@ -8718,15 +8722,17 @@ function youtubeDiversifyRecommendationGroups(groups,maxItems=14){
     });
   }
 
-  const result=[],seenIds=new Set(),channelCounts=new Map();
+  const result=[],seenIds=new Set(),seenTitles=new Set(),channelCounts=new Map();
   const addWithChannelLimit=(limit,allowRecent=false)=>{
     for(const item of candidates){
       const id=String(item?.videoId||'');
       if(!id||seenIds.has(id)||watchedIds.has(id)||hiddenIds.has(id)||(typeof youtubeChannelHidden==='function'&&youtubeChannelHidden(item?.channelTitle)))continue;
       if(!allowRecent&&recentSeenIds.has(id))continue;
+      const title=decodeHtmlText(item.title||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+      if(title&&seenTitles.has(title))continue;
       const channel=decodeHtmlText(item.channelTitle||'YouTube').trim().toLowerCase()||'youtube';
       if((channelCounts.get(channel)||0)>=limit)continue;
-      seenIds.add(id);
+      seenIds.add(id);if(title)seenTitles.add(title);
       channelCounts.set(channel,(channelCounts.get(channel)||0)+1);
       result.push(item);
       if(result.length>=maxItems)return;
@@ -8760,17 +8766,19 @@ function youtubeExploreCardHtml(v,{forYou=false}={}){
   if(hidden||youtubeChannelHidden(v.channelTitle))return '';
 
   return `<article class="yt-explore-card" data-youtube-video="${esc(v.videoId)}" role="button" tabindex="0">
-    <img src="${esc(v.thumbnail||'')}" alt="">
+    <img loading="lazy" decoding="async" src="${esc(v.thumbnail||'')}" alt="">
     <div class="yt-explore-info">
       <div class="yt-explore-title">${esc(decodeHtmlText(v.title||'Video'))}</div>
       <div class="yt-explore-meta">${esc(decodeHtmlText(v.channelTitle||'YouTube'))}${v.publishedAt?' • '+new Date(v.publishedAt).toLocaleDateString('en-GB'):''}</div>
+      ${forYou&&v.recommendationReason?`<div class="section-note">${esc(v.recommendationReason)}</div>`:''}
       ${v.live?'<div class="yt-live-badge">● LIVE</div>':''}
       <div class="yt-card-actions"><button type="button" class="btn small" data-yt-later="${esc(v.videoId)}">${youtubeWatchLaterContains(v.videoId)?'✓ Saved':'+ Watch later'}</button><button type="button" class="btn small" data-yt-hide-channel="${esc(decodeHtmlText(v.channelTitle||'YouTube'))}">Hide channel</button>${forYou?`<button type="button" class="btn small yt-not-interested" data-yt-hide="${esc(v.videoId)}">Not interested</button>`:''}</div>
     </div>
   </article>`;
 }
 
-function renderYoutubeForYouItems(items,reason=''){
+function renderYoutubeForYouItems(items,reason='',{remember=true}={}){
+  if(youtubeExploreSection!=='foryou')return;
   const grid=qs('#youtubeExploreGrid');
   const status=qs('#youtubeExploreStatus');
   if(!grid||!status)return;
@@ -8790,10 +8798,19 @@ function renderYoutubeForYouItems(items,reason=''){
 
   grid.innerHTML=visible.map(v=>youtubeExploreCardHtml(v,{forYou:true})).join('');
   status.textContent=`${visible.length} personalised videos${reason?` • ${reason}`:''}`;
-  rememberYoutubeRecommendationImpressions(visible);
+  if(remember)rememberYoutubeRecommendationImpressions(visible);
 }
 
-async function loadYoutubeForYou(force=false){
+let youtubeForYouPending=null,youtubeForYouGeneration=0;
+function loadYoutubeForYou(force=false){
+  if(youtubeForYouPending&&!force)return youtubeForYouPending;
+  const generation=++youtubeForYouGeneration;
+  youtubeForYouPending=buildYoutubeForYou(force,generation).finally(()=>{if(generation===youtubeForYouGeneration)youtubeForYouPending=null});
+  return youtubeForYouPending;
+}
+async function buildYoutubeForYou(force,generation){
+  const isCurrent=()=>generation===youtubeForYouGeneration&&youtubeExploreSection==='foryou';
+  const fingerprint=youtubeRecommendationFingerprint();
   const grid=qs('#youtubeExploreGrid'),status=qs('#youtubeExploreStatus');
   if(!grid||!status)return;
 
@@ -8804,9 +8821,11 @@ async function loadYoutubeForYou(force=false){
     status.textContent='Watch or search for a few videos to train For You. Showing Trending for now.';
     try{
       const data=await fetchJson('/api/youtube/explore?section=trending',{},15000);
+      if(!isCurrent())return;
       const items=Array.isArray(data.items)?data.items:[];
       renderYoutubeForYouItems(items,'starter feed');
     }catch(e){
+      if(!isCurrent())return;
       grid.innerHTML='';
       status.textContent=e.message||'Could not load YouTube';
     }
@@ -8823,7 +8842,9 @@ async function loadYoutubeForYou(force=false){
   if(!plan.length)return;
 
   status.textContent=`Building a varied For You mix from ${plan.length} personal signal${plan.length===1?'':'s'}…`;
-  grid.innerHTML='<div class="empty">Mixing interests, channels and new discoveries…</div>';
+  if(cache.items?.length)renderYoutubeForYouItems(cache.items,'Refreshing your recommendations…',{remember:false});
+  else grid.innerHTML='<div class="empty">Mixing interests, channels and new discoveries…</div>';
+  const partialGroups=[];let previewed=!!cache.items?.length;
 
   try{
     // Every lane comes from explicit searches or watched topics/channels.
@@ -8834,9 +8855,15 @@ async function loadYoutubeForYou(force=false){
       else if(seed.kind==='channel'){params.set('order','relevance')}
       else{params.set('freshness',index%2?'year':'month');params.set('order',index%2?'relevance':'date')}
       if(force)params.set('refresh','1');
-      return fetchJson(`/api/youtube/search?${params.toString()}`,{},18000);
+      return fetchJson(`/api/youtube/search?${params.toString()}`,{},12000).then(data=>{
+        if(Array.isArray(data.items)&&data.items.length){
+          partialGroups.push({items:data.items,reason:seed.reason});
+          if(!previewed&&isCurrent()){const preview=youtubeDiversifyRecommendationGroups(partialGroups,16);if(preview.length>=4){renderYoutubeForYouItems(preview,'Loading more interests…',{remember:false});previewed=true}}
+        }return data;
+      });
     });
     const settled=await Promise.allSettled(requests);
+    if(!isCurrent())return;
     const groups=[];
 
     plan.forEach((seed,index)=>{
@@ -8853,7 +8880,8 @@ async function loadYoutubeForYou(force=false){
     const items=youtubeDiversifyRecommendationGroups(groups,16);
     const reason=youtubeRecommendationSummary(plan);
     state.entertainment.youtubeForYouCache={
-      version:5,
+      version:6,
+      fingerprint,
       items,
       signals:plan.map(seed=>({kind:seed.kind,query:seed.query,label:seed.label})),
       reason,
@@ -8862,6 +8890,7 @@ async function loadYoutubeForYou(force=false){
     saveState();
     renderYoutubeForYouItems(items,reason);
   }catch(e){
+    if(!isCurrent())return;
     const cached=Array.isArray(cache.items)?cache.items:[];
     if(cached.length){
       renderYoutubeForYouItems(cached,`${cache.reason||'previous recommendations'} • cached`);
@@ -8895,7 +8924,10 @@ function hideYoutubeRecommendation(videoId){
 }
 window.hideYoutubeRecommendation=hideYoutubeRecommendation;
 
+let youtubeExploreGeneration=0;
 async function loadYoutubeExplore(section='foryou',force=false){
+  const generation=++youtubeExploreGeneration;
+  if(section!=='foryou'){youtubeForYouGeneration++;youtubeForYouPending=null}
   youtubeExploreSection=section;
   qsa('[data-ytexplore]').forEach(b=>b.classList.toggle('active',b.dataset.ytexplore===section));
 
@@ -8910,6 +8942,7 @@ async function loadYoutubeExplore(section='foryou',force=false){
   try{
     const params=new URLSearchParams({section});if(force)params.set('refresh','1');
     const data=await fetchJson(`/api/youtube/explore?${params.toString()}`,{},15000);
+    if(generation!==youtubeExploreGeneration)return;
     const items=Array.isArray(data.items)?data.items:[];
     items.forEach(v=>{if(v?.videoId)youtubeMetaCache[v.videoId]={...v}});
 
@@ -8922,6 +8955,7 @@ async function loadYoutubeExplore(section='foryou',force=false){
     grid.innerHTML=items.map(v=>youtubeExploreCardHtml(v)).join('');
     status.textContent=`${items.length} videos • tap one to play`;
   }catch(e){
+    if(generation!==youtubeExploreGeneration)return;
     grid.innerHTML='';
     status.textContent=e.message||'Could not load Explore';
   }
@@ -9170,7 +9204,7 @@ function recordYoutubeContinue(id,progress={},invalidateRecommendations=false){
   };
   state.entertainment.youtubeHistoryDetailed=[item,...old.filter(x=>x.id!==id)].slice(0,50);
   if(invalidateRecommendations){
-    state.entertainment.youtubeForYouCache={version:5,items:[],signals:[],reason:'',updatedAt:''};
+    state.entertainment.youtubeForYouCache={version:6,items:[],signals:[],reason:'',updatedAt:''};
   }
   saveState();renderAllContinueWatching();renderYoutubeLibrary();
 }

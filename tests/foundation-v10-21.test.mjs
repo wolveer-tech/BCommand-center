@@ -36,7 +36,7 @@ test('football fixtures and Match Centre use the reachable FotMob website feed',
 });
 
 test('For You rotates recent impressions and requests fresher search lanes',()=>{
-  assert.match(html,/youtubeForYouCache:\{version:5/);
+  assert.match(html,/youtubeForYouCache:\{version:6/);
   assert.match(html,/youtubeRecommendationSeen:\[\]/);
   assert.match(html,/Date\.now\(\)-updated<15\*60\*1000/);
   assert.match(html,/function rememberYoutubeRecommendationImpressions/);

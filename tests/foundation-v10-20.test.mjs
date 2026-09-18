@@ -11,12 +11,12 @@ const privacy=read('../native-ios/CommandCentreNative/NativePrivacyLockManager.s
 const mirror=read('../native-ios/CommandCentreNative/NativeMirrorManager.swift');
 const webView=read('../native-ios/CommandCentreNative/CommandCentreWebView.swift');
 
-test('space intro runs once per app session and is lightweight on iPhone',()=>{
+test('space intro runs once per installation and is lightweight on iPhone',()=>{
   assert.match(motion,/sessionStorage\.getItem\(introSessionKey\)/);
   assert.match(motion,/sessionStorage\.setItem\(introSessionKey, '1'\)/);
   assert.match(motion,/startRequested = mode\(\) !== 'off' && !playedThisSession/);
   assert.match(motion,/width < 600 \? 1\.3 : 1\.75/);
-  assert.match(motion,/length:width<600\?360:1000/);
+  assert.match(motion,/length:width<600\?120:320/);
   assert.match(motionCss,/@supports\(-webkit-touch-callout:none\)/);
 });
 

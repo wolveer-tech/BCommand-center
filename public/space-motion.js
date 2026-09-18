@@ -6,16 +6,18 @@
   const introSessionKey = 'cc_space_intro_played_v1';
   let preference = 'cinematic';
   try { preference = localStorage.getItem('cc_motion_mode') || preference; } catch {}
-  let playedThisSession = false;
-  try { playedThisSession = sessionStorage.getItem(introSessionKey) === '1'; } catch {}
+  let playedThisSession = !!window.CommandCentreIntroPlayed;
+  try { playedThisSession = playedThisSession || sessionStorage.getItem(introSessionKey) === '1'; } catch {}
+  try { playedThisSession = playedThisSession || localStorage.getItem(introSessionKey) === '1'; } catch {}
   const mode = () => preference === 'off' ? 'off' : media.matches || preference === 'gentle' ? 'gentle' : 'cinematic';
   root.dataset.ccMotion = mode();
   if (mode() !== 'off' && !playedThisSession) root.dataset.ccLaunch = 'pending';
+  if (playedThisSession) markPlayed();
 
   let overlay, canvas, context, progress, raf = 0, elapsed = 0, previousTime = 0;
   let running = false, finishing = false, nativeLocked = !!window.CommandCentreNative?.privacyLock;
   let nativeKnown = !nativeLocked, startRequested = mode() !== 'off' && !playedThisSession;
-  let width = 0, height = 0, stars = [], safetyTimer, exitTimer, restoreFocus;
+  let width = 0, height = 0, stars = [], safetyTimer, exitTimer, restoreFocus, startedAt=0;
   let lastTrigger = null, pageAnimation = null;
   const inerted = [];
   const animations = new Set();
@@ -24,7 +26,7 @@
 
   function animate(element, frames, options) {
     if (!element?.animate || mode() === 'off') return null;
-    const animation = element.animate(frames, options);
+    let animation;try { animation = element.animate(frames, options); } catch { return null; }
     animations.add(animation);
     animation.finished.then(() => animations.delete(animation), () => animations.delete(animation));
     return animation;
@@ -33,7 +35,14 @@
     animations.forEach(a => a.cancel());
     animations.clear();
   }
+  function markPlayed() {
+    playedThisSession=true;
+    try { sessionStorage.setItem(introSessionKey, '1'); } catch {}
+    try { localStorage.setItem(introSessionKey, '1'); } catch {}
+    try { window.webkit?.messageHandlers?.nativeIntro?.postMessage({action:'played'}); } catch {}
+  }
   function restoreApp() {
+    clearTimeout(exitTimer);
     clearTimeout(safetyTimer);
     cancelAnimationFrame(raf);
     root.removeAttribute('data-cc-launch');
@@ -48,12 +57,16 @@
     window.dispatchEvent(new CustomEvent('cc-intro-complete'));
   }
   function finish(immediate = false) {
-    if (finishing || (!running && !root.hasAttribute('data-cc-launch'))) return;
+    if (!running && !root.hasAttribute('data-cc-launch')) return;
+    markPlayed();
+    if (immediate) {restoreApp();return;}
+    if (finishing) return;
     finishing = true;
     startRequested = false;
     cancelAnimationFrame(raf);
     clearTimeout(safetyTimer);
     if (immediate || mode() === 'off') { restoreApp(); return; }
+    exitTimer = setTimeout(restoreApp,mode()==='gentle'?180:570);
     overlay?.classList.add('cc-space-exit');
     const page = document.querySelector('.page.active');
     if (page) {
@@ -67,7 +80,6 @@
         });
       }
     }
-    exitTimer = setTimeout(restoreApp,mode()==='gentle'?180:570);
   }
   function resize() {
     if (!canvas || !context) return;
@@ -129,7 +141,7 @@
     if (!running || finishing) return;
     if (document.hidden || nativeLocked) { previousTime=0; return; }
     const dt = previousTime ? Math.min(time-previousTime,45) : 0;
-    previousTime=time;elapsed+=dt;
+    previousTime=time;elapsed=time-startedAt;
     try {
       draw(mode()==='gentle'?0:dt/1000, mode()==='gentle'?0:elapsed);
       const cinematicDuration = width < 600 ? 2550 : 3100;
@@ -145,8 +157,7 @@
     clearTimeout(exitTimer);clearTimeout(safetyTimer);
     cancelMotion();
     running=true;finishing=false;elapsed=0;previousTime=0;
-    playedThisSession=true;
-    try { sessionStorage.setItem(introSessionKey, '1'); } catch {}
+    markPlayed();startedAt=performance.now();
     restoreFocus=document.activeElement;
     root.dataset.ccLaunch='playing';
     overlay.setAttribute('aria-hidden','false');
@@ -161,10 +172,10 @@
       context=canvas.getContext('2d',{alpha:false});
       if(!context){finish(true);return;}
       resize();
-      stars=Array.from({length:width<600?360:1000},()=>seedStar({}));
+      stars=Array.from({length:width<600?120:320},()=>seedStar({}));
       draw(0,0);
       raf=requestAnimationFrame(frame);
-      safetyTimer=setTimeout(()=>finish(true),8000);
+      safetyTimer=setTimeout(()=>finish(true),4200);
     } catch {finish(true);}
   }
   function replay() {
@@ -211,7 +222,7 @@
   });
   addEventListener('resize',resize,{passive:true});
   document.addEventListener('visibilitychange',()=>{
-    if(document.hidden){cancelAnimationFrame(raf);previousTime=0;}
+    if(document.hidden){if(running||finishing)finish(true);cancelAnimationFrame(raf);previousTime=0;}
     else {start();if(running&&!finishing){cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}}
   });
   addEventListener('pagehide',()=>{clearTimeout(exitTimer);restoreApp();cancelMotion();});
@@ -225,14 +236,7 @@
   },true);
   media.addEventListener('change',()=>{root.dataset.ccMotion=mode();cancelMotion();if(running)finish(true);});
   // If initialization or the native status bridge fails, never leave a blocking splash.
-  safetyTimer=setTimeout(()=>{
-    if(root.hasAttribute('data-cc-launch')) {
-      const waitingForUnlock = nativeLocked && startRequested;
-      finish(true);
-      // A slow Face ID/passcode unlock should still get its first visible intro.
-      startRequested = waitingForUnlock;
-    }
-  },10000);
+  safetyTimer=setTimeout(()=>{if(root.hasAttribute('data-cc-launch'))finish(true);},4500);
   document.addEventListener('DOMContentLoaded',()=>{
     overlay=document.getElementById('ccSpaceIntro');canvas=document.getElementById('ccSpaceCanvas');
     progress=document.getElementById('ccSpaceProgress');

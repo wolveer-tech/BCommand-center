@@ -31,12 +31,12 @@ test('YouTube comments are fetched safely through the Worker',()=>{
 });
 
 test('trained YouTube For You contains no Trending filler',()=>{
-  const start=html.indexOf('async function loadYoutubeForYou');
+  const start=html.indexOf('async function buildYoutubeForYou');
   const end=html.indexOf('function hideYoutubeRecommendation',start);
   const source=html.slice(start,end);
   assert.match(source,/Trending remains a separate tab/);
   assert.doesNotMatch(source,/requests=\[[\s\S]*section=trending/);
-  assert.match(html,/youtubeForYouCache:\{version:5/);
+  assert.match(html,/youtubeForYouCache:\{version:6/);
 });
 
 test('YouTube progress cache resumes the embed from its saved timestamp',()=>{

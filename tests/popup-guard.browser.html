@@ -1,0 +1,17 @@
+<!doctype html><meta charset="utf-8"><title>Player popup guard test</title>
+<h1>Player popup guard test</h1><p id="result">Loading player policy…</p>
+<a href="/popup-test?news=1" target="_blank" rel="noopener">Open normal news link</a>
+<script>
+(async()=>{
+ const html=await (await fetch('/app')).text(),doc=new DOMParser().parseFromString(html,'text/html');
+ const frames=['mediaWatchFrame','liveFootballFrame'];let passed=0;
+ addEventListener('message',event=>{if(event.data?.kind!=='popup-test')return;if(event.data.popupBlocked&&event.data.navigationBlocked)passed++;
+ document.getElementById('result').textContent=passed+' / 2 player policies blocked popups and top navigation';
+ if(passed===2)document.title='PASS: both player guards';
+ });
+ for(const id of frames){const frame=document.createElement('iframe');frame.title=id;frame.setAttribute('sandbox',doc.getElementById(id).getAttribute('sandbox'));
+ frame.srcdoc=`<button onclick="let popupBlocked=false,navigationBlocked=false;try{popupBlocked=window.open('/popup-test?ad=1','_blank')===null}catch{popupBlocked=true}try{top.location.href='/popup-test?escaped=1'}catch{navigationBlocked=true}parent.postMessage({kind:'popup-test',popupBlocked,navigationBlocked},'*')">Test ${id}</button>`;
+ document.body.append(frame)}
+ document.getElementById('result').textContent='Click both player test buttons.';
+})();
+</script>
