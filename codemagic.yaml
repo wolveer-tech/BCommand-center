@@ -1,6 +1,6 @@
 workflows:
   ios-26-signulous-ipa:
-    name: Command Centre iOS 1.12.0 Widgets and Live Activities
+    name: Command Centre iOS 1.12.1 Widgets and Live Activities
     max_build_duration: 60
     instance_type: mac_mini_m2
 
@@ -194,7 +194,7 @@ workflows:
           set -euo pipefail
           cd "$CM_BUILD_DIR/build"
 
-          rm -f CommandCentre-iOS26-v1.12.0.ipa
+          rm -f CommandCentre-iOS26-v1.12.1.ipa
 
           # ditto preserves bundle metadata and executable permissions.
           /usr/bin/ditto \
@@ -203,19 +203,19 @@ workflows:
             --sequesterRsrc \
             --keepParent \
             Payload \
-            CommandCentre-iOS26-v1.12.0.ipa
+            CommandCentre-iOS26-v1.12.1.ipa
 
           echo "=== IPA contents ==="
-          /usr/bin/unzip -l CommandCentre-iOS26-v1.12.0.ipa | head -n 100
+          /usr/bin/unzip -l CommandCentre-iOS26-v1.12.1.ipa | head -n 100
 
           # Basic integrity test.
-          /usr/bin/unzip -t CommandCentre-iOS26-v1.12.0.ipa
+          /usr/bin/unzip -t CommandCentre-iOS26-v1.12.1.ipa
 
           echo
           echo "Created IPA:"
-          ls -lh CommandCentre-iOS26-v1.12.0.ipa
+          ls -lh CommandCentre-iOS26-v1.12.1.ipa
 
     artifacts:
-      - build/CommandCentre-iOS26-v1.12.0.ipa
+      - build/CommandCentre-iOS26-v1.12.1.ipa
       - build/ipa-structure-report.txt
       - build/xcodebuild-device.log
