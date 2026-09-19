@@ -36,7 +36,21 @@ test('trained YouTube For You contains no Trending filler',()=>{
   const source=html.slice(start,end);
   assert.match(source,/Trending remains a separate tab/);
   assert.doesNotMatch(source,/requests=\[[\s\S]*section=trending/);
-  assert.match(html,/youtubeForYouCache:\{version:6/);
+  assert.match(html,/youtubeForYouCache:\{version:7/);
+  assert.match(source,/youtubeRankRecommendationGroups/);
+});
+
+test('YouTube video dates use familiar relative labels',()=>{
+  assert.match(html,/function youtubeRelativeTime/);
+  assert.match(html,/youtubeRelativeTime\(v\.publishedAt\)/);
+  assert.doesNotMatch(html,/new Date\(v\.publishedAt\)\.toLocaleDateString/);
+});
+
+test('native Live Activities request push tokens before the first capability check completes',()=>{
+  const nativeDashboard=readFileSync(new URL('../native-ios/CommandCentreNative/NativeDashboardHandler.swift',import.meta.url),'utf8');
+  assert.match(nativeDashboard,/let pushType: PushType\? = \.token/);
+  assert.match(nativeDashboard,/\.pushToken == nil/);
+  assert.match(nativeDashboard,/existing\.removeValue\(forKey: matchID\)/);
 });
 
 test('YouTube progress cache resumes the embed from its saved timestamp',()=>{

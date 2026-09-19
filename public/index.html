@@ -3280,10 +3280,11 @@ const DEFAULT_STATE = {
     watchHistory:[],
     youtubeSearchHistory:[],
     youtubeRecommendationHidden:[],
+    youtubeRecommendationFeedback:[],
     youtubeRecommendationSeen:[],
     youtubeHiddenChannels:[],
     youtubeWatchLater:[],
-    youtubeForYouCache:{version:6,items:[],signals:[],reason:'',updatedAt:''},
+    youtubeForYouCache:{version:7,items:[],signals:[],reason:'',updatedAt:''},
     twitchHistory:[],
     gameStats:{best2048:0,bestSnake:0,bestReaction:null,triviaStreak:0,triviaBest:0,triviaLastDate:'',triviaLastCorrect:null,triviaLastAnswer:null,wordleStreak:0,wordleBest:0,wordleDate:'',wordleGuesses:[],wordleCurrent:'',wordleFinished:false,wordleWon:false},
     visit:{lastDate:'',streak:0}
@@ -3340,12 +3341,13 @@ state.entertainment={
   youtubeHistoryDetailed:Array.isArray(state.entertainment?.youtubeHistoryDetailed)?state.entertainment.youtubeHistoryDetailed:[],
   youtubeSearchHistory:Array.isArray(state.entertainment?.youtubeSearchHistory)?state.entertainment.youtubeSearchHistory.map(String).filter(Boolean).slice(0,20):[],
   youtubeRecommendationHidden:Array.isArray(state.entertainment?.youtubeRecommendationHidden)?state.entertainment.youtubeRecommendationHidden.map(String).filter(Boolean).slice(0,100):[],
+  youtubeRecommendationFeedback:Array.isArray(state.entertainment?.youtubeRecommendationFeedback)?state.entertainment.youtubeRecommendationFeedback.filter(x=>x&&x.id).slice(0,100):[],
   youtubeRecommendationSeen:Array.isArray(state.entertainment?.youtubeRecommendationSeen)?state.entertainment.youtubeRecommendationSeen.filter(x=>x?.id&&Number.isFinite(Number(x.seenAt))).slice(0,240):[],
   youtubeHiddenChannels:Array.isArray(state.entertainment?.youtubeHiddenChannels)?state.entertainment.youtubeHiddenChannels.map(String).filter(Boolean).slice(0,100):[],
   youtubeWatchLater:Array.isArray(state.entertainment?.youtubeWatchLater)?state.entertainment.youtubeWatchLater.filter(x=>x&&x.id).slice(0,100):[],
   youtubeForYouCache:(state.entertainment?.youtubeForYouCache&&typeof state.entertainment.youtubeForYouCache==='object')
     ?state.entertainment.youtubeForYouCache
-    :{version:6,items:[],signals:[],reason:'',updatedAt:''},
+    :{version:7,items:[],signals:[],reason:'',updatedAt:''},
   mediaHistory:Array.isArray(state.entertainment?.mediaHistory)?state.entertainment.mediaHistory:[],
   twitchHistory:Array.isArray(state.entertainment?.twitchHistory)?state.entertainment.twitchHistory:[],
   gameStats:{...DEFAULT_STATE.entertainment.gameStats,...(state.entertainment?.gameStats||{})},
@@ -6916,7 +6918,7 @@ async function loadLiveFootball(force=false,kind=liveSportKind()){
 
     const providerName=data.providerName||selected?.name||'Provider';
     const autoNote=liveFootballProviderId==='auto'?`Auto → ${providerName}`:providerName;
-    status.textContent=`${autoNote} • ${display} • ${liveFootballStreams.length} stream${liveFootballStreams.length===1?'':'s'} • ${data.mode==='scrape'?'page mode':data.mode==='dynamic'?'dynamic-data mode':'API mode'}`;
+    status.textContent=`${autoNote} • ${display} • ${liveFootballStreams.length} stream${liveFootballStreams.length===1?'':'s'} • ${data.mode==='sportsindx'?'live schedule mode':data.mode==='scrape'?'page mode':data.mode==='dynamic'?'dynamic-data mode':'API mode'}`;
   }catch(e){
     grid.innerHTML='';
     status.textContent=e.message||'Live provider unavailable';
@@ -8466,6 +8468,16 @@ function renderEntertainmentGames(){
 function decodeHtmlText(value){
   const t=document.createElement('textarea');t.innerHTML=String(value||'');return t.value;
 }
+function youtubeRelativeTime(value,now=Date.now()){
+  const timestamp=Date.parse(String(value||''));
+  if(!Number.isFinite(timestamp))return '';
+  const seconds=Math.round((timestamp-Number(now))/1000),future=seconds>0,absolute=Math.abs(seconds);
+  if(absolute<60)return future?'in a moment':'just now';
+  const units=[['year',365*86400],['month',30*86400],['day',86400],['hour',3600],['minute',60]];
+  const [label,size]=units.find(([,unit])=>absolute>=unit)||units[units.length-1];
+  const amount=Math.max(1,Math.floor(absolute/size)),text=`${amount} ${label}${amount===1?'':'s'}`;
+  return future?`in ${text}`:`${text} ago`;
+}
 
 let youtubeExploreSection='foryou';
 const youtubeMetaCache={};
@@ -8501,7 +8513,7 @@ function hideYoutubeChannel(channel){
 function unhideYoutubeChannel(channel){
   const name=decodeHtmlText(channel||'').trim();
   state.entertainment.youtubeHiddenChannels=(state.entertainment.youtubeHiddenChannels||[]).filter(item=>String(item).trim().toLowerCase()!==name.toLowerCase());
-  state.entertainment.youtubeForYouCache={version:6,items:[],signals:[],reason:'',updatedAt:''};
+  state.entertainment.youtubeForYouCache={version:7,items:[],signals:[],reason:'',updatedAt:''};
   saveState();renderYoutubeLibrary();toast(`${name} can appear again`);
 }
 function youtubeLibraryRowHtml(item,view){
@@ -8660,13 +8672,99 @@ function youtubeRecommendationSeeds(){
   return deduped.slice(0,18);
 }
 
+function youtubeRecommendationInterestProfile(){
+  const terms=new Map(),channels=new Map(),negativeTerms=new Map(),negativeChannels=new Map();
+  const addWords=(target,value,weight)=>youtubeTitleKeywords(value).split(/\s+/).filter(Boolean).forEach(word=>target.set(word,(target.get(word)||0)+weight));
+  const searches=state.entertainment.youtubeSearchHistory||[];
+  searches.slice(0,12).forEach((query,index)=>addWords(terms,query,Math.max(2,10-index*.65)));
+  (state.entertainment.youtubeWatchLater||[]).slice(0,20).forEach((item,index)=>{
+    addWords(terms,item.title,Math.max(2,8-index*.25));
+    const channel=decodeHtmlText(item.channelTitle||'').trim().toLowerCase();if(channel)channels.set(channel,(channels.get(channel)||0)+6);
+  });
+  (state.entertainment.youtubeHistoryDetailed||[]).slice(0,50).forEach((item,index)=>{
+    if(youtubeChannelHidden(item.channelTitle)||(state.entertainment.youtubeRecommendationHidden||[]).includes(String(item.id)))return;
+    const progress=Math.max(0,Number(item.progressSeconds)||0),duration=Math.max(0,Number(item.durationSeconds)||0);
+    const completion=duration?Math.min(1,progress/duration):(item.completed?1:.35);
+    if(progress<30&&!item.completed&&completion<.25)return;
+    const recency=Math.max(.2,1-index/55),weight=(2+completion*7)*recency;
+    addWords(terms,item.title,weight);
+    const channel=decodeHtmlText(item.channelTitle||'').trim().toLowerCase();if(channel)channels.set(channel,(channels.get(channel)||0)+weight);
+  });
+  (state.entertainment.youtubeRecommendationFeedback||[]).slice(0,100).forEach(item=>{
+    addWords(negativeTerms,item.keywords||item.title,12);
+    const channel=decodeHtmlText(item.channelTitle||'').trim().toLowerCase();if(channel)negativeChannels.set(channel,(negativeChannels.get(channel)||0)+6);
+  });
+  (state.entertainment.youtubeHiddenChannels||[]).forEach(channel=>negativeChannels.set(decodeHtmlText(channel||'').trim().toLowerCase(),100));
+  return {terms,channels,negativeTerms,negativeChannels};
+}
+function youtubeRecommendationCandidateScore(item,group,rank,profile,recentSeenIds){
+  const title=decodeHtmlText(item?.title||''),tokens=youtubeTitleKeywords(title).split(/\s+/).filter(Boolean);
+  const channel=decodeHtmlText(item?.channelTitle||'YouTube').trim().toLowerCase()||'youtube';
+  let score=Number(group?.seed?.score)||70;
+  score-=rank*1.35;
+  tokens.forEach(token=>{
+    score+=Math.min(16,(profile.terms.get(token)||0)*1.8);
+    score-=Math.min(36,(profile.negativeTerms.get(token)||0)*2.6);
+  });
+  score+=Math.min(20,(profile.channels.get(channel)||0)*1.9);
+  score-=Math.min(100,(profile.negativeChannels.get(channel)||0)*3);
+  const age=Date.now()-Date.parse(item?.publishedAt||'');
+  if(Number.isFinite(age)){
+    if(age<2*86400000)score+=12;
+    else if(age<7*86400000)score+=8;
+    else if(age<30*86400000)score+=4;
+    else if(age>2*365*86400000)score-=4;
+  }
+  if(item?.live)score+=6;
+  if(recentSeenIds.has(String(item?.videoId||'')))score-=28;
+  return score;
+}
+function youtubeRankRecommendationGroups(groups,maxItems=16){
+  const watchedIds=new Set([...(state.entertainment.youtubeHistoryDetailed||[]),...(state.entertainment.youtubeWatchLater||[])].map(item=>String(item.id)));
+  const hiddenIds=new Set(state.entertainment.youtubeRecommendationHidden||[]);
+  const recentSeenIds=new Set((state.entertainment.youtubeRecommendationSeen||[]).filter(item=>Date.now()-Number(item.seenAt)<7*86400000).map(item=>String(item.id)));
+  const profile=youtubeRecommendationInterestProfile(),candidates=[],knownIds=new Set();
+  groups.forEach((group,groupIndex)=>(group.items||[]).forEach((item,rank)=>{
+    const id=String(item?.videoId||''),channel=decodeHtmlText(item?.channelTitle||'YouTube').trim().toLowerCase()||'youtube';
+    if(!id||knownIds.has(id)||watchedIds.has(id)||hiddenIds.has(id)||youtubeChannelHidden(item?.channelTitle)||(profile.negativeChannels.get(channel)||0)>=100)return;
+    knownIds.add(id);
+    candidates.push({...item,recommendationReason:group.reason||'',recommendationGroup:groupIndex,recommendationScore:youtubeRecommendationCandidateScore(item,group,rank,profile,recentSeenIds)});
+  }));
+  const result=[],usedIds=new Set(),usedTitles=new Set(),channelCounts=new Map(),groupCounts=new Map(),topicCounts=new Map();
+  const available=item=>{
+    const id=String(item.videoId),title=decodeHtmlText(item.title||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(),channel=decodeHtmlText(item.channelTitle||'YouTube').trim().toLowerCase()||'youtube';
+    return !usedIds.has(id)&&(!title||!usedTitles.has(title))&&(channelCounts.get(channel)||0)<2;
+  };
+  const add=item=>{
+    const id=String(item.videoId),title=decodeHtmlText(item.title||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(),channel=decodeHtmlText(item.channelTitle||'YouTube').trim().toLowerCase()||'youtube';
+    usedIds.add(id);if(title)usedTitles.add(title);channelCounts.set(channel,(channelCounts.get(channel)||0)+1);groupCounts.set(item.recommendationGroup,(groupCounts.get(item.recommendationGroup)||0)+1);
+    youtubeTitleKeywords(item.title||'').split(/\s+/).filter(Boolean).forEach(token=>topicCounts.set(token,(topicCounts.get(token)||0)+1));
+    result.push(item);
+  };
+  // Give each selected personal signal one strong result before score-only filling.
+  groups.forEach((_,groupIndex)=>{
+    if(result.length>=maxItems)return;
+    const pick=candidates.filter(item=>item.recommendationGroup===groupIndex&&available(item)).sort((a,b)=>b.recommendationScore-a.recommendationScore)[0];
+    if(pick)add(pick);
+  });
+  while(result.length<maxItems){
+    const pick=candidates.filter(available).map(item=>{
+      const channel=decodeHtmlText(item.channelTitle||'YouTube').trim().toLowerCase()||'youtube';
+      const saturation=youtubeTitleKeywords(item.title||'').split(/\s+/).filter(Boolean).reduce((sum,token)=>sum+(topicCounts.get(token)||0),0);
+      return {item,score:item.recommendationScore-(channelCounts.get(channel)||0)*18-(groupCounts.get(item.recommendationGroup)||0)*4-saturation*3};
+    }).sort((a,b)=>b.score-a.score)[0]?.item;
+    if(!pick)break;add(pick);
+  }
+  return result.map(({recommendationGroup,recommendationScore,...item})=>item);
+}
+
 function youtubeRecommendationFingerprint(){
-  return JSON.stringify({seeds:youtubeRecommendationSeeds().map(seed=>[seed.kind,seed.query]),hidden:state.entertainment.youtubeRecommendationHidden||[],channels:state.entertainment.youtubeHiddenChannels||[]});
+  return JSON.stringify({seeds:youtubeRecommendationSeeds().map(seed=>[seed.kind,seed.query]),hidden:state.entertainment.youtubeRecommendationHidden||[],feedback:state.entertainment.youtubeRecommendationFeedback||[],channels:state.entertainment.youtubeHiddenChannels||[]});
 }
 function youtubeForYouCacheValid(){
   const cache=state.entertainment.youtubeForYouCache||{};
   const updated=Date.parse(cache.updatedAt||'');
-  return Number(cache.version)===6
+  return Number(cache.version)===7
     &&cache.fingerprint===youtubeRecommendationFingerprint()
     &&Array.isArray(cache.items)
     &&cache.items.length
@@ -8769,7 +8867,7 @@ function youtubeExploreCardHtml(v,{forYou=false}={}){
     <img loading="lazy" decoding="async" src="${esc(v.thumbnail||'')}" alt="">
     <div class="yt-explore-info">
       <div class="yt-explore-title">${esc(decodeHtmlText(v.title||'Video'))}</div>
-      <div class="yt-explore-meta">${esc(decodeHtmlText(v.channelTitle||'YouTube'))}${v.publishedAt?' • '+new Date(v.publishedAt).toLocaleDateString('en-GB'):''}</div>
+      <div class="yt-explore-meta">${esc(decodeHtmlText(v.channelTitle||'YouTube'))}${v.publishedAt?' • '+esc(youtubeRelativeTime(v.publishedAt)):''}</div>
       ${forYou&&v.recommendationReason?`<div class="section-note">${esc(v.recommendationReason)}</div>`:''}
       ${v.live?'<div class="yt-live-badge">● LIVE</div>':''}
       <div class="yt-card-actions"><button type="button" class="btn small" data-yt-later="${esc(v.videoId)}">${youtubeWatchLaterContains(v.videoId)?'✓ Saved':'+ Watch later'}</button><button type="button" class="btn small" data-yt-hide-channel="${esc(decodeHtmlText(v.channelTitle||'YouTube'))}">Hide channel</button>${forYou?`<button type="button" class="btn small yt-not-interested" data-yt-hide="${esc(v.videoId)}">Not interested</button>`:''}</div>
@@ -8857,8 +8955,8 @@ async function buildYoutubeForYou(force,generation){
       if(force)params.set('refresh','1');
       return fetchJson(`/api/youtube/search?${params.toString()}`,{},12000).then(data=>{
         if(Array.isArray(data.items)&&data.items.length){
-          partialGroups.push({items:data.items,reason:seed.reason});
-          if(!previewed&&isCurrent()){const preview=youtubeDiversifyRecommendationGroups(partialGroups,16);if(preview.length>=4){renderYoutubeForYouItems(preview,'Loading more interests…',{remember:false});previewed=true}}
+          partialGroups.push({items:data.items,reason:seed.reason,seed});
+          if(!previewed&&isCurrent()){const preview=youtubeRankRecommendationGroups(partialGroups,16);if(preview.length>=4){renderYoutubeForYouItems(preview,'Loading more interests…',{remember:false});previewed=true}}
         }return data;
       });
     });
@@ -8869,7 +8967,7 @@ async function buildYoutubeForYou(force,generation){
     plan.forEach((seed,index)=>{
       const result=settled[index];
       const items=result?.status==='fulfilled'&&Array.isArray(result.value?.items)?result.value.items:[];
-      if(items.length)groups.push({items,reason:seed.reason});
+      if(items.length)groups.push({items,reason:seed.reason,seed});
     });
 
     if(!groups.length){
@@ -8877,10 +8975,10 @@ async function buildYoutubeForYou(force,generation){
       throw rejected?.reason||new Error('YouTube returned no recommendations.');
     }
 
-    const items=youtubeDiversifyRecommendationGroups(groups,16);
+    const items=youtubeRankRecommendationGroups(groups,16);
     const reason=youtubeRecommendationSummary(plan);
     state.entertainment.youtubeForYouCache={
-      version:6,
+      version:7,
       fingerprint,
       items,
       signals:plan.map(seed=>({kind:seed.kind,query:seed.query,label:seed.label})),
@@ -8907,13 +9005,20 @@ function hideYoutubeRecommendation(videoId){
   const id=String(videoId||'').trim();
   if(!id)return;
 
+  const cache=state.entertainment.youtubeForYouCache||{};
+  const item=youtubeMetaCache[id]||(cache.items||[]).find(value=>String(value?.videoId||'')===id)||{};
+  const feedback={id,keywords:youtubeTitleKeywords(item.title||''),channelTitle:decodeHtmlText(item.channelTitle||''),createdAt:nowIso()};
+  state.entertainment.youtubeRecommendationFeedback=[
+    feedback,
+    ...(state.entertainment.youtubeRecommendationFeedback||[]).filter(value=>String(value?.id||'')!==id)
+  ].slice(0,100);
+
   const hidden=state.entertainment.youtubeRecommendationHidden||[];
   state.entertainment.youtubeRecommendationHidden=[
     id,
     ...hidden.filter(x=>x!==id)
   ].slice(0,100);
 
-  const cache=state.entertainment.youtubeForYouCache||{};
   if(Array.isArray(cache.items)){
     cache.items=cache.items.filter(x=>String(x?.videoId||'')!==id);
   }
@@ -8963,7 +9068,7 @@ async function loadYoutubeExplore(section='foryou',force=false){
 
 const youtubeCommentsRuntime={videoId:'',items:[],nextPageToken:'',loading:false};
 function youtubeCommentHtml(comment){
-  const date=comment.publishedAt?new Date(comment.publishedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
+  const date=comment.publishedAt?youtubeRelativeTime(comment.publishedAt):'';
   const details=[comment.likeCount?`👍 ${Number(comment.likeCount).toLocaleString()}`:'',comment.replyCount?`${Number(comment.replyCount).toLocaleString()} replies`:''].filter(Boolean).join(' • ');
   return `<article class="youtube-comment">
     ${comment.authorImage?`<img class="youtube-comment-avatar" src="${esc(comment.authorImage)}" alt="">`:'<span class="youtube-comment-avatar"></span>'}
@@ -9116,7 +9221,7 @@ async function searchYoutubeVideos(){
       <img src="${esc(v.thumbnail||'')}" alt="">
       <div>
         <div class="youtube-result-title">${esc(decodeHtmlText(v.title||'Video'))}</div>
-        <div class="youtube-result-meta">${esc(decodeHtmlText(v.channelTitle||'YouTube'))}${v.publishedAt?' • '+new Date(v.publishedAt).toLocaleDateString('en-GB'):''}</div>
+        <div class="youtube-result-meta">${esc(decodeHtmlText(v.channelTitle||'YouTube'))}${v.publishedAt?' • '+esc(youtubeRelativeTime(v.publishedAt)):''}</div>
         <div class="feed-actions"><button class="btn small youtube-watch-result" data-video-id="${esc(v.videoId)}">▶ Watch</button><button class="btn small" data-yt-later="${esc(v.videoId)}">${youtubeWatchLaterContains(v.videoId)?'✓ Saved':'+ Watch later'}</button><button class="btn small" data-yt-hide-channel="${esc(decodeHtmlText(v.channelTitle||'YouTube'))}">Hide channel</button></div>
       </div>
     </article>`).join('');
@@ -9204,7 +9309,7 @@ function recordYoutubeContinue(id,progress={},invalidateRecommendations=false){
   };
   state.entertainment.youtubeHistoryDetailed=[item,...old.filter(x=>x.id!==id)].slice(0,50);
   if(invalidateRecommendations){
-    state.entertainment.youtubeForYouCache={version:6,items:[],signals:[],reason:'',updatedAt:''};
+    state.entertainment.youtubeForYouCache={version:7,items:[],signals:[],reason:'',updatedAt:''};
   }
   saveState();renderAllContinueWatching();renderYoutubeLibrary();
 }

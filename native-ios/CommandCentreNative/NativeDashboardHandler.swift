@@ -144,7 +144,18 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
             return
         }
 
-        let existing = Dictionary(Activity<FootballMatchAttributes>.activities.map { ($0.attributes.matchID, $0) }, uniquingKeysWith: { current, _ in current })
+        var existing = Dictionary(Activity<FootballMatchAttributes>.activities.map { ($0.attributes.matchID, $0) }, uniquingKeysWith: { current, _ in current })
+        // A Live Activity created before the server capability check completed
+        // has no push token and can only update while the app is awake. Replace
+        // it once server push is available so the Dynamic Island keeps moving
+        // from the Worker cron even with Command Centre closed.
+        if NativeLiveActivityPushManager.shared.serverConfigured {
+            let localOnly = existing.filter { $0.value.pushToken == nil }
+            for (matchID, activity) in localOnly {
+                await activity.end(nil, dismissalPolicy: .immediate)
+                existing.removeValue(forKey: matchID)
+            }
+        }
         for activity in existing.values where !followedMatchIDs.contains(activity.attributes.matchID) {
             await activity.end(nil, dismissalPolicy: .immediate)
         }
@@ -184,7 +195,11 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
                 kickoff: match.kickoff
             )
             do {
-                let pushType: PushType? = NativeLiveActivityPushManager.shared.serverConfigured ? .token : nil
+                // Ask ActivityKit for a push token immediately. The previous
+                // serverConfigured gate raced the first dashboard sync and made
+                // otherwise valid activities local-only until the app reopened.
+                // Unsigned builds still fall through to the local fallback below.
+                let pushType: PushType? = .token
                 let scheduledStart = match.kickoff.addingTimeInterval(-5 * 60)
                 if !match.contentState.isLive && secondsUntilKickoff > 90 * 60 && scheduledStart > .now {
                     let alert = AlertConfiguration(
