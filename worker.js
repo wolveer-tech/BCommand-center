@@ -528,13 +528,13 @@ function liveProviderConfig(env,providerId='1'){
 
   return {
     id:'3',
-    name:String(env.LIVE_PROVIDER_3_NAME||'Provider 3').trim().slice(0,60)||'Provider 3',
-    mode:(['scrape','dynamic'].includes(String(env.LIVE_PROVIDER_3_MODE||'api').trim().toLowerCase())?String(env.LIVE_PROVIDER_3_MODE||'api').trim().toLowerCase():'api'),
-    baseUrl:String(env.LIVE_PROVIDER_3_BASE_URL||'').trim(),
+    name:String(env.LIVE_PROVIDER_3_NAME||'SportsindX').trim().slice(0,60)||'SportsindX',
+    mode:(['api','scrape','dynamic','sportsindx'].includes(String(env.LIVE_PROVIDER_3_MODE||'sportsindx').trim().toLowerCase())?String(env.LIVE_PROVIDER_3_MODE||'sportsindx').trim().toLowerCase():'sportsindx'),
+    baseUrl:String(env.LIVE_PROVIDER_3_BASE_URL||'https://sportsindx.st').trim(),
     apiPath:String(env.LIVE_PROVIDER_3_API_PATH||'/api/v1/streams').trim()||'/api/v1/streams',
     scrapePath:String(env.LIVE_PROVIDER_3_SCRAPE_PATH||'/').trim()||'/',
-    pageHosts:String(env.LIVE_PROVIDER_3_ALLOWED_PAGE_HOSTS||'').trim(),
-    embedHosts:String(env.LIVE_PROVIDER_3_ALLOWED_EMBED_HOSTS||'').trim(),
+    pageHosts:String(env.LIVE_PROVIDER_3_ALLOWED_PAGE_HOSTS||'sportsindx.st').trim(),
+    embedHosts:String(env.LIVE_PROVIDER_3_ALLOWED_EMBED_HOSTS||'playerpromax.xyz,ch.nexa.st,topembed.online,embedindia.st,embed.st,embed.sportspatrika.com,rockystream.st,streameo.online').trim(),
     linkHints:String(env.LIVE_PROVIDER_3_LINK_HINTS||'').trim(),
     maxScrapePages:Number(env.LIVE_PROVIDER_3_MAX_SCRAPE_PAGES)||12,
     apiKey:String(env.LIVE_PROVIDER_3_API_KEY||'').trim(),
@@ -1292,6 +1292,100 @@ async function fetchAuthorisedApiProvider(cfg,base,category){
   return data;
 }
 
+function decodeSportsindxAttribute(value){
+  return String(value||'')
+    .replace(/&quot;|&#34;|&#x22;/gi,'"')
+    .replace(/&#39;|&#x27;|&apos;/gi,"'")
+    .replace(/&amp;/gi,'&')
+    .replace(/&lt;/gi,'<')
+    .replace(/&gt;/gi,'>')
+    .replace(/&nbsp;|&#160;/gi,' ');
+}
+function sportsindxAttribute(tag,name){
+  const safe=String(name||'').replace(/[^a-z0-9_-]/gi,'');
+  if(!safe)return '';
+  const match=String(tag||'').match(new RegExp(`\\b${safe}\\s*=\\s*(["'])([\\s\\S]*?)\\1`,'i'));
+  return match?decodeSportsindxAttribute(match[2]).trim():'';
+}
+function sportsindxText(value){
+  return decodeSportsindxAttribute(String(value||'').replace(/<[^>]*>/g,' ')).replace(/\s+/g,' ').trim();
+}
+function sportsindxCategorySlugs(category){
+  const key=String(category||'soccer').toLowerCase();
+  if(key==='soccer')return new Set(['football']);
+  if(key==='basketball')return new Set(['basketball']);
+  if(key==='tennis')return new Set(['tennis']);
+  if(key==='athletics')return new Set(['athletics','track-and-field']);
+  return new Set([key]);
+}
+function sportsindxListingEvents(html,category){
+  const accepted=sportsindxCategorySlugs(category),events=[],seen=new Set();
+  const sections=String(html||'').matchAll(/<details\b([^>]*)>([\s\S]*?)<\/details>/gi);
+  for(const section of sections){
+    const sectionTag=section[1]||'',body=section[2]||'',slug=sportsindxAttribute(sectionTag,'data-category').toLowerCase();
+    if(!accepted.has(slug))continue;
+    const categoryName=sportsindxText(body.match(/<span\b[^>]*class=["'][^"']*category-name[^"']*["'][^>]*>([\s\S]*?)<\/span>/i)?.[1])||slug;
+    for(const link of body.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)){
+      const tag=link[1]||'',className=sportsindxAttribute(tag,'class');
+      if(!/(^|\s)match-row(\s|$)/i.test(className))continue;
+      const href=sportsindxAttribute(tag,'href'),slugMatch=href.match(/^\/match\/([a-z0-9-]+)\/?$/i);
+      if(!slugMatch||seen.has(slugMatch[1]))continue;
+      const timestamp=Number(sportsindxAttribute(link[0],'data-timestamp'))||0;
+      const ends=Number(sportsindxAttribute(link[0],'data-ends'))||0;
+      const title=sportsindxAttribute(tag,'data-title')||sportsindxText(link[2]);
+      if(!title)continue;
+      seen.add(slugMatch[1]);
+      events.push({
+        id:slugMatch[1],slug:slugMatch[1],name:title,category:String(category||'soccer'),league:categoryName,
+        timestamp:timestamp>1e12?Math.floor(timestamp/1000):timestamp,
+        ends:ends>1e12?Math.floor(ends/1000):ends,
+        home:sportsindxAttribute(tag,'data-home'),away:sportsindxAttribute(tag,'data-away')
+      });
+    }
+  }
+  return events.sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
+}
+function sportsindxEventStream(html,event,base){
+  const button=[...String(html||'').matchAll(/<button\b([^>]*)>/gi)].find(match=>/(^|\s)match-row(\s|$)/i.test(sportsindxAttribute(match[1],'class')));
+  if(!button)return null;
+  let links=[];
+  try{links=JSON.parse(sportsindxAttribute(button[1],'data-links')||'[]')}catch{return null}
+  const sources=[],seen=new Set();
+  (Array.isArray(links)?links:[]).forEach((link,index)=>{
+    const url=safeHttpsUrl(link?.embedUrl||link?.embed_url||link?.url||'',base);
+    if(!url||seen.has(url))return;
+    seen.add(url);
+    const parts=[link?.name||link?.user||link?.provider,link?.channel,link?.quality||(link?.hd?'HD':'')].map(value=>String(value||'').trim()).filter(Boolean);
+    sources.push({url,label:parts.join(' • ').slice(0,60)||`Source ${index+1}`});
+  });
+  if(!sources.length)return null;
+  return {
+    id:event.id,name:event.name,category:event.category,league:event.league,
+    match_timestamp:event.timestamp||null,thumbnail_url:new URL('/uploads/sportsindx-2.png',base).toString(),
+    sources,
+    team1:event.home?{name:event.home,logo:''}:null,
+    team2:event.away?{name:event.away,logo:''}:null
+  };
+}
+async function fetchSportsindxProvider(cfg,base,category){
+  const headers={accept:'text/html,application/xhtml+xml','user-agent':'Mozilla/5.0 (compatible; CommandCentre/1.0; +https://bcommand-center.wolvesgidaree.workers.dev)'};
+  const listingResponse=await fetch(base.toString(),{headers,redirect:'follow'});
+  if(!listingResponse.ok){const err=new Error(`${cfg.name} schedule HTTP ${listingResponse.status}`);err.status=502;throw err}
+  const events=sportsindxListingEvents(await listingResponse.text(),category);
+  const now=Math.floor(Date.now()/1000),windowed=events
+    .filter(event=>!event.ends||event.ends>=now-30*60)
+    .slice(0,Math.max(1,Math.min(24,Number(cfg.maxScrapePages)||12)));
+  const settled=await Promise.allSettled(windowed.map(async event=>{
+    const eventUrl=new URL(`/match/${encodeURIComponent(event.slug)}`,base);
+    if(!allowedProviderPageUrl(eventUrl.toString(),base,cfg))return null;
+    const response=await fetch(eventUrl.toString(),{headers,redirect:'follow'});
+    if(!response.ok)return null;
+    return sportsindxEventStream(await response.text(),event,base);
+  }));
+  const streams=settled.flatMap(result=>result.status==='fulfilled'&&result.value?[result.value]:[]);
+  return {count:streams.length,streams,providerCount:events.length};
+}
+
 async function liveContentStreams(env,category='soccer',requestUrl='https://local/api/live-content',force=false,providerId='1'){
   const cfg=liveProviderConfig(env,providerId);
   const base=normaliseBaseUrl(cfg.baseUrl);
@@ -1318,7 +1412,9 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
     cache=null;key=null;
   }
 
-  const data=cfg.mode==='scrape'
+  const data=cfg.mode==='sportsindx'
+    ?await fetchSportsindxProvider(cfg,base,safeCategory)
+    :cfg.mode==='scrape'
     ?await scrapeAuthorisedProvider(cfg,base,safeCategory)
     :cfg.mode==='dynamic'
       ?await fetchDynamicProvider(cfg,base,safeCategory)
@@ -1400,7 +1496,7 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
         key=new Request(u.toString());
       }
       await cache.put(key,new Response(JSON.stringify(payload),{
-        headers:{'content-type':'application/json','cache-control':'public,max-age=120'}
+        headers:{'content-type':'application/json','cache-control':`public,max-age=${cfg.mode==='sportsindx'?45:120}`}
       }));
     }catch{}
   }
@@ -3121,7 +3217,7 @@ async function commandCentreStatus(env,live=false){
   });
   services.push({name:'FotMob website feed',state:'Built in',kind:'info',detail:'The complete football schedule and Match Centre prefer FotMob’s public website data, including lineups, incidents and available match statistics.'});
   services.push({name:'World Athletics calendar',state:'Built in',kind:'info',detail:'Athletics meetings and result availability come from the official global calendar.'});
-  services.push({name:'Apple Push Notification service',state:apnsConfigured(env)?'Configured':'Needs setup',kind:apnsConfigured(env)?'ok':'warn',detail:apnsConfigured(env)?'APNs credentials are present for immediate native Messages and Transfers alerts.':'Add the combined APNS_CONFIG secret after enabling Push Notifications for the app identifier.'});
+  services.push({name:'Apple Push Notification service',state:apnsConfigured(env)?'Configured':'Needs setup',kind:apnsConfigured(env)?'ok':'warn',detail:apnsConfigured(env)?'APNs credentials are present for native alerts and closed-app Live Activity updates.':'Add the combined APNS_CONFIG secret after enabling Push Notifications and Live Activities for the app identifier.'});
   services.push({
     name:'Tennis live data',
     state:env.API_TENNIS_KEY?'Configured':'Needs setup',
