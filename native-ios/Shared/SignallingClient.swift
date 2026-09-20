@@ -48,19 +48,30 @@ actor SignallingClient {
     }
 
     func createRoom() async throws -> String {
-        let code = String(Int.random(in: 100000...999999))
         let url = baseURL.appending(path: "/api/mirror/room")
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONSerialization.data(withJSONObject: ["code": code])
-        let (_, response) = try await session.data(for: req)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw URLError(.badServerResponse)
+        for _ in 0..<8 {
+            let code = String(Int.random(in: 100000...999999))
+            var req = URLRequest(url: url)
+            req.httpMethod = "POST"
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.httpBody = try JSONSerialization.data(withJSONObject: ["code": code])
+            let (_, response) = try await session.data(for: req)
+            guard let http = response as? HTTPURLResponse else {
+                throw URLError(.badServerResponse)
+            }
+            if http.statusCode == 409 { continue }
+            guard (200..<300).contains(http.statusCode) else {
+                throw URLError(.badServerResponse)
+            }
+            self.code = code
+            self.lastSignalID = 0
+            return code
         }
-        self.code = code
-        self.lastSignalID = 0
-        return code
+        throw NSError(
+            domain: "CommandCentreMirror",
+            code: 409,
+            userInfo: [NSLocalizedDescriptionKey: "Could not find a free mirror code. Please try again."]
+        )
     }
 
     func publishNativeRoom(channel: String, code: String) async throws {

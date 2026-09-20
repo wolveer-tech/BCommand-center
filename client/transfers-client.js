@@ -3,9 +3,14 @@ import { createSHA256, createMD5 } from 'hash-wasm';
 const $ = id => document.getElementById(id);
 const escape = text => String(text ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const formatBytes = n => n < 1024 ? `${n} B` : n < 1048576 ? `${(n/1024).toFixed(1)} KB` : n < 1073741824 ? `${(n/1048576).toFixed(1)} MB` : `${(n/1073741824).toFixed(2)} GB`;
+const deviceAdded = value => {
+  const date=new Date(Number(value));
+  return Number.isFinite(date.getTime()) ? `Added ${date.toLocaleString([], {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}` : 'Paired device';
+};
 const KEY = 'cc_transfer_device_v1';
+const DEVICE_SYNC_KEY = 'cc_transfer_devices_changed_v1';
 let session; try { session = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
-let view='inbox', compose='file', files=[], items=[], config, controller, refreshing=false, preparedUrl, verifyItem, loadSequence=0, renderedSignature='';
+let view='inbox', compose='file', files=[], items=[], config, controller, refreshing=false, preparedUrl, verifyItem, loadSequence=0, renderedSignature='', deviceRefresh, pendingDeviceRemoval, pendingDeviceRemovalTimer;
 const status = (message='', error=false) => { $('trStatus').textContent=message; $('trStatus').classList.toggle('error',error); };
 const notice = promise => Promise.resolve(promise).catch(e => status(e.message,true));
 
@@ -31,10 +36,36 @@ async function connect(kind){
 }
 
 async function devices(){
-  const result=await api('/devices'), selected=$('trRecipient').value;
-  $('trRecipient').innerHTML='<option value="all">All my other devices</option>'+result.devices.filter(d=>d.id!==session.device.id).map(d=>`<option value="${d.id}">${escape(d.name)}</option>`).join('');
+  if(deviceRefresh)return deviceRefresh;
+  deviceRefresh=(async()=>{
+  const result=await api('/devices'), selected=$('trRecipient').value, current=session?.device.id;
+  $('trRecipient').innerHTML='<option value="all">All my other devices</option>'+result.devices.filter(d=>d.id!==current).map(d=>`<option value="${d.id}">${escape(d.name)}</option>`).join('');
   if([...$('trRecipient').options].some(o=>o.value===selected))$('trRecipient').value=selected;
-  $('trDeviceList').innerHTML=result.devices.map(d=>`<div class="tr-device"><span>${escape(d.name)} ${d.id===session.device.id?'<span class="tr-muted">· This device</span>':''}</span>${d.id===session.device.id?'':`<button class="btn small" data-tr-revoke="${d.id}">Remove</button>`}</div>`).join('');
+  $('trDeviceList').innerHTML=result.devices.map(d=>`<div class="tr-device"><span class="tr-device-name"><strong>${escape(d.name)} ${d.id===current?'<span class="tr-muted">· This device</span>':''}</strong><small>${escape(deviceAdded(d.created_at))}</small></span>${d.id===current?'':`<button type="button" class="btn small" data-tr-revoke="${d.id}" data-tr-name="${escape(d.name)}">Remove</button>`}</div>`).join('');
+  pendingDeviceRemoval=null;clearTimeout(pendingDeviceRemovalTimer);return result;
+  })();
+  try{return await deviceRefresh;}finally{deviceRefresh=null;}
+}
+
+function devicesPanelOpen(){return !$('trDevicesPanel').hidden;}
+function announceDeviceChange(detail){
+  const updatedAt=Date.now();localStorage.setItem(DEVICE_SYNC_KEY,String(updatedAt));
+  window.dispatchEvent(new CustomEvent('cc-transfer-devices-changed',{detail:{...detail,updatedAt}}));
+}
+function cancelPendingDeviceRemoval(){
+  clearTimeout(pendingDeviceRemovalTimer);pendingDeviceRemoval=null;
+  document.querySelectorAll('[data-tr-revoke]').forEach(button=>{button.textContent='Remove';button.classList.remove('red');button.disabled=false;});
+}
+async function removeDevice(button){
+  const targetId=button.dataset.trRevoke,name=button.dataset.trName||'this device';
+  if(pendingDeviceRemoval!==targetId){
+    cancelPendingDeviceRemoval();pendingDeviceRemoval=targetId;button.textContent='Tap again to remove';button.classList.add('red');
+    status(`Tap again within 5 seconds to disconnect ${name} from Messages and Transfers.`);
+    pendingDeviceRemovalTimer=setTimeout(()=>{if(pendingDeviceRemoval===targetId){cancelPendingDeviceRemoval();status('Device removal cancelled.');}},5000);return;
+  }
+  clearTimeout(pendingDeviceRemovalTimer);pendingDeviceRemoval=null;button.disabled=true;
+  const result=await api('/devices/'+targetId,undefined,'DELETE');await devices();announceDeviceChange({removedId:targetId});
+  status(`${result.removed?.name||name} was removed from Messages and Transfers.`);
 }
 
 async function open(){
@@ -42,7 +73,8 @@ async function open(){
   try {
     config=await api('/status');$('trIdentity').textContent='Connected as '+config.device.name;
     $('trFileLimit').textContent=config.files?`Up to ${formatBytes(config.maxFileBytes)} per file. Keep the app open while sending. On iPhone, choose a file from Files to avoid Photos export conversions.`:config.storageError;
-    $('trPushState').textContent=config.push?'Transfer notifications are connected on this device.':config.pushConfigured?'Enable notifications to receive alerts when the app is closed.':'Add the existing VAPID push secrets to enable background alerts.';
+    const nativeAlerts=window.CommandCentreNative?.nativeNotifications&&localStorage.getItem('cc_native_inbox_alerts')==='1';
+    $('trPushState').textContent=nativeAlerts?'Native transfer alerts are registered for iOS background checks.':config.push?'Transfer notifications are connected on this device.':config.pushConfigured?'Enable notifications to receive alerts when the app is closed.':'Add the existing VAPID push secrets to enable background alerts.';
     await devices();await load();
     const registration=await navigator.serviceWorker?.getRegistration();const sub=await registration?.pushManager?.getSubscription();
     if(sub && config.push) await api('/push',{subscription:sub.toJSON()});
@@ -198,6 +230,13 @@ async function action(name,itemId){
 }
 
 async function notifications(){
+  const native=window.CommandCentreNative?.nativeNotifications&&window.webkit?.messageHandlers?.nativeNotifications;
+  if(native){
+    native.postMessage({action:'registerInboxAlerts',token:session?.token||''});
+    localStorage.setItem('cc_native_inbox_alerts','1');
+    config.push=true;$('trPushState').textContent='Native transfer alerts are registered for iOS background checks.';status('Allow iPhone notifications when prompted. Transfers refresh while open and during iOS background checks when closed.');
+    return;
+  }
   if(!('Notification'in window)||!('PushManager'in window)||!navigator.serviceWorker)throw new Error('On iPhone, open this site in Safari, add it to the Home Screen, then enable notifications there. The native wrapper does not support Web Push.');
   if(!config.pushConfigured)throw new Error('Add the VAPID push secrets in Cloudflare first.');
   const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('Allow notifications in your device settings to receive transfer alerts.');
@@ -217,9 +256,9 @@ function bind(){
   $('trDeviceName').value=/iPhone|iPad|iPod/.test(navigator.userAgent)?'My iPhone':'My computer';
   $('trClaim').onclick=()=>notice(connect('claim'));$('trBootstrap').onclick=()=>notice(connect('bootstrap'));
   $('trRefresh').onclick=()=>notice(open());$('trPair').onclick=()=>notice(pair());$('trNotifications').onclick=()=>notice(notifications());
-  $('trDevicesToggle').onclick=()=>{$('trDevicesPanel').hidden=!$('trDevicesPanel').hidden;$('trDevicesToggle').setAttribute('aria-expanded',String(!$('trDevicesPanel').hidden));};
-  $('trSignOut').onclick=()=>notice((async()=>{if(!confirm('Disconnect this device? You can pair it again later.'))return;await api('/devices/'+session.device.id,undefined,'DELETE');session=null;localStorage.removeItem(KEY);clearPrepared();connection();window.dispatchEvent(new Event('cc-transfer-session'));status('Device disconnected.');})());
-  $('trDeviceList').onclick=e=>{const b=e.target.closest('[data-tr-revoke]');if(b)notice((async()=>{if(!confirm('Remove this device from Transfers?'))return;await api('/devices/'+b.dataset.trRevoke,undefined,'DELETE');await devices();})());};
+  $('trDevicesToggle').onclick=()=>{$('trDevicesPanel').hidden=!$('trDevicesPanel').hidden;$('trDevicesToggle').setAttribute('aria-expanded',String(devicesPanelOpen()));if(devicesPanelOpen()&&session)notice(devices());};
+  $('trSignOut').onclick=()=>notice((async()=>{if(!confirm('Disconnect this device? You can pair it again later.'))return;const removedId=session.device.id;await api('/devices/'+removedId,undefined,'DELETE');session=null;localStorage.removeItem(KEY);announceDeviceChange({removedId});clearPrepared();connection();window.dispatchEvent(new Event('cc-transfer-session'));status('Device disconnected.');})());
+  $('trDeviceList').onclick=e=>{const button=e.target.closest('[data-tr-revoke]');if(button)notice(removeDevice(button));};
   document.querySelectorAll('[data-tr-compose]').forEach(b=>b.onclick=()=>{compose=b.dataset.trCompose;document.querySelectorAll('[data-tr-compose]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));$('trFileCompose').hidden=compose!=='file';$('trTextCompose').hidden=compose==='file';$('trTextLabel').textContent=compose==='link'?'Link':'Message';$('trText').placeholder=compose==='link'?'https://…':'Write a message…';$('trSend').textContent='Send '+(compose==='file'?'files':compose);});
   document.querySelectorAll('[data-tr-view]').forEach(b=>b.onclick=()=>{view=b.dataset.trView;document.querySelectorAll('[data-tr-view]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));notice(load());});
   $('trFiles').onchange=e=>selectFiles(e.target.files);$('trSend').onclick=()=>notice(send());$('trCancel').onclick=()=>controller?.abort();
@@ -232,9 +271,12 @@ function bind(){
   window.addEventListener('cc-transfer-session',()=>{let next;try{next=JSON.parse(localStorage.getItem(KEY));}catch{}if(next?.token===session?.token)return;session=next;connection();if(session&&$('transfersPage').classList.contains('active'))notice(open());});
   window.addEventListener('beforeunload',e=>{if(controller){e.preventDefault();e.returnValue='';}});
   window.addEventListener('cc-transfer-native',e=>status(e.detail.message,!!e.detail.error));
-  window.addEventListener('storage',e=>{if(e.key===KEY){try{session=JSON.parse(e.newValue);}catch{session=null;}connection();if(session&&$('transfersPage').classList.contains('active'))notice(open());}});
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('transfersPage').classList.contains('active'))notice(load(false,true));});
-  setInterval(()=>{if(!document.hidden&&session&&$('transfersPage').classList.contains('active')&&!controller)notice(load(false,true));},15000);
+  window.addEventListener('cc-native-notification-status',e=>{if(e.detail?.permission==='granted'){localStorage.setItem('cc_native_inbox_alerts','1');$('trPushState').textContent='Native transfer alerts are registered for iOS background checks.';}else if(e.detail?.permission==='denied'){localStorage.removeItem('cc_native_inbox_alerts');$('trPushState').textContent='Enable alerts after allowing Command Centre notifications in iPhone Settings.';}});
+  window.addEventListener('storage',e=>{if(e.key===KEY){try{session=JSON.parse(e.newValue);}catch{session=null;}connection();if(session&&$('transfersPage').classList.contains('active'))notice(open());}else if(e.key===DEVICE_SYNC_KEY&&session&&devicesPanelOpen())notice(devices());});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('transfersPage').classList.contains('active')){notice(load(false,true));if(devicesPanelOpen())notice(devices());}});
+  window.addEventListener('focus',()=>{if(session&&$('transfersPage').classList.contains('active')&&devicesPanelOpen())notice(devices());});
+  window.addEventListener('online',()=>{if(session&&$('transfersPage').classList.contains('active')){notice(load(false,true));if(devicesPanelOpen())notice(devices());}});
+  setInterval(()=>{if(!document.hidden&&session&&$('transfersPage').classList.contains('active')&&!controller){notice(load(false,true));if(devicesPanelOpen())notice(devices());}},15000);
   connection();if($('transfersPage').classList.contains('active'))notice(open());
 }
 bind();

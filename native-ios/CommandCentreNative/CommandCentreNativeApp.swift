@@ -1,11 +1,58 @@
 import SwiftUI
+import AVFAudio
 
 @main
 struct CommandCentreNativeApp: App {
+    @UIApplicationDelegateAdaptor(NativePushAppDelegate.self) private var appDelegate
+    @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var privacyLock = NativePrivacyLockManager.shared
+
+    init() {
+        _ = NativeNotificationHandler.shared
+        _ = NativeDashboardHandler.shared
+        NativeLiveActivityPushManager.shared.start()
+        BackgroundRefreshManager.shared.register()
+        configureBackgroundPlayback()
+    }
+
     var body: some Scene {
         WindowGroup {
-            CommandCentreWebView()
-                .ignoresSafeArea(.container, edges: .bottom)
+            ZStack {
+                CommandCentreWebView()
+                    .privacySensitive()
+                    .opacity(privacyLock.isLocked || privacyLock.isShielded ? 0 : 1)
+                    .allowsHitTesting(!privacyLock.isLocked && !privacyLock.isShielded)
+
+                if privacyLock.isLocked || privacyLock.isShielded {
+                    NativePrivacyLockView(manager: privacyLock)
+                }
+            }
+            .background(Color(red: 0.02, green: 0.04, blue: 0.09))
+            .ignoresSafeArea(.container, edges: .bottom)
+            .onAppear {
+                privacyLock.handleScenePhase(.active)
+                privacyLock.authenticateIfNeeded()
+            }
+            .onOpenURL { url in
+                NativeDeepLinkRouter.shared.open(url)
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            privacyLock.handleScenePhase(newPhase)
+            if newPhase == .background {
+                BackgroundRefreshManager.shared.scheduleNext()
+            }
+            if newPhase == .active { Task { await NativeLiveActivityPushManager.shared.sync(force: true) } }
+        }
+    }
+
+    private func configureBackgroundPlayback() {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(.playback, mode: .moviePlayback)
+            try session.setActive(true)
+        } catch {
+            print("Background media audio session could not be activated: \(error.localizedDescription)")
         }
     }
 }
