@@ -1,73 +1,10 @@
-const SHELL_CACHE = 'command-centre-shell-v10.27.1';
-const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/state-safety.js',
-  '/football-following.js',
-  '/manifest.webmanifest',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/transfers.css',
-  '/transfers.bundle.js',
-  '/messages.css',
-  '/messages.bundle.js',
-  '/space-motion.css',
-  '/space-motion.js'
-];
-
 self.addEventListener('install', event => {
-  event.waitUntil((async () => {
-    try {
-      const cache = await caches.open(SHELL_CACHE);
-      await cache.addAll(APP_SHELL);
-    } catch (error) {
-      console.warn('App shell could not be fully cached', error);
-    }
-    await self.skipWaiting();
-  })());
+  // Activate notification-click fixes as soon as the updated worker is found.
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.filter(key => key.startsWith('command-centre-shell-') && key !== SHELL_CACHE).map(key => caches.delete(key)));
-    await self.clients.claim();
-  })());
-});
-
-self.addEventListener('fetch', event => {
-  const request = event.request;
-  if (request.method !== 'GET') return;
-  const url = new URL(request.url);
-  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
-
-  if (request.mode === 'navigate') {
-    event.respondWith((async () => {
-      try {
-        const response = await fetch(request);
-        if (response.ok) (await caches.open(SHELL_CACHE)).put('/index.html', response.clone());
-        return response;
-      } catch {
-        return (await caches.match('/index.html')) || Response.error();
-      }
-    })());
-    return;
-  }
-
-  if (APP_SHELL.includes(url.pathname)) {
-    event.respondWith((async () => {
-      const cached = await caches.match(request);
-      if (cached) {
-        event.waitUntil(fetch(request).then(async response => {
-          if (response.ok) await (await caches.open(SHELL_CACHE)).put(request, response.clone());
-        }).catch(() => {}));
-        return cached;
-      }
-      const response = await fetch(request);
-      if (response.ok) await (await caches.open(SHELL_CACHE)).put(request, response.clone());
-      return response;
-    })());
-  }
+  event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener('push', event => {

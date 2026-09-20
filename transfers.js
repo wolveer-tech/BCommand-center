@@ -1,5 +1,4 @@
 import { AwsClient } from 'aws4fetch';
-import { apnsConfigured } from './apns.js';
 
 const PREFIX = '/api/transfers';
 export const PART_SIZE = 16 * 1024 * 1024;
@@ -120,23 +119,10 @@ export async function handleTransfers(request, env, ctx, sendOne) {
       return reply(await makeDevice(env, data.name, await hash(code)), 201);
     }
     const device = await authenticate(request, env);
-    if (path === '/apns' && method === 'POST') {
-      const data = await body(request), token = String(data.token || '').trim().toLowerCase();
-      if (!/^[a-f0-9]{32,256}$/.test(token)) fail(400, 'A valid APNs device token is required.');
-      if (!apnsConfigured(env)) fail(503, 'Add the combined APNS_CONFIG Worker secret first.');
-      try {
-        await run(env, 'UPDATE transfer_devices SET apns_token=?,apns_updated_at=? WHERE id=? AND revoked_at IS NULL', token, Date.now(), device.id);
-      } catch (error) {
-        if (/no such column: apns_/i.test(String(error?.message || ''))) fail(503, 'Run migrations/0010_native_apns.sql on the existing D1 database.');
-        throw error;
-      }
-      return reply({ ok: true, immediate: true });
-    }
     if (path === '/status' && method === 'GET') {
       let files = true, storageError = ''; try { storage(env); } catch (e) { files = false; storageError = e.message; }
       return reply({ device: { id: device.id, name: device.name }, files, storageError, push: !!device.push_subscription,
-        pushConfigured: !!(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY), nativePush: !!device.apns_token,
-        nativePushConfigured: apnsConfigured(env), maxFileBytes: maxSize(env), partSize: PART_SIZE });
+        pushConfigured: !!(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY), maxFileBytes: maxSize(env), partSize: PART_SIZE });
     }
     if (path === '/devices' && method === 'GET') return reply({ devices: await all(env, 'SELECT id,name,created_at FROM transfer_devices WHERE revoked_at IS NULL ORDER BY created_at') });
     if (path === '/pair' && method === 'POST') {
@@ -147,27 +133,11 @@ export async function handleTransfers(request, env, ctx, sendOne) {
     }
     const deviceMatch = path.match(/^\/devices\/([a-f0-9-]{36})$/);
     if (deviceMatch && method === 'DELETE') {
-      const targetId = deviceMatch[1];
-      const target = await one(env, 'SELECT id,name FROM transfer_devices WHERE id=? AND revoked_at IS NULL', targetId);
-      if (!target) fail(404, 'That device is already disconnected or could not be found.');
       await env.DB.batch([
-        env.DB.prepare('UPDATE transfer_devices SET revoked_at=?,push_subscription=NULL WHERE id=? AND revoked_at IS NULL').bind(Date.now(), targetId),
-        env.DB.prepare('DELETE FROM transfer_pairings WHERE created_by=?').bind(targetId),
-        env.DB.prepare('DELETE FROM transfer_deliveries WHERE device_id=?').bind(targetId)
+        env.DB.prepare('UPDATE transfer_devices SET revoked_at=?,push_subscription=NULL WHERE id=?').bind(Date.now(), deviceMatch[1]),
+        env.DB.prepare('DELETE FROM transfer_pairings WHERE created_by=?').bind(deviceMatch[1])
       ]);
-      // Companion tables are optional on older deployments, so clean each one
-      // independently without making ordinary device removal depend on a migration.
-      for (const statement of [
-        'DELETE FROM notification_companion_codes WHERE device_id=?',
-        'DELETE FROM notification_companion_links WHERE device_id=?',
-        'DELETE FROM notifications WHERE device_id=?',
-        'DELETE FROM devices WHERE device_id=?',
-        'DELETE FROM morning_briefing_preferences WHERE device_id=?',
-        'DELETE FROM news_preferences WHERE device_id=?',
-        'DELETE FROM football_notification_teams WHERE device_id=?',
-        'DELETE FROM football_notification_preferences WHERE device_id=?'
-      ]) await run(env, statement, targetId).catch(() => {});
-      return reply({ ok: true, removed: target, updatedAt: Date.now() });
+      return reply({ ok: true });
     }
     if (path === '/push' && method === 'POST') {
       const { subscription } = await body(request);
@@ -295,30 +265,18 @@ export async function cleanTransfers(env) {
 }
 
 export async function flushTransferPushes(env, sendOne) {
-  const webReady = !!(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY), nativeReady = apnsConfigured(env);
-  if (!env.DB || (!webReady && !nativeReady)) return;
+  if (!env.DB || !env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) return;
   try {
-    const base = `FROM transfer_deliveries p JOIN transfers t ON t.id=p.transfer_id JOIN transfer_devices d ON d.id=p.device_id
-      WHERE p.sent_at IS NULL AND p.attempts<5 AND p.next_try<=? AND d.revoked_at IS NULL AND TARGETS
-      AND t.state='ready' AND (t.expires_at IS NULL OR t.expires_at>?) LIMIT 30`;
-    let pending;
-    try { pending = await all(env, `SELECT p.*,d.push_subscription,d.apns_token ${base.replace('TARGETS','(d.push_subscription IS NOT NULL OR d.apns_token IS NOT NULL)')}`, Date.now(), Date.now()); }
-    catch (error) { if (!/no such column: d\.apns_token/i.test(String(error?.message || ''))) throw error; pending = await all(env, `SELECT p.*,d.push_subscription,NULL AS apns_token ${base.replace('TARGETS','d.push_subscription IS NOT NULL')}`, Date.now(), Date.now()); }
-    for (const row of pending) {
+    const rows = await all(env, `SELECT p.*,d.push_subscription FROM transfer_deliveries p
+      JOIN transfers t ON t.id=p.transfer_id JOIN transfer_devices d ON d.id=p.device_id
+      WHERE p.sent_at IS NULL AND p.attempts<5 AND p.next_try<=? AND d.revoked_at IS NULL AND d.push_subscription IS NOT NULL
+      AND t.state='ready' AND (t.expires_at IS NULL OR t.expires_at>?) LIMIT 30`,Date.now(),Date.now());
+    for (const row of rows) {
       const claimed = await one(env, `UPDATE transfer_deliveries SET attempts=attempts+1,next_try=? WHERE transfer_id=? AND device_id=? AND next_try<=? AND sent_at IS NULL RETURNING transfer_id`,Date.now()+120000,row.transfer_id,row.device_id,Date.now());
       if (!claimed) continue;
       try {
-        let delivered = false, lastError = null;
-        if (row.apns_token && nativeReady) {
-          try { await sendOne({apnsToken:row.apns_token,deviceId:row.device_id,title:'Command Centre Transfer',body:'A new transfer is ready. Open Transfers to view it.',url:'/#transfers',id:'transfer-'+row.transfer_id},env); delivered = true; }
-          catch (error) { lastError = error; console.warn('Transfer APNs delivery failed; trying Web Push companion', error?.message || error); }
-        }
-        if (!delivered && row.push_subscription && webReady) {
-          const sub = JSON.parse(row.push_subscription);
-          await sendOne({endpoint:sub.endpoint,p256dh:sub.keys.p256dh,auth:sub.keys.auth,title:'Command Centre Transfer',body:'A new transfer is ready. Open Transfers to view it.',url:'/#transfers',id:'transfer-'+row.transfer_id},env);
-          delivered = true;
-        }
-        if (!delivered) throw lastError || new Error('No configured notification route is available for this device.');
+        const sub = JSON.parse(row.push_subscription);
+        await sendOne({endpoint:sub.endpoint,p256dh:sub.keys.p256dh,auth:sub.keys.auth,title:'Command Centre Transfer',body:'A new transfer is ready. Open Transfers to view it.',url:'/#transfers',id:'transfer-'+row.transfer_id},env);
         await run(env,'UPDATE transfer_deliveries SET sent_at=? WHERE transfer_id=? AND device_id=?',Date.now(),row.transfer_id,row.device_id);
       } catch { console.error('Transfer notification will retry',row.transfer_id); }
     }

@@ -1,126 +1,8 @@
-import {handleLiveActivities,refreshLiveActivityPushes} from './live-activities.js';
 import { sendPushNotification } from '@mmmike/web-push/send';
-import { handleTransfers, cleanTransfers, flushTransferPushes, authenticateTransferDevice, readTransferJSON } from './transfers.js';
+import { handleTransfers, cleanTransfers, flushTransferPushes } from './transfers.js';
 import { handleMessages, cleanMessages, flushMessagePushes } from './messages.js';
-import { apnsConfigured, sendAPNSNotification } from './apns.js';
 
 function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json','access-control-allow-origin':'*','cache-control':'no-store'}})}
-const companionEncoder=new TextEncoder();
-const companionHex=bytes=>[...new Uint8Array(bytes)].map(value=>value.toString(16).padStart(2,'0')).join('');
-const companionHash=async value=>companionHex(await crypto.subtle.digest('SHA-256',companionEncoder.encode(String(value||''))));
-const companionSecret=()=>companionHex(crypto.getRandomValues(new Uint8Array(32)));
-function companionCode(){const value=crypto.getRandomValues(new Uint32Array(1))[0]%1000000000;return String(value).padStart(9,'0')}
-function cleanCompanionSubscription(subscription){
-  let endpoint;try{endpoint=new URL(subscription?.endpoint)}catch{throw Object.assign(new Error('The Web Push subscription is invalid.'),{status:400})}
-  if(endpoint.protocol!=='https:'||!/(^|\.)(push\.apple\.com|fcm\.googleapis\.com|push\.services\.mozilla\.com|notify\.windows\.com)$/.test(endpoint.hostname)||!subscription?.keys?.p256dh||!subscription?.keys?.auth)throw Object.assign(new Error('The browser returned an unsupported Web Push subscription.'),{status:400});
-  return {endpoint:endpoint.toString(),p256dh:String(subscription.keys.p256dh),auth:String(subscription.keys.auth)};
-}
-async function ensureNotificationCompanionTables(env){
-  await env.DB.batch([
-    env.DB.prepare(`CREATE TABLE IF NOT EXISTS notification_companion_codes (code_hash TEXT PRIMARY KEY,device_id TEXT NOT NULL UNIQUE,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL)`),
-    env.DB.prepare(`CREATE TABLE IF NOT EXISTS notification_companion_links (device_id TEXT PRIMARY KEY,token_hash TEXT NOT NULL UNIQUE,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`),
-    env.DB.prepare(`CREATE TABLE IF NOT EXISTS notification_companion_attempts (scope TEXT PRIMARY KEY,attempts INTEGER NOT NULL,expires_at INTEGER NOT NULL)`),
-    env.DB.prepare(`CREATE TABLE IF NOT EXISTS devices (device_id TEXT PRIMARY KEY,endpoint TEXT NOT NULL,p256dh TEXT NOT NULL,auth TEXT NOT NULL,timezone TEXT NOT NULL DEFAULT 'Europe/London',updated_at INTEGER NOT NULL)`),
-    env.DB.prepare(`CREATE TABLE IF NOT EXISTS notifications (id TEXT PRIMARY KEY,device_id TEXT NOT NULL,item_id TEXT NOT NULL,kind TEXT NOT NULL,due_at TEXT NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,url TEXT NOT NULL,frequency TEXT NOT NULL DEFAULT 'none',local_date TEXT NOT NULL,local_time TEXT NOT NULL,timezone TEXT NOT NULL,sent INTEGER NOT NULL DEFAULT 0)`)
-  ]);
-}
-async function checkNotificationCompanionRate(request,env){
-  const raw=request.headers.get('CF-Connecting-IP')||request.headers.get('x-forwarded-for')||'unknown';
-  const scope=await companionHash(`claim:${raw}`),now=Date.now(),expires=now+10*60*1000;
-  const row=await env.DB.prepare(`INSERT INTO notification_companion_attempts(scope,attempts,expires_at) VALUES(?,1,?) ON CONFLICT(scope) DO UPDATE SET attempts=CASE WHEN notification_companion_attempts.expires_at<=? THEN 1 ELSE notification_companion_attempts.attempts+1 END,expires_at=CASE WHEN notification_companion_attempts.expires_at<=? THEN excluded.expires_at ELSE notification_companion_attempts.expires_at END RETURNING attempts`).bind(scope,expires,now,now).first();
-  if(Number(row?.attempts)>20)throw Object.assign(new Error('Too many link attempts. Wait ten minutes and try again.'),{status:429});
-}
-async function authenticateNotificationCompanion(request,env){
-  const token=(request.headers.get('authorization')||'').match(/^Bearer ([a-f0-9]{64})$/i)?.[1];
-  if(!token)throw Object.assign(new Error('This notification companion is not linked.'),{status:401});
-  const row=await env.DB.prepare(`SELECT l.device_id,d.name FROM notification_companion_links l JOIN transfer_devices d ON d.id=l.device_id WHERE l.token_hash=? AND d.revoked_at IS NULL`).bind(await companionHash(token.toLowerCase())).first();
-  if(!row)throw Object.assign(new Error('This notification companion link is no longer active.'),{status:401});
-  return row;
-}
-function notificationCompanionItem(item,deviceId,timezone){
-  const dueAt=String(item?.dueAt||''),due=new Date(dueAt);if(!Number.isFinite(due.getTime()))return null;
-  const kind=['reminder','event'].includes(item?.kind)?item.kind:null;if(!kind)return null;
-  const sourceId=String(item.id||'').slice(0,180);if(!sourceId)return null;
-  return {id:`companion:${deviceId}:${sourceId}`.slice(0,240),deviceId,itemId:String(item.itemId||'').slice(0,180),kind,dueAt:due.toISOString(),title:String(item.title||'Command Centre').slice(0,140),body:String(item.body||'').slice(0,500),url:String(item.url||'/').slice(0,500),frequency:['none','daily','every2days','weekly','monthly','yearly'].includes(item.frequency)?item.frequency:'none',localDate:String(item.localDate||'').slice(0,10),localTime:String(item.localTime||'').slice(0,5),timezone};
-}
-async function syncNotificationCompanion(device,body,env,ctx){
-  const linked=await env.DB.prepare('SELECT d.endpoint FROM notification_companion_links l JOIN devices d ON d.device_id=l.device_id WHERE l.device_id=?').bind(device.id).first();
-  if(!linked)throw Object.assign(new Error('Finish linking the Safari Home Screen receiver first.'),{status:409});
-  const timezone=String(body?.timezone||'Europe/London').slice(0,80),items=(Array.isArray(body?.items)?body.items:[]).slice(0,1200).map(item=>notificationCompanionItem(item,device.id,timezone)).filter(item=>item?.id&&item.itemId);
-  await env.DB.prepare('UPDATE devices SET timezone=?,updated_at=? WHERE device_id=?').bind(timezone,Date.now(),device.id).run();
-  await env.DB.prepare("DELETE FROM notifications WHERE device_id=? AND sent=0 AND kind IN ('reminder','event')").bind(device.id).run();
-  for(const item of items)await env.DB.prepare('INSERT OR REPLACE INTO notifications(id,device_id,item_id,kind,due_at,title,body,url,frequency,local_date,local_time,timezone,sent) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,0)').bind(item.id,item.deviceId,item.itemId,item.kind,item.dueAt,item.title,item.body,item.url,item.frequency,item.localDate,item.localTime,item.timezone).run();
-
-  const briefing=body?.briefing||{};await ensureBriefingTable(env);
-  const briefingTime=/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(briefing.localTime||''))?String(briefing.localTime):'07:30';
-  await env.DB.prepare(`INSERT INTO morning_briefing_preferences(device_id,enabled,local_time,timezone,city,bible_text,last_sent_date,updated_at) VALUES(?,?,?,?,?,?,NULL,?) ON CONFLICT(device_id) DO UPDATE SET enabled=excluded.enabled,local_time=excluded.local_time,timezone=excluded.timezone,city=excluded.city,bible_text=excluded.bible_text,updated_at=excluded.updated_at`).bind(device.id,briefing.enabled===false?0:1,briefingTime,timezone,String(briefing.city||'London').slice(0,100),String(briefing.bibleText||'').slice(0,180),Date.now()).run();
-
-  const news=body?.news||{};await ensureNewsTables(env);
-  const pushMode=['major','all','off'].includes(news.pushMode)?news.pushMode:'major';
-  await env.DB.prepare(`INSERT INTO news_preferences(device_id,world_enabled,financial_enabled,push_mode,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(device_id) DO UPDATE SET world_enabled=excluded.world_enabled,financial_enabled=excluded.financial_enabled,push_mode=excluded.push_mode,updated_at=excluded.updated_at`).bind(device.id,news.worldEnabled===false?0:1,news.financialEnabled===false?0:1,pushMode,Date.now()).run();
-
-  const football=body?.football||{},teams=(Array.isArray(football.teams)?football.teams:[]).map(team=>({id:Number(team?.id)||0,name:String(team?.name||'').slice(0,120),crest:String(team?.crest||'').slice(0,500)})).filter(team=>team.id).filter((team,index,all)=>all.findIndex(other=>other.id===team.id)===index).slice(0,20),primary=teams[0]||null;
-  await ensureFootballNotificationTables(env);
-  await env.DB.prepare(`INSERT INTO football_notification_preferences(device_id,enabled,team_id,team_name,team_crest,timezone,notify_24h,notify_1h,notify_kickoff,notify_final,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(device_id) DO UPDATE SET enabled=excluded.enabled,team_id=excluded.team_id,team_name=excluded.team_name,team_crest=excluded.team_crest,timezone=excluded.timezone,notify_24h=excluded.notify_24h,notify_1h=excluded.notify_1h,notify_kickoff=excluded.notify_kickoff,notify_final=excluded.notify_final,updated_at=excluded.updated_at`).bind(device.id,football.enabled===false?0:1,primary?.id||null,primary?.name||'',primary?.crest||'',timezone,football.notify24h===false?0:1,football.notify1h===false?0:1,football.notifyKickoff===false?0:1,football.notifyFinal===false?0:1,Date.now()).run();
-  await env.DB.prepare('DELETE FROM football_notification_teams WHERE device_id=?').bind(device.id).run();
-  for(const team of teams)await env.DB.prepare('INSERT INTO football_notification_teams(device_id,team_id,team_name,team_crest,updated_at) VALUES(?,?,?,?,?)').bind(device.id,team.id,team.name,team.crest,Date.now()).run();
-  ctx.waitUntil(syncFootballPreferenceNow(env,device.id).catch(error=>console.warn('Companion football sync deferred',error?.message||error)));
-  await env.DB.prepare('UPDATE notification_companion_links SET updated_at=? WHERE device_id=?').bind(Date.now(),device.id).run();
-  return {ok:true,scheduled:items.length,teams:teams.length};
-}
-async function handleNotificationCompanion(request,env,ctx,sendOne){
-  try{
-    if(!env.DB)throw Object.assign(new Error('D1 is not configured.'),{status:503});
-    await ensureNotificationCompanionTables(env);const url=new URL(request.url),path=url.pathname.slice('/api/notification-companion'.length),method=request.method;
-    if(path==='/claim'&&method==='POST'){
-      await checkNotificationCompanionRate(request,env);const data=await readTransferJSON(request),code=String(data.code||'').replace(/\D/g,'');if(!/^\d{9}$/.test(code))throw Object.assign(new Error('Enter the complete 9-digit code from the IPA.'),{status:400});
-      const subscription=cleanCompanionSubscription(data.subscription),invite=await env.DB.prepare('DELETE FROM notification_companion_codes WHERE code_hash=? AND expires_at>? RETURNING device_id').bind(await companionHash(code),Date.now()).first();
-      if(!invite)throw Object.assign(new Error('That link code is invalid, expired or already used.'),{status:400});
-      const device=await env.DB.prepare('SELECT id,name FROM transfer_devices WHERE id=? AND revoked_at IS NULL').bind(invite.device_id).first();if(!device)throw Object.assign(new Error('The IPA device is no longer connected.'),{status:410});
-      const token=companionSecret(),now=Date.now(),timezone=String(data.timezone||'Europe/London').slice(0,80);
-      await env.DB.batch([
-        env.DB.prepare('INSERT INTO notification_companion_links(device_id,token_hash,created_at,updated_at) VALUES(?,?,?,?) ON CONFLICT(device_id) DO UPDATE SET token_hash=excluded.token_hash,updated_at=excluded.updated_at').bind(device.id,await companionHash(token),now,now),
-        env.DB.prepare('UPDATE transfer_devices SET push_subscription=? WHERE id=? AND revoked_at IS NULL').bind(JSON.stringify({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}}),device.id),
-        env.DB.prepare('INSERT INTO devices(device_id,endpoint,p256dh,auth,timezone,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(device_id) DO UPDATE SET endpoint=excluded.endpoint,p256dh=excluded.p256dh,auth=excluded.auth,timezone=excluded.timezone,updated_at=excluded.updated_at').bind(device.id,subscription.endpoint,subscription.p256dh,subscription.auth,timezone,now)
-      ]);
-      ctx.waitUntil(sendOne({...subscription,title:'Command Centre linked',body:'Safari will now receive notifications for your IPA device.',url:'/#settings',id:`companion-linked-${device.id}`},env).catch(error=>console.warn('Companion welcome push failed',error?.message||error)));
-      return json({ok:true,deviceId:device.id,deviceName:device.name,token});
-    }
-    if(path==='/refresh'&&method==='POST'){
-      const link=await authenticateNotificationCompanion(request,env),data=await readTransferJSON(request),subscription=cleanCompanionSubscription(data.subscription),timezone=String(data.timezone||'Europe/London').slice(0,80),now=Date.now();
-      await env.DB.batch([
-        env.DB.prepare('UPDATE transfer_devices SET push_subscription=? WHERE id=? AND revoked_at IS NULL').bind(JSON.stringify({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}}),link.device_id),
-        env.DB.prepare('INSERT INTO devices(device_id,endpoint,p256dh,auth,timezone,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(device_id) DO UPDATE SET endpoint=excluded.endpoint,p256dh=excluded.p256dh,auth=excluded.auth,timezone=excluded.timezone,updated_at=excluded.updated_at').bind(link.device_id,subscription.endpoint,subscription.p256dh,subscription.auth,timezone,now),
-        env.DB.prepare('UPDATE notification_companion_links SET updated_at=? WHERE device_id=?').bind(now,link.device_id)
-      ]);return json({ok:true,deviceId:link.device_id,deviceName:link.name});
-    }
-    if(path==='/receiver/test'&&method==='POST'){
-      const link=await authenticateNotificationCompanion(request,env),row=await env.DB.prepare('SELECT endpoint,p256dh,auth FROM devices WHERE device_id=?').bind(link.device_id).first();
-      if(!row)throw Object.assign(new Error('This Safari receiver needs to be refreshed.'),{status:404});
-      await sendOne({...row,title:'Command Centre companion',body:'Web Push is linked to your IPA device.',url:'/#today',id:`companion-test-${Date.now()}`},env);return json({ok:true});
-    }
-    if(path==='/receiver'&&method==='DELETE'){
-      const link=await authenticateNotificationCompanion(request,env);await env.DB.batch([env.DB.prepare('UPDATE transfer_devices SET push_subscription=NULL WHERE id=?').bind(link.device_id),env.DB.prepare('DELETE FROM devices WHERE device_id=?').bind(link.device_id),env.DB.prepare('DELETE FROM notifications WHERE device_id=?').bind(link.device_id),env.DB.prepare('DELETE FROM notification_companion_links WHERE device_id=?').bind(link.device_id)]);return json({ok:true});
-    }
-    const device=await authenticateTransferDevice(request,env);
-    if(path==='/code'&&method==='POST'){
-      await env.DB.prepare('DELETE FROM notification_companion_codes WHERE device_id=? OR expires_at<=?').bind(device.id,Date.now()).run();let code='';
-      for(let attempt=0;attempt<6&&!code;attempt++){const candidate=companionCode();try{await env.DB.prepare('INSERT INTO notification_companion_codes(code_hash,device_id,expires_at,created_at) VALUES(?,?,?,?)').bind(await companionHash(candidate),device.id,Date.now()+10*60*1000,Date.now()).run();code=candidate}catch{}}
-      if(!code)throw Object.assign(new Error('Could not create a unique link code. Try again.'),{status:503});return json({code:code.replace(/(\d{3})(?=\d)/g,'$1 '),expiresAt:Date.now()+10*60*1000});
-    }
-    if(path==='/status'&&method==='GET'){
-      const row=await env.DB.prepare('SELECT l.updated_at,d.updated_at AS receiver_updated FROM notification_companion_links l LEFT JOIN devices d ON d.device_id=l.device_id WHERE l.device_id=?').bind(device.id).first();return json({linked:!!row,receiverReady:!!row?.receiver_updated,webPushConfigured:!!(env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY),updatedAt:Number(row?.receiver_updated||row?.updated_at)||0,deviceId:device.id,deviceName:device.name});
-    }
-    if(path==='/sync'&&method==='POST')return json(await syncNotificationCompanion(device,await readTransferJSON(request),env,ctx));
-    if(path==='/test'&&method==='POST'){
-      const row=await env.DB.prepare('SELECT endpoint,p256dh,auth FROM devices WHERE device_id=?').bind(device.id).first();if(!row)throw Object.assign(new Error('Link the Safari notification receiver first.'),{status:404});await sendOne({...row,title:'Command Centre companion',body:'Web Push is connected to your IPA device.',url:'/#today',id:`companion-test-${Date.now()}`},env);return json({ok:true});
-    }
-    if(path===''&&method==='DELETE'){
-      await env.DB.batch([env.DB.prepare('UPDATE transfer_devices SET push_subscription=NULL WHERE id=?').bind(device.id),env.DB.prepare('DELETE FROM devices WHERE device_id=?').bind(device.id),env.DB.prepare('DELETE FROM notifications WHERE device_id=?').bind(device.id),env.DB.prepare('DELETE FROM notification_companion_codes WHERE device_id=?').bind(device.id),env.DB.prepare('DELETE FROM notification_companion_links WHERE device_id=?').bind(device.id)]);return json({ok:true});
-    }
-    return json({error:'Not found'},404);
-  }catch(error){console.error('notification companion',error);return json({error:error?.message||String(error)},Number(error?.status)||500)}
-}
 function addDaysLocal(dateKey,n){const [y,m,d]=dateKey.split('-').map(Number);const dt=new Date(Date.UTC(y,m-1,d));dt.setUTCDate(dt.getUTCDate()+n);return dt.toISOString().slice(0,10)}
 function nextLocalDate(dateKey,frequency){
   if(frequency==='daily') return addDaysLocal(dateKey,1);
@@ -437,8 +319,45 @@ function normaliseBaseUrl(value){
   if(u.protocol!=='https:')throw new Error('Live content provider base URL must use HTTPS.');
   return u;
 }
+function normaliseHostRule(value){
+  let raw=String(value||'').trim().toLowerCase();
+  if(!raw)return '';
+
+  let wildcard=false;
+  if(raw.startsWith('*.')){wildcard=true;raw=raw.slice(2)}
+  else if(raw.startsWith('.')){wildcard=true;raw=raw.slice(1)}
+
+  let host='';
+  try{
+    const candidate=/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)?raw:`https://${raw}`;
+    host=new URL(candidate).hostname.toLowerCase();
+  }catch{
+    host=raw.replace(/^https?:\/\//i,'').split('/')[0].split(':')[0].trim().toLowerCase();
+  }
+
+  host=host.replace(/\.$/,'');
+  if(!host)return '';
+  return wildcard?`*.${host}`:host;
+}
 function csvHosts(value){
-  return String(value||'').split(',').map(x=>x.trim().replace(/\/+$/,'').toLowerCase()).filter(Boolean);
+  return [...new Set(String(value||'').split(',').map(normaliseHostRule).filter(Boolean))];
+}
+function hostMatchesRule(hostname,rule){
+  const host=normaliseHostRule(hostname).replace(/^\*\./,'');
+  const normalRule=normaliseHostRule(rule);
+  if(!host||!normalRule)return false;
+
+  const wildcard=normalRule.startsWith('*.');
+  const ruleHost=(wildcard?normalRule.slice(2):normalRule).replace(/^www\./,'');
+  const comparableHost=host.replace(/^www\./,'');
+
+  if(comparableHost===ruleHost)return true;
+  // A configured host is treated as a trust root for its own subdomains.
+  // This avoids false rejections when a provider moves its player to a CDN/player subdomain.
+  return comparableHost.endsWith(`.${ruleHost}`);
+}
+function hostAllowed(hostname,rules){
+  return (rules||[]).some(rule=>hostMatchesRule(hostname,rule));
 }
 function cleanProviderId(value){
   const id=String(value||'1');
@@ -528,13 +447,13 @@ function liveProviderConfig(env,providerId='1'){
 
   return {
     id:'3',
-    name:String(env.LIVE_PROVIDER_3_NAME||'SportsindX').trim().slice(0,60)||'SportsindX',
-    mode:(['api','scrape','dynamic','sportsindx'].includes(String(env.LIVE_PROVIDER_3_MODE||'sportsindx').trim().toLowerCase())?String(env.LIVE_PROVIDER_3_MODE||'sportsindx').trim().toLowerCase():'sportsindx'),
-    baseUrl:String(env.LIVE_PROVIDER_3_BASE_URL||'https://sportsindx.st').trim(),
+    name:String(env.LIVE_PROVIDER_3_NAME||'Provider 3').trim().slice(0,60)||'Provider 3',
+    mode:(['scrape','dynamic'].includes(String(env.LIVE_PROVIDER_3_MODE||'api').trim().toLowerCase())?String(env.LIVE_PROVIDER_3_MODE||'api').trim().toLowerCase():'api'),
+    baseUrl:String(env.LIVE_PROVIDER_3_BASE_URL||'').trim(),
     apiPath:String(env.LIVE_PROVIDER_3_API_PATH||'/api/v1/streams').trim()||'/api/v1/streams',
     scrapePath:String(env.LIVE_PROVIDER_3_SCRAPE_PATH||'/').trim()||'/',
-    pageHosts:String(env.LIVE_PROVIDER_3_ALLOWED_PAGE_HOSTS||'sportsindx.st').trim(),
-    embedHosts:String(env.LIVE_PROVIDER_3_ALLOWED_EMBED_HOSTS||'playerpromax.xyz,ch.nexa.st,topembed.online,embedindia.st,embed.st,embed.sportspatrika.com,rockystream.st,streameo.online').trim(),
+    pageHosts:String(env.LIVE_PROVIDER_3_ALLOWED_PAGE_HOSTS||'').trim(),
+    embedHosts:String(env.LIVE_PROVIDER_3_ALLOWED_EMBED_HOSTS||'').trim(),
     linkHints:String(env.LIVE_PROVIDER_3_LINK_HINTS||'').trim(),
     maxScrapePages:Number(env.LIVE_PROVIDER_3_MAX_SCRAPE_PAGES)||12,
     apiKey:String(env.LIVE_PROVIDER_3_API_KEY||'').trim(),
@@ -580,45 +499,49 @@ function allowedEmbedUrl(embedUrl,base,cfg){
   try{
     const u=new URL(embedUrl);
     if(u.protocol!=='https:')return false;
-    const configured=csvHosts(cfg.embedHosts);
-    const hosts=configured.length?configured:[base.hostname.toLowerCase()];
-    return hosts.includes(u.hostname.toLowerCase());
+    // The configured provider host is always an implicit trust root. External
+    // player hosts still have to be listed in LIVE_PROVIDER_n_ALLOWED_EMBED_HOSTS.
+    const hosts=[...new Set([
+      normaliseHostRule(base.hostname),
+      ...csvHosts(cfg.embedHosts)
+    ].filter(Boolean))];
+    return hostAllowed(u.hostname,hosts);
   }catch{return false}
 }
 function allowedProviderPageUrl(pageUrl,base,cfg){
   try{
     const u=new URL(pageUrl,base);
     if(u.protocol!=='https:')return false;
-    const configured=csvHosts(cfg.pageHosts);
-    const hosts=configured.length?configured:[base.hostname.toLowerCase()];
-    return hosts.includes(u.hostname.toLowerCase());
+    const hosts=[...new Set([
+      normaliseHostRule(base.hostname),
+      ...csvHosts(cfg.pageHosts)
+    ].filter(Boolean))];
+    return hostAllowed(u.hostname,hosts);
   }catch{return false}
 }
 function allowedDynamicDataUrl(dataUrl,dataBase,cfg){
   try{
     const u=new URL(dataUrl,dataBase);
     if(u.protocol!=='https:')return false;
-    const configured=csvHosts(cfg.dynamicAllowedHosts);
-    const fallback=[
-      dataBase.hostname.toLowerCase(),
-      ...csvHosts(cfg.pageHosts)
-    ];
-    const hosts=configured.length?configured:[...new Set(fallback)];
-    return hosts.includes(u.hostname.toLowerCase());
+    const hosts=[...new Set([
+      normaliseHostRule(dataBase.hostname),
+      ...csvHosts(cfg.pageHosts),
+      ...csvHosts(cfg.dynamicAllowedHosts)
+    ].filter(Boolean))];
+    return hostAllowed(u.hostname,hosts);
   }catch{return false}
 }
 function allowedResolverUrl(resolverUrl,resolverBase,cfg){
   try{
     const u=new URL(resolverUrl,resolverBase);
     if(u.protocol!=='https:')return false;
-    const configured=csvHosts(cfg.resolverAllowedHosts);
-    const fallback=[
-      resolverBase.hostname.toLowerCase(),
+    const hosts=[...new Set([
+      normaliseHostRule(resolverBase.hostname),
       ...csvHosts(cfg.dynamicAllowedHosts),
-      ...csvHosts(cfg.pageHosts)
-    ];
-    const hosts=configured.length?configured:[...new Set(fallback)];
-    return hosts.includes(u.hostname.toLowerCase());
+      ...csvHosts(cfg.pageHosts),
+      ...csvHosts(cfg.resolverAllowedHosts)
+    ].filter(Boolean))];
+    return hostAllowed(u.hostname,hosts);
   }catch{return false}
 }
 function sourceUrlCandidate(value){
@@ -859,11 +782,7 @@ function dynamicItemCategory(item,cfg){
   const explicit=cfg.dynamicCategoryField?valueAtPath(item,cfg.dynamicCategoryField):undefined;
   return firstUseful(
     {explicit,item},
-    [
-      'explicit','item.__providerCategory','item.category','item.category_name',
-      'item.genre_name','item.genreName','item.sport','item.sport_name',
-      'item.type','item.group','item.section'
-    ]
+    ['explicit','item.category','item.sport','item.sport_name','item.type','item.group','item.section']
   );
 }
 function dynamicCategoryMatches(item,cfg,requestedCategory){
@@ -886,47 +805,6 @@ function dynamicRootItems(data,cfg){
     data?.matches
   ];
   return candidates.find(Array.isArray)||[];
-}
-function dynamicCategoryMetadata(data){
-  const groups=[data?.genres,data?.categories,data?.sports].find(Array.isArray)||[];
-  const categories=new Map();
-  const subcategories=new Map();
-
-  groups.forEach(group=>{
-    if(!group||typeof group!=='object')return;
-    const id=firstUseful(group,['id','key','value','slug']);
-    const name=firstUseful(group,['name','title','label','category','sport']);
-    if(id!==''&&id!==undefined&&id!==null&&name){
-      categories.set(String(id),String(name));
-    }
-
-    const children=[group.sub_categories,group.subCategories,group.subgenres,group.children]
-      .find(Array.isArray)||[];
-    children.forEach(child=>{
-      if(!child||typeof child!=='object')return;
-      const childId=firstUseful(child,['id','key','value','slug']);
-      const childName=firstUseful(child,['name','title','label']);
-      if(id!==''&&childId!==''&&childId!==undefined&&childId!==null&&childName){
-        subcategories.set(`${id}:${childId}`,String(childName));
-      }
-    });
-  });
-
-  return {categories,subcategories};
-}
-function annotateDynamicItems(data,items){
-  const rows=Array.isArray(items)?items:[];
-  const metadata=dynamicCategoryMetadata(data);
-  if(!metadata.categories.size&&!metadata.subcategories.size)return rows;
-
-  return rows.map(item=>{
-    if(!item||typeof item!=='object'||Array.isArray(item))return item;
-    const categoryId=firstUseful(item,['genre','genre_id','genreId','category_id','categoryId','sport_id','sportId']);
-    const subcategoryId=firstUseful(item,['sub_genre','subGenre','sub_genre_id','subGenreId','subcategory_id','subcategoryId']);
-    const category=metadata.categories.get(String(categoryId))||'';
-    const league=metadata.subcategories.get(`${categoryId}:${subcategoryId}`)||'';
-    return category||league?{...item,__providerCategory:category,__providerLeague:league}:item;
-  });
 }
 function dynamicNestedItems(group,cfg){
   if(!group||typeof group!=='object')return [];
@@ -958,15 +836,7 @@ function dynamicExpandItems(rootItems,cfg,requestedCategory){
   //     {"category":"Tennis","streams":[...]}
   //   ]
   // }
-  // Event rows commonly contain a `streams` source array too. Do not mistake
-  // those rows for category groups and flatten away the event title/metadata.
-  const looksLikeEvent=row=>!!firstUseful(row,[
-    'isevent','match_timestamp','timestamp','starts_at','startTime','start_time',
-    'time','url','embed_url','embedUrl','player_url','playerUrl','viewers'
-  ]);
-  const matchingGroups=rows
-    .filter(group=>!looksLikeEvent(group))
-    .filter(group=>dynamicCategoryMatches(group,cfg,requestedCategory));
+  const matchingGroups=rows.filter(group=>dynamicCategoryMatches(group,cfg,requestedCategory));
   const nested=matchingGroups.flatMap(group=>dynamicNestedItems(group,cfg));
 
   if(nested.length){
@@ -1170,21 +1040,18 @@ function normaliseDynamicStream(item,index,requestedCategory){
   const thumbnail=firstUseful(item,[
     'thumbnail_url','thumbnail','image','poster','cover'
   ]);
-  const timestampValue=firstUseful(item,[
+  const timestamp=firstUseful(item,[
     'match_timestamp','timestamp','start_timestamp','starts_at','startTime','start_time'
   ]);
-  const numericTimestamp=Number(timestampValue);
-  const parsedDate=Date.parse(String(timestampValue||item?.time||''));
-  const parsedTimestamp=numericTimestamp||(Number.isFinite(parsedDate)?Math.floor(parsedDate/1000):NaN);
-  const id=firstUseful(item,['id','stream_key','key','slug','url'])||`${requestedCategory}-${index+1}`;
+  const id=firstUseful(item,['id','stream_key','key','slug'])||`${requestedCategory}-${index+1}`;
   const tag=String(firstUseful(item,['tag','status','state'])||'').trim();
 
   return {
     id:String(id).slice(0,200),
     name:String(title).slice(0,180),
     category:String(requestedCategory).slice(0,80),
-    league:String(league||item.__providerLeague||item.__groupCategory||'').slice(0,120),
-    match_timestamp:Number.isFinite(parsedTimestamp)?parsedTimestamp:null,
+    league:String(league||item.__groupCategory||'').slice(0,120),
+    match_timestamp:Number(timestamp)||null,
     embed_url:typeof embed==='string'?embed:'',
     sources:dynamicSourceList(item),
     source_refs:dynamicSourceRefs(item),
@@ -1264,7 +1131,7 @@ async function fetchDynamicProvider(cfg,base,category){
     throw err;
   }
 
-  const rootItems=annotateDynamicItems(data,dynamicRootItems(data,cfg));
+  const rootItems=dynamicRootItems(data,cfg);
   const matching=dynamicExpandItems(rootItems,cfg,category);
 
   return {
@@ -1290,100 +1157,6 @@ async function fetchAuthorisedApiProvider(cfg,base,category){
     throw err;
   }
   return data;
-}
-
-function decodeSportsindxAttribute(value){
-  return String(value||'')
-    .replace(/&quot;|&#34;|&#x22;/gi,'"')
-    .replace(/&#39;|&#x27;|&apos;/gi,"'")
-    .replace(/&amp;/gi,'&')
-    .replace(/&lt;/gi,'<')
-    .replace(/&gt;/gi,'>')
-    .replace(/&nbsp;|&#160;/gi,' ');
-}
-function sportsindxAttribute(tag,name){
-  const safe=String(name||'').replace(/[^a-z0-9_-]/gi,'');
-  if(!safe)return '';
-  const match=String(tag||'').match(new RegExp(`\\b${safe}\\s*=\\s*(["'])([\\s\\S]*?)\\1`,'i'));
-  return match?decodeSportsindxAttribute(match[2]).trim():'';
-}
-function sportsindxText(value){
-  return decodeSportsindxAttribute(String(value||'').replace(/<[^>]*>/g,' ')).replace(/\s+/g,' ').trim();
-}
-function sportsindxCategorySlugs(category){
-  const key=String(category||'soccer').toLowerCase();
-  if(key==='soccer')return new Set(['football']);
-  if(key==='basketball')return new Set(['basketball']);
-  if(key==='tennis')return new Set(['tennis']);
-  if(key==='athletics')return new Set(['athletics','track-and-field']);
-  return new Set([key]);
-}
-function sportsindxListingEvents(html,category){
-  const accepted=sportsindxCategorySlugs(category),events=[],seen=new Set();
-  const sections=String(html||'').matchAll(/<details\b([^>]*)>([\s\S]*?)<\/details>/gi);
-  for(const section of sections){
-    const sectionTag=section[1]||'',body=section[2]||'',slug=sportsindxAttribute(sectionTag,'data-category').toLowerCase();
-    if(!accepted.has(slug))continue;
-    const categoryName=sportsindxText(body.match(/<span\b[^>]*class=["'][^"']*category-name[^"']*["'][^>]*>([\s\S]*?)<\/span>/i)?.[1])||slug;
-    for(const link of body.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)){
-      const tag=link[1]||'',className=sportsindxAttribute(tag,'class');
-      if(!/(^|\s)match-row(\s|$)/i.test(className))continue;
-      const href=sportsindxAttribute(tag,'href'),slugMatch=href.match(/^\/match\/([a-z0-9-]+)\/?$/i);
-      if(!slugMatch||seen.has(slugMatch[1]))continue;
-      const timestamp=Number(sportsindxAttribute(link[0],'data-timestamp'))||0;
-      const ends=Number(sportsindxAttribute(link[0],'data-ends'))||0;
-      const title=sportsindxAttribute(tag,'data-title')||sportsindxText(link[2]);
-      if(!title)continue;
-      seen.add(slugMatch[1]);
-      events.push({
-        id:slugMatch[1],slug:slugMatch[1],name:title,category:String(category||'soccer'),league:categoryName,
-        timestamp:timestamp>1e12?Math.floor(timestamp/1000):timestamp,
-        ends:ends>1e12?Math.floor(ends/1000):ends,
-        home:sportsindxAttribute(tag,'data-home'),away:sportsindxAttribute(tag,'data-away')
-      });
-    }
-  }
-  return events.sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
-}
-function sportsindxEventStream(html,event,base){
-  const button=[...String(html||'').matchAll(/<button\b([^>]*)>/gi)].find(match=>/(^|\s)match-row(\s|$)/i.test(sportsindxAttribute(match[1],'class')));
-  if(!button)return null;
-  let links=[];
-  try{links=JSON.parse(sportsindxAttribute(button[1],'data-links')||'[]')}catch{return null}
-  const sources=[],seen=new Set();
-  (Array.isArray(links)?links:[]).forEach((link,index)=>{
-    const url=safeHttpsUrl(link?.embedUrl||link?.embed_url||link?.url||'',base);
-    if(!url||seen.has(url))return;
-    seen.add(url);
-    const parts=[link?.name||link?.user||link?.provider,link?.channel,link?.quality||(link?.hd?'HD':'')].map(value=>String(value||'').trim()).filter(Boolean);
-    sources.push({url,label:parts.join(' • ').slice(0,60)||`Source ${index+1}`});
-  });
-  if(!sources.length)return null;
-  return {
-    id:event.id,name:event.name,category:event.category,league:event.league,
-    match_timestamp:event.timestamp||null,thumbnail_url:new URL('/uploads/sportsindx-2.png',base).toString(),
-    sources,
-    team1:event.home?{name:event.home,logo:''}:null,
-    team2:event.away?{name:event.away,logo:''}:null
-  };
-}
-async function fetchSportsindxProvider(cfg,base,category){
-  const headers={accept:'text/html,application/xhtml+xml','user-agent':'Mozilla/5.0 (compatible; CommandCentre/1.0; +https://bcommand-center.wolvesgidaree.workers.dev)'};
-  const listingResponse=await fetch(base.toString(),{headers,redirect:'follow'});
-  if(!listingResponse.ok){const err=new Error(`${cfg.name} schedule HTTP ${listingResponse.status}`);err.status=502;throw err}
-  const events=sportsindxListingEvents(await listingResponse.text(),category);
-  const now=Math.floor(Date.now()/1000),windowed=events
-    .filter(event=>!event.ends||event.ends>=now-30*60)
-    .slice(0,Math.max(1,Math.min(24,Number(cfg.maxScrapePages)||12)));
-  const settled=await Promise.allSettled(windowed.map(async event=>{
-    const eventUrl=new URL(`/match/${encodeURIComponent(event.slug)}`,base);
-    if(!allowedProviderPageUrl(eventUrl.toString(),base,cfg))return null;
-    const response=await fetch(eventUrl.toString(),{headers,redirect:'follow'});
-    if(!response.ok)return null;
-    return sportsindxEventStream(await response.text(),event,base);
-  }));
-  const streams=settled.flatMap(result=>result.status==='fulfilled'&&result.value?[result.value]:[]);
-  return {count:streams.length,streams,providerCount:events.length};
 }
 
 async function liveContentStreams(env,category='soccer',requestUrl='https://local/api/live-content',force=false,providerId='1'){
@@ -1412,9 +1185,7 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
     cache=null;key=null;
   }
 
-  const data=cfg.mode==='sportsindx'
-    ?await fetchSportsindxProvider(cfg,base,safeCategory)
-    :cfg.mode==='scrape'
+  const data=cfg.mode==='scrape'
     ?await scrapeAuthorisedProvider(cfg,base,safeCategory)
     :cfg.mode==='dynamic'
       ?await fetchDynamicProvider(cfg,base,safeCategory)
@@ -1463,6 +1234,10 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
   }).filter(s=>s.embed_url||s.source_refs.length);
 
   const configuredAllowedHosts=csvHosts(cfg.embedHosts);
+  const effectiveAllowedHosts=[...new Set([
+    normaliseHostRule(base.hostname),
+    ...configuredAllowedHosts
+  ].filter(Boolean))];
   const rejectedHosts=[...rejectedHostsSet].sort();
 
   const payload={
@@ -1473,6 +1248,7 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
     providerCount:providerStreams.length,
     rejectedCount:Math.max(0,providerStreams.length-streams.length),
     configuredAllowedHosts,
+    effectiveAllowedHosts,
     rejectedHosts,
     diagnostic:
       providerStreams.length>0&&streams.length===0
@@ -1496,7 +1272,7 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
         key=new Request(u.toString());
       }
       await cache.put(key,new Response(JSON.stringify(payload),{
-        headers:{'content-type':'application/json','cache-control':`public,max-age=${cfg.mode==='sportsindx'?45:120}`}
+        headers:{'content-type':'application/json','cache-control':'public,max-age=120'}
       }));
     }catch{}
   }
@@ -1521,57 +1297,14 @@ function mediaPathForMode(env,mode){
   if(mode==='agg')return String(env.MEDIA_EMBED_PATH_AGG||'/embed/agg').trim()||'/embed/agg';
   return String(env.MEDIA_EMBED_PATH_STANDARD||'/embed').trim()||'/embed';
 }
-function buildFlixerEmbedUrl(env,{type,id,season,episode}){
-  const raw=String(env.MEDIA_FLIXER_BASE_URL||'https://flixer.gd').trim().replace(/\/$/,'');
-  const base=new URL(raw);
-  if(base.protocol!=='https:'){const e=new Error('MEDIA_FLIXER_BASE_URL must use HTTPS.');e.status=500;throw e}
-  const configured=String(env.MEDIA_FLIXER_ALLOWED_HOSTS||'')
-    .split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
-  const hosts=configured.length?configured:[base.hostname.toLowerCase()];
-  if(!hosts.includes(base.hostname.toLowerCase())){const e=new Error('Flixer host is not in MEDIA_FLIXER_ALLOWED_HOSTS.');e.status=500;throw e}
-  const u=new URL(base.toString());
-  const root=base.pathname.replace(/\/$/,'');
-  u.pathname=type==='tv'
-    ?`${root}/watch/tv/${id}/${Number(season)}/${Number(episode)}`
-    :`${root}/watch/movie/${id}`;
-  u.search='';
-  u.searchParams.set('embed','1');
-  return u.toString();
-}
-function fixedMediaProviderBase(env,baseKey,hostsKey,fallback,label){
-  const raw=String(env[baseKey]||fallback).trim().replace(/\/$/,'');
-  const base=new URL(raw);
-  if(base.protocol!=='https:'){const e=new Error(`${label} base URL must use HTTPS.`);e.status=500;throw e}
-  const configured=String(env[hostsKey]||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
-  const hosts=configured.length?configured:[base.hostname.toLowerCase()];
-  if(!hosts.includes(base.hostname.toLowerCase())){const e=new Error(`${label} host is not in ${hostsKey}.`);e.status=500;throw e}
-  return base;
-}
-function buildAtlanticUrl(env,{type,id,season,episode}){
-  const base=fixedMediaProviderBase(env,'MEDIA_ATLANTIC_BASE_URL','MEDIA_ATLANTIC_ALLOWED_HOSTS','https://atlantic.st','Atlantic');
-  const u=new URL(base.toString()),root=base.pathname.replace(/\/$/,'');
-  u.pathname=type==='tv'
-    ?`${root}/watch/${id}/${Number(season)}/${Number(episode)}`
-    :`${root}/watch/${id}`;
-  u.search='';return u.toString();
-}
-function buildBoomflixUrl(env,{type,id}){
-  const base=fixedMediaProviderBase(env,'MEDIA_BOOMFLIX_BASE_URL','MEDIA_BOOMFLIX_ALLOWED_HOSTS','https://boomflix.qzz.io','Boomflix');
-  const u=new URL(base.toString()),root=base.pathname.replace(/\/$/,'');
-  u.pathname=`${root}/title/${type}/${id}`;
-  u.search='';return u.toString();
-}
 function buildMediaEmbedUrl(env,{type,id,season,episode,mode='standard'}){
   if(!['movie','tv'].includes(type)){const e=new Error('type must be movie or tv.');e.status=400;throw e}
   if(!/^\d+$/.test(String(id||''))){const e=new Error('A numeric TMDB id is required.');e.status=400;throw e}
-  if(!['standard','torrent','agg','flixer','atlantic','boomflix'].includes(mode)){const e=new Error('Unsupported provider mode.');e.status=400;throw e}
+  if(!['standard','torrent','agg'].includes(mode)){const e=new Error('Unsupported provider mode.');e.status=400;throw e}
   if(type==='tv'){
     if(!Number.isInteger(Number(season))||Number(season)<1){const e=new Error('A valid season is required for TV.');e.status=400;throw e}
     if(!Number.isInteger(Number(episode))||Number(episode)<1){const e=new Error('A valid episode is required for TV.');e.status=400;throw e}
   }
-  if(mode==='flixer')return buildFlixerEmbedUrl(env,{type,id,season,episode});
-  if(mode==='atlantic')return buildAtlanticUrl(env,{type,id,season,episode});
-  if(mode==='boomflix')return buildBoomflixUrl(env,{type,id,season,episode});
   const base=mediaBaseUrl(env);
   const u=new URL(base.toString());
   const path=mediaPathForMode(env,mode);
@@ -1751,14 +1484,6 @@ async function searchYouTube(env,query,requestUrl){
     throw err;
   }
 
-  let requestOptions={order:'relevance',freshness:'',force:false};
-  try{
-    const incoming=new URL(requestUrl);
-    const order=String(incoming.searchParams.get('order')||'relevance');
-    const freshness=String(incoming.searchParams.get('freshness')||'');
-    requestOptions={order:['relevance','date','viewCount'].includes(order)?order:'relevance',freshness:['week','month','year'].includes(freshness)?freshness:'',force:incoming.searchParams.get('refresh')==='1'};
-  }catch{}
-
   // Cache identical searches for 15 minutes when Cache API is available.
   let cache=null,cacheKey=null;
   try{
@@ -1766,9 +1491,10 @@ async function searchYouTube(env,query,requestUrl){
     if(cache){
       const cacheUrl=new URL(requestUrl);
       cacheUrl.pathname='/__cache/youtube-search';
-      cacheUrl.search=new URLSearchParams({q:q.toLowerCase(),order:requestOptions.order,freshness:requestOptions.freshness}).toString();
+      cacheUrl.search=new URLSearchParams({q:q.toLowerCase()}).toString();
       cacheKey=new Request(cacheUrl.toString(),{method:'GET'});
-      if(!requestOptions.force){const cached=await cache.match(cacheKey);if(cached)return cached.json()}
+      const cached=await cache.match(cacheKey);
+      if(cached)return cached.json();
     }
   }catch(e){
     console.warn('YouTube cache read skipped',e);
@@ -1778,17 +1504,12 @@ async function searchYouTube(env,query,requestUrl){
   const u=new URL('https://www.googleapis.com/youtube/v3/search');
   u.searchParams.set('part','snippet');
   u.searchParams.set('type','video');
-  u.searchParams.set('maxResults','16');
+  u.searchParams.set('maxResults','10');
   u.searchParams.set('q',q);
   u.searchParams.set('safeSearch','moderate');
   u.searchParams.set('videoEmbeddable','true');
   u.searchParams.set('relevanceLanguage','en');
   u.searchParams.set('regionCode','GB');
-  u.searchParams.set('order',requestOptions.order);
-  if(requestOptions.freshness){
-    const days={week:7,month:31,year:366}[requestOptions.freshness];
-    u.searchParams.set('publishedAfter',new Date(Date.now()-days*86400000).toISOString());
-  }
   u.searchParams.set('key',env.YOUTUBE_API_KEY);
 
   let r;
@@ -1847,65 +1568,6 @@ async function searchYouTube(env,query,requestUrl){
   return payload;
 }
 
-async function youtubeComments(env,videoId,pageToken='',requestUrl='https://local/api/youtube/comments',force=false){
-  if(!env.YOUTUBE_API_KEY){
-    const err=new Error('YOUTUBE_API_KEY is missing. Add it in Cloudflare before loading YouTube comments.');
-    err.status=503;throw err;
-  }
-  const id=String(videoId||'').trim();
-  if(!/^[A-Za-z0-9_-]{11}$/.test(id)){
-    const err=new Error('A valid YouTube video ID is required.');err.status=400;throw err;
-  }
-  const token=String(pageToken||'').trim().slice(0,500);
-  let cache=null,cacheKey=null;
-  try{
-    cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
-    if(cache){
-      const cacheUrl=new URL(requestUrl);
-      cacheUrl.pathname='/__cache/youtube-comments';
-      cacheUrl.search=new URLSearchParams({videoId:id,pageToken:token}).toString();
-      cacheKey=new Request(cacheUrl.toString(),{method:'GET'});
-      if(!force){const hit=await cache.match(cacheKey);if(hit)return hit.json()}
-    }
-  }catch{cache=null;cacheKey=null}
-
-  const u=new URL('https://www.googleapis.com/youtube/v3/commentThreads');
-  u.searchParams.set('part','snippet');
-  u.searchParams.set('videoId',id);
-  u.searchParams.set('maxResults','20');
-  u.searchParams.set('order','relevance');
-  u.searchParams.set('textFormat','plainText');
-  if(token)u.searchParams.set('pageToken',token);
-  u.searchParams.set('key',env.YOUTUBE_API_KEY);
-
-  const r=await fetch(u.toString(),{headers:{accept:'application/json'}});
-  const data=await r.json().catch(()=>({}));
-  if(!r.ok){
-    const reason=data?.error?.errors?.[0]?.reason||'';
-    if(reason==='commentsDisabled')return {videoId:id,items:[],disabled:true,message:'Comments are turned off for this video.'};
-    const err=new Error(data?.error?.message||`YouTube comments HTTP ${r.status}`);
-    err.status=r.status>=400&&r.status<500?r.status:502;throw err;
-  }
-
-  const items=(Array.isArray(data.items)?data.items:[]).map(thread=>{
-    const snippet=thread?.snippet?.topLevelComment?.snippet||{};
-    return {
-      id:String(thread?.id||''),
-      author:String(snippet.authorDisplayName||'YouTube user').slice(0,120),
-      authorImage:String(snippet.authorProfileImageUrl||''),
-      text:String(snippet.textOriginal||snippet.textDisplay||'').slice(0,5000),
-      likeCount:Math.max(0,Number(snippet.likeCount)||0),
-      publishedAt:String(snippet.publishedAt||''),
-      replyCount:Math.max(0,Number(thread?.snippet?.totalReplyCount)||0)
-    };
-  }).filter(item=>item.id&&item.text);
-  const payload={videoId:id,items,nextPageToken:String(data.nextPageToken||''),disabled:false};
-  if(cache&&cacheKey){
-    try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=300'}}))}catch{}
-  }
-  return payload;
-}
-
 
 async function youtubeStatus(env){
   if(!env.YOUTUBE_API_KEY){
@@ -1961,209 +1623,17 @@ const API_FOOTBALL_COMPETITIONS={
   FAC:{id:45,name:'FA Cup',country:'England'},
   FLC:{id:48,name:'League Cup',country:'England'}
 };
-// FotMob's public league pages include tables and club identities for the
-// English pyramid without requiring another Worker secret. These IDs are the
-// league-page IDs used by fotmob.com (not the API-Football IDs above).
-const FOTMOB_LEAGUE_COMPETITIONS={
-  ELC:{id:48,name:'Championship',country:'England'},
-  EL1:{id:108,name:'League One',country:'England'},
-  EL2:{id:109,name:'League Two',country:'England'},
-  ENL:{id:117,name:'National League',country:'England'}
-};
 
 function isoDayOffset(n){
   const d=new Date();d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);
 }
-
-// SofaScore has no public developer-key product. These are the same read-only,
-// first-party JSON routes requested by sofascore.com itself. Keep every call
-// server-side, cached and optional: if the website rejects automated traffic,
-// Command Centre falls back to the configured football/tennis providers.
-const SOFASCORE_WEB_BASE='https://www.sofascore.com/api/v1';
-const SOFASCORE_ID_PREFIX=900000000000;
-async function sofascoreWebsiteFetch(path){
-  const r=await fetch(`${SOFASCORE_WEB_BASE}${path}`,{headers:{
-    accept:'application/json,text/plain,*/*',
-    referer:'https://www.sofascore.com/',
-    origin:'https://www.sofascore.com',
-    'user-agent':'Mozilla/5.0 (compatible; CommandCentre/1.0; +https://bcommand-center.wolvesgidaree.workers.dev)'
-  }});
-  const data=await r.json().catch(()=>({}));
-  if(!r.ok){const err=new Error(`SofaScore website feed HTTP ${r.status}`);err.status=502;throw err}
-  return data;
-}
-function sofascoreRawEvents(payload){
-  if(Array.isArray(payload?.events))return payload.events;
-  const found=[],seen=new Set(),walk=(value,depth=0)=>{
-    if(!value||depth>7)return;
-    if(Array.isArray(value)){value.forEach(item=>walk(item,depth+1));return}
-    if(typeof value!=='object')return;
-    if(value.id&&value.homeTeam&&value.awayTeam&&(value.startTimestamp||value.startTime||value.status)){
-      const key=String(value.id);if(!seen.has(key)){seen.add(key);found.push(value)}
-      return;
-    }
-    Object.values(value).forEach(item=>walk(item,depth+1));
-  };
-  walk(payload);
-  return found;
-}
-function sofascoreTeam(team){
-  const rawId=Number(team?.id)||0,id=rawId?SOFASCORE_ID_PREFIX+rawId:0;
-  return {id,name:String(team?.name||'Team'),shortName:String(team?.shortName||team?.name||'Team'),tla:String(team?.nameCode||''),crest:rawId?`https://img.sofascore.com/api/v1/team/${rawId}/image`:''};
-}
-function sofascoreStatus(event){
-  const type=String(event?.status?.type||event?.status?.description||'').toLowerCase();
-  if(/finished|after extra|after penalties/.test(type))return 'FINISHED';
-  if(/cancel|abandon/.test(type))return 'CANCELLED';
-  if(/postpon/.test(type))return 'POSTPONED';
-  if(/pause|halftime/.test(type))return 'PAUSED';
-  if(/inprogress|live|period/.test(type))return 'IN_PLAY';
-  return 'SCHEDULED';
-}
-function cleanSofascoreFootballEvent(event){
-  const rawId=Number(event?.id)||0,scoreHome=event?.homeScore?.normaltime??event?.homeScore?.current,scoreAway=event?.awayScore?.normaltime??event?.awayScore?.current;
-  const tournament=event?.tournament||{},unique=tournament?.uniqueTournament||{};
-  const statusText=String(event?.status?.description||event?.status?.type||''),minuteMatch=statusText.match(/\d+/);
-  return {
-    id:rawId?SOFASCORE_ID_PREFIX+rawId:0,sofascoreId:rawId,
-    utcDate:event?.startTimestamp?new Date(Number(event.startTimestamp)*1000).toISOString():String(event?.startTime||''),
-    status:sofascoreStatus(event),minute:minuteMatch?Number(minuteMatch[0]):null,
-    competition:{id:Number(unique.id||tournament.id)||0,name:String(unique.name||tournament.name||'Football'),code:'',emblem:Number(unique.id)?`https://img.sofascore.com/api/v1/unique-tournament/${unique.id}/image`:''},
-    homeTeam:sofascoreTeam(event?.homeTeam),awayTeam:sofascoreTeam(event?.awayTeam),
-    score:{fullTime:{home:scoreHome==null?null:Number(scoreHome),away:scoreAway==null?null:Number(scoreAway)}},
-    source:'sofascore-website'
-  };
-}
-async function sofascoreSportEvents(sport,dates){
-  const settled=await Promise.allSettled(dates.map(async date=>{
-    try{return sofascoreRawEvents(await sofascoreWebsiteFetch(`/sport/${sport}/scheduled-events/${date}`))}
-    catch(firstError){
-      const pages=await Promise.all([1,2].map(page=>sofascoreWebsiteFetch(`/sport/${sport}/scheduled-tournaments/${date}/page/${page}`).catch(()=>null)));
-      const rows=pages.flatMap(sofascoreRawEvents);if(!rows.length)throw firstError;return rows;
-    }
-  }));
-  const rows=settled.flatMap(result=>result.status==='fulfilled'?result.value:[]);
-  if(!rows.length){const reason=settled.find(result=>result.status==='rejected')?.reason;throw reason||new Error('SofaScore website feed returned no events.')}
-  return [...new Map(rows.map(event=>[String(event.id),event])).values()];
-}
-async function sofascoreFootballSchedule(){
-  const dates=Array.from({length:9},(_,index)=>isoDayOffset(index-1));
-  const events=await sofascoreSportEvents('football',dates);
-  const matches=events.map(cleanSofascoreFootballEvent).filter(match=>match.id&&match.utcDate).sort((a,b)=>Date.parse(a.utcDate)-Date.parse(b.utcDate));
-  const competitions=[...new Map(matches.map(match=>[String(match.competition.id||match.competition.name),match.competition])).values()];
-  return {matches,competitions,provider:'SofaScore website feed',dateFrom:dates[0],dateTo:dates.at(-1),updatedAt:new Date().toISOString()};
-}
-
-// FotMob exposes the same read-only JSON consumed by its public match pages.
-// Unlike the previous SofaScore route, this endpoint is reachable from the
-// deployed Worker and returns all competitions for a date in one response.
-const FOTMOB_WEB_BASE='https://www.fotmob.com/api/data';
-const FOTMOB_ID_PREFIX=800000000000;
-async function fotmobWebsiteFetch(path,params={}){
-  const u=new URL(`${FOTMOB_WEB_BASE}/${String(path||'').replace(/^\/+/, '')}`);
-  Object.entries(params).forEach(([key,value])=>{if(value!==undefined&&value!==null&&String(value)!=='')u.searchParams.set(key,String(value))});
-  const r=await fetch(u.toString(),{headers:{
-    accept:'application/json',referer:'https://www.fotmob.com/matches',
-    'user-agent':'Mozilla/5.0 (compatible; CommandCentre/1.0; +https://bcommand-center.wolvesgidaree.workers.dev)'
-  }});
-  const data=await r.json().catch(()=>null);
-  if(!r.ok||!data){const err=new Error(`FotMob website feed HTTP ${r.status}`);err.status=502;throw err}
-  return data;
-}
-function fotmobTeam(team){
-  const rawId=Number(team?.id)||0;
-  return {id:rawId?FOTMOB_ID_PREFIX+rawId:0,name:String(team?.longName||team?.name||'Team'),shortName:String(team?.shortName||team?.name||'Team'),tla:'',crest:rawId?`https://images.fotmob.com/image_resources/logo/teamlogo/${rawId}_small.png`:''};
-}
-function fotmobStatus(row){
-  const status=row?.status||{};
-  if(status.finished)return 'FINISHED';
-  if(status.cancelled||status.awarded)return 'CANCELLED';
-  if(status.started)return /half|pause/i.test(String(status?.reason?.long||status?.reason?.short||''))?'PAUSED':'IN_PLAY';
-  return 'SCHEDULED';
-}
-function cleanFotmobFootballMatch(row,league={}){
-  const rawId=Number(row?.id)||0,status=row?.status||{};
-  const kickoff=status.utcTime||((Number(row?.timeTS)||0)>0?new Date(Number(row.timeTS)).toISOString():'');
-  const minuteMatch=String(status?.liveTime?.short||status?.liveTime?.long||'').match(/\d+/);
-  const scoreMatch=String(status?.scoreStr||'').match(/(\d+)\s*-\s*(\d+)/);
-  const homeScore=row?.home?.score??(scoreMatch?Number(scoreMatch[1]):null),awayScore=row?.away?.score??(scoreMatch?Number(scoreMatch[2]):null);
-  return {
-    id:rawId?FOTMOB_ID_PREFIX+rawId:0,fotmobId:rawId,utcDate:String(kickoff||''),status:fotmobStatus(row),minute:minuteMatch?Number(minuteMatch[0]):null,
-    competition:{id:Number(league?.primaryId||league?.id)||0,name:String(league?.name||'Football'),code:String(league?.ccode||''),emblem:Number(league?.primaryId||league?.id)?`https://images.fotmob.com/image_resources/logo/leaguelogo/${league.primaryId||league.id}.png`:''},
-    homeTeam:fotmobTeam(row?.home),awayTeam:fotmobTeam(row?.away),
-    score:{fullTime:{home:homeScore==null?null:Number(homeScore),away:awayScore==null?null:Number(awayScore)}},
-    source:'fotmob-website'
-  };
-}
-async function fotmobFootballSchedule(){
-  const dates=Array.from({length:10},(_,index)=>isoDayOffset(index-1));
-  const settled=await Promise.allSettled(dates.map(date=>fotmobWebsiteFetch('matches',{date:date.replaceAll('-',''),timezone:'Europe/London',ccode3:'GBR'})));
-  const matches=[];
-  settled.forEach(result=>{
-    if(result.status!=='fulfilled')return;
-    (Array.isArray(result.value?.leagues)?result.value.leagues:[]).forEach(league=>{
-      (Array.isArray(league?.matches)?league.matches:[]).forEach(row=>{const match=cleanFotmobFootballMatch(row,league);if(match.id&&match.utcDate)matches.push(match)});
-    });
-  });
-  if(!matches.length){const reason=settled.find(result=>result.status==='rejected')?.reason;throw reason||new Error('FotMob website feed returned no fixtures.')}
-  const unique=[...new Map(matches.map(match=>[String(match.id),match])).values()].sort((a,b)=>Date.parse(a.utcDate)-Date.parse(b.utcDate));
-  const competitions=[...new Map(unique.map(match=>[String(match.competition.id||match.competition.name),match.competition])).values()];
-  return {matches:unique,competitions,provider:'FotMob website feed',dateFrom:dates[0],dateTo:dates.at(-1),updatedAt:new Date().toISOString()};
-}
-
-function cleanFotmobStandingRow(row){
-  const scores=String(row?.scoresStr||'').match(/(-?\d+)\D+(-?\d+)/);
-  const goalsFor=Number(row?.scoresFor??scores?.[1])||0,goalsAgainst=Number(row?.scoresAgainst??scores?.[2])||0;
-  return {
-    position:Number(row?.idx??row?.rank??row?.position)||0,
-    team:fotmobTeam({id:row?.id,name:row?.name,longName:row?.name,shortName:row?.shortName}),
-    playedGames:Number(row?.played)||0,
-    won:Number(row?.wins??row?.win)||0,
-    draw:Number(row?.draws??row?.draw)||0,
-    lost:Number(row?.losses??row?.loss)||0,
-    points:Number(row?.pts??row?.points)||0,
-    goalsFor,goalsAgainst,
-    goalDifference:Number(row?.goalConDiff??row?.goalDifference)||(goalsFor-goalsAgainst)
-  };
-}
-function fotmobLeagueTableRows(payload){
-  const sections=Array.isArray(payload?.table)?payload.table:[];
-  for(const section of sections){
-    const table=section?.data?.table||section?.table||{};
-    const rows=Array.isArray(table?.all)?table.all:(Array.isArray(table)?table:[]);
-    if(rows.length)return rows;
-  }
-  return [];
-}
-async function fotmobLeagueBundle(code){
-  const cfg=FOTMOB_LEAGUE_COMPETITIONS[code];
-  if(!cfg)throw Object.assign(new Error('No FotMob league mapping exists for this competition.'),{status:503});
-  const data=await fotmobWebsiteFetch('leagues',{id:cfg.id,ccode3:'GBR_MA',timezone:'Europe/London',language:'en'});
-  const rows=fotmobLeagueTableRows(data).map(cleanFotmobStandingRow).filter(row=>row.team.id);
-  if(!rows.length)throw Object.assign(new Error(`FotMob returned no ${cfg.name} table.`),{status:502});
-  const rawMatches=Array.isArray(data?.fixtures?.allMatches)?data.fixtures.allMatches
-    :(Array.isArray(data?.matches?.allMatches)?data.matches.allMatches
-      :(Array.isArray(data?.matches?.fixtures)?data.matches.fixtures:[]));
-  const league={id:cfg.id,primaryId:cfg.id,name:cfg.name,ccode:code};
-  const allMatches=rawMatches.map(row=>cleanFotmobFootballMatch(row,league)).filter(match=>match.id&&match.utcDate);
-  const recent=allMatches.filter(match=>match.status==='FINISHED').sort((a,b)=>Date.parse(b.utcDate)-Date.parse(a.utcDate)).slice(0,48);
-  const current=allMatches.filter(match=>match.status!=='FINISHED').sort((a,b)=>Date.parse(a.utcDate)-Date.parse(b.utcDate)).slice(0,80);
-  const matches=[...recent,...current];
-  return {
-    competition:{id:cfg.id,name:cfg.name,code,emblem:`https://images.fotmob.com/image_resources/logo/leaguelogo/${cfg.id}.png`},
-    standings:[{type:'TOTAL',group:'',table:rows}],matches,
-    provider:'FotMob website feed',providerMode:'public-league-page',
-    updatedAt:new Date().toISOString()
-  };
-}
-
-async function footballFetch(path,env,extraHeaders={}){
+async function footballFetch(path,env){
   if(!env.FOOTBALL_DATA_API_KEY){
     const err=new Error('Football is not configured. Add FOOTBALL_DATA_API_KEY as a Cloudflare Worker secret.');
     err.status=503;throw err;
   }
   const r=await fetch(`https://api.football-data.org/v4${path}`,{
-    headers:{'X-Auth-Token':env.FOOTBALL_DATA_API_KEY,accept:'application/json',...extraHeaders}
+    headers:{'X-Auth-Token':env.FOOTBALL_DATA_API_KEY,accept:'application/json'}
   });
   const data=await r.json().catch(()=>({}));
   if(!r.ok){
@@ -2178,274 +1648,6 @@ async function footballFetch(path,env,extraHeaders={}){
     throw err;
   }
   return data;
-}
-
-async function getFootballSchedule(env,force=false,requestUrl='https://local/api/football/schedule'){
-  let cache=null,cacheKey=null,cachedPayload=null;
-  try{
-    cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
-    if(cache){
-      const u=new URL(requestUrl);u.pathname='/__cache/football-schedule-v2';u.search='';
-      cacheKey=new Request(u.toString(),{method:'GET'});
-      const hit=await cache.match(cacheKey);if(hit){try{cachedPayload=await hit.json()}catch{}}
-    }
-  }catch{cache=null;cacheKey=null}
-  if(cachedPayload&&!force)return {...cachedPayload,cache:'hit'};
-  if(cachedPayload&&force&&Date.now()-Date.parse(cachedPayload.updatedAt||0)<60*1000){
-    return {...cachedPayload,cache:'refresh-cooldown'};
-  }
-
-  try{
-    try{
-      const payload=await fotmobFootballSchedule();
-      if(cache&&cacheKey){try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=600'}}))}catch{}}
-      return {...payload,cache:'fresh'};
-    }catch(fotmobError){
-      const dateFrom=isoDayOffset(-1),dateTo=isoDayOffset(14);
-      let matches=[],provider='football-data.org';
-      if(env.FOOTBALL_DATA_API_KEY){
-        const data=await footballFetch(`/matches?dateFrom=${dateFrom}&dateTo=${dateTo}&limit=500`,env);
-        matches=Array.isArray(data.matches)?data.matches:[];
-      }else{
-        const data=await apiFootballFetch('fixtures',{from:dateFrom,to:dateTo,timezone:'UTC'},env);
-        matches=(Array.isArray(data?.response)?data.response:[]).map(cleanApiFootballFixture);
-        provider='API-Football';
-      }
-      matches.sort((a,b)=>Date.parse(a.utcDate||0)-Date.parse(b.utcDate||0));
-      const competitions=[...new Map(matches.map(match=>{
-        const comp=match?.competition||{};
-        return [String(comp.id||comp.code||comp.name||''),{id:comp.id||0,code:comp.code||'',name:comp.name||'Competition',emblem:comp.emblem||''}];
-      }).filter(([key])=>key)).values()];
-      const payload={matches,competitions,provider,dateFrom,dateTo,updatedAt:new Date().toISOString(),warning:`FotMob was unavailable; ${provider} fallback is shown.`};
-      if(cache&&cacheKey){try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=600'}}))}catch{}}
-      return {...payload,cache:'fresh'};
-    }
-  }catch(e){
-    if(cachedPayload)return {...cachedPayload,cache:'stale',warning:e?.message||'Showing the last saved football schedule.'};
-    throw e;
-  }
-}
-
-function cleanFootballDataLineupTeam(team){
-  const players=list=>(Array.isArray(list)?list:[]).map(player=>({
-    id:Number(player?.id)||0,
-    name:String(player?.name||'Player').slice(0,120),
-    number:player?.shirtNumber==null?null:Number(player.shirtNumber),
-    position:String(player?.position||'').slice(0,80)
-  }));
-  return {
-    id:Number(team?.id)||0,name:String(team?.shortName||team?.name||'Team'),crest:String(team?.crest||''),
-    formation:String(team?.formation||''),coach:String(team?.coach?.name||''),
-    starting:players(team?.lineup),bench:players(team?.bench)
-  };
-}
-function cleanApiFootballLineupTeam(entry){
-  const players=list=>(Array.isArray(list)?list:[]).map(row=>{
-    const player=row?.player||row||{};
-    return {id:Number(player.id)||0,name:String(player.name||'Player').slice(0,120),number:player.number==null?null:Number(player.number),position:String(player.pos||player.position||'').slice(0,80)};
-  });
-  return {
-    id:-(Math.abs(Number(entry?.team?.id)||0)),name:String(entry?.team?.name||'Team'),crest:String(entry?.team?.logo||''),
-    formation:String(entry?.formation||''),coach:String(entry?.coach?.name||''),
-    starting:players(entry?.startXI),bench:players(entry?.substitutes)
-  };
-}
-async function getFootballLineups(env,matchId,force=false,requestUrl='https://local/api/football/lineups'){
-  const id=Number(matchId)||0;
-  if(!id){const err=new Error('A valid football match ID is required.');err.status=400;throw err}
-  let cache=null,cacheKey=null;
-  try{
-    cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
-    if(cache){
-      const u=new URL(requestUrl);u.pathname='/__cache/football-lineups-v1';u.search=new URLSearchParams({matchId:String(id)}).toString();
-      cacheKey=new Request(u.toString(),{method:'GET'});
-      if(!force){const hit=await cache.match(cacheKey);if(hit)return hit.json()}
-    }
-  }catch{cache=null;cacheKey=null}
-
-  let teams=[],provider='football-data.org';
-  if(id>0){
-    const match=await footballFetch(`/matches/${encodeURIComponent(id)}`,env,{'X-Unfold-Lineups':'true'});
-    teams=[cleanFootballDataLineupTeam(match.homeTeam),cleanFootballDataLineupTeam(match.awayTeam)];
-  }else{
-    const data=await apiFootballFetch('fixtures/lineups',{fixture:Math.abs(id)},env);
-    teams=(Array.isArray(data?.response)?data.response:[]).map(cleanApiFootballLineupTeam);
-    provider='API-Football';
-  }
-  const available=teams.some(team=>team.starting.length||team.bench.length);
-  const payload={matchId:id,teams,available,provider,updatedAt:new Date().toISOString(),message:available?'':'Lineups have not been announced for this match yet.'};
-  if(cache&&cacheKey){
-    try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':'public,max-age=120'}}))}catch{}
-  }
-  return payload;
-}
-
-function footballDataMatchEvent(kind,row){
-  const minute=Number(row?.minute)||0,injury=Number(row?.injuryTime)||0;
-  return {
-    type:kind,detail:String(row?.type||row?.card||kind),minute,extra:injury,
-    team:{id:Number(row?.team?.id)||0,name:String(row?.team?.shortName||row?.team?.name||'')},
-    player:String(row?.scorer?.name||row?.player?.name||row?.playerIn?.name||''),
-    assist:String(row?.assist?.name||''),playerOut:String(row?.playerOut?.name||''),
-    score:row?.score||null
-  };
-}
-
-function cleanSofascoreLineupTeam(team,lineupSide={}){
-  const players=(Array.isArray(lineupSide?.players)?lineupSide.players:[]).map(row=>{
-    const player=row?.player||row||{};
-    return {id:Number(player.id)||0,name:String(player.name||'Player').slice(0,120),number:row?.shirtNumber??player?.shirtNumber??null,position:String(player.position||'').slice(0,80),substitute:row?.substitute===true};
-  });
-  const cleaned=sofascoreTeam(team);
-  return {...cleaned,formation:String(lineupSide?.formation||''),coach:String(lineupSide?.manager?.name||''),starting:players.filter(player=>!player.substitute),bench:players.filter(player=>player.substitute)};
-}
-async function getSofascoreFootballMatch(sofascoreId){
-  const rawId=Number(sofascoreId)||0;
-  if(!rawId)throw new Error('A valid SofaScore event ID is required.');
-  const settled=await Promise.allSettled([
-    sofascoreWebsiteFetch(`/event/${rawId}`),
-    sofascoreWebsiteFetch(`/event/${rawId}/lineups`),
-    sofascoreWebsiteFetch(`/event/${rawId}/incidents`),
-    sofascoreWebsiteFetch(`/event/${rawId}/statistics`)
-  ]);
-  if(settled[0].status!=='fulfilled')throw settled[0].reason;
-  const rawEvent=settled[0].value?.event||settled[0].value;
-  const match=cleanSofascoreFootballEvent(rawEvent);
-  match.venue=String(rawEvent?.venue?.stadium?.name||rawEvent?.venue?.name||rawEvent?.venue?.city?.name||'');
-  match.referees=[rawEvent?.referee?.name].filter(Boolean);
-  const lineup=settled[1].status==='fulfilled'?settled[1].value:{};
-  const teams=[cleanSofascoreLineupTeam(rawEvent?.homeTeam,lineup?.home),cleanSofascoreLineupTeam(rawEvent?.awayTeam,lineup?.away)];
-  const incidentsRaw=settled[2].status==='fulfilled'&&Array.isArray(settled[2].value?.incidents)?settled[2].value.incidents:[];
-  const events=incidentsRaw.map(row=>{
-    const rawType=String(row?.incidentType||row?.incidentClass||'Event');
-    const detail=String(row?.reason||row?.incidentClass||rawType).replaceAll('_',' ');
-    const team=row?.isHome===true?match.homeTeam:row?.isHome===false?match.awayTeam:{id:0,name:''};
-    return {type:rawType,detail,minute:Number(row?.time)||0,extra:Number(row?.addedTime)||0,team,player:String(row?.player?.name||row?.playerIn?.name||''),assist:String(row?.assist1?.name||row?.assist?.name||''),playerOut:String(row?.playerOut?.name||''),score:(row?.homeScore!=null||row?.awayScore!=null)?{home:row?.homeScore,away:row?.awayScore}:null};
-  }).sort((a,b)=>(a.minute+a.extra/100)-(b.minute+b.extra/100));
-  const periods=settled[3].status==='fulfilled'&&Array.isArray(settled[3].value?.statistics)?settled[3].value.statistics:[];
-  const period=periods.find(item=>String(item?.period||'').toUpperCase()==='ALL')||periods[0]||{};
-  const statItems=(Array.isArray(period?.groups)?period.groups:[]).flatMap(group=>Array.isArray(group?.statisticsItems)?group.statisticsItems:[]);
-  const statistics=[
-    {team:match.homeTeam,items:statItems.map(item=>({label:String(item?.name||''),value:item?.home??item?.homeValue??'—'}))},
-    {team:match.awayTeam,items:statItems.map(item=>({label:String(item?.name||''),value:item?.away??item?.awayValue??'—'}))}
-  ];
-  return {match,teams,events,statistics,provider:'SofaScore website feed',updatedAt:new Date().toISOString(),available:{lineups:teams.some(team=>team.starting.length||team.bench.length),timeline:events.length>0,statistics:statItems.length>0}};
-}
-
-function cleanFotmobLineupTeam(side,headerTeam={}){
-  const positionName=value=>({0:'Goalkeeper',1:'Defender',2:'Midfielder',3:'Forward'}[Number(value)]||'');
-  const players=list=>(Array.isArray(list)?list:[]).map(player=>({
-    id:Number(player?.id)||0,name:String(player?.name||'Player').slice(0,120),
-    number:player?.shirtNumber==null?null:Number(player.shirtNumber),
-    position:positionName(player?.usualPlayingPositionId),rating:Number(player?.performance?.rating)||null
-  }));
-  const rawId=Number(side?.id||headerTeam?.id)||0;
-  return {
-    id:rawId?FOTMOB_ID_PREFIX+rawId:0,name:String(side?.name||headerTeam?.name||'Team'),
-    crest:String(headerTeam?.imageUrl||(rawId?`https://images.fotmob.com/image_resources/logo/teamlogo/${rawId}_small.png`:'')),
-    formation:String(side?.formation||''),coach:String(side?.coach?.name||''),
-    starting:players(side?.starters),bench:players(side?.subs),
-    unavailable:players(side?.unavailable)
-  };
-}
-async function getFotmobFootballMatch(fotmobId){
-  const rawId=Number(fotmobId)||0;
-  if(!rawId)throw new Error('A valid FotMob match ID is required.');
-  const data=await fotmobWebsiteFetch('matchDetails',{matchId:rawId});
-  const general=data?.general||{},header=data?.header||{},headerTeams=Array.isArray(header?.teams)?header.teams:[];
-  const status=header?.status||{},homeRaw=headerTeams[0]||general?.homeTeam||{},awayRaw=headerTeams[1]||general?.awayTeam||{};
-  const homeTeam=fotmobTeam({...general?.homeTeam,...homeRaw}),awayTeam=fotmobTeam({...general?.awayTeam,...awayRaw});
-  const match={
-    id:FOTMOB_ID_PREFIX+rawId,fotmobId:rawId,utcDate:String(status?.utcTime||general?.matchTimeUTCDate||''),
-    status:fotmobStatus({status}),minute:Number(String(status?.liveTime?.short||'').match(/\d+/)?.[0])||null,
-    venue:String(data?.content?.matchFacts?.infoBox?.Stadium?.name||''),
-    competition:{id:Number(general?.leagueId)||0,name:String(general?.leagueName||'Football'),code:String(general?.countryCode||''),emblem:Number(general?.leagueId)?`https://images.fotmob.com/image_resources/logo/leaguelogo/${general.leagueId}.png`:''},
-    homeTeam,awayTeam,score:{fullTime:{home:homeRaw?.score==null?null:Number(homeRaw.score),away:awayRaw?.score==null?null:Number(awayRaw.score)}},
-    referees:[data?.content?.matchFacts?.infoBox?.Referee?.text].filter(Boolean)
-  };
-  const lineup=data?.content?.lineup||{};
-  const teams=[cleanFotmobLineupTeam(lineup?.homeTeam,homeRaw),cleanFotmobLineupTeam(lineup?.awayTeam,awayRaw)];
-  const rawEvents=Array.isArray(data?.content?.matchFacts?.events?.events)?data.content.matchFacts.events.events:[];
-  const events=rawEvents.filter(row=>!['AddedTime','Half'].includes(String(row?.type||''))).map(row=>{
-    const swap=Array.isArray(row?.swap)?row.swap:[];
-    const score=Array.isArray(row?.newScore)?{home:row.newScore[0],away:row.newScore[1]}:(row?.homeScore!=null||row?.awayScore!=null?{home:row.homeScore,away:row.awayScore}:null);
-    return {
-      type:String(row?.type||'Event'),detail:String(row?.goalDescription||row?.card||row?.cardReason?.defaultText||row?.type||'Event'),
-      minute:Number(row?.time)||0,extra:Number(row?.overloadTime)||0,team:row?.isHome===true?homeTeam:row?.isHome===false?awayTeam:{id:0,name:''},
-      player:String(row?.player?.name||row?.nameStr||swap[0]?.name||''),assist:String(row?.assistInput||''),playerOut:String(swap[1]?.name||''),score
-    };
-  }).sort((a,b)=>(a.minute+a.extra/100)-(b.minute+b.extra/100));
-  const statGroups=data?.content?.stats?.Periods?.All?.stats;
-  const statItems=[];const seenStats=new Set();
-  (Array.isArray(statGroups)?statGroups:[]).forEach(group=>(Array.isArray(group?.stats)?group.stats:[]).forEach(item=>{
-    if(!Array.isArray(item?.stats)||item.stats.length<2||item.stats.every(value=>value==null))return;
-    const label=String(item?.title||'').trim();if(!label||seenStats.has(label))return;seenStats.add(label);
-    statItems.push({label,home:item.stats[0]??'—',away:item.stats[1]??'—'});
-  }));
-  const statistics=[{team:homeTeam,items:statItems.map(item=>({label:item.label,value:item.home}))},{team:awayTeam,items:statItems.map(item=>({label:item.label,value:item.away}))}];
-  return {match,teams,events,statistics,provider:'FotMob website feed',sourceUrl:`https://www.fotmob.com/matches/x#${rawId}`,updatedAt:new Date().toISOString(),available:{lineups:teams.some(team=>team.starting.length||team.bench.length),timeline:events.length>0,statistics:statItems.length>0}};
-}
-
-async function getFootballMatchCentre(env,matchId,force=false,requestUrl='https://local/api/football/match'){
-  const id=Number(matchId)||0;
-  if(!id){const err=new Error('A valid football match ID is required.');err.status=400;throw err}
-  const live=new URL(requestUrl).searchParams.get('live')==='1';
-  let cache=null,cacheKey=null;
-  try{
-    cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
-    if(cache){
-      const u=new URL(requestUrl);u.pathname=live?'/__cache/football-match-live-v2':'/__cache/football-match-centre-v2';u.search=new URLSearchParams({matchId:String(id)}).toString();
-      cacheKey=new Request(u.toString(),{method:'GET'});
-      if(!force){const hit=await cache.match(cacheKey);if(hit)return hit.json()}
-    }
-  }catch{cache=null;cacheKey=null}
-
-  let payload;
-  if(id>SOFASCORE_ID_PREFIX){
-    payload=await getSofascoreFootballMatch(id-SOFASCORE_ID_PREFIX);
-  }else if(id>FOTMOB_ID_PREFIX){
-    payload=await getFotmobFootballMatch(id-FOTMOB_ID_PREFIX);
-  }else if(id>0){
-    const match=await footballFetch(`/matches/${encodeURIComponent(id)}`,env,{
-      'X-Unfold-Lineups':'true','X-Unfold-Goals':'true','X-Unfold-Bookings':'true','X-Unfold-Subs':'true'
-    });
-    const events=[
-      ...(Array.isArray(match?.goals)?match.goals.map(row=>footballDataMatchEvent('Goal',row)):[]),
-      ...(Array.isArray(match?.bookings)?match.bookings.map(row=>footballDataMatchEvent('Card',row)):[]),
-      ...(Array.isArray(match?.substitutions)?match.substitutions.map(row=>footballDataMatchEvent('Substitution',row)):[])
-    ].sort((a,b)=>(a.minute+a.extra/100)-(b.minute+b.extra/100));
-    const teams=[cleanFootballDataLineupTeam(match.homeTeam),cleanFootballDataLineupTeam(match.awayTeam)];
-    payload={
-      match:{id,utcDate:match.utcDate||'',status:match.status||'',minute:Number(match.minute)||null,venue:String(match.venue||''),competition:match.competition||{},homeTeam:match.homeTeam||{},awayTeam:match.awayTeam||{},score:match.score||{},referees:Array.isArray(match.referees)?match.referees:[]},
-      teams,events,statistics:[],provider:'football-data.org',updatedAt:new Date().toISOString()
-    };
-  }else{
-    const fixtureId=Math.abs(id);
-    const settled=await Promise.allSettled([
-      apiFootballFetch('fixtures',{id:fixtureId},env),
-      apiFootballFetch('fixtures/events',{fixture:fixtureId},env),
-      apiFootballFetch('fixtures/statistics',{fixture:fixtureId},env),
-      apiFootballFetch('fixtures/lineups',{fixture:fixtureId},env)
-    ]);
-    if(settled[0].status!=='fulfilled')throw settled[0].reason;
-    const fixtureRow=settled[0].value?.response?.[0];
-    if(!fixtureRow){const err=new Error('The football provider returned no match details.');err.status=404;throw err}
-    const cleaned=cleanApiFootballFixture(fixtureRow);
-    cleaned.venue=String(fixtureRow?.fixture?.venue?.name||'');
-    cleaned.referees=Array.isArray(fixtureRow?.fixture?.referee)?fixtureRow.fixture.referee:[fixtureRow?.fixture?.referee].filter(Boolean);
-    const rawEvents=settled[1].status==='fulfilled'&&Array.isArray(settled[1].value?.response)?settled[1].value.response:[];
-    const events=rawEvents.map(row=>({
-      type:String(row?.type||'Event'),detail:String(row?.detail||''),minute:Number(row?.time?.elapsed)||0,extra:Number(row?.time?.extra)||0,
-      team:apiFootballTeam(row?.team),player:String(row?.player?.name||''),assist:String(row?.assist?.name||''),playerOut:'',score:null
-    }));
-    const rawStats=settled[2].status==='fulfilled'&&Array.isArray(settled[2].value?.response)?settled[2].value.response:[];
-    const statistics=rawStats.map(row=>({team:apiFootballTeam(row?.team),items:(Array.isArray(row?.statistics)?row.statistics:[]).map(stat=>({label:String(stat?.type||''),value:stat?.value??'—'}))}));
-    const rawLineups=settled[3].status==='fulfilled'&&Array.isArray(settled[3].value?.response)?settled[3].value.response:[];
-    payload={match:cleaned,teams:rawLineups.map(cleanApiFootballLineupTeam),events,statistics,provider:'API-Football',updatedAt:new Date().toISOString()};
-  }
-  payload.available={lineups:payload.teams.some(team=>team.starting?.length||team.bench?.length),timeline:payload.events.length>0,statistics:payload.statistics.length>0};
-  if(cache&&cacheKey){try{await cache.put(cacheKey,new Response(JSON.stringify(payload),{headers:{'content-type':'application/json','cache-control':`public,max-age=${live?10:60}`}}))}catch{}}
-  return payload;
 }
 
 function apiSportsKey(env){
@@ -2618,7 +1820,7 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
     cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
     if(cache){
       const u=new URL(requestUrl);
-      u.pathname='/__cache/football-v5';
+      u.pathname='/__cache/football-v3';
       u.search=new URLSearchParams({competition:code}).toString();
       cacheKey=new Request(u.toString(),{method:'GET'});
       const hit=await cache.match(cacheKey);
@@ -2656,19 +1858,11 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
   try{
     let payload;
 
-    // League One and the neighbouring English divisions were previously sent
-    // to providers whose free/keyless tiers do not expose their club tables.
-    // Use the same FotMob league feed as the global fixture schedule first.
-    if(FOTMOB_LEAGUE_COMPETITIONS[code]){
-      try{payload=await fotmobLeagueBundle(code)}
-      catch(fotmobLeagueError){console.warn(`FotMob league feed unavailable for ${code}`,fotmobLeagueError?.message||fotmobLeagueError)}
-    }
-
     // Avoid triggering a known 403 for competitions outside the normal primary-key
     // coverage. If a fallback key is present, go directly to API-Football.
-    if(!payload&&!FOOTBALL_DATA_PRIMARY_CODES.has(code)&&apiSportsKey(env)){
+    if(!FOOTBALL_DATA_PRIMARY_CODES.has(code)&&apiSportsKey(env)){
       payload=await apiFootballBundle(env,code);
-    }else if(!payload){
+    }else{
       try{
         payload=await fetchPrimary();
       }catch(primaryError){
@@ -2689,7 +1883,7 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
       try{
         if(!cacheKey){
           const u=new URL(requestUrl);
-          u.pathname='/__cache/football-v5';
+          u.pathname='/__cache/football-v3';
           u.search=new URLSearchParams({competition:code}).toString();
           cacheKey=new Request(u.toString(),{method:'GET'});
         }
@@ -2711,7 +1905,7 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
   }
 }
 
-const GENERAL_SPORTS=new Set(['tennis','athletics']);
+const GENERAL_SPORTS=new Set(['tennis','basketball']);
 
 function sportsDayKey(offset=0){
   const d=new Date();
@@ -2978,56 +2172,8 @@ async function apiTennisBundle(env){
   };
 }
 
-function cleanSofascoreGeneralEvent(event,sportKey){
-  const home=String(event?.homeTeam?.name||''),away=String(event?.awayTeam?.name||'');
-  const homeScore=event?.homeScore?.current??event?.homeScore?.normaltime,awayScore=event?.awayScore?.current??event?.awayScore?.normaltime;
-  const timestamp=event?.startTimestamp?new Date(Number(event.startTimestamp)*1000).toISOString():'';
-  const status=String(event?.status?.description||event?.status?.type||'');
-  const isLive=sofascoreStatus(event)==='IN_PLAY'||sofascoreStatus(event)==='PAUSED';
-  const finished=sofascoreStatus(event)==='FINISHED';
-  const tournament=event?.tournament||{},unique=tournament?.uniqueTournament||{};
-  return {
-    id:`sofascore-${sportKey}-${String(event?.id||`${timestamp}-${home}-${away}`)}`,sport:sportKey,
-    name:[home,away].filter(Boolean).join(' vs ')||String(unique.name||tournament.name||'Event'),
-    league:String(unique.name||tournament.name||''),home,away,homeId:String(event?.homeTeam?.id||''),awayId:String(event?.awayTeam?.id||''),
-    homeScore:homeScore==null?null:Number(homeScore),awayScore:awayScore==null?null:Number(awayScore),
-    displayScore:(homeScore!=null&&awayScore!=null)?`${homeScore} – ${awayScore}`:'',
-    date:timestamp.slice(0,10),time:timestamp.slice(11,19),timestamp,status,
-    liveDetail:isLive?[status,event?.status?.description].filter(Boolean).join(' • '):'',isLive,finished,
-    round:String(event?.roundInfo?.round||''),venue:String(event?.venue?.stadium?.name||event?.venue?.name||''),thumbnail:Number(unique.id)?`https://img.sofascore.com/api/v1/unique-tournament/${unique.id}/image`:''
-  };
-}
-async function sofascoreTennisBundle(){
-  const dates=[sportsDayKey(-1),sportsDayKey(0),sportsDayKey(1),sportsDayKey(2)];
-  const events=(await sofascoreSportEvents('tennis',dates)).map(event=>cleanSofascoreGeneralEvent(event,'tennis')).filter(event=>event.home&&event.away);
-  if(!events.length)throw new Error('SofaScore website feed returned no tennis matches.');
-  return {sport:'tennis',provider:'SofaScore website feed',events,updatedAt:new Date().toISOString(),warning:'',windowLabel:'yesterday through the next two days'};
-}
-
-async function worldAthleticsBundle(){
-  const startDate=sportsDayKey(-7),endDate=sportsDayKey(28);
-  const u=new URL('https://worldathletics.org/competition/calendar-results');
-  u.searchParams.set('startDate',startDate);u.searchParams.set('endDate',endDate);u.searchParams.set('hideCompetitionsWithNoResults','false');
-  const r=await fetch(u.toString(),{headers:{accept:'text/html,application/xhtml+xml','user-agent':'Mozilla/5.0 (compatible; CommandCentre/1.0)'}});
-  if(!r.ok){const err=new Error(`World Athletics calendar HTTP ${r.status}`);err.status=502;throw err}
-  const html=await r.text();
-  if(html.length>3_000_000)throw new Error('World Athletics calendar response was unexpectedly large.');
-  const match=html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/i);
-  if(!match)throw new Error('World Athletics calendar data was not present on the official page.');
-  let page;
-  try{page=JSON.parse(match[1])}catch{throw new Error('World Athletics calendar data could not be read.')}
-  const rows=page?.props?.pageProps?.initialEvents?.results;
-  if(!Array.isArray(rows))throw new Error('World Athletics returned an unexpected calendar format.');
-  const today=sportsDayKey(0);
-  const events=rows.map(item=>{
-    const date=String(item?.startDate||''),end=String(item?.endDate||date),hasResults=item?.hasResults===true||item?.hasApiResults===true;
-    return {id:`athletics-${String(item?.id||`${date}-${item?.name||''}`)}`,sport:'athletics',name:String(item?.name||'Athletics meeting'),league:String(item?.disciplines||item?.competitionGroup||'World Athletics'),home:String(item?.name||'Athletics meeting'),away:'',homeId:String(item?.id||''),awayId:'',homeScore:null,awayScore:null,displayScore:hasResults?'Results':'',date,time:'09:00:00',timestamp:date?`${date}T09:00:00Z`:'',status:hasResults?'Finished':end<today?'Ended':'Scheduled',liveDetail:'',isLive:false,finished:hasResults||end<today,round:'',venue:String(item?.venue||''),thumbnail:'',url:`https://worldathletics.org/competition/calendar-results?startDate=${encodeURIComponent(date)}&endDate=${encodeURIComponent(end)}&hideCompetitionsWithNoResults=false`};
-  }).filter(event=>event.name&&event.date);
-  return {sport:'athletics',provider:'World Athletics official calendar',events,updatedAt:new Date().toISOString(),warning:'',windowLabel:'last 7 days and next 4 weeks'};
-}
-
 async function sportsDbFallbackBundle(env,sportKey){
-  const providerSport='Tennis';
+  const providerSport=sportKey==='basketball'?'Basketball':'Tennis';
   const dates=[sportsDayKey(-1),sportsDayKey(0),sportsDayKey(1)];
   let all=[],warnings=[];
   for(const date of dates){
@@ -3084,16 +2230,23 @@ async function getGeneralSportBundle(env,kind='tennis',force=false,requestUrl='h
 
   try{
     let payload;
-    if(sportKey==='athletics'){
-      payload=await worldAthleticsBundle();
+    if(sportKey==='basketball'){
+      try{
+        payload=await apiBasketballBundle(env);
+      }catch(e){
+        if(e?.setupRequired){
+          payload=await sportsDbFallbackBundle(env,sportKey);
+          payload.warning=`${e.message} ${payload.events.length?'Limited fallback events are shown below.':''}`.trim();
+        }else throw e;
+      }
     }else{
       try{
         payload=await apiTennisBundle(env);
-      }catch(tennisError){
-        if(tennisError?.setupRequired){
+      }catch(e){
+        if(e?.setupRequired){
           payload=await sportsDbFallbackBundle(env,sportKey);
-          payload.warning=`${tennisError.message} ${payload.events.length?'Limited fallback events are shown below.':''}`.trim();
-        }else throw tennisError;
+          payload.warning=`${e.message} ${payload.events.length?'Limited fallback events are shown below.':''}`.trim();
+        }else throw e;
       }
     }
 
@@ -3172,7 +2325,7 @@ async function commandCentreStatus(env,live=false){
     kind:sharedApiSportsKey?'ok':'warn',
     detail:sharedApiSportsKey
       ?(env.API_SPORTS_KEY
-        ?'API_SPORTS_KEY is present for the API-Football fallback.'
+        ?'API_SPORTS_KEY is present and is shared by API-Football and API-Basketball.'
         :'Using the existing API_FOOTBALL_KEY as the shared API-SPORTS key. You can rename it to API_SPORTS_KEY later.')
       :'Add one API_SPORTS_KEY secret using the single API key shown in your API-SPORTS dashboard.'
   });
@@ -3215,9 +2368,14 @@ async function commandCentreStatus(env,live=false){
     kind:env.NEWSDATA_API_KEY?'info':'warn',
     detail:env.NEWSDATA_API_KEY?'Secret is present. Live calls are skipped here to preserve quota.':'NEWSDATA_API_KEY is missing.'
   });
-  services.push({name:'FotMob website feed',state:'Built in',kind:'info',detail:'The complete football schedule and Match Centre prefer FotMob’s public website data, including lineups, incidents and available match statistics.'});
-  services.push({name:'World Athletics calendar',state:'Built in',kind:'info',detail:'Athletics meetings and result availability come from the official global calendar.'});
-  services.push({name:'Apple Push Notification service',state:apnsConfigured(env)?'Configured':'Needs setup',kind:apnsConfigured(env)?'ok':'warn',detail:apnsConfigured(env)?'APNs credentials are present for native alerts and closed-app Live Activity updates.':'Add the combined APNS_CONFIG secret after enabling Push Notifications and Live Activities for the app identifier.'});
+  services.push({
+    name:'Basketball live data',
+    state:sharedApiSportsKey?'Configured':'Needs setup',
+    kind:sharedApiSportsKey?'ok':'warn',
+    detail:sharedApiSportsKey
+      ?'Using the same shared API-SPORTS key as Football. Basketball must show Active in the API-SPORTS dashboard.'
+      :'Add API_SPORTS_KEY once; do not create a separate Basketball key.'
+  });
   services.push({
     name:'Tennis live data',
     state:env.API_TENNIS_KEY?'Configured':'Needs setup',
@@ -3485,20 +2643,11 @@ async function refreshFootballNotifications(env){
     .bind(Date.now()-60*86400000).run();
 }
 async function sendOne(row,env){
-  if(row.apnsToken||row.apns_token){
-    try{return await sendAPNSNotification(row,env)}
-    catch(error){
-      if(error?.invalidToken&&row.deviceId&&env.DB){
-        try{await env.DB.prepare('UPDATE transfer_devices SET apns_token=NULL,apns_updated_at=NULL WHERE id=? AND apns_token=?').bind(row.deviceId,String(row.apnsToken||row.apns_token)).run()}catch{}
-      }
-      throw error;
-    }
-  }
   const sub={endpoint:row.endpoint,keys:{p256dh:row.p256dh,auth:row.auth}};
   const target=String(row.url||'/');
   // Keep the URL both at the top level and inside data. The service worker
   // accepts either shape, which also keeps older subscriptions compatible.
-  const accepted=await sendPushNotification(
+  await sendPushNotification(
     sub,
     {
       title:row.title,
@@ -3515,7 +2664,6 @@ async function sendOne(row,env){
       subject:env.VAPID_SUBJECT||'mailto:command-centre@example.com'
     }
   );
-  if(accepted===false)throw Object.assign(new Error('The Safari push subscription has expired. Open the Home Screen web app → Settings → Notifications → Safari notification companion → Refresh connection, then send a test.'),{status:410});
 }
 
 
@@ -3825,8 +2973,6 @@ async function audiusStreamResponse(request,env,trackId){
 export default {
   async fetch(request,env,ctx){
     const url=new URL(request.url);
-    if(url.pathname.startsWith('/api/live-activities/'))return handleLiveActivities(request,env);
-      if(url.pathname.startsWith('/api/notification-companion')) return handleNotificationCompanion(request,env,ctx,sendOne);
     if(url.pathname.startsWith('/api/transfers/')) return handleTransfers(request,env,ctx,sendOne);
     if(url.pathname.startsWith('/api/messages/')) return handleMessages(request,env,ctx,sendOne);
     if(request.method==='OPTIONS') return new Response(null,{headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET,POST,DELETE,OPTIONS','access-control-allow-headers':'content-type'}});
@@ -3850,15 +2996,7 @@ export default {
       }
 
       if(url.pathname==='/api/mirror/room'&&request.method==='POST'){
-        await ensureMirrorTables(env);
-        const {code}=await request.json(),cleanCode=String(code||'');
-        if(!/^\d{6}$/.test(cleanCode))return json({error:'A 6-digit mirror code is required.'},400);
-        const now=Date.now();
-        const existing=await env.DB.prepare('SELECT updated_at FROM mirror_rooms WHERE code=?').bind(cleanCode).first();
-        if(existing&&now-Number(existing.updated_at||0)<30*60*1000)return json({error:'That mirror code is already active. Try again.'},409);
-        if(existing){await env.DB.prepare('DELETE FROM mirror_signals WHERE code=?').bind(cleanCode).run();await env.DB.prepare('DELETE FROM mirror_rooms WHERE code=?').bind(cleanCode).run()}
-        await env.DB.prepare('INSERT INTO mirror_rooms(code,created_at,updated_at) VALUES(?,?,?)').bind(cleanCode,now,now).run();
-        return json({ok:true,code:cleanCode});
+        await ensureMirrorTables(env);const {code}=await request.json();if(!/^\d{6}$/.test(String(code||'')))return json({error:'A 6-digit mirror code is required.'},400);const now=Date.now();await env.DB.prepare(`INSERT INTO mirror_rooms(code,created_at,updated_at) VALUES(?,?,?) ON CONFLICT(code) DO UPDATE SET updated_at=excluded.updated_at`).bind(String(code),now,now).run();await env.DB.prepare('DELETE FROM mirror_signals WHERE code=?').bind(String(code)).run();return json({ok:true,code:String(code)});
       }
       if(url.pathname==='/api/mirror/room'&&request.method==='GET'){
         await ensureMirrorTables(env);const code=String(url.searchParams.get('code')||'');const row=await env.DB.prepare('SELECT code,updated_at FROM mirror_rooms WHERE code=?').bind(code).first();const exists=!!row&&(Date.now()-Number(row.updated_at||0)<30*60*1000);return json({exists});
@@ -3938,28 +3076,6 @@ export default {
         const competition=url.searchParams.get('competition')||'PL';
         const force=url.searchParams.get('refresh')==='1';
         return json(await getFootballBundle(env,competition,force,request.url));
-      }
-
-      if(url.pathname==='/api/football/schedule'&&request.method==='GET'){
-        return json(await getFootballSchedule(env,url.searchParams.get('refresh')==='1',request.url));
-      }
-
-      if(url.pathname==='/api/football/lineups'&&request.method==='GET'){
-        return json(await getFootballLineups(
-          env,
-          url.searchParams.get('matchId')||'',
-          url.searchParams.get('refresh')==='1',
-          request.url
-        ));
-      }
-
-      if(url.pathname==='/api/football/match'&&request.method==='GET'){
-        return json(await getFootballMatchCentre(
-          env,
-          url.searchParams.get('matchId')||'',
-          url.searchParams.get('refresh')==='1',
-          request.url
-        ));
       }
 
       if(url.pathname==='/api/sports'&&request.method==='GET'){
@@ -4049,18 +3165,15 @@ export default {
         const providerConfigured=!!env.MEDIA_EMBED_BASE_URL;
         const tmdbConfigured=!!env.TMDB_API_KEY;
         return json({
-          ready:tmdbConfigured,
+          ready:providerConfigured&&tmdbConfigured,
           providerConfigured,
           tmdbConfigured,
           routes:{
-           standard:env.MEDIA_EMBED_PATH_STANDARD||'/embed',
-           alternate:env.MEDIA_EMBED_PATH_TORRENT||'/embed/torrent',
-            aggregator:env.MEDIA_EMBED_PATH_AGG||'/embed/agg',
-            flixer:'/watch/{type}/{tmdbId}',
-            atlantic:'/watch/{tmdbId}/{season?}/{episode?}',
-            boomflix:'/title/{type}/{tmdbId}'
+            standard:env.MEDIA_EMBED_PATH_STANDARD||'/embed',
+            alternate:env.MEDIA_EMBED_PATH_TORRENT||'/embed/torrent',
+            aggregator:env.MEDIA_EMBED_PATH_AGG||'/embed/agg'
           }
-        },tmdbConfigured?200:503);
+        },providerConfigured&&tmdbConfigured?200:503);
       }
 
       if(url.pathname==='/api/media/explore'&&request.method==='GET'){
@@ -4092,16 +3205,14 @@ export default {
       }
 
       if(url.pathname==='/api/media/embed-url'&&request.method==='GET'){
-        const mode=url.searchParams.get('mode')||'standard';
         return json({
           embedUrl:buildMediaEmbedUrl(env,{
             type:url.searchParams.get('type')||'',
             id:url.searchParams.get('id')||'',
             season:url.searchParams.get('season')||'',
             episode:url.searchParams.get('episode')||'',
-            mode
-          }),
-          externalOnly:false
+            mode:url.searchParams.get('mode')||'standard'
+          })
         });
       }
 
@@ -4152,16 +3263,6 @@ export default {
       if(url.pathname==='/api/youtube/search'&&request.method==='GET'){
         const q=url.searchParams.get('q')||'';
         return json(await searchYouTube(env,q,request.url));
-      }
-
-      if(url.pathname==='/api/youtube/comments'&&request.method==='GET'){
-        return json(await youtubeComments(
-          env,
-          url.searchParams.get('videoId')||'',
-          url.searchParams.get('pageToken')||'',
-          request.url,
-          url.searchParams.get('refresh')==='1'
-        ));
       }
 
       if(url.pathname==='/api/news'&&request.method==='GET'){
@@ -4218,7 +3319,6 @@ export default {
     }catch(e){console.error(e);return json({error:e?.message||String(e)},Number(e?.status)||500)}
   },
   async scheduled(_controller,env,ctx){
-    ctx.waitUntil(refreshLiveActivityPushes(env,()=>getFootballSchedule(env,false),id=>getFootballMatchCentre(env,id,false,`https://local/api/football/match?matchId=${id}&live=1`)));
     ctx.waitUntil(cleanTransfers(env));
     ctx.waitUntil(flushTransferPushes(env,sendOne));
     ctx.waitUntil(cleanMessages(env));
