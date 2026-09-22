@@ -2063,6 +2063,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <link rel="stylesheet" href="/messages.css">
 <script defer src="/messages.bundle.js"></script>
 <link rel="stylesheet" href="space-motion.css" />
+<link rel="stylesheet" href="games-suite.css" />
 <script src="space-motion.js"></script>
 </head>
 <body>
@@ -2412,6 +2413,23 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
           </div>
 
           <div class="ent-panel" data-ent-panel="games">
+            <div class="games-suite-toolbar">
+              <div>
+                <div class="title">Puzzle Arcade</div>
+                <div class="sub">Eight word and logic games, with a fresh set whenever you want one.</div>
+              </div>
+              <div class="games-suite-actions">
+                <label class="games-difficulty-label" for="gamesDifficulty">Difficulty
+                  <select id="gamesDifficulty" class="games-difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                  </select>
+                </label>
+                <button class="btn primary" id="refreshAllGames">↻ New puzzles</button>
+              </div>
+            </div>
+            <div class="section-note games-suite-status" id="gamesSuiteStatus" role="status">Your puzzle set is ready.</div>
             <div class="game-grid">
               <article class="game-card">
                 <div class="card-head"><div><h3>🔢 2048</h3><div class="sub">Merge tiles and beat your best score.</div></div><button class="btn small" id="new2048Btn" onclick="new2048()">New</button></div>
@@ -2424,17 +2442,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
               </article>
 
               <article class="game-card">
-                <div class="card-head"><div><h3>🐍 Snake</h3><div class="sub">Keyboard arrows or the mobile controls.</div></div><button class="btn small" id="snakeStartBtn" onclick="toggleSnake()">Start</button></div>
-                <div class="ent-stat-row"><div class="ent-stat"><strong id="snakeScore">0</strong><span>Score</span></div><div class="ent-stat"><strong id="snakeBest">0</strong><span>Best</span></div></div>
-                <div class="game-stage"><canvas id="snakeCanvas" class="snake-canvas" width="300" height="300"></canvas><div class="game-status" id="snakeStatus">Press Start to play.</div></div>
-                <div class="game-pad">
-                  <span></span><button class="btn" data-snake-dir="up" onclick="setSnakeDir('up')">↑</button><span></span>
-                  <button class="btn" data-snake-dir="left" onclick="setSnakeDir('left')">←</button><button class="btn" data-snake-dir="down" onclick="setSnakeDir('down')">↓</button><button class="btn" data-snake-dir="right" onclick="setSnakeDir('right')">→</button>
-                </div>
-              </article>
-
-              <article class="game-card">
-                <div class="card-head"><div><h3>🧠 Daily Trivia</h3><div class="sub">One question per day. Keep your streak going.</div></div></div>
+                <div class="card-head"><div><h3>🧠 Trivia</h3><div class="sub">A fresh question matched to your chosen level.</div></div></div>
                 <div class="ent-stat-row"><div class="ent-stat"><strong id="triviaStreak">0</strong><span>Correct streak</span></div><div class="ent-stat"><strong id="triviaRecord">0</strong><span>Best streak</span></div></div>
                 <div class="game-stage" id="triviaGame"></div>
               </article>
@@ -2449,10 +2457,29 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
                 </div>
               </article>
 
+              <article class="game-card game-card-wide">
+                <div class="card-head"><div><h3>🟨 Connections</h3><div class="sub">Find four groups of four linked words.</div></div><button class="btn small" data-suite-action="connections-shuffle">Shuffle</button></div>
+                <div class="game-stage" id="connectionsGame"></div>
+              </article>
+
               <article class="game-card">
-                <div class="card-head"><div><h3>⚡ Reaction Test</h3><div class="sub">Wait for green, then tap as quickly as possible.</div></div><button class="btn small" id="reactionResetBtn" onclick="reactionReset()">Reset</button></div>
-                <div class="ent-stat-row"><div class="ent-stat"><strong id="reactionLast">—</strong><span>Last</span></div><div class="ent-stat"><strong id="reactionBest">—</strong><span>Best</span></div></div>
-                <div class="game-stage"><div class="reaction-box" id="reactionBox" onclick="reactionTap()"><div><strong>Tap to start</strong><div class="sub" style="margin-top:5px">Don't tap early.</div></div></div></div>
+                <div class="card-head"><div><h3>✏️ Mini Crossword</h3><div class="sub">A compact word square with Across and Down clues.</div></div><button class="btn small" data-suite-action="mini-check">Check</button></div>
+                <div class="game-stage" id="miniCrosswordGame"></div>
+              </article>
+
+              <article class="game-card">
+                <div class="card-head"><div><h3>📰 Crossword</h3><div class="sub">Solve the larger crossing clue set.</div></div><button class="btn small" data-suite-action="crossword-check">Check</button></div>
+                <div class="game-stage" id="crosswordGame"></div>
+              </article>
+
+              <article class="game-card">
+                <div class="card-head"><div><h3>🧵 Strands</h3><div class="sub">Trace themed words through neighbouring letters.</div></div><button class="btn small" data-suite-action="strands-clear">Clear</button></div>
+                <div class="game-stage" id="strandsGame"></div>
+              </article>
+
+              <article class="game-card">
+                <div class="card-head"><div><h3>🔢 Sudoku</h3><div class="sub">Fill the grid so every row, column and box uses 1–9.</div></div><button class="btn small" data-suite-action="sudoku-check">Check</button></div>
+                <div class="game-stage" id="sudokuGame"></div>
               </article>
             </div>
           </div>
@@ -3287,6 +3314,7 @@ const DEFAULT_STATE = {
     youtubeForYouCache:{version:7,items:[],signals:[],reason:'',updatedAt:''},
     twitchHistory:[],
     gameStats:{best2048:0,bestSnake:0,bestReaction:null,triviaStreak:0,triviaBest:0,triviaLastDate:'',triviaLastCorrect:null,triviaLastAnswer:null,wordleStreak:0,wordleBest:0,wordleDate:'',wordleGuesses:[],wordleCurrent:'',wordleFinished:false,wordleWon:false},
+    gameSuite:{difficulty:'medium',seed:0},
     visit:{lastDate:'',streak:0}
   },
   holdings:[
@@ -3351,6 +3379,7 @@ state.entertainment={
   mediaHistory:Array.isArray(state.entertainment?.mediaHistory)?state.entertainment.mediaHistory:[],
   twitchHistory:Array.isArray(state.entertainment?.twitchHistory)?state.entertainment.twitchHistory:[],
   gameStats:{...DEFAULT_STATE.entertainment.gameStats,...(state.entertainment?.gameStats||{})},
+  gameSuite:{...DEFAULT_STATE.entertainment.gameSuite,...(state.entertainment?.gameSuite||{})},
   visit:{...DEFAULT_STATE.entertainment.visit,...(state.entertainment?.visit||{})}
 };
 state.holdings = state.holdings.map(h=>({...h, exchange:h.exchange || (String(h.symbol).toUpperCase().endsWith('.L')?'LSE':'NASDAQ'), symbol:String(h.symbol).replace(/\.L$/i,'')}));
@@ -8068,7 +8097,8 @@ function renderEntertainmentStats(){
   el.innerHTML=`<div class="ent-stat"><strong>${state.entertainment.visit?.streak||1}</strong><span>Entertainment streak</span></div>
     <div class="ent-stat"><strong>${likes}</strong><span>Liked feed items</span></div>
     <div class="ent-stat"><strong>${g.best2048||0}</strong><span>2048 best</span></div>
-    <div class="ent-stat"><strong>${g.bestSnake||0}</strong><span>Snake best</span></div>`;
+    <div class="ent-stat"><strong>${g.wordleBest||0}</strong><span>Wordle best streak</span></div>
+    `;
 }
 function renderForYouFeed(){
   const el=qs('#forYouFeed');if(!el)return;
@@ -8098,9 +8128,8 @@ function renderForYouFeed(){
     body:`Today's manga pick • ${manga.type||'Manga'} • score ${manga.score??'—'}`,meta:'Your daily recommendation'
   }));
 
-  const tq=TRIVIA_QUESTIONS[dayOfYear()%TRIVIA_QUESTIONS.length];
   items.push(feedCard({
-    id:`daily-game:${dayKey()}`,source:'Daily challenge',emoji:'🧠',title:'Daily trivia is ready',body:tq.q,meta:'Open Games to answer it'
+    id:`daily-game:${dayKey()}`,source:'Puzzle arcade',emoji:'🟨',title:'Connections is ready',body:'Find four groups of four linked words.',meta:'Open Games to play'
   }));
 
   const visible=items.filter(Boolean);
@@ -10681,5 +10710,6 @@ updateNotificationUI();
 loadNews(false);
 if(notificationPermission()==='granted')syncNewsPreferences();
 </script>
+<script src="/games-suite.js"></script>
 </body>
 </html>

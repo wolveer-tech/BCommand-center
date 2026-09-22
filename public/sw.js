@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'command-centre-shell-v10.28.1-recovery';
+const SHELL_CACHE = 'command-centre-shell-v10.29.0-games';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -12,7 +12,9 @@ const APP_SHELL = [
   '/messages.css',
   '/messages.bundle.js',
   '/space-motion.css',
-  '/space-motion.js'
+  '/space-motion.js',
+  '/games-suite.css',
+  '/games-suite.js'
 ];
 
 self.addEventListener('install', event => {
