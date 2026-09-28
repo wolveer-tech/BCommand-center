@@ -3,6 +3,15 @@
 .games-difficulty-label{display:grid;gap:5px;color:var(--muted);font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.45px}
 .games-difficulty{min-width:112px;min-height:38px;border:1px solid var(--line);border-radius:11px;background:#101827;color:var(--text);padding:7px 30px 7px 10px;font:inherit;font-size:11px;font-weight:800}
 .games-suite-status{margin:0 0 12px}.game-card-wide{grid-column:1/-1}
+.games-lobby{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.games-lobby[hidden]{display:none}
+.game-launch-card{min-width:0;min-height:210px;border:1px solid rgba(255,255,255,.1);border-radius:20px;background:linear-gradient(155deg,rgba(255,255,255,.075),rgba(255,255,255,.025));color:var(--text);padding:15px;text-align:left;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:12px;transition:transform .18s ease,border-color .18s ease,background .18s ease;box-shadow:0 12px 30px rgba(0,0,0,.12)}
+.game-launch-card:hover,.game-launch-card:focus-visible{transform:translateY(-3px);border-color:rgba(91,140,255,.65);background:linear-gradient(155deg,rgba(91,140,255,.17),rgba(123,97,232,.06));outline:none}
+.game-launch-icon{width:46px;height:46px;display:grid;place-items:center;border-radius:15px;background:#ffffff0d;font-size:24px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.game-launch-copy{display:grid;gap:4px}.game-launch-eyebrow{font-size:8px!important;font-weight:900;letter-spacing:.8px;color:#8eafff!important}.game-launch-copy strong{font-size:15px}.game-launch-copy>span:last-child{font-size:9px;line-height:1.5;color:var(--muted)}
+.game-launch-footer{display:flex;align-items:end;justify-content:space-between;gap:8px;margin-top:auto;padding-top:11px;border-top:1px solid rgba(255,255,255,.07);font-size:8px;color:var(--muted)}.game-launch-footer b{color:#9bb8ff;font-size:9px;white-space:nowrap}
+.games-detail-grid{display:none}.games-detail-grid.is-open{display:grid;grid-template-columns:minmax(0,1fr)}.games-detail-grid.is-open>.game-card{grid-column:1/-1;max-width:920px;width:100%;margin:0 auto}.games-detail-grid [hidden]{display:none!important}
+.games-detail-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:10px 12px;border:1px solid var(--line);border-radius:15px;background:#ffffff05;position:sticky;top:72px;z-index:7;backdrop-filter:blur(16px)}.games-detail-header[hidden]{display:none}.games-detail-header div{display:grid;gap:2px}.games-detail-header strong{font-size:12px}.games-detail-header span{font-size:9px;color:var(--muted)}
 .puzzle-actions{display:flex;gap:7px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:10px}
 .puzzle-input{width:100%;min-height:40px;border:1px solid var(--line);border-radius:11px;background:#0a111d;color:var(--text);padding:9px 11px;font:inherit;font-size:12px;outline:none}
 .puzzle-input:focus{border-color:rgba(91,140,255,.8);box-shadow:0 0 0 3px rgba(91,140,255,.12)}
@@ -27,5 +36,12 @@
 
 .pips-list{display:grid;gap:8px}.pips-row{display:grid;grid-template-columns:minmax(80px,1fr) auto auto;gap:8px;align-items:center;padding:9px;border:1px solid var(--line);border-radius:12px;background:#ffffff05}.pip-rule{font-size:10px;font-weight:800}.pip-select{width:54px;min-height:38px;border:1px solid var(--line);border-radius:10px;background:#101827;color:var(--text);text-align:center;font:inherit;font-weight:900}.pips-row.correct{border-color:rgba(39,211,155,.55);background:rgba(39,211,155,.07)}.pips-row.wrong{border-color:rgba(255,104,118,.5);background:rgba(255,104,118,.06)}
 
-@media(max-width:760px){.games-suite-toolbar{align-items:flex-start;flex-direction:column}.games-suite-actions{width:100%;justify-content:space-between}.crossword-layout{grid-template-columns:1fr}.game-card-wide{grid-column:auto}.connections-grid{gap:5px}.connection-tile{min-height:52px;font-size:9px}.crossword-clues{grid-template-columns:1fr 1fr}}
-@media(max-width:430px){.games-suite-actions{align-items:stretch;flex-direction:column}.games-difficulty{width:100%}.connections-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tiles-board{grid-template-columns:repeat(4,minmax(0,1fr))}.crossword-clues{grid-template-columns:1fr}.pips-row{grid-template-columns:1fr auto auto}}
+.puzzle-note.answer{color:#a9c1ff;font-weight:800}
+.connection-group.answer-revealed{outline:2px solid rgba(255,255,255,.5);outline-offset:-3px}
+.crossword-cell.revealed input{background:#dbeafe;color:#1e3a8a}
+.strands-word.answer-revealed{color:#a9c1ff;border-color:rgba(122,162,255,.55)}
+.sudoku-cell.revealed{background:#dbeafe;color:#1e3a8a}
+
+@media(max-width:900px){.games-lobby{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.games-suite-toolbar{align-items:flex-start;flex-direction:column}.games-suite-actions{width:100%;justify-content:space-between}.crossword-layout{grid-template-columns:1fr}.game-card-wide{grid-column:auto}.connections-grid{gap:5px}.connection-tile{min-height:52px;font-size:9px}.crossword-clues{grid-template-columns:1fr 1fr}.game-launch-card{min-height:180px}.games-detail-header{top:64px}}
+@media(max-width:430px){.games-suite-actions{align-items:stretch;flex-direction:column}.games-difficulty{width:100%}.games-lobby{grid-template-columns:1fr}.game-launch-card{min-height:0}.connections-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tiles-board{grid-template-columns:repeat(4,minmax(0,1fr))}.crossword-clues{grid-template-columns:1fr}.pips-row{grid-template-columns:1fr auto auto}}

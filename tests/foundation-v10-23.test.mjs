@@ -24,11 +24,11 @@ test('Safari Web Push companion reuses the paired IPA identity',()=>{
   assert.match(migration,/device_id TEXT PRIMARY KEY/);
 });
 
-test('companion synchronises every requested notification class',()=>{
+test('companion synchronises everyday alerts while football remains native',()=>{
   assert.match(html,/items:collectPushSchedule\(400\)/);
   assert.match(html,/briefing:\{enabled:/);
   assert.match(html,/news:\{worldEnabled:/);
-  assert.match(html,/football:\{enabled:/);
+  assert.match(html,/football:\{enabled:false,teams:\[\]/);
   assert.match(worker,/morning_briefing_preferences/);
   assert.match(worker,/news_preferences/);
   assert.match(worker,/football_notification_preferences/);
@@ -36,11 +36,15 @@ test('companion synchronises every requested notification class',()=>{
   assert.match(worker,/companion:\$\{deviceId\}:\$\{sourceId\}/);
 });
 
-test('Messages and Transfers fall back to the linked Web Push receiver',()=>{
-  assert.match(messages,/Message APNs delivery failed; trying Web Push companion/);
-  assert.match(messages,/!delivered&&delivery\.push_subscription&&webReady/);
-  assert.match(transfers,/Transfer APNs delivery failed; trying Web Push companion/);
-  assert.match(transfers,/!delivered && row\.push_subscription && webReady/);
+test('Messages and Transfers prefer the linked Web Push receiver',()=>{
+  const messageWeb=messages.indexOf('if(delivery.push_subscription&&webReady)');
+  const messageNative=messages.indexOf('if(!delivered&&delivery.apns_token&&nativeReady)');
+  const transferWeb=transfers.indexOf('if (row.push_subscription && webReady)');
+  const transferNative=transfers.indexOf('if (!delivered && row.apns_token && nativeReady)');
+  assert.ok(messageWeb>=0&&messageNative>messageWeb);
+  assert.ok(transferWeb>=0&&transferNative>transferWeb);
+  assert.match(messages,/Message Web Push companion failed; trying APNs/);
+  assert.match(transfers,/Transfer Web Push companion failed; trying APNs/);
 });
 
 test('League One uses the keyless FotMob league table and normalises clubs',()=>{

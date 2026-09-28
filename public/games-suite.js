@@ -2,7 +2,17 @@
   'use strict';
 
   const LEVELS = ['easy', 'medium', 'hard'];
-  const runtime = { crosswordWrong: {}, strandsBoards: {}, sudokuSelected: '', sudokuWrong: new Set(), tileTimer: null };
+  const runtime = { crosswordWrong: {}, strandsBoards: {}, sudokuSelected: '', sudokuWrong: new Set(), tileTimer: null, activeGame: null };
+  const GAME_CATALOG = [
+    { id: '2048', icon: '🔢', title: '2048', eyebrow: 'MERGE', description: 'Build bigger tiles and chase a new high score.' },
+    { id: 'trivia', icon: '🧠', title: 'Trivia', eyebrow: 'DAILY QUIZ', description: 'Answer a fresh question at your chosen level.' },
+    { id: 'wordle', icon: '🟩', title: 'Wordle', eyebrow: 'WORD GAME', description: 'Find the five-letter word in six guesses.' },
+    { id: 'connections', icon: '🟨', title: 'Connections', eyebrow: 'GROUP WORDS', description: 'Sort sixteen words into four linked groups.' },
+    { id: 'mini-crossword', icon: '✏️', title: 'Mini Crossword', eyebrow: 'QUICK CROSSWORD', description: 'Solve a compact set of crossing clues.' },
+    { id: 'crossword', icon: '📰', title: 'Crossword', eyebrow: 'CROSSWORD', description: 'Settle into the larger clue grid.' },
+    { id: 'strands', icon: '🧵', title: 'Strands', eyebrow: 'THEME SEARCH', description: 'Trace every themed word through the board.' },
+    { id: 'sudoku', icon: '🔢', title: 'Sudoku', eyebrow: 'NUMBER LOGIC', description: 'Complete every row, column and 3×3 box.' }
+  ];
 
   const CONNECTIONS = {
     easy: [
@@ -164,6 +174,55 @@
     if (el) el.textContent = message;
   }
 
+  function gameProgress(id) {
+    const stats = state.entertainment.gameStats || {};
+    if (id === '2048') return game2048State.score ? `Score ${game2048State.score.toLocaleString()} · Best ${(stats.best2048 || 0).toLocaleString()}` : `Best ${(stats.best2048 || 0).toLocaleString()}`;
+    if (id === 'trivia') return stats.triviaLastDate === dayKey() ? (stats.triviaLastCorrect ? 'Solved today' : 'Played today') : `Best streak ${stats.triviaBest || 0}`;
+    if (id === 'wordle') return stats.wordleFinished ? (stats.wordleWon ? 'Solved today' : 'Finished today') : stats.wordleGuesses?.length ? `${stats.wordleGuesses.length}/6 guesses used` : `Best streak ${stats.wordleBest || 0}`;
+    if (id === 'connections') { const value = connectionsState(); return value.revealed ? 'Answers revealed' : `${value.found.length}/4 groups found`; }
+    if (id === 'mini-crossword' || id === 'crossword') { const value = crosswordState(id === 'mini-crossword' ? 'mini' : 'crossword'); return value.revealed ? 'Answer revealed' : `${Object.values(value.values).filter(Boolean).length} squares filled`; }
+    if (id === 'strands') { const value = strandsState(); return value.revealed ? 'Answers revealed' : `${value.found.length}/${STRANDS[suite().difficulty].words.length} words found`; }
+    if (id === 'sudoku') { const value = sudokuState(); return value.revealed ? 'Answer revealed' : `${Object.values(value.values).filter(Boolean).length}/${value.blank.length} squares filled`; }
+    return 'Ready to play';
+  }
+
+  function renderGameLobby() {
+    const lobby = document.querySelector('#gamesLobby');
+    if (!lobby) return;
+    lobby.innerHTML = GAME_CATALOG.map(game => `<button class="game-launch-card" type="button" data-game-launch="${game.id}"><span class="game-launch-icon" aria-hidden="true">${game.icon}</span><span class="game-launch-copy"><span class="game-launch-eyebrow">${game.eyebrow}</span><strong>${game.title}</strong><span>${game.description}</span></span><span class="game-launch-footer"><span>${gameProgress(game.id)}</span><b>Play →</b></span></button>`).join('');
+  }
+
+  function applyGameScreen() {
+    const lobby = document.querySelector('#gamesLobby');
+    const grid = document.querySelector('#gamesDetailGrid');
+    const header = document.querySelector('#gamesDetailHeader');
+    const game = GAME_CATALOG.find(item => item.id === runtime.activeGame);
+    if (!lobby || !grid || !header) return;
+    lobby.hidden = Boolean(game);
+    grid.classList.toggle('is-open', Boolean(game));
+    header.hidden = !game;
+    grid.querySelectorAll('[data-game-id]').forEach(card => { card.hidden = !game || card.dataset.gameId !== game.id; });
+    if (game) {
+      document.querySelector('#gamesDetailTitle').textContent = `${game.icon} ${game.title}`;
+      document.querySelector('#gamesDetailMeta').textContent = gameProgress(game.id);
+    }
+  }
+
+  function openArcadeGame(id) {
+    if (!GAME_CATALOG.some(game => game.id === id)) return;
+    runtime.activeGame = id;
+    applyGameScreen();
+    setSuiteStatus(`${GAME_CATALOG.find(game => game.id === id).title} · ${suite().difficulty} mode`);
+    document.querySelector('#gamesDetailHeader')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function showGameLobby() {
+    runtime.activeGame = null;
+    renderGameLobby();
+    applyGameScreen();
+    setSuiteStatus(`Choose a game · ${suite().difficulty} mode`);
+  }
+
   function suiteWordleAnswer() {
     const pool = WORDLE_LEVELS[suite().difficulty];
     return pool[suite().seed % pool.length];
@@ -182,7 +241,8 @@
         words: shuffle(CONNECTIONS[s.difficulty].flatMap(group => group.words), 'connections'),
         selected: [],
         found: [],
-        mistakes: 0
+        mistakes: 0,
+        revealed: false
       };
       saveSuite();
     }
@@ -195,16 +255,18 @@
     const s = connectionsState();
     const groups = CONNECTIONS[suite().difficulty];
     const mistakeLimit = { easy: 5, medium: 4, hard: 3 }[suite().difficulty];
-    const solved = s.found.map(index => {
+    const revealed = Boolean(s.revealed);
+    const visibleGroups = revealed ? groups.map((_, index) => index) : s.found;
+    const solved = visibleGroups.map(index => {
       const group = groups[index];
-      return `<div class="connection-group level-${index}"><strong>${group.title}</strong><span>${group.words.join(', ')}</span></div>`;
+      return `<div class="connection-group level-${index}${revealed && !s.found.includes(index) ? ' answer-revealed' : ''}"><strong>${group.title}</strong><span>${group.words.join(', ')}</span></div>`;
     }).join('');
-    const remaining = s.words.filter(word => !s.found.some(index => groups[index].words.includes(word)));
+    const remaining = revealed ? [] : s.words.filter(word => !s.found.some(index => groups[index].words.includes(word)));
     const finished = s.found.length === groups.length;
     const lost = s.mistakes >= mistakeLimit && !finished;
-    el.innerHTML = `${solved}<div class="connections-grid">${remaining.map(word => `<button class="connection-tile${s.selected.includes(word) ? ' selected' : ''}" data-connection-word="${word}" ${finished || lost ? 'disabled' : ''}>${word}</button>`).join('')}</div>
-      <div class="puzzle-actions"><button class="btn primary" data-suite-action="connections-submit" ${s.selected.length !== 4 || finished || lost ? 'disabled' : ''}>Submit group</button><span class="sub">Mistakes ${s.mistakes}/${mistakeLimit}</span></div>
-      <div class="puzzle-note ${finished ? 'win' : lost ? 'over' : ''}">${finished ? 'All four connections found.' : lost ? 'No guesses left — start a new puzzle to try again.' : 'Select exactly four linked words.'}</div>`;
+    el.innerHTML = `${solved}${remaining.length ? `<div class="connections-grid">${remaining.map(word => `<button class="connection-tile${s.selected.includes(word) ? ' selected' : ''}" data-connection-word="${word}" ${finished || lost ? 'disabled' : ''}>${word}</button>`).join('')}</div>` : ''}
+      <div class="puzzle-actions"><button class="btn primary" data-suite-action="connections-submit" ${s.selected.length !== 4 || finished || lost || revealed ? 'disabled' : ''}>Submit group</button>${lost && !revealed ? '<button class="btn" data-suite-action="connections-reveal">Show answers</button>' : ''}<span class="sub">Mistakes ${s.mistakes}/${mistakeLimit}</span></div>
+      <div class="puzzle-note ${finished ? 'win' : lost ? 'over' : ''}">${finished ? 'All four connections found.' : revealed ? 'Answers revealed. Start a new puzzle when you are ready.' : lost ? 'No guesses left — you can show the answers or start a new puzzle.' : 'Select exactly four linked words.'}</div>`;
   }
 
   function toggleConnection(word) {
@@ -221,6 +283,16 @@
     const index = groups.findIndex(group => group.words.every(word => s.selected.includes(word)));
     if (index >= 0 && !s.found.includes(index)) s.found.push(index);
     else s.mistakes += 1;
+    s.selected = [];
+    saveSuite();
+    renderConnections();
+  }
+
+  function revealConnections() {
+    const s = connectionsState();
+    const mistakeLimit = { easy: 5, medium: 4, hard: 3 }[suite().difficulty];
+    if (s.mistakes < mistakeLimit || s.found.length === CONNECTIONS[suite().difficulty].length) return;
+    s.revealed = true;
     s.selected = [];
     saveSuite();
     renderConnections();
@@ -266,7 +338,7 @@
     const key = `${kind}Crossword`;
     const s = suite();
     if (!s[key] || s[key].id !== puzzleId(key)) {
-      s[key] = { id: puzzleId(key), values: {} };
+      s[key] = { id: puzzleId(key), values: {}, checked: false, revealed: false };
       saveSuite();
     }
     return s[key];
@@ -291,22 +363,32 @@
           continue;
         }
         const prefilled = easy && hashSeed(`${puzzleId(kind)}:${key}`) % 5 === 0;
-        const value = prefilled ? cell.letter : (s.values[key] || '');
-        const cls = wrong.has(key) ? ' wrong' : value && value === cell.letter ? ' correct' : '';
-        squares.push(`<label class="crossword-cell${prefilled ? ' prefilled' : ''}${cls}">${cell.number ? `<span class="crossword-number">${cell.number}</span>` : ''}<input aria-label="${kind} crossword row ${row + 1} column ${col + 1}" data-cross-kind="${kind}" data-cross-key="${key}" maxlength="1" value="${value}" ${prefilled ? 'readonly' : ''}></label>`);
+        const value = s.revealed ? cell.letter : (prefilled ? cell.letter : (s.values[key] || ''));
+        const cls = s.revealed && !prefilled ? ' revealed' : wrong.has(key) ? ' wrong' : value && value === cell.letter ? ' correct' : '';
+        squares.push(`<label class="crossword-cell${prefilled ? ' prefilled' : ''}${cls}">${cell.number ? `<span class="crossword-number">${cell.number}</span>` : ''}<input aria-label="${kind} crossword row ${row + 1} column ${col + 1}" data-cross-kind="${kind}" data-cross-key="${key}" maxlength="1" value="${value}" ${prefilled || s.revealed ? 'readonly' : ''}></label>`);
       }
     }
     const clues = ['Across', 'Down'].map(direction => `<div><h4>${direction}</h4><ol>${puzzle.entries.filter(entry => entry.direction === direction).map(entry => `<li value="${entry.number}">${entry.clue}</li>`).join('')}</ol></div>`).join('');
-    const complete = [...cells].every(([key, cell]) => (s.values[key] || (easy && hashSeed(`${puzzleId(kind)}:${key}`) % 5 === 0 ? cell.letter : '')) === cell.letter);
-    el.innerHTML = `<div class="crossword-layout"><div class="crossword-grid" style="grid-template-columns:repeat(${puzzle.size},1fr)">${squares.join('')}</div><div class="crossword-clues">${clues}</div></div><div class="puzzle-note${complete ? ' win' : ''}">${complete ? 'Crossword complete.' : 'Tap a square and type one letter.'}</div>`;
+    const complete = !s.revealed && [...cells].every(([key, cell]) => (s.values[key] || (easy && hashSeed(`${puzzleId(kind)}:${key}`) % 5 === 0 ? cell.letter : '')) === cell.letter);
+    const emptyCount = [...cells].filter(([key]) => !(s.values[key] || (easy && hashSeed(`${puzzleId(kind)}:${key}`) % 5 === 0))).length;
+    const feedback = s.revealed
+      ? 'Answer revealed. Start a new puzzle when you are ready.'
+      : complete
+        ? 'Crossword complete.'
+        : s.checked
+          ? `${wrong.size ? `${wrong.size} incorrect` : 'No incorrect letters'}${emptyCount ? ` • ${emptyCount} empty` : ''}.`
+          : 'Tap a square and type one letter.';
+    el.innerHTML = `<div class="crossword-layout"><div class="crossword-grid" style="grid-template-columns:repeat(${puzzle.size},1fr)">${squares.join('')}</div><div class="crossword-clues">${clues}</div></div>${s.checked && !complete && !s.revealed ? `<div class="puzzle-actions"><button class="btn" data-suite-action="${kind}-reveal">Show answer</button></div>` : ''}<div class="puzzle-note${complete ? ' win' : s.revealed ? ' answer' : ''}">${feedback}</div>`;
   }
 
   function updateCrossword(input) {
     const kind = input.dataset.crossKind;
     const key = input.dataset.crossKey;
+    const s = crosswordState(kind);
+    if (s.revealed) return;
     const value = String(input.value || '').replace(/[^A-Za-z]/g, '').slice(-1).toUpperCase();
     input.value = value;
-    crosswordState(kind).values[key] = value;
+    s.values[key] = value;
     runtime.crosswordWrong[kind] = new Set();
     saveSuite();
   }
@@ -317,7 +399,21 @@
     const s = crosswordState(kind);
     const wrong = new Set();
     for (const [key, cell] of cells) if ((s.values[key] || '').toUpperCase() && (s.values[key] || '').toUpperCase() !== cell.letter) wrong.add(key);
+    s.checked = true;
     runtime.crosswordWrong[kind] = wrong;
+    saveSuite();
+    renderCrossword(kind);
+  }
+
+  function revealCrossword(kind) {
+    const puzzle = crosswordPuzzle(kind);
+    const cells = crosswordCells(puzzle);
+    const s = crosswordState(kind);
+    if (!s.checked || s.revealed) return;
+    for (const [key, cell] of cells) s.values[key] = cell.letter;
+    s.revealed = true;
+    runtime.crosswordWrong[kind] = new Set();
+    saveSuite();
     renderCrossword(kind);
   }
 
@@ -393,7 +489,7 @@
   function strandsState() {
     const s = suite();
     if (!s.strands || s.strands.id !== puzzleId('strands')) {
-      s.strands = { id: puzzleId('strands'), found: [], selected: [] };
+      s.strands = { id: puzzleId('strands'), found: [], selected: [], failed: false, revealed: false };
       saveSuite();
     }
     return s.strands;
@@ -405,11 +501,12 @@
     const puzzle = STRANDS[suite().difficulty];
     const board = buildStrandsBoard();
     const s = strandsState();
-    const foundCells = new Set(s.found.flatMap(word => board.placements[word] || []));
+    const displayedWords = s.revealed ? puzzle.words : s.found;
+    const foundCells = new Set(displayedWords.flatMap(word => board.placements[word] || []));
     el.innerHTML = `<div class="puzzle-note"><strong>Theme: ${puzzle.theme}</strong></div><div class="strands-board" style="grid-template-columns:repeat(${puzzle.size},1fr)">${board.grid.flatMap((row, r) => row.map((letter, c) => {
       const key = `${r},${c}`;
-      return `<button class="strands-cell${s.selected.includes(key) ? ' selected' : ''}${foundCells.has(key) ? ' found' : ''}" data-strands-cell="${key}">${letter}</button>`;
-    })).join('')}</div><div class="strands-words">${puzzle.words.map(word => `<span class="strands-word${s.found.includes(word) ? ' found' : ''}">${word.length} letters</span>`).join('')}</div><div class="puzzle-note${s.found.length === puzzle.words.length ? ' win' : ''}">${message || (s.found.length === puzzle.words.length ? 'Theme complete.' : 'Tap adjacent letters to trace a themed word.')}</div>`;
+      return `<button class="strands-cell${s.selected.includes(key) ? ' selected' : ''}${foundCells.has(key) ? ' found' : ''}" data-strands-cell="${key}" ${s.revealed ? 'disabled' : ''}>${letter}</button>`;
+    })).join('')}</div><div class="strands-words">${puzzle.words.map(word => `<span class="strands-word${s.found.includes(word) ? ' found' : ''}${s.revealed && !s.found.includes(word) ? ' answer-revealed' : ''}">${s.revealed || s.found.includes(word) ? word : `${word.length} letters`}</span>`).join('')}</div>${s.failed && !s.revealed ? '<div class="puzzle-actions"><button class="btn" data-suite-action="strands-reveal">Show answers</button></div>' : ''}<div class="puzzle-note${s.found.length === puzzle.words.length ? ' win' : s.revealed ? ' answer' : ''}">${message || (s.revealed ? 'Answers revealed. Start a new puzzle when you are ready.' : s.found.length === puzzle.words.length ? 'Theme complete.' : 'Tap adjacent letters to trace a themed word.')}</div>`;
   }
 
   function selectStrandsCell(key) {
@@ -434,10 +531,32 @@
     if (match) {
       s.found.push(match);
       s.selected = [];
+      s.failed = false;
       saveSuite();
       renderStrands(`Found ${match}.`);
       return;
     }
+    const possible = puzzle.words.some(word => {
+      if (s.found.includes(word)) return false;
+      const reversed = [...word].reverse().join('');
+      return word.startsWith(text) || reversed.startsWith(text);
+    });
+    if (!possible) {
+      s.selected = [];
+      s.failed = true;
+      saveSuite();
+      renderStrands('That path is not one of the themed words. Try again or show the answers.');
+      return;
+    }
+    saveSuite();
+    renderStrands();
+  }
+
+  function revealStrands() {
+    const s = strandsState();
+    if (!s.failed || s.revealed) return;
+    s.revealed = true;
+    s.selected = [];
     saveSuite();
     renderStrands();
   }
@@ -501,7 +620,7 @@
     const s = suite();
     if (!s.sudoku || s.sudoku.id !== puzzleId('sudoku')) {
       const blanks = { easy: 36, medium: 46, hard: 54 }[s.difficulty];
-      s.sudoku = { id: puzzleId('sudoku'), blank: shuffle(Array.from({ length: 81 }, (_, index) => index), 'sudoku').slice(0, blanks), values: {} };
+      s.sudoku = { id: puzzleId('sudoku'), blank: shuffle(Array.from({ length: 81 }, (_, index) => index), 'sudoku').slice(0, blanks), values: {}, checked: false, revealed: false };
       runtime.sudokuSelected = '';
       runtime.sudokuWrong = new Set();
       saveSuite();
@@ -515,18 +634,20 @@
     const s = sudokuState();
     const solution = sudokuSolution();
     const blanks = new Set(s.blank);
-    const complete = s.blank.every(index => Number(s.values[index]) === solution[index]);
+    const complete = !s.revealed && s.blank.every(index => Number(s.values[index]) === solution[index]);
     el.innerHTML = `<div class="sudoku-board">${solution.map((number, index) => {
       const row = Math.floor(index / 9);
-      const editable = blanks.has(index);
-      const value = editable ? (s.values[index] || '') : number;
-      return `<button class="sudoku-cell${editable ? '' : ' fixed'}${runtime.sudokuSelected === String(index) ? ' selected' : ''}${runtime.sudokuWrong.has(index) ? ' wrong' : ''}${row === 2 || row === 5 ? ' box-bottom' : ''}" data-sudoku-cell="${index}" ${editable ? '' : 'disabled'}>${value}</button>`;
-    }).join('')}</div><div class="sudoku-numpad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(number => `<button class="btn" data-sudoku-number="${number}">${number}</button>`).join('')}<button class="btn" data-sudoku-number="0">⌫</button></div><div class="puzzle-note${complete ? ' win' : ''}">${message || (complete ? 'Sudoku complete.' : 'Select an empty square, then choose a number.')}</div>`;
+      const wasBlank = blanks.has(index);
+      const editable = wasBlank && !s.revealed;
+      const value = s.revealed && wasBlank ? number : (wasBlank ? (s.values[index] || '') : number);
+      return `<button class="sudoku-cell${wasBlank ? '' : ' fixed'}${s.revealed && wasBlank ? ' revealed' : ''}${runtime.sudokuSelected === String(index) ? ' selected' : ''}${runtime.sudokuWrong.has(index) ? ' wrong' : ''}${row === 2 || row === 5 ? ' box-bottom' : ''}" data-sudoku-cell="${index}" ${editable ? '' : 'disabled'}>${value}</button>`;
+    }).join('')}</div>${s.revealed ? '' : `<div class="sudoku-numpad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(number => `<button class="btn" data-sudoku-number="${number}">${number}</button>`).join('')}<button class="btn" data-sudoku-number="0">⌫</button></div>`}${s.checked && !complete && !s.revealed ? '<div class="puzzle-actions"><button class="btn" data-suite-action="sudoku-reveal">Show answer</button></div>' : ''}<div class="puzzle-note${complete ? ' win' : s.revealed ? ' answer' : ''}">${message || (s.revealed ? 'Answer revealed. Start a new puzzle when you are ready.' : complete ? 'Sudoku complete.' : 'Select an empty square, then choose a number.')}</div>`;
   }
 
   function setSudokuNumber(number) {
     if (runtime.sudokuSelected === '') return;
     const s = sudokuState();
+    if (s.revealed) return;
     s.values[runtime.sudokuSelected] = Number(number) || '';
     runtime.sudokuWrong.delete(Number(runtime.sudokuSelected));
     saveSuite();
@@ -537,7 +658,21 @@
     const s = sudokuState();
     const solution = sudokuSolution();
     runtime.sudokuWrong = new Set(s.blank.filter(index => s.values[index] && Number(s.values[index]) !== solution[index]));
+    s.checked = true;
+    saveSuite();
     renderSudoku(runtime.sudokuWrong.size ? `${runtime.sudokuWrong.size} square${runtime.sudokuWrong.size === 1 ? '' : 's'} need another look.` : 'No mistakes found so far.');
+  }
+
+  function revealSudoku() {
+    const s = sudokuState();
+    if (!s.checked || s.revealed) return;
+    const solution = sudokuSolution();
+    for (const index of s.blank) s.values[index] = solution[index];
+    s.revealed = true;
+    runtime.sudokuSelected = '';
+    runtime.sudokuWrong = new Set();
+    saveSuite();
+    renderSudoku();
   }
 
   function letterBoxState() {
@@ -674,6 +809,8 @@
     renderCrossword('crossword');
     renderStrands();
     renderSudoku();
+    renderGameLobby();
+    applyGameScreen();
     bindSuiteControls();
   }
 
@@ -682,6 +819,8 @@
     if (!panel || panel.dataset.suiteBound === '1') return;
     panel.dataset.suiteBound = '1';
     panel.addEventListener('click', event => {
+      const launch = event.target.closest('[data-game-launch]');
+      if (launch) { openArcadeGame(launch.dataset.gameLaunch); return; }
       const word = event.target.closest('[data-connection-word]');
       if (word) { toggleConnection(word.dataset.connectionWord); return; }
       const beeLetter = event.target.closest('[data-bee-letter]');
@@ -698,12 +837,17 @@
       if (!action) return;
       if (action === 'connections-submit') submitConnection();
       else if (action === 'connections-shuffle') { connectionsState().words = shuffle(connectionsState().words, `connections:${Date.now()}`); saveSuite(); renderConnections(); }
+      else if (action === 'connections-reveal') revealConnections();
       else if (action === 'mini-check') checkCrossword('mini');
       else if (action === 'crossword-check') checkCrossword('crossword');
+      else if (action === 'mini-reveal') revealCrossword('mini');
+      else if (action === 'crossword-reveal') revealCrossword('crossword');
       else if (action === 'bee-submit') submitBee();
       else if (action === 'bee-delete') { const s = beeState(); s.current = s.current.slice(0, -1); saveSuite(); renderBee(); }
       else if (action === 'strands-clear') { strandsState().selected = []; saveSuite(); renderStrands(); }
+      else if (action === 'strands-reveal') revealStrands();
       else if (action === 'sudoku-check') checkSudoku();
+      else if (action === 'sudoku-reveal') revealSudoku();
       else if (action === 'letter-submit') submitLetterBox();
       else if (action === 'pips-check') { pipsState().checked = true; saveSuite(); renderPips(); }
     });
@@ -727,6 +871,7 @@
       else if (event.target.id === 'letterBoxInput') { event.preventDefault(); submitLetterBox(); }
     });
     document.querySelector('#refreshAllGames')?.addEventListener('click', () => resetSuite());
+    document.querySelector('#gamesBackToLobby')?.addEventListener('click', showGameLobby);
   }
 
   wordleAnswer = suiteWordleAnswer;
@@ -734,6 +879,7 @@
   renderEntertainmentGames = renderSuiteGames;
   window.renderEntertainmentGames = renderSuiteGames;
   window.refreshGameSuite = resetSuite;
+  window.showGameLobby = showGameLobby;
 
   if (document.querySelector('.ent-panel[data-ent-panel="games"]')?.classList.contains('active')) renderSuiteGames();
 })();

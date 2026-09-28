@@ -26,7 +26,29 @@ test('Puzzle controls expose difficulty and a full refresh', () => {
 
 test('New puzzle suite JavaScript parses and is available offline', () => {
   new vm.Script(script);
-  assert.match(serviceWorker, /command-centre-shell-v10\.29\.0-games/);
+  assert.match(serviceWorker, /command-centre-shell-v10\.30\.0-pwa-notifications-games-lobby/);
   assert.match(serviceWorker, /\/games-suite\.css/);
   assert.match(serviceWorker, /\/games-suite\.js/);
+});
+
+test('Games open from a progress-aware selection screen', () => {
+  assert.match(gamesPanel, /id="gamesLobby"/);
+  assert.match(gamesPanel, /id="gamesBackToLobby"/);
+  for (const id of ['2048', 'trivia', 'wordle', 'connections', 'mini-crossword', 'crossword', 'strands', 'sudoku']) {
+    assert.match(gamesPanel, new RegExp(`data-game-id="${id}"`));
+  }
+  assert.match(script, /const GAME_CATALOG = \[/);
+  assert.match(script, /function renderGameLobby/);
+  assert.match(script, /function openArcadeGame/);
+  assert.match(script, /function showGameLobby/);
+});
+
+test('Unsuccessful puzzle attempts can reveal their answers', () => {
+  for (const action of ['connections-reveal', 'mini-reveal', 'crossword-reveal', 'strands-reveal', 'sudoku-reveal']) assert.ok(script.includes(action));
+  assert.match(script, /function revealConnections/);
+  assert.match(script, /function revealCrossword/);
+  assert.match(script, /function revealStrands/);
+  assert.match(script, /function revealSudoku/);
+  assert.match(html, /Finished — the word was \$\{answer\}/);
+  assert.match(html, /Today’s answer is highlighted above/);
 });

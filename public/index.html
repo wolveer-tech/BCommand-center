@@ -2430,8 +2430,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
               </div>
             </div>
             <div class="section-note games-suite-status" id="gamesSuiteStatus" role="status">Your puzzle set is ready.</div>
-            <div class="game-grid">
-              <article class="game-card">
+            <div class="games-lobby" id="gamesLobby" aria-label="Choose a game"></div>
+            <div class="games-detail-header" id="gamesDetailHeader" hidden>
+              <button class="btn" id="gamesBackToLobby" type="button">← All games</button>
+              <div><strong id="gamesDetailTitle">Game</strong><span id="gamesDetailMeta">Continue your puzzle</span></div>
+            </div>
+            <div class="game-grid games-detail-grid" id="gamesDetailGrid">
+              <article class="game-card" data-game-id="2048">
                 <div class="card-head"><div><h3>🔢 2048</h3><div class="sub">Merge tiles and beat your best score.</div></div><button class="btn small" id="new2048Btn" onclick="new2048()">New</button></div>
                 <div class="ent-stat-row"><div class="ent-stat"><strong id="score2048">0</strong><span>Score</span></div><div class="ent-stat"><strong id="best2048">0</strong><span>Best</span></div></div>
                 <div class="game-stage"><div class="g2048" id="game2048"></div><div class="game-status" id="status2048"></div></div>
@@ -2441,13 +2446,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
                 </div>
               </article>
 
-              <article class="game-card">
+              <article class="game-card" data-game-id="trivia">
                 <div class="card-head"><div><h3>🧠 Trivia</h3><div class="sub">A fresh question matched to your chosen level.</div></div></div>
                 <div class="ent-stat-row"><div class="ent-stat"><strong id="triviaStreak">0</strong><span>Correct streak</span></div><div class="ent-stat"><strong id="triviaRecord">0</strong><span>Best streak</span></div></div>
                 <div class="game-stage" id="triviaGame"></div>
               </article>
 
-              <article class="game-card">
+              <article class="game-card" data-game-id="wordle">
                 <div class="card-head"><div><h3>🟩 Wordle</h3><div class="sub">Guess the five-letter daily word in six attempts.</div></div><button class="btn small" id="wordleResetBtn">Reset today</button></div>
                 <div class="ent-stat-row"><div class="ent-stat"><strong id="wordleStreak">0</strong><span>Win streak</span></div><div class="ent-stat"><strong id="wordleBest">0</strong><span>Best streak</span></div></div>
                 <div class="game-stage">
@@ -2457,27 +2462,27 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
                 </div>
               </article>
 
-              <article class="game-card game-card-wide">
+              <article class="game-card game-card-wide" data-game-id="connections">
                 <div class="card-head"><div><h3>🟨 Connections</h3><div class="sub">Find four groups of four linked words.</div></div><button class="btn small" data-suite-action="connections-shuffle">Shuffle</button></div>
                 <div class="game-stage" id="connectionsGame"></div>
               </article>
 
-              <article class="game-card">
+              <article class="game-card" data-game-id="mini-crossword">
                 <div class="card-head"><div><h3>✏️ Mini Crossword</h3><div class="sub">A compact word square with Across and Down clues.</div></div><button class="btn small" data-suite-action="mini-check">Check</button></div>
                 <div class="game-stage" id="miniCrosswordGame"></div>
               </article>
 
-              <article class="game-card">
+              <article class="game-card" data-game-id="crossword">
                 <div class="card-head"><div><h3>📰 Crossword</h3><div class="sub">Solve the larger crossing clue set.</div></div><button class="btn small" data-suite-action="crossword-check">Check</button></div>
                 <div class="game-stage" id="crosswordGame"></div>
               </article>
 
-              <article class="game-card">
+              <article class="game-card" data-game-id="strands">
                 <div class="card-head"><div><h3>🧵 Strands</h3><div class="sub">Trace themed words through neighbouring letters.</div></div><button class="btn small" data-suite-action="strands-clear">Clear</button></div>
                 <div class="game-stage" id="strandsGame"></div>
               </article>
 
-              <article class="game-card">
+              <article class="game-card" data-game-id="sudoku">
                 <div class="card-head"><div><h3>🔢 Sudoku</h3><div class="sub">Fill the grid so every row, column and box uses 1–9.</div></div><button class="btn small" data-suite-action="sudoku-check">Check</button></div>
                 <div class="game-stage" id="sudokuGame"></div>
               </article>
@@ -3096,7 +3101,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </article></section>
 
   <section class="settings-section" data-settings-panel="notifications">
-    <article class="card settings-card-clean"><div class="card-head"><div><div class="title">🔔 Mobile notifications</div><div class="sub" id="notificationStatus">Checking notification support…</div></div><button class="btn primary" id="enableNotificationsBtn">Enable</button></div><div class="toolbar"><button class="btn" id="testNotificationBtn">Send test</button><button class="btn" id="repairNotificationsBtn">Repair</button><button class="btn" id="rescheduleNotificationsBtn">Reschedule</button></div><div class="setting-note" style="margin-top:8px">The IPA schedules native iPhone alerts for reminders and calendar events. Browser installations use Web Push when supported.</div></article>
+    <article class="card settings-card-clean"><div class="card-head"><div><div class="title">🔔 Mobile notifications</div><div class="sub" id="notificationStatus">Checking notification support…</div></div><button class="btn primary" id="enableNotificationsBtn">Enable</button></div><div class="toolbar"><button class="btn" id="testNotificationBtn">Send test</button><button class="btn" id="repairNotificationsBtn">Repair</button><button class="btn" id="rescheduleNotificationsBtn">Reschedule</button></div><div class="setting-note" style="margin-top:8px">With the Safari companion linked, the PWA delivers reminders, calendar events, briefings, news, Messages and Transfers. Football alerts and Live Activities stay native in the IPA.</div></article>
     <article class="card settings-card-clean"><div class="card-head"><div><div class="title">🏝️ Widgets &amp; Live Activities</div><div class="sub" id="nativeDashboardStatus">Checking native widget support…</div><div class="setting-note" id="nativeLivePushStatus">Closed-app match updates require the push-enabled IPA and Apple push server setup.</div><label style="display:flex;gap:8px;margin-top:12px"><input type="checkbox" id="footballAutoFollowTeams">Automatically follow favourite-team matches</label></div><button class="btn primary" id="syncNativeDashboardBtn" type="button">Sync now</button></div><div class="setting-note">The native IPA supplies Weather, Next Event and Next Reminder widgets for the Home and Lock Screens. Following a football match prepares its Live Activity and Dynamic Island score view near kick-off.</div></article>
     <article class="card settings-card-clean"><div class="card-head"><div><div class="title">📲 Safari notification companion</div><div class="sub" id="notificationCompanionStatus">Checking link status…</div></div><button class="btn primary" id="notificationCompanionBtn" type="button">Set up</button></div><div class="toolbar"><button class="btn" id="notificationCompanionTestBtn" type="button">Send companion test</button><button class="btn red" id="notificationCompanionUnlinkBtn" type="button">Unlink</button></div><div class="setting-note" style="margin-top:8px">Links the Safari Home Screen app to this IPA device for Web Push. It reuses the same Messages &amp; Transfers identity, so it does not create another device.</div></article>
     <article class="card settings-card-clean"><div class="title">☀️ Morning briefing</div><div class="form"><div class="field"><label>Morning briefing</label><select id="settingsMorningBriefing"><option value="on">On</option><option value="off">Off</option></select></div><div class="field"><label>Delivery time</label><input id="settingsMorningBriefingTime" type="time" value="07:30" /></div></div><div class="toolbar"><button class="btn" id="testMorningBriefingBtn">Send briefing test</button></div></article>
@@ -4142,13 +4147,14 @@ async function notificationCompanionFetch(path,{method='GET',body,token=nativeIn
   return data;
 }
 function notificationCompanionPayload(){
-  const teams=footballFavouriteTeams();
   return {
     timezone:notificationCompanionTimezone(),
     items:collectPushSchedule(400),
     briefing:{enabled:state.morningBriefingEnabled!==false,localTime:state.morningBriefingTime||'07:30',city:state.city||'London',bibleText:morningBriefingBibleText()},
     news:{worldEnabled:state.worldNewsEnabled!==false,financialEnabled:state.financialNewsEnabled!==false,pushMode:state.newsPushMode||'major'},
-    football:{enabled:state.footballNotificationsEnabled!==false&&teams.length>0,teams:teams.map(team=>({id:Number(team.id),name:team.name||'',crest:team.crest||''})),notify24h:state.footballNotify24h!==false,notify1h:state.footballNotify1h!==false,notifyKickoff:state.footballNotifyKickoff!==false,notifyFinal:state.footballNotifyFinal!==false}
+    // Football remains native in the IPA. Sending an explicitly disabled
+    // preference also clears any older PWA football schedule after upgrading.
+    football:{enabled:false,teams:[],notify24h:false,notify1h:false,notifyKickoff:false,notifyFinal:false}
   };
 }
 function updateNotificationCompanionUI(){
@@ -4176,7 +4182,7 @@ function renderNotificationCompanionReceiver(){
 }
 function renderNotificationCompanionOwner(data={}){
   const content=qs('#notificationCompanionContent'),owner=notificationCompanionOwner();if(!content)return;
-  if(owner?.linked||data.linked){content.innerHTML=`<div class="notification-companion-state"><span>✅</span><div><strong>Safari notification receiver linked</strong><div class="sub">Reminders, calendar events, morning briefing, news, football, Messages and Transfers use this IPA device identity.</div></div></div><div class="toolbar" style="margin-top:12px"><button class="btn primary" id="notificationCompanionSyncNow">Sync notification settings</button><button class="btn" id="notificationCompanionOwnerTest">Send test</button></div>`;qs('#notificationCompanionSyncNow')?.addEventListener('click',()=>syncNotificationCompanionFromIPA(true));qs('#notificationCompanionOwnerTest')?.addEventListener('click',testNotificationCompanion);return}
+  if(owner?.linked||data.linked){content.innerHTML=`<div class="notification-companion-state"><span>✅</span><div><strong>Safari notification receiver linked</strong><div class="sub">The PWA receives reminders, calendar events, morning briefing, news, Messages and Transfers for this IPA identity. Football stays native in the IPA.</div></div></div><div class="toolbar" style="margin-top:12px"><button class="btn primary" id="notificationCompanionSyncNow">Sync notification settings</button><button class="btn" id="notificationCompanionOwnerTest">Send test</button></div>`;qs('#notificationCompanionSyncNow')?.addEventListener('click',()=>syncNotificationCompanionFromIPA(true));qs('#notificationCompanionOwnerTest')?.addEventListener('click',testNotificationCompanion);return}
   if(data.code){content.innerHTML=`<div class="sub">In the Safari Home Screen app, open Settings → Notifications → Safari notification companion and enter:</div><div class="notification-companion-code">${esc(data.code)}</div><div class="notification-companion-state"><span>⏳</span><div><strong>Waiting for Safari</strong><div class="sub">This one-time code expires in 10 minutes. Keep this screen open until it says linked.</div></div></div>`;return}
   content.innerHTML=`<div class="empty">Create a one-time code to link Safari Web Push to this IPA device.</div><button class="btn primary" id="notificationCompanionCreateCode" type="button" style="width:100%;margin-top:12px">Create link code</button>`;qs('#notificationCompanionCreateCode')?.addEventListener('click',createNotificationCompanionCode);
 }
@@ -4217,8 +4223,17 @@ async function refreshNotificationCompanionReceiver(showToast=false){
 }
 async function syncNotificationCompanionFromIPA(showToast=false){
   if(!nativeNotificationsSupported()||!notificationCompanionOwner()?.linked||!nativeInboxCredential())return false;
-  try{const data=await notificationCompanionFetch('/sync',{method:'POST',body:notificationCompanionPayload()});if(showToast)toast(`Safari notifications synced • ${Number(data.scheduled)||0} scheduled`);return true}catch(e){if(e.status===409){localStorage.removeItem(NOTIFICATION_COMPANION_OWNER_KEY);updateNotificationCompanionUI()}if(showToast)toast(e.message||'Could not sync Safari notifications');return false}
+  try{
+    const data=await notificationCompanionFetch('/sync',{method:'POST',body:notificationCompanionPayload()});
+    postNativeNotification('setCompanionMode',{enabled:true});
+    postNativeNotification('schedule',{items:collectNativeNotificationSchedule()});
+    if(showToast)toast(`Safari notifications synced • ${Number(data.scheduled)||0} reminders and events scheduled`);
+    window.dispatchEvent(new Event('cc-notification-companion'));
+    return true;
+  }catch(e){if(e.status===409){localStorage.removeItem(NOTIFICATION_COMPANION_OWNER_KEY);postNativeNotification('setCompanionMode',{enabled:false});updateNotificationCompanionUI()}if(showToast)toast(e.message||'Could not sync Safari notifications');return false}
 }
+window.CommandCentrePWAAlertsLinked=()=>!!notificationCompanionOwner()?.linked;
+window.CommandCentreSyncNotificationFallback=syncNotificationCompanionFromIPA;
 let companionRepairPromise=null,companionLastRepair=0;
 async function repairNotificationConnections(force=false){
  if(companionRepairPromise)return companionRepairPromise;if(!force&&Date.now()-companionLastRepair<60000)return;
@@ -4238,7 +4253,7 @@ async function testNotificationCompanion(){
 }
 async function unlinkNotificationCompanion(){
   const receiver=notificationCompanionReceiver(),owner=notificationCompanionOwner();if(!receiver&&!owner?.linked)return;if(!confirm('Unlink the Safari notification receiver from this IPA device?'))return;
-  try{await notificationCompanionFetch(receiver?'/receiver':'',{method:'DELETE',token:receiver?.token||nativeInboxCredential()});if(receiver)localStorage.removeItem(NOTIFICATION_COMPANION_RECEIVER_KEY);if(owner)localStorage.removeItem(NOTIFICATION_COMPANION_OWNER_KEY);clearInterval(notificationCompanionPollTimer);notificationCompanionPollTimer=null;updateNotificationCompanionUI();if(qs('#notificationCompanionModal')?.classList.contains('open'))await openNotificationCompanion();toast('Safari notification receiver unlinked')}catch(e){toast(e.message||'Could not unlink the notification receiver')}
+  try{await notificationCompanionFetch(receiver?'/receiver':'',{method:'DELETE',token:receiver?.token||nativeInboxCredential()});if(receiver)localStorage.removeItem(NOTIFICATION_COMPANION_RECEIVER_KEY);if(owner)localStorage.removeItem(NOTIFICATION_COMPANION_OWNER_KEY);clearInterval(notificationCompanionPollTimer);notificationCompanionPollTimer=null;postNativeNotification('setCompanionMode',{enabled:false});if(nativeNotificationsSupported())postNativeNotification('schedule',{items:collectNativeNotificationSchedule()});window.dispatchEvent(new Event('cc-notification-companion'));updateNotificationCompanionUI();if(qs('#notificationCompanionModal')?.classList.contains('open'))await openNotificationCompanion();toast('Safari notification receiver unlinked')}catch(e){toast(e.message||'Could not unlink the notification receiver')}
 }
 function notificationSupported(){
   return nativeNotificationsSupported()||('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window);
@@ -4249,7 +4264,7 @@ function notificationPermission(){
 }
 function notificationStatusText(){
   if(nativeNotificationsSupported()){
-    if(notificationPermission()==='granted'&&state.notificationsEnabled)return `Native IPA notifications are enabled${notificationCompanionOwner()?.linked?' and the Safari Web Push companion is linked':''}.`;
+    if(notificationPermission()==='granted'&&state.notificationsEnabled)return notificationCompanionOwner()?.linked?'Safari PWA delivery is active for everyday alerts; football stays native in the IPA.':'Native IPA notifications are enabled. Link the Safari PWA for dependable everyday alerts.';
     if(notificationPermission()==='denied')return 'Native notifications are blocked. Allow Command Centre notifications in iPhone Settings.';
     return 'Native iPhone notifications are available — tap Enable.';
   }
@@ -4327,7 +4342,7 @@ function subscriptionJson(sub){
 async function repairNotifications(){
   if(nativeNotificationsSupported()){
     if(notificationPermission()==='denied'){toast('Allow Command Centre notifications in iPhone Settings, then return and tap Enable');return}
-    state.notificationsEnabled=true;saveState();postNativeNotification('requestPermission',{items:collectNativeNotificationSchedule(),inboxToken:nativeInboxCredential()});toast('Native notification schedule refreshed');updateNotificationUI();return;
+    state.notificationsEnabled=true;saveState();postNativeNotification('requestPermission',{items:collectNativeNotificationSchedule(),inboxToken:notificationCompanionOwner()?.linked?'':nativeInboxCredential()});if(notificationCompanionOwner()?.linked)await syncNotificationCompanionFromIPA(false);toast(notificationCompanionOwner()?.linked?'PWA delivery repaired and native football alerts refreshed':'Native notification schedule refreshed');updateNotificationUI();return;
   }
   if(!notificationSupported()){toast('This browser does not support Web Push notifications');return}
   try{
@@ -4351,8 +4366,9 @@ async function enableNotifications(){
     state.notificationsEnabled=true;
     if(state.nativeNotificationPermission!=='denied')state.nativeNotificationPermission='granted';
     saveState();
-    postNativeNotification('requestPermission',{items:collectNativeNotificationSchedule(),inboxToken:nativeInboxCredential()});
-    updateNotificationUI();toast('Native iPhone notifications enabled');return;
+    postNativeNotification('requestPermission',{items:collectNativeNotificationSchedule(),inboxToken:notificationCompanionOwner()?.linked?'':nativeInboxCredential()});
+    if(notificationCompanionOwner()?.linked)await syncNotificationCompanionFromIPA(false);
+    updateNotificationUI();toast(notificationCompanionOwner()?.linked?'PWA alerts enabled; football remains native':'Native iPhone notifications enabled');return;
   }
   try{
     const permission=await Notification.requestPermission();
@@ -4407,6 +4423,9 @@ async function testMorningBriefing(){
     if(notificationPermission()!=='granted'||!state.notificationsEnabled)return;
   }
   if(nativeNotificationsSupported()){
+    if(notificationCompanionOwner()?.linked){
+      try{await syncNotificationCompanionFromIPA(false);const session=notificationCompanionSession();const r=await fetch('/api/briefing/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:session?.deviceId})});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.error||'Morning briefing test failed')}toast('Morning briefing test sent to the Safari PWA')}catch(e){toast(e.message||'Could not send morning briefing test')}return;
+    }
     postNativeNotification('test',{title:'☀️ Morning briefing','body':'Your Command Centre morning briefing notifications are ready.','url':'#briefing'});return;
   }
   try{
@@ -4463,10 +4482,11 @@ function collectNativeFootballNotifications(){
   return items;
 }
 function collectNativeNotificationSchedule(){
-  const scheduled=[...collectPushSchedule(180),...collectNativeFootballNotifications()]
+  const companionLinked=!!notificationCompanionOwner()?.linked;
+  const scheduled=[...(companionLinked?[]:collectPushSchedule(180)),...collectNativeFootballNotifications()]
     .map(item=>({...item,url:['reminder','event'].includes(item.kind)?'#today':item.url}))
     .sort((a,b)=>Date.parse(a.dueAt||0)-Date.parse(b.dueAt||0)).slice(0,59);
-  if(state.morningBriefingEnabled!==false){
+  if(!companionLinked&&state.morningBriefingEnabled!==false){
     const [hour,minute]=(state.morningBriefingTime||'07:30').split(':').map(Number);
     scheduled.unshift({id:'morning-briefing',kind:'briefing',repeatingDaily:true,hour:Number(hour)||7,minute:Number(minute)||0,title:'☀️ Command Centre',body:'Your morning briefing is ready.',url:'#briefing'});
   }
@@ -4474,7 +4494,7 @@ function collectNativeNotificationSchedule(){
 }
 function syncNativeNotifications(){
   queueNotificationCompanionSync();
-  if(nativeNotificationsSupported()&&state.notificationsEnabled)postNativeNotification('schedule',{items:collectNativeNotificationSchedule()});
+  if(nativeNotificationsSupported()&&state.notificationsEnabled){postNativeNotification('setCompanionMode',{enabled:!!notificationCompanionOwner()?.linked});postNativeNotification('schedule',{items:collectNativeNotificationSchedule()})}
 }
 async function syncPushSchedule(){
   queueNotificationCompanionSync();
@@ -4511,7 +4531,7 @@ function scheduleAllNotifications(){
 async function testNotification(){
   if(!notificationSupported()){toast('Web Push is not supported');return}
   if(notificationPermission()!=='granted'||!state.notificationsEnabled){await enableNotifications();if(notificationPermission()!=='granted'||!state.notificationsEnabled)return}
-  if(nativeNotificationsSupported()){postNativeNotification('test',{title:'🔔 Command Centre','body':'Native IPA notifications are working.','url':'#today'});return}
+  if(nativeNotificationsSupported()){if(notificationCompanionOwner()?.linked){await testNotificationCompanion();return}postNativeNotification('test',{title:'🔔 Command Centre','body':'Native IPA notifications are working.','url':'#today'});return}
   if(notificationCompanionReceiver()){await testNotificationCompanion();return}
   try{const response=await fetch(PUSH_API+'/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:pushDeviceId()})});if(!response.ok)throw new Error('Test push failed');toast('Test notification sent')}catch(e){toast(e.message||'Could not send test notification')}
 }

@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'command-centre-shell-v10.29.0-games';
+const SHELL_CACHE = 'command-centre-shell-v10.30.0-pwa-notifications-games-lobby';
 const APP_SHELL = [
   '/',
   '/index.html',
