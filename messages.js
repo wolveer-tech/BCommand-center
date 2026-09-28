@@ -154,13 +154,19 @@ export async function flushMessagePushes(env,sendOne){
       if(!claimed)continue;
       try{
         let delivered=false,lastError=null;
-        if(delivery.apns_token&&nativeReady){
-          try{await sendOne({apnsToken:delivery.apns_token,deviceId:delivery.recipient_id,title:'Command Centre Messages',body:'You have a new message.',url:'/#messages/'+delivery.sender_id,id:'chat-'+delivery.sender_id},env);delivered=true}catch(error){lastError=error;console.warn('Message APNs delivery failed; trying Web Push companion',error?.message||error)}
+        // A linked Home Screen companion is the dependable closed-app route.
+        // Prefer it over APNs, which can be accepted without iOS presenting the
+        // ongoing/background alert the user expects. Native remains the fallback
+        // for devices that have not linked Web Push or whose subscription fails.
+        if(delivery.push_subscription&&webReady){
+          try{
+            const sub=JSON.parse(delivery.push_subscription);
+            await sendOne({endpoint:sub.endpoint,p256dh:sub.keys.p256dh,auth:sub.keys.auth,title:'Command Centre Messages',body:'You have a new message.',url:'/#messages/'+delivery.sender_id,id:'chat-'+delivery.sender_id},env);
+            delivered=true;
+          }catch(error){lastError=error;console.warn('Message Web Push companion failed; trying APNs',error?.message||error)}
         }
-        if(!delivered&&delivery.push_subscription&&webReady){
-          const sub=JSON.parse(delivery.push_subscription);
-          await sendOne({endpoint:sub.endpoint,p256dh:sub.keys.p256dh,auth:sub.keys.auth,title:'Command Centre Messages',body:'You have a new message.',url:'/#messages/'+delivery.sender_id,id:'chat-'+delivery.sender_id},env);
-          delivered=true;
+        if(!delivered&&delivery.apns_token&&nativeReady){
+          try{await sendOne({apnsToken:delivery.apns_token,deviceId:delivery.recipient_id,title:'Command Centre Messages',body:'You have a new message.',url:'/#messages/'+delivery.sender_id,id:'chat-'+delivery.sender_id},env);delivered=true}catch(error){lastError=error}
         }
         if(!delivered)throw lastError||new Error('No configured notification route is available for this device.');
         await run(env,'UPDATE message_deliveries SET sent_at=? WHERE message_id=?',Date.now(),delivery.message_id);

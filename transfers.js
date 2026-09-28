@@ -309,14 +309,20 @@ export async function flushTransferPushes(env, sendOne) {
       if (!claimed) continue;
       try {
         let delivered = false, lastError = null;
-        if (row.apns_token && nativeReady) {
-          try { await sendOne({apnsToken:row.apns_token,deviceId:row.device_id,title:'Command Centre Transfer',body:'A new transfer is ready. Open Transfers to view it.',url:'/#transfers',id:'transfer-'+row.transfer_id},env); delivered = true; }
-          catch (error) { lastError = error; console.warn('Transfer APNs delivery failed; trying Web Push companion', error?.message || error); }
+        // Prefer the linked Home Screen companion. APNs remains available for
+        // devices without Web Push and as a fallback when that subscription has
+        // expired, but it no longer swallows a transfer alert before the PWA is
+        // given the chance to display it.
+        if (row.push_subscription && webReady) {
+          try {
+            const sub = JSON.parse(row.push_subscription);
+            await sendOne({endpoint:sub.endpoint,p256dh:sub.keys.p256dh,auth:sub.keys.auth,title:'Command Centre Transfer',body:'A new transfer is ready. Open Transfers to view it.',url:'/#transfers',id:'transfer-'+row.transfer_id},env);
+            delivered = true;
+          } catch (error) { lastError = error; console.warn('Transfer Web Push companion failed; trying APNs', error?.message || error); }
         }
-        if (!delivered && row.push_subscription && webReady) {
-          const sub = JSON.parse(row.push_subscription);
-          await sendOne({endpoint:sub.endpoint,p256dh:sub.keys.p256dh,auth:sub.keys.auth,title:'Command Centre Transfer',body:'A new transfer is ready. Open Transfers to view it.',url:'/#transfers',id:'transfer-'+row.transfer_id},env);
-          delivered = true;
+        if (!delivered && row.apns_token && nativeReady) {
+          try { await sendOne({apnsToken:row.apns_token,deviceId:row.device_id,title:'Command Centre Transfer',body:'A new transfer is ready. Open Transfers to view it.',url:'/#transfers',id:'transfer-'+row.transfer_id},env); delivered = true; }
+          catch (error) { lastError = error; }
         }
         if (!delivered) throw lastError || new Error('No configured notification route is available for this device.');
         await run(env,'UPDATE transfer_deliveries SET sent_at=? WHERE transfer_id=? AND device_id=?',Date.now(),row.transfer_id,row.device_id);
