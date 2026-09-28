@@ -6,6 +6,7 @@ const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;
 let session=read(KEY),chats=[],selected=null,messages=[],older=false,sequence=0,refreshTask=null,contactTime=0,readThrough=0,codeExpiry=0;
 let pending=[],drafts={},favourite=null,replyingTo=null,showDisconnected=false;
 const sending=new Set();
+const pwaAlertsLinked=()=>window.CommandCentrePWAAlertsLinked?.()===true;
 const personalKey=name=>'cc_messages_'+name+'_'+session?.device.id;
 function personal(){pending=read(personalKey('pending'),[]);drafts=read(personalKey('drafts'),{});favourite=read(personalKey('favourite'));showDisconnected=read(personalKey('showDisconnected'),false)===true;}
 function status(text='',error=false){$('msgStatus').textContent=text;$('msgStatus').classList.toggle('error',error);}
@@ -185,6 +186,13 @@ async function claim(){
 async function notifications(){
   const native=window.CommandCentreNative?.nativeNotifications&&window.webkit?.messageHandlers?.nativeNotifications;
   if(native){
+    if(pwaAlertsLinked()){
+      await window.CommandCentreSyncNotificationFallback?.(true);
+      native.postMessage({action:'setCompanionMode',enabled:true});
+      $('msgNotifications').textContent='PWA alerts connected';
+      status('Messages are delivered by the linked Safari Home Screen app, including while the IPA is closed.');
+      return;
+    }
     native.postMessage({action:'registerInboxAlerts',token:session?.token||''});
     localStorage.setItem('cc_native_inbox_alerts','1');
     $('msgNotifications').textContent='Native alerts requested';
@@ -206,7 +214,8 @@ async function open(){
 window.CCMessages={openQuick:()=>notice((async()=>{window.switchPage?.('messages');if(!session){pairing();return;}await contacts();const peer=quickPeer();if(peer)await choose(peer.id);else pairing();})())};
 function bind(){
   if(!$('messagesPage'))return;personal();connection();
-  if(window.CommandCentreNative?.nativeNotifications&&localStorage.getItem('cc_native_inbox_alerts')==='1')$('msgNotifications').textContent='Native alerts enabled';
+  if(pwaAlertsLinked())$('msgNotifications').textContent='PWA alerts connected';
+  else if(window.CommandCentreNative?.nativeNotifications&&localStorage.getItem('cc_native_inbox_alerts')==='1')$('msgNotifications').textContent='Native alerts enabled';
   $('msgDeviceName').value=/iPhone|iPad|iPod/.test(navigator.userAgent)?'My iPhone':'My laptop';
   $('msgConnect').onclick=pairing;$('msgWelcomeConnect').onclick=pairing;$('msgPairClose').onclick=()=>$('msgPairDialog').close();
   $('msgGenerate').onclick=()=>pairNotice(generate());$('msgClaimForm').onsubmit=e=>{e.preventDefault();pairNotice(claim());};
@@ -226,6 +235,7 @@ function bind(){
   window.addEventListener('cc-transfer-session',syncSession);window.addEventListener('cc-transfer-devices-changed',()=>{if(session)notice(contacts());});
   window.addEventListener('storage',e=>{if(e.key===KEY)syncSession();else if(e.key===DEVICE_SYNC_KEY&&session&&!document.hidden)notice(contacts());});
   window.addEventListener('cc-native-notification-status',e=>{if(e.detail?.permission==='granted'){$('msgNotifications').textContent='Native alerts enabled';localStorage.setItem('cc_native_inbox_alerts','1');}else if(e.detail?.permission==='denied'){localStorage.removeItem('cc_native_inbox_alerts');$('msgNotifications').textContent='Enable alerts';}});
+  window.addEventListener('cc-notification-companion',()=>{$('msgNotifications').textContent=pwaAlertsLinked()?'PWA alerts connected':'Enable alerts';});
   window.addEventListener('cc-pagechange',e=>{if(e.detail==='messages')notice(open());});
   document.addEventListener('visibilitychange',()=>{if(active())notice(refresh());});window.addEventListener('focus',()=>notice(refresh()));window.addEventListener('online',()=>notice(refresh()));
   function viewport(){if(window.visualViewport){$('messagesPage').style.setProperty('--msg-vh',window.visualViewport.height+'px');$('messagesPage').classList.toggle('msg-keyboard',matchMedia('(max-width:700px)').matches&&window.visualViewport.height<window.innerHeight*0.75);}}

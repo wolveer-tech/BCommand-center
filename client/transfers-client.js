@@ -13,6 +13,7 @@ let session; try { session = JSON.parse(localStorage.getItem(KEY) || 'null'); } 
 let view='inbox', compose='file', files=[], items=[], config, controller, refreshing=false, preparedUrl, verifyItem, loadSequence=0, renderedSignature='', deviceRefresh, pendingDeviceRemoval, pendingDeviceRemovalTimer;
 const status = (message='', error=false) => { $('trStatus').textContent=message; $('trStatus').classList.toggle('error',error); };
 const notice = promise => Promise.resolve(promise).catch(e => status(e.message,true));
+const pwaAlertsLinked = () => window.CommandCentrePWAAlertsLinked?.() === true;
 
 async function api(path, data, method, signal) {
   const response=await fetch('/api/transfers'+path,{ method:method || (data === undefined ? 'GET':'POST'), headers:{'Content-Type':'application/json',...(session?.token ? {Authorization:'Bearer '+session.token}:{})},body:data===undefined ? undefined:JSON.stringify(data),signal });
@@ -74,7 +75,7 @@ async function open(){
     config=await api('/status');$('trIdentity').textContent='Connected as '+config.device.name;
     $('trFileLimit').textContent=config.files?`Up to ${formatBytes(config.maxFileBytes)} per file. Keep the app open while sending. On iPhone, choose a file from Files to avoid Photos export conversions.`:config.storageError;
     const nativeAlerts=window.CommandCentreNative?.nativeNotifications&&localStorage.getItem('cc_native_inbox_alerts')==='1';
-    $('trPushState').textContent=nativeAlerts?'Native transfer alerts are registered for iOS background checks.':config.push?'Transfer notifications are connected on this device.':config.pushConfigured?'Enable notifications to receive alerts when the app is closed.':'Add the existing VAPID push secrets to enable background alerts.';
+    $('trPushState').textContent=pwaAlertsLinked()?'Transfers are delivered by the linked Safari Home Screen app.':nativeAlerts?'Native transfer alerts are registered for iOS background checks.':config.push?'Transfer notifications are connected on this device.':config.pushConfigured?'Enable notifications to receive alerts when the app is closed.':'Add the existing VAPID push secrets to enable background alerts.';
     await devices();await load();
     const registration=await navigator.serviceWorker?.getRegistration();const sub=await registration?.pushManager?.getSubscription();
     if(sub && config.push) await api('/push',{subscription:sub.toJSON()});
@@ -232,6 +233,12 @@ async function action(name,itemId){
 async function notifications(){
   const native=window.CommandCentreNative?.nativeNotifications&&window.webkit?.messageHandlers?.nativeNotifications;
   if(native){
+    if(pwaAlertsLinked()){
+      await window.CommandCentreSyncNotificationFallback?.(true);
+      native.postMessage({action:'setCompanionMode',enabled:true});
+      config.push=true;$('trPushState').textContent='Transfers are delivered by the linked Safari Home Screen app.';status('PWA transfer alerts are connected and work while the IPA is closed.');
+      return;
+    }
     native.postMessage({action:'registerInboxAlerts',token:session?.token||''});
     localStorage.setItem('cc_native_inbox_alerts','1');
     config.push=true;$('trPushState').textContent='Native transfer alerts are registered for iOS background checks.';status('Allow iPhone notifications when prompted. Transfers refresh while open and during iOS background checks when closed.');
@@ -272,6 +279,7 @@ function bind(){
   window.addEventListener('beforeunload',e=>{if(controller){e.preventDefault();e.returnValue='';}});
   window.addEventListener('cc-transfer-native',e=>status(e.detail.message,!!e.detail.error));
   window.addEventListener('cc-native-notification-status',e=>{if(e.detail?.permission==='granted'){localStorage.setItem('cc_native_inbox_alerts','1');$('trPushState').textContent='Native transfer alerts are registered for iOS background checks.';}else if(e.detail?.permission==='denied'){localStorage.removeItem('cc_native_inbox_alerts');$('trPushState').textContent='Enable alerts after allowing Command Centre notifications in iPhone Settings.';}});
+  window.addEventListener('cc-notification-companion',()=>{$('trPushState').textContent=pwaAlertsLinked()?'Transfers are delivered by the linked Safari Home Screen app.':'Enable transfer notifications.';});
   window.addEventListener('storage',e=>{if(e.key===KEY){try{session=JSON.parse(e.newValue);}catch{session=null;}connection();if(session&&$('transfersPage').classList.contains('active'))notice(open());}else if(e.key===DEVICE_SYNC_KEY&&session&&devicesPanelOpen())notice(devices());});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('transfersPage').classList.contains('active')){notice(load(false,true));if(devicesPanelOpen())notice(devices());}});
   window.addEventListener('focus',()=>{if(session&&$('transfersPage').classList.contains('active')&&devicesPanelOpen())notice(devices());});

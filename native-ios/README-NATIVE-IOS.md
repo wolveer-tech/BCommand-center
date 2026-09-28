@@ -1,5 +1,17 @@
 # Command Centre iOS 26 — Signulous-friendly build
 
+## v1.13.0 PWA notification handoff
+
+Version **1.13.0 (build 21)** keeps football fixture alerts and Live Activities
+native while allowing the linked Safari Home Screen companion to own reminders,
+calendar events, morning briefings, news, Messages and Transfers. When companion
+mode is active, the native background task no longer creates a later duplicate
+Messages or Transfers alert. APNs remains the server fallback when Web Push is
+not linked or its subscription fails.
+
+The hosted web/Worker update provides PWA-first delivery to existing IPA builds.
+Rebuilding this native target adds the duplicate-suppression handoff.
+
 ## v1.9.0 widgets, Dynamic Island and football Live Activities
 
 Version **1.9.0 (build 15)** adds a WidgetKit extension with Weather, Next Event

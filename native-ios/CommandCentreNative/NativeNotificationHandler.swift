@@ -10,6 +10,7 @@ final class NativeNotificationHandler: NSObject, WKScriptMessageHandler, UNUserN
     private let storedIdentifiersKey = "CommandCentreNativeNotificationIdentifiers"
     private let storedScheduleKey = "CommandCentreNativeNotificationSchedule"
     private let nativeInboxTokenKey = "CommandCentreNativeInboxToken"
+    private let companionModeKey = "CommandCentreSafariCompanionMode"
     private let lastInboxMessageKey = "CommandCentreNativeLastInboxMessage"
     private let lastTransferReadyKey = "CommandCentreNativeLastTransferReady"
     private var currentAPNSToken: String?
@@ -64,6 +65,9 @@ final class NativeNotificationHandler: NSObject, WKScriptMessageHandler, UNUserN
         case "registerInboxAlerts":
             let token = body["token"] as? String ?? ""
             Task { await registerInboxAlerts(token: token) }
+        case "setCompanionMode":
+            let enabled = body["enabled"] as? Bool ?? false
+            UserDefaults.standard.set(enabled, forKey: companionModeKey)
         default:
             break
         }
@@ -191,11 +195,23 @@ final class NativeNotificationHandler: NSObject, WKScriptMessageHandler, UNUserN
 
     func performBackgroundRefresh() async -> Bool {
         let scheduleRefreshed = await refreshSavedScheduleFromNetwork()
-        let inboxRefreshed = await refreshNativeInboxAlerts()
+        // When Safari Web Push is linked it owns Messages and Transfers delivery.
+        // Keep the native refresh for football but avoid a later duplicate inbox
+        // alert from iOS's opportunistic background task.
+        let inboxRefreshed: Bool
+        if UserDefaults.standard.bool(forKey: companionModeKey) {
+            inboxRefreshed = false
+        } else {
+            inboxRefreshed = await refreshNativeInboxAlerts()
+        }
         return scheduleRefreshed || inboxRefreshed
     }
 
     private func registerInboxAlerts(token: String) async {
+        if UserDefaults.standard.bool(forKey: companionModeKey) {
+            notifyWeb(permission: "granted", message: "Messages and Transfers are delivered by the linked Safari PWA.")
+            return
+        }
         guard !token.isEmpty else {
             notifyWeb(permission: "default", message: "Connect this device in Transfers or Messages before enabling its alerts.")
             return
