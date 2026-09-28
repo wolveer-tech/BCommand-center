@@ -43,7 +43,7 @@ test('Match Centre exposes overview, lineups, timeline, stats and following',()=
 });
 
 test('app shell and fixture schedules refresh safely in foreground and background',()=>{
-  assert.match(serviceWorker,/command-centre-shell-v10\.30\.0-pwa-notifications-games-lobby/);
+  assert.match(serviceWorker,/command-centre-shell-v10\.31\.0-year-of-games/);
   assert.match(serviceWorker,/request\.mode === 'navigate'/);
   assert.match(serviceWorker,/url\.pathname\.startsWith\('\/api\/'\)/);
   assert.match(html,/function refreshAppFreshness/);

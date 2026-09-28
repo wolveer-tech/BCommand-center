@@ -5,6 +5,7 @@ import vm from 'node:vm';
 
 const html = readFileSync('public/index.html', 'utf8');
 const script = readFileSync('public/games-suite.js', 'utf8');
+const content = readFileSync('public/games-content.js', 'utf8');
 const serviceWorker = readFileSync('public/sw.js', 'utf8');
 const gamesPanel = html.match(/<div class="ent-panel" data-ent-panel="games">([\s\S]*?)<div class="ent-panel" data-ent-panel="community">/)?.[1] || '';
 
@@ -26,8 +27,10 @@ test('Puzzle controls expose difficulty and a full refresh', () => {
 
 test('New puzzle suite JavaScript parses and is available offline', () => {
   new vm.Script(script);
-  assert.match(serviceWorker, /command-centre-shell-v10\.30\.0-pwa-notifications-games-lobby/);
+  new vm.Script(content);
+  assert.match(serviceWorker, /command-centre-shell-v10\.31\.0-year-of-games/);
   assert.match(serviceWorker, /\/games-suite\.css/);
+  assert.match(serviceWorker, /\/games-content\.js/);
   assert.match(serviceWorker, /\/games-suite\.js/);
 });
 

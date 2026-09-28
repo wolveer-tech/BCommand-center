@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'command-centre-shell-v10.30.0-pwa-notifications-games-lobby';
+const SHELL_CACHE = 'command-centre-shell-v10.31.0-year-of-games';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -14,6 +14,7 @@ const APP_SHELL = [
   '/space-motion.css',
   '/space-motion.js',
   '/games-suite.css',
+  '/games-content.js',
   '/games-suite.js'
 ];
 

@@ -3,6 +3,8 @@
 
   const LEVELS = ['easy', 'medium', 'hard'];
   const runtime = { crosswordWrong: {}, strandsBoards: {}, sudokuSelected: '', sudokuWrong: new Set(), tileTimer: null, activeGame: null };
+  const GAME_CONTENT = window.CommandCentreGameContent;
+  if (!GAME_CONTENT?.CONNECTION_BOARDS || !GAME_CONTENT?.WORDLE_LEVELS) throw new Error('The expanded game content pack did not load.');
   const GAME_CATALOG = [
     { id: '2048', icon: '🔢', title: '2048', eyebrow: 'MERGE', description: 'Build bigger tiles and chase a new high score.' },
     { id: 'trivia', icon: '🧠', title: 'Trivia', eyebrow: 'DAILY QUIZ', description: 'Answer a fresh question at your chosen level.' },
@@ -127,6 +129,17 @@
     const current = entertainment.gameSuite && typeof entertainment.gameSuite === 'object' ? entertainment.gameSuite : {};
     current.difficulty = LEVELS.includes(current.difficulty) ? current.difficulty : 'medium';
     current.seed = Number.isFinite(Number(current.seed)) ? Number(current.seed) : 0;
+    if (current.contentVersion !== GAME_CONTENT.version) {
+      current.contentVersion = GAME_CONTENT.version;
+      current.seed += 1;
+      for (const key of ['connections', 'miniCrossword', 'crosswordCrossword', 'strands', 'sudoku']) delete current[key];
+      const stats = entertainment.gameStats || (entertainment.gameStats = {});
+      Object.assign(stats, { wordleGuesses: [], wordleCurrent: '', wordleFinished: false, wordleWon: false, wordleDate: '', triviaLastDate: '', triviaLastCorrect: null, triviaLastAnswer: null });
+      runtime.crosswordWrong = {};
+      runtime.strandsBoards = {};
+      runtime.sudokuSelected = '';
+      runtime.sudokuWrong = new Set();
+    }
     entertainment.gameSuite = current;
     return current;
   }
@@ -166,8 +179,17 @@
   }
 
   function puzzleId(name) {
-    return `${name}:${suite().difficulty}:${suite().seed}`;
+    return `${name}:v${GAME_CONTENT.version}:${suite().difficulty}:${suite().seed}`;
   }
+
+  function contentPuzzle(bank) {
+    const s = suite();
+    const pool = bank[s.difficulty];
+    return pool[((s.seed % pool.length) + pool.length) % pool.length];
+  }
+
+  function connectionsPuzzle() { return GAME_CONTENT.connectionsFor(suite().difficulty, suite().seed); }
+  function strandsPuzzle() { return GAME_CONTENT.strandsFor(suite().difficulty, suite().seed); }
 
   function setSuiteStatus(message) {
     const el = document.querySelector('#gamesSuiteStatus');
@@ -181,7 +203,7 @@
     if (id === 'wordle') return stats.wordleFinished ? (stats.wordleWon ? 'Solved today' : 'Finished today') : stats.wordleGuesses?.length ? `${stats.wordleGuesses.length}/6 guesses used` : `Best streak ${stats.wordleBest || 0}`;
     if (id === 'connections') { const value = connectionsState(); return value.revealed ? 'Answers revealed' : `${value.found.length}/4 groups found`; }
     if (id === 'mini-crossword' || id === 'crossword') { const value = crosswordState(id === 'mini-crossword' ? 'mini' : 'crossword'); return value.revealed ? 'Answer revealed' : `${Object.values(value.values).filter(Boolean).length} squares filled`; }
-    if (id === 'strands') { const value = strandsState(); return value.revealed ? 'Answers revealed' : `${value.found.length}/${STRANDS[suite().difficulty].words.length} words found`; }
+    if (id === 'strands') { const value = strandsState(); return value.revealed ? 'Answers revealed' : `${value.found.length}/${strandsPuzzle().words.length} words found`; }
     if (id === 'sudoku') { const value = sudokuState(); return value.revealed ? 'Answer revealed' : `${Object.values(value.values).filter(Boolean).length}/${value.blank.length} squares filled`; }
     return 'Ready to play';
   }
@@ -224,21 +246,22 @@
   }
 
   function suiteWordleAnswer() {
-    const pool = WORDLE_LEVELS[suite().difficulty];
-    return pool[suite().seed % pool.length];
+    const pool = GAME_CONTENT.WORDLE_LEVELS[suite().difficulty];
+    return pool[(suite().seed * 37) % pool.length];
   }
 
   function suiteTriviaQuestion() {
-    const pool = TRIVIA_LEVELS[suite().difficulty];
-    return pool[suite().seed % pool.length];
+    const pool = GAME_CONTENT.TRIVIA_LEVELS[suite().difficulty];
+    return pool[(suite().seed * 37) % pool.length];
   }
 
   function connectionsState() {
     const s = suite();
+    const groups = connectionsPuzzle();
     if (!s.connections || s.connections.id !== puzzleId('connections')) {
       s.connections = {
         id: puzzleId('connections'),
-        words: shuffle(CONNECTIONS[s.difficulty].flatMap(group => group.words), 'connections'),
+        words: shuffle(groups.flatMap(group => group.words), 'connections'),
         selected: [],
         found: [],
         mistakes: 0,
@@ -253,7 +276,7 @@
     const el = document.querySelector('#connectionsGame');
     if (!el) return;
     const s = connectionsState();
-    const groups = CONNECTIONS[suite().difficulty];
+    const groups = connectionsPuzzle();
     const mistakeLimit = { easy: 5, medium: 4, hard: 3 }[suite().difficulty];
     const revealed = Boolean(s.revealed);
     const visibleGroups = revealed ? groups.map((_, index) => index) : s.found;
@@ -279,7 +302,7 @@
   function submitConnection() {
     const s = connectionsState();
     if (s.selected.length !== 4) return;
-    const groups = CONNECTIONS[suite().difficulty];
+    const groups = connectionsPuzzle();
     const index = groups.findIndex(group => group.words.every(word => s.selected.includes(word)));
     if (index >= 0 && !s.found.includes(index)) s.found.push(index);
     else s.mistakes += 1;
@@ -291,7 +314,7 @@
   function revealConnections() {
     const s = connectionsState();
     const mistakeLimit = { easy: 5, medium: 4, hard: 3 }[suite().difficulty];
-    if (s.mistakes < mistakeLimit || s.found.length === CONNECTIONS[suite().difficulty].length) return;
+    if (s.mistakes < mistakeLimit || s.found.length === connectionsPuzzle().length) return;
     s.revealed = true;
     s.selected = [];
     saveSuite();
@@ -299,19 +322,18 @@
   }
 
   function crosswordPuzzle(kind) {
-    const level = suite().difficulty;
+    const data = GAME_CONTENT.crosswordFor(kind, suite().difficulty, suite().seed);
     if (kind === 'mini') {
-      const data = MINI_SQUARES[level];
-      const entries = [];
-      data.words.forEach((answer, index) => {
-        entries.push({ number: index + 1, direction: 'Across', answer, clue: data.across[index], row: index, col: 0, dr: 0, dc: 1 });
-        entries.push({ number: index + 1, direction: 'Down', answer, clue: data.down[index], row: 0, col: index, dr: 1, dc: 0 });
-      });
-      return { size: 4, entries };
+      return {
+        size: data.size,
+        entries: [
+          { number: 1, direction: 'Across', answer: data.across.answer, clue: data.across.clue, row: 1, col: 0, dr: 0, dc: 1 },
+          ...data.down.map((entry, index) => ({ number: index + 1, direction: 'Down', answer: entry.answer, clue: entry.clue, row: 0, col: index, dr: 1, dc: 0 }))
+        ]
+      };
     }
-    const data = CROSSWORDS[level];
     return {
-      size: 6,
+      size: data.size,
       entries: [
         { number: 1, direction: 'Across', answer: data.across.answer, clue: data.across.clue, row: 2, col: 0, dr: 0, dc: 1 },
         ...data.down.map((entry, index) => ({ number: index + 1, direction: 'Down', answer: entry.answer, clue: entry.clue, row: 0, col: index * 2, dr: 1, dc: 0 }))
@@ -458,28 +480,41 @@
   }
 
   function buildStrandsBoard() {
-    const puzzle = STRANDS[suite().difficulty];
+    const puzzle = strandsPuzzle();
     const key = puzzleId('strands');
     if (runtime.strandsBoards[key]) return runtime.strandsBoards[key];
     const random = rngFor('strands');
-    const grid = Array.from({ length: puzzle.size }, () => Array(puzzle.size).fill(''));
-    const placements = {};
     const directions = [[0, 1], [1, 0], [1, 1], [1, -1], [0, -1], [-1, 0], [-1, -1], [-1, 1]];
-    for (const word of puzzle.words) {
-      let placed = false;
-      for (let attempt = 0; attempt < 400 && !placed; attempt++) {
-        const [dr, dc] = directions[Math.floor(random() * directions.length)];
-        const row = Math.floor(random() * puzzle.size);
-        const col = Math.floor(random() * puzzle.size);
-        const endRow = row + dr * (word.length - 1);
-        const endCol = col + dc * (word.length - 1);
-        if (endRow < 0 || endCol < 0 || endRow >= puzzle.size || endCol >= puzzle.size) continue;
-        const cells = [...word].map((letter, index) => ({ row: row + dr * index, col: col + dc * index, letter }));
-        if (cells.some(cell => grid[cell.row][cell.col] && grid[cell.row][cell.col] !== cell.letter)) continue;
-        cells.forEach(cell => { grid[cell.row][cell.col] = cell.letter; });
-        placements[word] = cells.map(cell => `${cell.row},${cell.col}`);
-        placed = true;
+    let grid;
+    let placements;
+    for (let boardAttempt = 0; boardAttempt < 24; boardAttempt += 1) {
+      grid = Array.from({ length: puzzle.size }, () => Array(puzzle.size).fill(''));
+      placements = {};
+      for (const word of [...puzzle.words].sort((a, b) => b.length - a.length)) {
+        for (let attempt = 0; attempt < 800 && !placements[word]; attempt += 1) {
+          const [dr, dc] = directions[Math.floor(random() * directions.length)];
+          const row = Math.floor(random() * puzzle.size);
+          const col = Math.floor(random() * puzzle.size);
+          const endRow = row + dr * (word.length - 1);
+          const endCol = col + dc * (word.length - 1);
+          if (endRow < 0 || endCol < 0 || endRow >= puzzle.size || endCol >= puzzle.size) continue;
+          const cells = [...word].map((letter, index) => ({ row: row + dr * index, col: col + dc * index, letter }));
+          if (cells.some(cell => grid[cell.row][cell.col] && grid[cell.row][cell.col] !== cell.letter)) continue;
+          cells.forEach(cell => { grid[cell.row][cell.col] = cell.letter; });
+          placements[word] = cells.map(cell => `${cell.row},${cell.col}`);
+        }
       }
+      if (puzzle.words.every(word => placements[word])) break;
+    }
+    if (!puzzle.words.every(word => placements[word])) {
+      grid = Array.from({ length: puzzle.size }, () => Array(puzzle.size).fill(''));
+      placements = {};
+      puzzle.words.forEach((word, row) => {
+        placements[word] = [...word].map((letter, col) => {
+          grid[row][col] = letter;
+          return `${row},${col}`;
+        });
+      });
     }
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     for (let row = 0; row < puzzle.size; row++) for (let col = 0; col < puzzle.size; col++) if (!grid[row][col]) grid[row][col] = alphabet[Math.floor(random() * alphabet.length)];
@@ -498,7 +533,7 @@
   function renderStrands(message = '') {
     const el = document.querySelector('#strandsGame');
     if (!el) return;
-    const puzzle = STRANDS[suite().difficulty];
+    const puzzle = strandsPuzzle();
     const board = buildStrandsBoard();
     const s = strandsState();
     const displayedWords = s.revealed ? puzzle.words : s.found;
@@ -526,7 +561,7 @@
       const [r, c] = cell.split(',').map(Number);
       return board.grid[r][c];
     }).join('');
-    const puzzle = STRANDS[suite().difficulty];
+    const puzzle = strandsPuzzle();
     const match = puzzle.words.find(word => !s.found.includes(word) && (word === text || [...word].reverse().join('') === text));
     if (match) {
       s.found.push(match);
@@ -609,10 +644,15 @@
   }
 
   function sudokuSolution() {
+    const digits = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9], 'sudoku-digits');
+    const bands = shuffle([0, 1, 2], 'sudoku-row-bands');
+    const stacks = shuffle([0, 1, 2], 'sudoku-column-stacks');
+    const rows = bands.flatMap(band => shuffle([0, 1, 2], `sudoku-rows-${band}`).map(row => band * 3 + row));
+    const columns = stacks.flatMap(stack => shuffle([0, 1, 2], `sudoku-columns-${stack}`).map(col => stack * 3 + col));
     return Array.from({ length: 81 }, (_, index) => {
-      const row = Math.floor(index / 9);
-      const col = index % 9;
-      return (row * 3 + Math.floor(row / 3) + col) % 9 + 1;
+      const row = rows[Math.floor(index / 9)];
+      const col = columns[index % 9];
+      return digits[(row * 3 + Math.floor(row / 3) + col) % 9];
     });
   }
 
@@ -783,6 +823,7 @@
     stats.triviaLastCorrect = null;
     stats.triviaLastAnswer = null;
     runtime.crosswordWrong = {};
+    runtime.strandsBoards = {};
     runtime.sudokuSelected = '';
     runtime.sudokuWrong = new Set();
     saveSuite();
