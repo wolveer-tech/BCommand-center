@@ -1,5 +1,35 @@
 # Command Centre iOS 26 — Signulous-friendly build
 
+## v1.15.0 compatible player protection
+
+Version **1.15.0 (build 23)** adds WebKit request filtering for common advertising
+hosts without applying an iframe sandbox. The existing navigation delegates block
+player popups, app takeovers and external-app links in Compatible mode. Video
+resources are excluded from the narrow host rules; ads supplied by other hosts or
+inside the video may remain. A **Filter common ads** switch lets you disable the
+network filter and reload a provider if it prevents playback, while navigation
+protection stays on. The filter is installed before the first app page loads.
+
+The existing Codemagic workflow now produces `CommandCentre-iOS26-v1.15.0.ipa`.
+Install over the existing signed app. Web deployment alone cannot add native
+request filtering to an older IPA. JavaScript tests validate the rule patterns
+and integration contract; Swift compilation and physical-device playback still
+require the Mac/iPhone build path and were unavailable on Windows.
+
+## v1.14.0 schoolbooks and background audio
+
+Version **1.14.0 (build 22)** adds native Audius playback that survives web-view
+backgrounding, queue progression and lock-screen play/pause/skip/seek controls.
+Camera and photo-library usage descriptions support photo notes and schoolbooks.
+The local state vault accepts photo-heavy backups up to 64 MB and records explicit
+pre-upgrade/account-link snapshots. Existing bundle identifiers, App Group and
+Keychain identities remain unchanged. Install over the existing signed app.
+
+The Codemagic workflow produces `CommandCentre-iOS26-v1.14.0.ipa`. Swift compilation
+and physical-device testing must run on the Mac/iPhone build path; they were not
+available on the Windows development machine. YouTube uses its official web
+player and does not inherit native Audius background playback.
+
 ## v1.13.0 PWA notification handoff
 
 Version **1.13.0 (build 21)** keeps football fixture alerts and Live Activities

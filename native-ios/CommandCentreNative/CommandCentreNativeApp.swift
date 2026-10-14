@@ -42,7 +42,10 @@ struct CommandCentreNativeApp: App {
             if newPhase == .background {
                 BackgroundRefreshManager.shared.scheduleNext()
             }
-            if newPhase == .active { Task { await NativeLiveActivityPushManager.shared.sync(force: true) } }
+            if newPhase == .active {
+                NativeMusicHandler.shared.publish()
+                Task { await NativeLiveActivityPushManager.shared.sync(force: true) }
+            }
         }
     }
 

@@ -13,6 +13,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         configuration.mediaTypesRequiringUserActionForPlayback = []
         configuration.userContentController.add(context.coordinator, name: "nativeMirror")
         configuration.userContentController.add(context.coordinator, name: "nativeIntro")
+        configuration.userContentController.add(context.coordinator, name: "nativePlayerFiltering")
         configuration.userContentController.addUserScript(WKUserScript(source: "window.CommandCentreIntroSessionManaged = true; window.CommandCentreIntroPlayed = \(Coordinator.introPlayedThisLaunch ? "true" : "false");", injectionTime: .atDocumentStart, forMainFrameOnly: true))
         configuration.userContentController.add(context.coordinator.transferHandler, name: "nativeTransfer")
         configuration.userContentController.add(context.coordinator.notificationHandler, name: "nativeNotifications")
@@ -20,6 +21,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         configuration.userContentController.add(context.coordinator.credentialHandler, name: "nativeCredentials")
         configuration.userContentController.add(context.coordinator.privacyHandler, name: "nativePrivacy")
         configuration.userContentController.add(context.coordinator.dashboardHandler, name: "nativeDashboard")
+        configuration.userContentController.add(NativeMusicHandler.shared, name: "nativeMusic")
 
         configuration.userContentController.addUserScript(WKUserScript(source: NativeStateVault.bootstrapJavaScript(), injectionTime: .atDocumentStart, forMainFrameOnly: true))
 
@@ -39,7 +41,7 @@ struct CommandCentreWebView: UIViewRepresentable {
 
         let bridgeScript = WKUserScript(
             source: """
-            window.CommandCentreNative = { replayKit: true, nativeScreenMirror: true, nativeNotifications: true, backgroundRefresh: true, dataBridge: true, credentialVault: true, privacyLock: true, nativeHaptics: true, nativeWidgets: true, liveActivities: true, stateVault: true, platform: 'ios', minimumRuntime: 'iOS 26' };
+            window.CommandCentreNative = { nativeMusic: true, replayKit: true, nativeScreenMirror: true, nativeNotifications: true, backgroundRefresh: true, dataBridge: true, credentialVault: true, privacyLock: true, nativeHaptics: true, nativeWidgets: true, liveActivities: true, stateVault: true, platform: 'ios', minimumRuntime: 'iOS 26' };
             """,
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
@@ -51,6 +53,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         webView.uiDelegate = context.coordinator
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         context.coordinator.webView = webView
+        NativeMusicHandler.shared.webView = webView
         context.coordinator.transferHandler.webView = webView
         context.coordinator.notificationHandler.webView = webView
         context.coordinator.dataHandler.webView = webView
@@ -59,7 +62,9 @@ struct CommandCentreWebView: UIViewRepresentable {
         NativeLiveActivityPushManager.shared.webView = webView
         NativeDeepLinkRouter.shared.attach(webView: webView)
         NativeMirrorManager.shared.webView = webView
-        webView.load(URLRequest(url: AppConfig.commandCentreURL))
+        context.coordinator.playerProtection.prepare(webView: webView) { [weak webView] in
+            webView?.load(URLRequest(url: AppConfig.commandCentreURL))
+        }
         return webView
     }
 
@@ -70,12 +75,14 @@ struct CommandCentreWebView: UIViewRepresentable {
         uiView.uiDelegate = nil
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeMirror")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeIntro")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativePlayerFiltering")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeTransfer")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeNotifications")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeData")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeCredentials")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativePrivacy")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeDashboard")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeMusic")
     }
 
     @MainActor final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
@@ -87,15 +94,25 @@ struct CommandCentreWebView: UIViewRepresentable {
         let credentialHandler = NativeCredentialHandler.shared
         let privacyHandler = NativePrivacyLockManager.shared
         let dashboardHandler = NativeDashboardHandler.shared
+        let playerProtection = NativePlayerProtection()
         weak var webView: WKWebView?
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            playerProtection.publish()
             NativeDeepLinkRouter.shared.webViewDidFinishLoading()
             dashboardHandler.webView = webView
             webView.evaluateJavaScript("window.CommandCentreSyncNativeDashboard?.(true);")
+            NativeMusicHandler.shared.publish()
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            if message.name == "nativePlayerFiltering" {
+                guard trustedMainFrame(message.frameInfo),
+                      let body = message.body as? [String: Any],
+                      let enabled = body["enabled"] as? Bool else { return }
+                playerProtection.setEnabled(enabled)
+                return
+            }
             if message.name == "nativeIntro" {
                 if trustedMainFrame(message.frameInfo),
                    let body = message.body as? [String: Any], body["action"] as? String == "played",

@@ -56,8 +56,8 @@ final class NativeDataHandler: NSObject, WKScriptMessageHandler, UIDocumentPicke
         guard let url = urls.first else { return }
         do {
             let values = try url.resourceValues(forKeys: [.fileSizeKey])
-            if (values.fileSize ?? 0) > 10 * 1024 * 1024 {
-                throw NSError(domain: "CommandCentreBackup", code: 1, userInfo: [NSLocalizedDescriptionKey: "The backup is larger than 10 MB."])
+            if (values.fileSize ?? 0) > 64 * 1024 * 1024 {
+                throw NSError(domain: "CommandCentreBackup", code: 1, userInfo: [NSLocalizedDescriptionKey: "The backup is larger than 64 MB."])
             }
             let contents = try String(contentsOf: url, encoding: .utf8)
             guard let data = try? JSONSerialization.data(withJSONObject: contents, options: .fragmentsAllowed),

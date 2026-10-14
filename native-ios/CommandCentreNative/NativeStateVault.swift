@@ -38,10 +38,10 @@ enum NativeStateVault {
         }
         let current: [String: Any] = ["id": "native-current", "savedAt": now, "reason": "native recovery", "state": state]
         let data = try JSONSerialization.data(withJSONObject: current, options: [.sortedKeys])
-        guard data.count <= 10 * 1024 * 1024 else { throw failure("Native recovery exceeds 10 MB. Export a backup.") }
+        guard data.count <= 64 * 1024 * 1024 else { throw failure("Native recovery exceeds 64 MB. Export a backup.") }
         let history = existing.filter { ($0["id"] as? String) != "native-current" }
         let due = now - (history.first?["savedAt"] as? Double ?? 0) >= 30 * 60 * 1000
-        if due || reason == "manual" || reason == "restored" {
+        if due || reason == "manual" || reason == "restored" || reason.hasPrefix("before ") {
             // Preserve the outgoing current record before a restore, never the newly blank state.
             var row = reason == "restored" ? (existing.first ?? current) : current
             let id = "native-" + UUID().uuidString

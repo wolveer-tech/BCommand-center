@@ -39,6 +39,10 @@
     <true/>
     <key>NSFaceIDUsageDescription</key>
     <string>Unlock your private messages, notes and personal Command Centre data.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Take photos to keep in your notes and schoolbooks.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Add images from your photo library to notes and schoolbooks.</string>
     <key>NSSupportsLiveActivitiesFrequentUpdates</key>
     <true/>
     <key>NSSupportsLiveActivities</key>
