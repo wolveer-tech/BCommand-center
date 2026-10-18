@@ -1,3 +1,4 @@
+import Foundation
 import WebKit
 
 /// Network filtering is independent of iframe sandboxing, so compatible players
@@ -7,6 +8,8 @@ import WebKit
     private var ruleList: WKContentRuleList?
     private weak var webView: WKWebView?
     private(set) var enabled: Bool
+    private var pendingCompletion: (() -> Void)?
+    private var prepareTimeout: DispatchWorkItem?
 
     init() {
         enabled = UserDefaults.standard.object(forKey: Self.preferenceKey) as? Bool ?? true
@@ -24,23 +27,36 @@ import WebKit
     /// playback available and reports filtering unavailable to the web UI.
     func prepare(webView: WKWebView, completion: @escaping () -> Void) {
         self.webView = webView
+        pendingCompletion = completion
+        let timeout = DispatchWorkItem { [weak self] in self?.completePreparation() }
+        prepareTimeout = timeout
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3, execute: timeout)
         let identifier = "command-centre-player-ads-v1"
         WKContentRuleListStore.default().lookUpContentRuleList(forIdentifier: identifier) { [weak self] cached, _ in
             guard let self else { return }
-            if let cached { self.finishPreparing(cached, completion: completion); return }
+            if let cached { self.finishPreparing(cached); return }
             WKContentRuleListStore.default().compileContentRuleList(forIdentifier: identifier, encodedContentRuleList: Self.encodedRules) { [weak self] compiled, _ in
-                self?.finishPreparing(compiled, completion: completion)
+                self?.finishPreparing(compiled)
             }
         }
     }
 
-    private func finishPreparing(_ list: WKContentRuleList?, completion: () -> Void) {
+    private func finishPreparing(_ list: WKContentRuleList?) {
         ruleList = list
         apply()
         webView?.configuration.userContentController.addUserScript(WKUserScript(
             source: statusJavaScript, injectionTime: .atDocumentStart, forMainFrameOnly: true
         ))
-        completion()
+        completePreparation()
+        publish()
+    }
+
+    private func completePreparation() {
+        prepareTimeout?.cancel()
+        prepareTimeout = nil
+        let completion = pendingCompletion
+        pendingCompletion = nil
+        completion?()
     }
 
     func setEnabled(_ value: Bool) {

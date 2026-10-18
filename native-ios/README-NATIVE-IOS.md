@@ -1,5 +1,7 @@
 # Command Centre iOS 26 — Signulous-friendly build
 
+Latest native release: **1.16.0 (build 24)** adds bounded WebKit crash recovery, faster launch fallback and an estimated halftime countdown in Live Activities. Build with the updated Codemagic workflow and install over the current app. See [release notes](../RELEASE-v10.33.6.md).
+
 ## v1.15.0 compatible player protection
 
 Version **1.15.0 (build 23)** adds WebKit request filtering for common advertising

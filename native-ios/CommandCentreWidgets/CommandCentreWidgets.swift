@@ -227,9 +227,14 @@ struct CommandCentreFootballLiveActivityWidget: Widget {
                     }
                 }
                 DynamicIslandExpandedRegion(.center) {
-                    Text(activityStatus(context))
-                        .font(.caption2.weight(.heavy))
-                        .foregroundStyle(context.state.isLive ? .green : commandCentreBlue)
+                    VStack(spacing: 2) {
+                        Text(activityStatus(context))
+                            .font(.caption2.weight(.heavy))
+                            .foregroundStyle(context.state.isLive ? .green : commandCentreBlue)
+                        if context.state.isHalftime, let deadline = context.state.halftimeEndsAt {
+                            FootballHalftimeCountdown(deadline: deadline, compact: false)
+                        }
+                    }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     HStack {
@@ -244,9 +249,11 @@ struct CommandCentreFootballLiveActivityWidget: Widget {
                 Image(systemName: "sportscourt.fill")
                     .foregroundStyle(context.state.isLive ? .green : commandCentreBlue)
             } compactTrailing: {
-                Text(compactScore(context.state))
-                    .font(.caption2.bold())
-                    .monospacedDigit()
+                if context.state.isHalftime, let deadline = context.state.halftimeEndsAt {
+                    FootballHalftimeCountdown(deadline: deadline, compact: true)
+                } else {
+                    Text(compactScore(context.state)).font(.caption2.bold()).monospacedDigit()
+                }
             } minimal: {
                 Image(systemName: "soccerball")
                     .foregroundStyle(context.state.isLive ? .green : commandCentreBlue)
@@ -265,9 +272,24 @@ struct CommandCentreFootballLiveActivityWidget: Widget {
 
     private func activityStatus(_ context: ActivityViewContext<FootballMatchAttributes>) -> String {
         if context.isStale { return "OPEN APP TO REFRESH" }
+        if context.state.isHalftime { return "HALF TIME" }
         if context.state.isFinished { return context.state.phase == "FINISHED" ? "FULL TIME" : context.state.phase.replacingOccurrences(of: "_", with: " ") }
         if context.state.isLive { return context.state.minute.map { "\($0)′" } ?? "LIVE" }
         return context.attributes.kickoff.formatted(date: .omitted, time: .shortened)
+    }
+}
+
+private struct FootballHalftimeCountdown: View {
+    let deadline: Date
+    let compact: Bool
+    var body: some View {
+        HStack(spacing: 4) {
+            if !compact { Text("Est. second half in").lineLimit(1) }
+            Text(timerInterval: Date(timeIntervalSince1970: 0)...max(Date(timeIntervalSince1970: 1), deadline), countsDown: true, showsHours: false)
+                .monospacedDigit()
+                .frame(maxWidth: compact ? 44 : 55)
+        }
+        .font(.caption2.bold())
     }
 }
 
@@ -280,6 +302,7 @@ private struct FootballLockScreenActivityView: View {
     }
 
     private var statusText: String {
+        if context.state.isHalftime { return "Half time" }
         if context.state.isFinished { return context.state.phase == "FINISHED" ? "Full time" : context.state.phase.replacingOccurrences(of: "_", with: " ").capitalized }
         if context.state.isLive { return context.state.minute.map { "LIVE • \($0)′" } ?? "LIVE" }
         return "Kick-off \(context.attributes.kickoff.formatted(date: .omitted, time: .shortened))"
@@ -310,6 +333,10 @@ private struct FootballLockScreenActivityView: View {
                     .lineLimit(2)
             }
             .font(.subheadline.bold())
+            if context.state.isHalftime, let deadline = context.state.halftimeEndsAt {
+                FootballHalftimeCountdown(deadline: deadline, compact: false)
+                    .foregroundStyle(.green)
+            }
         }
         .padding(15)
         .foregroundStyle(.white)

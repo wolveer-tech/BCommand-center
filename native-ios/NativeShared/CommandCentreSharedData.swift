@@ -121,6 +121,11 @@ struct FootballMatchAttributes: ActivityAttributes {
         var phase: String
         var minute: Int?
         var updatedAt: Date
+        var halftimeEndsAt: Date? = nil
+
+        var isHalftime: Bool {
+            ["PAUSED", "HALF_TIME", "HT"].contains(phase) && (minute ?? 45) <= 60
+        }
 
         var isLive: Bool {
             ["IN_PLAY", "LIVE", "PAUSED", "EXTRA_TIME", "PENALTY_SHOOTOUT"].contains(phase)
@@ -148,6 +153,7 @@ struct CommandCentreFootballMatch: Codable, Hashable, Sendable {
     var awayScore: Int?
     var status: String
     var minute: Int?
+    var halftimeEndsAt: Date? = nil
 
     var contentState: FootballMatchAttributes.ContentState {
         FootballMatchAttributes.ContentState(
@@ -155,7 +161,8 @@ struct CommandCentreFootballMatch: Codable, Hashable, Sendable {
             awayScore: awayScore,
             phase: status,
             minute: minute,
-            updatedAt: .now
+            updatedAt: .now,
+            halftimeEndsAt: halftimeEndsAt
         )
     }
 }

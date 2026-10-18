@@ -63,7 +63,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         NativeDeepLinkRouter.shared.attach(webView: webView)
         NativeMirrorManager.shared.webView = webView
         context.coordinator.playerProtection.prepare(webView: webView) { [weak webView] in
-            webView?.load(URLRequest(url: AppConfig.commandCentreURL))
+            webView?.load(URLRequest(url: AppConfig.commandCentreURL, timeoutInterval: 25))
         }
         return webView
     }
@@ -71,6 +71,7 @@ struct CommandCentreWebView: UIViewRepresentable {
     func updateUIView(_ uiView: WKWebView, context: Context) {}
 
     static func dismantleUIView(_ uiView: WKWebView, coordinator: Coordinator) {
+        coordinator.stopRecoveryObservers()
         uiView.navigationDelegate = nil
         uiView.uiDelegate = nil
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeMirror")
@@ -96,6 +97,62 @@ struct CommandCentreWebView: UIViewRepresentable {
         let dashboardHandler = NativeDashboardHandler.shared
         let playerProtection = NativePlayerProtection()
         weak var webView: WKWebView?
+        private var processFailures: [Date] = []
+        private var memoryObserver: NSObjectProtocol?
+        private var recoveryAlertVisible = false
+
+        override init() {
+            super.init()
+            memoryObserver = NotificationCenter.default.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.webView?.evaluateJavaScript("window.CommandCentrePlaybackSafety?.stopAll();")
+                }
+            }
+        }
+
+        func stopRecoveryObservers() {
+            if let memoryObserver { NotificationCenter.default.removeObserver(memoryObserver) }
+            memoryObserver = nil
+        }
+
+        private func loadRecoveryHome(_ webView: WKWebView) {
+            // Load a clean app document, never WebKit's failed player/back stack.
+            var components = URLComponents(url: AppConfig.commandCentreURL, resolvingAgainstBaseURL: false)!
+            components.queryItems = [URLQueryItem(name: "playerRecovery", value: "1")]
+            webView.stopLoading()
+            webView.load(URLRequest(url: components.url!, timeoutInterval: 25))
+        }
+
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            let now = Date()
+            processFailures = processFailures.filter { now.timeIntervalSince($0) < 120 }
+            processFailures.append(now)
+            if processFailures.count <= 2 { loadRecoveryHome(webView) }
+            else { showRecovery(webView, message: "The web player stopped responding. Its stream has been closed. Tap Open Home to restart the app without opening the stream.") }
+        }
+
+        private func showRecovery(_ webView: WKWebView, message: String) {
+            guard !recoveryAlertVisible, let host = presenter(for: webView) else { return }
+            recoveryAlertVisible = true
+            let alert = UIAlertController(title: "Player stopped", message: message, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Open Home", style: .default) { [weak self, weak webView] _ in
+                guard let self else { return }
+                self.recoveryAlertVisible = false
+                self.processFailures.removeAll()
+                if let webView { self.loadRecoveryHome(webView) }
+            })
+            host.present(alert, animated: true)
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            guard (error as NSError).code != NSURLErrorCancelled else { return }
+            showRecovery(webView, message: "Command Centre could not finish loading. Check your connection, then tap Open Home to try again.")
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            guard (error as NSError).code != NSURLErrorCancelled else { return }
+            showRecovery(webView, message: "The page stopped loading. Tap Open Home to restart without reopening the stream.")
+        }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             playerProtection.publish()

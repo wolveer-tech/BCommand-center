@@ -128,7 +128,8 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
                 homeScore: integer(raw["homeScore"]),
                 awayScore: integer(raw["awayScore"]),
                 status: clean(raw["status"], fallback: "SCHEDULED", max: 40).uppercased(),
-                minute: integer(raw["minute"])
+                minute: integer(raw["minute"]),
+                halftimeEndsAt: double(raw["halftimeEndsAt"]).map { Date(timeIntervalSince1970: $0 / 1_000) }
             )
         }
     }
@@ -169,8 +170,13 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
 
         var activeCount = Activity<FootballMatchAttributes>.activities.count
         for match in ordered {
+            var liveState = match.contentState
+            if liveState.isHalftime {
+                // Preserve the first deadline across foreground refreshes.
+                liveState.halftimeEndsAt = liveState.halftimeEndsAt ?? existing[match.id]?.content.state.halftimeEndsAt ?? .now.addingTimeInterval(15 * 60)
+            } else { liveState.halftimeEndsAt = nil }
             let content = ActivityContent(
-                state: match.contentState,
+                state: liveState,
                 staleDate: match.contentState.isLive ? .now.addingTimeInterval(5 * 60) : match.kickoff.addingTimeInterval(15 * 60),
                 relevanceScore: match.contentState.isLive ? 100 : 50
             )
@@ -343,7 +349,8 @@ final class NativeDashboardHandler: NSObject, WKScriptMessageHandler {
             competition: clean((raw["competition"] as? [String: Any])?["name"], fallback: "Football", max: 120),
             homeTeam: clean(home["name"], fallback: "Home", max: 100), awayTeam: clean(away["name"], fallback: "Away", max: 100),
             kickoff: kickoff, homeScore: integer(score["home"]), awayScore: integer(score["away"]),
-            status: clean(raw["status"], fallback: "SCHEDULED", max: 40), minute: integer(raw["minute"]))
+            status: clean(raw["status"], fallback: "SCHEDULED", max: 40), minute: integer(raw["minute"]),
+            halftimeEndsAt: double(raw["halftimeEndsAt"]).map { Date(timeIntervalSince1970: $0 / 1_000) })
     }
 
     private func firstInteger(_ value: Any?) -> Int? {
