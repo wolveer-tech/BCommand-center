@@ -9,7 +9,7 @@ test('large schedule is normalised once, with cached following invalidated by pr
  let normalised=0,followCalls=0;
  const matches=Array.from({length:5000},(_,id)=>({id:id+1,utcDate:new Date().toISOString(),homeTeam:{id:1,name:'Home '+id},awayTeam:{id:2,name:'Away'},status:'IN_PLAY'}));
  const state={footballFavouriteTeams:[{id:1,name:'Home'}],footballFollowedMatches:[],footballExcludedMatches:[]};
- const context=vm.createContext({state,footballScheduleCache:{matches},footballCache:{matches:[]},nativeLiveMatches:new Map(),footballTeamName:t=>t.name,footballTeamKey:name=>{normalised++;return name},CommandCentreFootballFollowing:{followed:(...args)=>{followCalls++;return globalThis.CommandCentreFootballFollowing.followed(...args)}}});
+ const context=vm.createContext({footballTeamFixtureRows:[],state,footballScheduleCache:{matches},footballCache:{matches:[]},nativeLiveMatches:new Map(),footballTeamName:t=>t.name,footballTeamKey:name=>{normalised++;return name},CommandCentreFootballFollowing:{followed:(...args)=>{followCalls++;return globalThis.CommandCentreFootballFollowing.followed(...args)}}});
  vm.runInContext(extract('let footballScheduleDerived=','function footballLineupPlayerHtml')+extract('let footballFollowCache=','function nativeLivePreferences'),context);
  for(let i=0;i<1000;i++)context.effectiveFollowedMatchIDs();
  assert.equal(normalised,10000);assert.ok(followCalls<=2,'Repeatedly rebuilt following list');
@@ -18,7 +18,7 @@ test('large schedule is normalised once, with cached following invalidated by pr
 });
 function loader(){
  const pending=[],status={},selection={value:'PL'},painted=[];
- const context=vm.createContext({qs:id=>id==='#footballCompetition'?selection:status,state:{footballCompetition:'PL'},appCurrentPage:'football',setTimeout,URLSearchParams,
+ const context=vm.createContext({footballTeamFixtureRows:[],qs:id=>id==='#footballCompetition'?selection:status,state:{footballCompetition:'PL'},appCurrentPage:'football',setTimeout,URLSearchParams,
   nowIso:()=>new Date().toISOString(),saveState(){},renderFootball:()=>painted.push(context.footballCache?.competition),FOOTBALL_COMPETITIONS:{PL:'Premier League',BL1:'Bundesliga'},
   fetchJson:url=>new Promise((resolve,reject)=>pending.push({url,resolve,reject})),persistFootballSchedule(){},queueNativeDashboardSync(){},refreshNativeLiveActivities(){},nativeNotificationsSupported:()=>false,
   footballCache:{competition:'PL',matches:[{id:99}]},footballScheduleCache:{matches:[{id:99}]}

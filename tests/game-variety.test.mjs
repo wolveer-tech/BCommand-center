@@ -6,6 +6,7 @@ import vm from 'node:vm';
 const source = readFileSync('public/games-content.js', 'utf8');
 const context = { window: {} };
 vm.createContext(context);
+vm.runInContext(readFileSync('public/crossword-clues.js','utf8'), context);
 vm.runInContext(source, context);
 const content = context.window.CommandCentreGameContent;
 
@@ -103,4 +104,25 @@ test('Sudoku now permutes digits, bands, stacks, rows and columns', () => {
   const suite = readFileSync('public/games-suite.js', 'utf8');
   for (const marker of ['sudoku-digits', 'sudoku-row-bands', 'sudoku-column-stacks', 'sudoku-rows-', 'sudoku-columns-']) assert.match(suite, new RegExp(marker));
   assert.match(suite, /contentVersion !== GAME_CONTENT\.version/);
+});
+
+test('Connections replaces every group and every word from the previous board',()=>{
+  for(const level of ['easy','medium','hard']){
+    let history=[],previous=[];
+    for(let seed=0;seed<500;seed++){
+      const groups=content.connectionsFor(level,seed,history);
+      assert.equal(groups.length,4);
+      assert.equal(new Set(groups.flatMap(g=>g.words)).size,16);
+      assert.ok(groups.every(g=>!history.some(h=>h.title===g.title)));
+      assert.ok(groups.flatMap(g=>g.words).every(word=>!previous.includes(word)));
+      previous=groups.flatMap(g=>g.words);history=[...history,...groups].slice(-16);
+    }
+  }
+});
+
+test('generated crosswords always use definition clues',()=>{
+  for(const level of ['easy','medium','hard'])for(const kind of ['mini','crossword'])for(let seed=0;seed<365;seed++){
+    const puzzle=content.crosswordFor(kind,level,seed);
+    for(const entry of [puzzle.across,...puzzle.down]){assert.ok(entry.clue.length>3);assert.doesNotMatch(entry.clue,/unscramble|anagram/i);}
+  }
 });

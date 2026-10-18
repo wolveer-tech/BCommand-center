@@ -1,0 +1,15 @@
+#footballLineupModal .modal-card{width:min(940px,calc(100vw - 24px));max-width:940px}
+#footballLineupModal .football-lineup-grid{grid-template-columns:repeat(2,minmax(0,1fr));overflow-x:hidden}
+#footballLineupModal .football-lineup-team{min-width:0}
+.football-pitch{position:relative;min-height:470px;aspect-ratio:3/4;max-height:600px;overflow:hidden;border:1px solid #b2d9c066;border-radius:13px;background:repeating-linear-gradient(0deg,#244c3d 0 12.5%,#294f40 12.5% 25%);margin:12px 0 18px}
+.football-pitch:before{content:"";position:absolute;inset:4%;border:1px solid #d3e9dc66}
+.football-pitch:after{content:"";position:absolute;top:50%;left:4%;right:4%;border-top:1px solid #d3e9dc66}
+.pitch-centre{position:absolute;top:50%;left:50%;width:28%;aspect-ratio:1;transform:translate(-50%,-50%);border:1px solid #d3e9dc66;border-radius:50%}
+.pitch-box{position:absolute;left:25%;width:50%;height:15%;border:1px solid #d3e9dc66}.pitch-box.top{top:4%}.pitch-box.bottom{bottom:4%}
+.pitch-player{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;width:21%;z-index:1;text-align:center;color:#fff}
+.pitch-shirt{display:grid;place-items:center;width:32px;height:32px;border-radius:10px 10px 6px 6px;background:#e4e9ed;color:#172d3e;border:2px solid #fff7;font:bold 14px system-ui;box-shadow:0 3px 6px #0004}
+.football-lineup-team:nth-child(2) .pitch-shirt{background:#94bed8;color:#132331}
+.pitch-name{max-width:100%;padding:2px 4px;background:#102b26e6;border-radius:4px;font:600 10px/1.25 system-ui;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.football-rounds details{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0}.football-rounds summary{cursor:pointer;font-weight:700;font-size:13px}
+.football-team-search{margin:10px 0}.football-team-search form{display:flex;gap:8px}.football-team-search input{min-width:0;flex:1}.football-team-search-results{display:grid;gap:7px;margin-top:10px}.football-search-team{display:flex;align-items:center;gap:10px;padding:9px;border:1px solid var(--line);border-radius:10px}.football-search-team img{width:30px;height:30px;object-fit:contain}.football-search-team>div{flex:1;min-width:0}.football-search-team strong{font-size:13px}.football-search-team .sub{font-size:11px}
+@media(max-width:700px){#footballLineupModal .football-lineup-grid{grid-template-columns:minmax(0,1fr)}.football-pitch{min-height:470px}.pitch-name{font-size:10px}.pitch-shirt{width:28px;height:28px;font-size:12px}}

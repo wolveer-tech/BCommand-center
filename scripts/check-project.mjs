@@ -9,7 +9,9 @@ for(const match of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)){if(ma
 new vm.Script(readFileSync('public/state-safety.js','utf8'));
 new vm.Script(readFileSync('public/football-following.js','utf8'));
 new vm.Script(readFileSync('public/space-motion.js','utf8'));
+new vm.Script(readFileSync('public/storage-tools.js','utf8'));
 new vm.Script(readFileSync('public/games-suite.js','utf8'));
+for(const file of ['football-pitch.js','playback-safety.js','note-images.js','notebooks.js','manga-reader.js','manga-library.js','workspace-design.js','note-editor.js','accounts-client.js','crossword-clues.js','games-content.js'])new vm.Script(readFileSync('public/'+file,'utf8'));
 new vm.Script(readFileSync('public/transfers.bundle.js','utf8'));
 new vm.Script(readFileSync('public/messages.bundle.js','utf8'));
 JSON.parse(readFileSync('tools/browser-extension/manifest.json','utf8'));

@@ -1,5 +1,9 @@
 # Command Centre iOS 26 — Signulous-friendly build
 
+If Cloudflare Builds and Codemagic share this repository, update its full web
+source too. Uploading only native files can trigger a Cloudflare deployment of
+an older `public` folder that is still in the repository.
+
 Latest native release: **1.16.1 (build 25)** adds the lightweight launch animation, asynchronous recovery file work, losslessly compressed recovery files and weekly/manual disposable-cache cleanup. Update root `codemagic.yaml` and the complete `native-ios` folder, then rebuild and install over the current app. See [release notes](../RELEASE-v10.33.7.md). The previous 1.16.0 recovery and halftime improvements are included.
 
 ## v1.15.0 compatible player protection

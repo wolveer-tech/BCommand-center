@@ -7,6 +7,7 @@
   let preference = 'cinematic';
   try { preference = localStorage.getItem('cc_motion_mode') || preference; } catch {}
   const nativeSessionManaged = window.CommandCentreIntroSessionManaged === true;
+  const nativeRenderer = nativeSessionManaged || !!window.CommandCentreNative;
   // The native process is authoritative, including false on a new launch.
   // Ignore the old permanent browser/native flags from v10.27.0.
   let playedThisSession = nativeSessionManaged && window.CommandCentreIntroPlayed === true;
@@ -19,9 +20,9 @@
   if (playedThisSession) markPlayed();
 
   let overlay, canvas, context, progress, raf = 0, elapsed = 0, previousTime = 0;
-  let running = false, finishing = false, nativeLocked = !!window.CommandCentreNative?.privacyLock;
-  let nativeKnown = !nativeLocked, startRequested = mode() !== 'off' && !playedThisSession;
-  let width = 0, height = 0, stars = [], safetyTimer, exitTimer, restoreFocus, startedAt=0;
+  let running = false, finishing = false, nativeLocked = !!window.CommandCentreNative?.privacyLock && window.CommandCentrePrivacyState?.locked !== false;
+  let nativeKnown = !nativeLocked || typeof window.CommandCentrePrivacyState?.locked === 'boolean', startRequested = mode() !== 'off' && !playedThisSession;
+  let width = 0, height = 0, stars = [], safetyTimer, completionTimer, exitTimer, restoreFocus, startedAt=0;
   let lastTrigger = null, pageAnimation = null;
   const inerted = [];
   const animations = new Set();
@@ -48,6 +49,7 @@
   function restoreApp() {
     clearTimeout(exitTimer);
     clearTimeout(safetyTimer);
+    clearTimeout(completionTimer);
     cancelAnimationFrame(raf);
     root.removeAttribute('data-cc-launch');
     overlay?.classList.remove('cc-space-exit', 'cc-space-warp');
@@ -58,6 +60,8 @@
     running = false;
     finishing = false;
     startRequested = false;
+    stars = [];
+    if (context && canvas) { canvas.width = 1; canvas.height = 1; context = null; }
     window.dispatchEvent(new CustomEvent('cc-intro-complete'));
   }
   function finish(immediate = false) {
@@ -69,6 +73,7 @@
     startRequested = false;
     cancelAnimationFrame(raf);
     clearTimeout(safetyTimer);
+    clearTimeout(completionTimer);
     if (immediate || mode() === 'off') { restoreApp(); return; }
     exitTimer = setTimeout(restoreApp,mode()==='gentle'?180:570);
     overlay?.classList.add('cc-space-exit');
@@ -148,7 +153,7 @@
     previousTime=time;elapsed=time-startedAt;
     try {
       draw(mode()==='gentle'?0:dt/1000, mode()==='gentle'?0:elapsed);
-      const cinematicDuration = width < 600 ? 2550 : 3100;
+      const cinematicDuration = innerWidth < 600 ? 2550 : 3100;
       progress.style.transform=`scaleX(${clamp(elapsed/cinematicDuration)})`;
       if (elapsed > 1350) overlay.classList.add('cc-space-warp');
       if (elapsed > (mode()==='gentle'?320:cinematicDuration)) {finish();return;}
@@ -166,12 +171,20 @@
     root.dataset.ccLaunch='playing';
     overlay.setAttribute('aria-hidden','false');
     overlay.classList.remove('cc-space-exit','cc-space-warp');
+    overlay.dataset.renderer = nativeRenderer ? 'compositor' : 'canvas';
+    overlay.dataset.motion = mode();
     // Only disable elements this controller owns; preserve any existing inert state.
     for (const child of document.body.children) {
       if(child!==overlay && !['SCRIPT','STYLE','LINK'].includes(child.tagName) && !child.inert) {
         child.inert=true;inerted.push(child);
       }
     }
+    // Completion must not depend on requestAnimationFrame or a canvas context.
+    // WKWebView can suspend canvas drawing while the native app becomes visible.
+    const duration = mode() === 'gentle' ? 320 : innerWidth < 600 ? 2550 : 3100;
+    completionTimer = setTimeout(() => finish(), duration);
+    safetyTimer = setTimeout(() => finish(true), duration + 900);
+    if (nativeRenderer) return;
     try {
       context=canvas.getContext('2d',{alpha:false});
       if(!context){finish(true);return;}
@@ -179,7 +192,6 @@
       stars=Array.from({length:width<600?120:320},()=>seedStar({}));
       draw(0,0);
       raf=requestAnimationFrame(frame);
-      safetyTimer=setTimeout(()=>finish(true),4200);
     } catch {finish(true);}
   }
   function replay() {
@@ -188,7 +200,7 @@
     startRequested=true;start();
   }
   function captureTrigger(event) {
-    const button=event.target.closest?.('[data-launch-page],[data-launch-watch],[data-launch-action],[data-page],[data-page-jump],.mobile-dock-item,#navBackBtn');
+    const button=event.target.closest?.('[data-launch-page],[data-launch-watch],[data-launch-action],[data-page],[data-page-jump],.mobile-dock-btn,#navBackBtn');
     if (!button) return;
     const icon=button.querySelector('.iphone-app-icon,.launcher-dock-icon') || button;
     const rect=icon.getBoundingClientRect();
@@ -206,24 +218,19 @@
       pageAnimation=animate(target,[{opacity:0},{opacity:1}],{duration:150});return;
     }
     target.style.transformOrigin=origin ? `${origin.x-rect.left}px ${origin.y-rect.top}px` : '50% 100px';
-    const first=home?'scale(1.045)':back?'translateX(-22px) scale(.985)':origin?'scale(.88) translateY(16px)':'translateY(22px) scale(.97)';
+    const first=home?'scale(1.012)':back?'translateX(-12px)':'translateY(12px) scale(.992)';
     pageAnimation=animate(target,[{opacity:0,transform:first},{opacity:1,transform:'none'}],
-      {duration:home?430:480,easing:'cubic-bezier(.16,1,.3,1)'});
-    if (origin && from==='home' && !home) {
-      const maxRadius=Math.hypot(innerWidth,innerHeight);
-      animate(target,[{clipPath:`circle(28px at ${origin.x-rect.left}px ${origin.y-rect.top}px)`},
-        {clipPath:`circle(${maxRadius}px at ${origin.x-rect.left}px ${origin.y-rect.top}px)`}],
-        {duration:430,easing:'cubic-bezier(.2,.8,.2,1)'});
-    }
+      {duration:home?320:360,easing:'cubic-bezier(.22,1,.36,1)'});
   }
   window.CCSpaceMotion={enterPage,replay,skip:()=>finish(true)};
   addEventListener('cc-native-privacy-status',event=>{
     nativeKnown=true;nativeLocked=!!event.detail?.locked;
     if (!nativeLocked) {
       start();
-      if(running&&!finishing){cancelAnimationFrame(raf);previousTime=0;raf=requestAnimationFrame(frame);}
+      if(running&&!finishing&&!nativeRenderer){cancelAnimationFrame(raf);previousTime=0;raf=requestAnimationFrame(frame);}
     } else {
       cancelAnimationFrame(raf);
+      if (running || finishing) { finish(true); return; }
       // A confirmed native lock owns the screen. Wait for its first unlock
       // without consuming the intro or leaving a second blocking overlay.
       if (!playedThisSession && startRequested) {
@@ -235,7 +242,7 @@
   addEventListener('resize',resize,{passive:true});
   document.addEventListener('visibilitychange',()=>{
     if(document.hidden){if(running||finishing)finish(true);cancelAnimationFrame(raf);previousTime=0;}
-    else {start();if(running&&!finishing){cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}}
+    else {start();if(running&&!finishing&&!nativeRenderer){cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}}
   });
   addEventListener('pagehide',()=>{clearTimeout(exitTimer);restoreApp();cancelMotion();});
   document.addEventListener('click',captureTrigger,true);

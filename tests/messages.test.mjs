@@ -88,12 +88,16 @@ test('Messages with real local D1 and existing Transfer devices',async t=>{
     await call('/claim',{body:{name:'Revoked invite',code:invite.code},status:400});
   });
   await t.test('pair-code guessing is limited atomically per IP and globally',async()=>{
+    // Keep these requests in one rate-limit window even at a wall-clock minute boundary.
+    const originalNow=Date.now,fixedNow=originalNow();Date.now=()=>fixedNow;
+    try{
     await env.DB.prepare('DELETE FROM message_pair_limits').run();
     for(let i=0;i<8;i++)await call('/claim',{ip:'198.51.100.1',body:{name:'Guess',code:'not-a-code'},status:400});
     await call('/claim',{ip:'198.51.100.1',body:{name:'Guess',code:'123456789'},status:429});
     const scopes=(await env.DB.prepare('SELECT scope FROM message_pair_limits').all()).results;assert.ok(!JSON.stringify(scopes).includes('198.51.100.1'));
     await env.DB.prepare('INSERT OR REPLACE INTO message_pair_limits(scope,attempts,expires_at) VALUES(?,?,?)').bind('global:'+Math.floor(Date.now()/300000),120,Date.now()+300000).run();
     await call('/claim',{ip:'198.51.100.99',body:{name:'Guess',code:'123456789'},status:429});
+    }finally{Date.now=originalNow;}
   });
   await t.test('cleanup retains history and removes only expired pairing/notification state',async()=>{
     const count=(await env.DB.prepare('SELECT COUNT(*) n FROM device_messages').first()).n;

@@ -37,11 +37,16 @@ test('Movies & TV has an app-controlled fullscreen stage',()=>{
 
 test('Movies & TV exposes Flixer as an in-app provider source',()=>{
   assert.match(html,/data-media-mode="flixer">Flixer<\/button>/);
+  assert.match(html,/data-media-mode="shuttletv">ShuttleTV<\/button>/);
+  assert.match(html,/data-media-mode="cinesrc">CineSrc<\/button>/);
+  assert.doesNotMatch(html,/data-media-mode="flystream"/);
   assert.match(html,/data-media-mode="atlantic">Atlantic<\/button>/);
   assert.match(html,/data-media-mode="boomflix">Boomflix<\/button>/);
-  assert.match(html,/\['standard','torrent','agg','flixer','atlantic','boomflix'\]/);
+  assert.match(html,/\['standard','torrent','agg','flixer','atlantic','boomflix','shuttletv','cinesrc'\]/);
   assert.match(worker,/buildFlixerEmbedUrl/);
-  assert.match(worker,/buildAtlanticUrl/);
+  assert.match(worker,/buildShuttleTvUrl/);
+  assert.match(worker,/buildCineSrcUrl/);
+  assert.doesNotMatch(worker,/buildFlystreamUrl/);
   assert.match(worker,/buildBoomflixUrl/);
   assert.match(worker,/MEDIA_FLIXER_ALLOWED_HOSTS/);
   assert.match(worker,/externalOnly:false/);
@@ -190,17 +195,20 @@ test('app-made floating video is removed while Apple system PiP remains availabl
   assert.match(html,/allow="[^\"]*picture-in-picture/);
 });
 
-test('YouTube Music uses one official iframe and a controls-only mini module',()=>{
+test('YouTube Music retains one official player when navigating or hiding the app',()=>{
   const miniSource=functionSource('renderMusicMiniPlayer','updateMusicProgress');
   const youtubeSource=functionSource('musicRenderYouTubeStage','musicPlaybackSnapshot');
   assert.doesNotMatch(miniSource,/<iframe/i);
   assert.match(youtubeSource,/id="musicYouTubeFrame"/);
   assert.match(youtubeSource,/enablejsapi=1/);
-  assert.match(html,/\.music-mini-youtube\{display:none!important\}/);
+  assert.match(html,/\.music-mini-youtube\.has-player\{display:block\}/);
   assert.match(html,/function bindMusicMediaSession\(\)/);
   assert.match(html,/navigator\.mediaSession\.setActionHandler/);
-  assert.match(html,/page!==['"]music['"][^\n]*musicTogglePlay\(false\)/);
-  assert.match(html,/visibilityState===['"]hidden['"][\s\S]*musicTogglePlay\(false\)/);
+  assert.match(html,/function positionMusicYouTubeStage/);
+  assert.doesNotMatch(functionSource('positionMusicYouTubeStage','renderMusicMiniPlayer'),/appendChild|innerHTML/);
+  assert.match(html,/id="musicMiniYoutube"><div class="music-youtube-stage" id="musicYouTubeStage"/);
+  assert.doesNotMatch(html,/if\(page!==['"]music['"][^\n]*musicTogglePlay\(false\)/);
+  assert.doesNotMatch(html,/if\(musicRuntime\.current\?\.source==='youtube'\)musicTogglePlay\(false\)/);
   assert.match(html,/bind\('musicPlayPauseBtn','click',\(\)=>musicTogglePlay\(\)\)/);
   assert.match(html,/bind\('musicMiniPlay','click',\(\)=>musicTogglePlay\(\)\)/);
   assert.doesNotMatch(html,/bind\('music(?:PlayPauseBtn|MiniPlay)','click',musicTogglePlay\)/);
@@ -223,6 +231,6 @@ test('native iOS wrapper enables background audio and system PiP',()=>{
   assert.match(nativeApp,/setCategory\(\.playback/);
   assert.match(nativeWebView,/allowsPictureInPictureMediaPlayback = true/);
   assert.match(nativeInfo,/UIBackgroundModes[\s\S]*<string>audio<\/string>[\s\S]*<string>fetch<\/string>/);
-  assert.match(nativeProject,/MARKETING_VERSION: 1\.13\.0/);
-  assert.match(nativeProject,/CURRENT_PROJECT_VERSION: 21/);
+  assert.match(nativeProject,/MARKETING_VERSION: 1\.16\.1/);
+  assert.match(nativeProject,/CURRENT_PROJECT_VERSION: 25/);
 });

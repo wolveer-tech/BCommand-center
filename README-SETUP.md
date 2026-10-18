@@ -1,6 +1,36 @@
-# Latest release: v10.27.1
+# Latest release: v10.33.7
 
-Use [RELEASE-v10.27.1.md](RELEASE-v10.27.1.md) for the intro correction: once per fresh IPA launch, with no replay on resume. All v10.27.0 improvements are included. This release requires native iOS 1.12.1 build 20. Back up first, then install with the same signing identity over the existing app to keep its data.
+If this GitHub repository is connected to Cloudflare Builds as well as Codemagic,
+keep the full web source current before uploading iOS files. An iOS-only commit
+can trigger Cloudflare to redeploy the repository's existing `public` folder.
+The repository now includes the same current web files as the live release.
+
+[RELEASE-v10.33.7.md](RELEASE-v10.33.7.md) restores the complete newer UI, replaces the iOS launch canvas with a lighter star animation, prevents splash stalls, compresses native recovery snapshots and adds safe cache cleanup. Native changes require iOS **1.16.1 build 25**. Use the full release folder to deploy the web app; use root `codemagic.yaml` and the entire `native-ios` folder for Codemagic.
+
+# Previous release: v10.33.6
+
+[RELEASE-v10.33.6.md](RELEASE-v10.33.6.md) adds Matchora and PPV, failed-player recovery, movable/resizable note photos, reliable manga history sync, cup fixtures and rounds, women’s football, direct team following, graphical lineups and an estimated halftime countdown. Deploy the web update normally. Native recovery and the Live Activity timer require iOS 1.16.0 build 24 through Codemagic.
+
+# Previous release: v10.33.5
+
+Latest update: [RELEASE-v10.33.5.md](RELEASE-v10.33.5.md) removes Flystream and adds ShuttleTV and CineSrc as separate Movies & TV sources. The remaining movie sources, sports providers, dark theme and saved data are preserved.
+
+Previous update: [RELEASE-v10.33.4.md](RELEASE-v10.33.4.md) replaces sports Source 1 with TitaniumStream and its StreamPortal backup, adds a manual backup switch and sports player modes, and applies a complete dark palette. Its Flystream addition is removed in 10.33.5; Atlantic remains available.
+
+
+Previous update: [RELEASE-v10.33.2.md](RELEASE-v10.33.2.md) restores genuinely unsandboxed Compatibility mode, adds provider failure hints and Reload player, expands phone Watch content and fixes wrapped selectors. Browser popup protection in Restricted mode and native iPhone navigation guards remain available.
+
+Previous update: [RELEASE-v10.33.1.md](RELEASE-v10.33.1.md) removes whole-page work during scrolling and the Home swipe-down shortcut, adds rounded 3D icons, and blocks automatic external player launches. Its browser Compatibility regression is corrected in 10.33.2.
+
+Previous update: [RELEASE-v10.33.0.md](RELEASE-v10.33.0.md) adds uniform illustrated home tiles, balanced widgets above the launcher, shared styling across all sections, Account-based notes/manga sync, Comix bookmarks, and compatible/restricted movie player modes.
+
+Native iOS **1.15.0 (build 23)** adds common-ad request filtering alongside the existing player popup/navigation guards. Rebuild through the existing Codemagic workflow for this filter; the web redesign and sync update use `npm run deploy`.
+
+Previous update: [RELEASE-v10.32.6.md](RELEASE-v10.32.6.md) adds manga favourites and page history, 1Shows/Anicine source replacements, and crossword-style Wordle typing.
+
+Previous update: [RELEASE-v10.32.5.md](RELEASE-v10.32.5.md) adds Asura Scans as the manga reader's default source, including Solo Leveling chapters and images. MangaDex remains selectable. [v10.32.3](RELEASE-v10.32.3.md) includes the separate Schoolbooks tab and automatic crossword typing.
+
+Use [RELEASE-v10.32.0.md](RELEASE-v10.32.0.md) for writable schoolbooks, photo notes, invite-only account sync, fresh Connections, definition crosswords, music continuity, the movie/TV watchlist and the TimStreams source update. Accounts need migration `0013_accounts.sql` and the `ACCOUNT_INVITE_CODE` secret; see [ACCOUNTS-SETUP.md](ACCOUNTS-SETUP.md). Native Audius background audio requires iOS 1.14.0 build 22. Existing local storage and identities are retained, with a pre-upgrade recovery snapshot.
 
 # Command Centre setup
 
@@ -474,12 +504,12 @@ Secrets**, update/add these text variables:
     LIVE_PROVIDER_2_MODE=dynamic
     LIVE_PROVIDER_2_DYNAMIC_PATH=/api/live-upcoming
     LIVE_PROVIDER_2_DYNAMIC_ROOT=events
-    LIVE_PROVIDER_2_ALLOWED_DATA_HOSTS=timst.cfd
+    LIVE_PROVIDER_2_ALLOWED_DATA_HOSTS=timst.top
 
 Keep the existing values:
 
-    LIVE_PROVIDER_2_BASE_URL=https://timst.cfd
-    LIVE_PROVIDER_2_ALLOWED_EMBED_HOSTS=epiembeds.online
+    LIVE_PROVIDER_2_BASE_URL=https://timst.top
+    LIVE_PROVIDER_2_ALLOWED_EMBED_HOSTS=epiembeds.online,ehgembxe.cfd
 
 Remove `LIVE_PROVIDER_2_DYNAMIC_CATEGORY_FIELD` if it has an old numeric genre
 value. The v10.11 parser now resolves the feed's genre metadata automatically.
@@ -973,7 +1003,9 @@ Deploy the web update with:
 - `public/index.html`
 - `worker.js`
 
-The native iOS source folder does not affect Cloudflare deployment.
+Codemagic uses the native iOS folder. If Cloudflare Builds watches the same
+repository, changes to that folder can also trigger a web deployment using the
+repository's existing web files. Keep both parts of the repository current.
 
 
 ## iOS 26.6.1 native mirroring

@@ -1,8 +1,20 @@
-const SHELL_CACHE = 'command-centre-shell-v10.31.0-year-of-games';
+const SHELL_CACHE = 'command-centre-shell-v10.33.7-launch-ui-storage';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/state-safety.js',
+  '/notebooks.js',
+  '/manga-reader.js',
+  '/manga-reader.css',
+  '/manga-library.js',
+  '/glass-design.css',
+  '/workspace-design.css',
+  '/workspace-design.js',
+  '/workspace-art.svg',
+  '/comix-links.js',
+  '/note-editor.js',
+  '/notebooks.css',
+  '/accounts-client.js',
   '/football-following.js',
   '/manifest.webmanifest',
   '/icon-192.png',
@@ -15,16 +27,35 @@ const APP_SHELL = [
   '/space-motion.js',
   '/games-suite.css',
   '/games-content.js',
+  '/crossword-clues.js',
   '/games-suite.js'
 ];
+APP_SHELL.push('/sports-providers.js','/football-pitch.js','/football-pitch.css','/playback-safety.js','/note-images.js','/storage-tools.js');
+
+// Version queries select a release at the network layer; one canonical cache
+// entry per asset prevents every release/query from duplicating the same files.
+function validShellResponse(path, response) {
+  if (!response?.ok) return false;
+  const type = response.headers.get('content-type') || '';
+  if (path.endsWith('.js')) return /(?:javascript|ecmascript)/i.test(type);
+  if (path.endsWith('.css')) return /text\/css/i.test(type);
+  if (path.endsWith('.svg')) return /image\/svg\+xml/i.test(type);
+  if (path.endsWith('.png')) return /image\/png/i.test(type);
+  if (path.endsWith('.webmanifest')) return /(?:json|manifest)/i.test(type);
+  return /text\/html/i.test(type);
+}
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
-    try {
-      const cache = await caches.open(SHELL_CACHE);
-      await cache.addAll(APP_SHELL);
-    } catch (error) {
-      console.warn('App shell could not be fully cached', error);
+    const cache = await caches.open(SHELL_CACHE);
+    // Small batches leave the launch animation and app requests room to run.
+    const paths = APP_SHELL.filter(path => path !== '/');
+    for (let start = 0; start < paths.length; start += 6) {
+      await Promise.all(paths.slice(start, start + 6).map(async path => {
+        const response = await fetch(path, {cache:'reload'});
+        if (!validShellResponse(path, response)) throw new Error('Missing or invalid app asset: ' + path);
+        await cache.put(path, response);
+      }));
     }
     await self.skipWaiting();
   })());
@@ -48,10 +79,10 @@ self.addEventListener('fetch', event => {
     event.respondWith((async () => {
       try {
         const response = await fetch(request);
-        if (response.ok) (await caches.open(SHELL_CACHE)).put('/index.html', response.clone());
+        if (validShellResponse('/index.html', response)) await (await caches.open(SHELL_CACHE)).put('/index.html', response.clone());
         return response;
       } catch {
-        return (await caches.match('/index.html')) || Response.error();
+        return (await (await caches.open(SHELL_CACHE)).match('/index.html')) || Response.error();
       }
     })());
     return;
@@ -59,15 +90,16 @@ self.addEventListener('fetch', event => {
 
   if (APP_SHELL.includes(url.pathname)) {
     event.respondWith((async () => {
-      const cached = await caches.match(request);
+      const cache = await caches.open(SHELL_CACHE);
+      const cached = await cache.match(url.pathname);
       if (cached) {
         event.waitUntil(fetch(request).then(async response => {
-          if (response.ok) await (await caches.open(SHELL_CACHE)).put(request, response.clone());
+          if (validShellResponse(url.pathname, response)) await cache.put(url.pathname, response.clone());
         }).catch(() => {}));
         return cached;
       }
       const response = await fetch(request);
-      if (response.ok) await (await caches.open(SHELL_CACHE)).put(request, response.clone());
+      if (validShellResponse(url.pathname, response)) await cache.put(url.pathname, response.clone());
       return response;
     })());
   }

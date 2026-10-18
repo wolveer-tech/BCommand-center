@@ -3,6 +3,12 @@ import { sendPushNotification } from '@mmmike/web-push/send';
 import { handleTransfers, cleanTransfers, flushTransferPushes, authenticateTransferDevice, readTransferJSON } from './transfers.js';
 import { handleMessages, cleanMessages, flushMessagePushes } from './messages.js';
 import { apnsConfigured, sendAPNSNotification } from './apns.js';
+import { handleAccounts } from './accounts.js';
+import { handleManga } from './manga-reader.js';
+import {probeMediaProvider} from './media-provider-health.js';
+import {fetchTitaniumSports,resolveTitaniumSource} from './titanium-provider.js';
+import {fetchPublicSports} from './sports-providers.js';
+import {fotmobHalftimeEnd} from './football-timing.js';
 
 function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json','access-control-allow-origin':'*','cache-control':'no-store'}})}
 const companionEncoder=new TextEncoder();
@@ -462,7 +468,7 @@ function hostMatchesAllowed(hostname,allowedHosts){
 }
 function cleanProviderId(value){
   const id=String(value||'1');
-  return ['1','2','3'].includes(id)?id:'1';
+  return ['1','2','3','4','5'].includes(id)?id:'1';
 }
 function liveProviderCategory(cfg,category){
   const key=String(category||'soccer').toLowerCase();
@@ -471,12 +477,14 @@ function liveProviderCategory(cfg,category){
 }
 function liveProviderConfig(env,providerId='1'){
   const id=cleanProviderId(providerId);
+  if(id==='4')return {id,name:'Matchora',mode:'matchora',baseUrl:'https://matchora.to',embedHosts:'matchora.to',categoryAliases:{}};
+  if(id==='5')return {id,name:'PPV',mode:'ppv',baseUrl:'https://ppv.tj',embedHosts:'taifood-blog.asia',categoryAliases:{}};
 
   if(id==='1'){
     return {
       id:'1',
       name:String(env.LIVE_PROVIDER_1_NAME||'Provider 1').trim().slice(0,60)||'Provider 1',
-      mode:(['scrape','dynamic'].includes(String(env.LIVE_PROVIDER_1_MODE||'api').trim().toLowerCase())?String(env.LIVE_PROVIDER_1_MODE||'api').trim().toLowerCase():'api'),
+      mode:(['scrape','dynamic','titanium'].includes(String(env.LIVE_PROVIDER_1_MODE||'api').trim().toLowerCase())?String(env.LIVE_PROVIDER_1_MODE||'api').trim().toLowerCase():'api'),
       baseUrl:String(env.LIVE_PROVIDER_1_BASE_URL||env.LIVE_CONTENT_API_BASE_URL||'').trim(),
       apiPath:String(env.LIVE_PROVIDER_1_API_PATH||env.LIVE_CONTENT_API_PATH||'/api/v1/streams').trim()||'/api/v1/streams',
       scrapePath:String(env.LIVE_PROVIDER_1_SCRAPE_PATH||'/').trim()||'/',
@@ -594,7 +602,7 @@ function liveProviderPublicInfo(env,providerId){
   };
 }
 function configuredLiveProviders(env){
-  return ['1','2','3'].map(id=>liveProviderPublicInfo(env,id)).filter(x=>x.configured);
+  return ['1','2','3','4','5'].map(id=>liveProviderPublicInfo(env,id)).filter(x=>x.configured);
 }
 function allowedEmbedUrl(embedUrl,base,cfg){
   try{
@@ -1076,6 +1084,7 @@ async function resolveDynamicSource(env,providerId,sourceValue,idValue){
     err.status=400;
     throw err;
   }
+  if(cfg.mode==='titanium')return resolveTitaniumSource(source,sourceId);
   if(!cfg.resolverPath){
     const err=new Error(`${cfg.name} has source references, but LIVE_PROVIDER_${cfg.id}_RESOLVE_PATH is not configured.`);
     err.status=503;
@@ -1406,7 +1415,7 @@ async function fetchSportsindxProvider(cfg,base,category){
   return {count:streams.length,streams,providerCount:events.length};
 }
 
-async function liveContentStreams(env,category='soccer',requestUrl='https://local/api/live-content',force=false,providerId='1'){
+async function liveContentStreams(env,category='soccer',requestUrl='https://local/api/live-content',force=false,providerId='1',backup=false){
   const cfg=liveProviderConfig(env,providerId);
   const base=normaliseBaseUrl(cfg.baseUrl);
   if(!base){
@@ -1423,7 +1432,7 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
     if(cache&&!force){
       const u=new URL(requestUrl);
       u.pathname='/__cache/live-content';
-      u.search=new URLSearchParams({category:safeCategory,mode:cfg.mode,provider:cfg.id}).toString();
+      u.search=new URLSearchParams({category:safeCategory,mode:cfg.mode,provider:cfg.id,site:backup?'backup':'main',v:'2'}).toString();
       key=new Request(u.toString());
       const hit=await cache.match(key);
       if(hit)return hit.json();
@@ -1432,7 +1441,11 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
     cache=null;key=null;
   }
 
-  const data=cfg.mode==='sportsindx'
+  const data=['matchora','ppv'].includes(cfg.mode)
+    ?await fetchPublicSports(cfg.mode,safeCategory)
+    :cfg.mode==='titanium'
+    ?await fetchTitaniumSports(safeCategory,{backup})
+    :cfg.mode==='sportsindx'
     ?await fetchSportsindxProvider(cfg,base,safeCategory)
     :cfg.mode==='scrape'
     ?await scrapeAuthorisedProvider(cfg,base,safeCategory)
@@ -1442,8 +1455,9 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
 
   const providerStreams=Array.isArray(data.streams)?data.streams:[];
   const rejectedHostsSet=new Set();
+  let missingSourceCount=0,blockedSourceCount=0;
 
-  const streams=providerStreams.map(s=>{
+  const streams=providerStreams.slice().sort((a,b)=>Number(/women|wta|\(w\)/i.test([a.name,a.league].join(' ')))-Number(/women|wta|\(w\)/i.test([b.name,b.league].join(' ')))).map(s=>{
     const allHosts=providerSourceHosts(s);
     const sources=allowedStreamSources(s,base,cfg);
     const sourceRefs=(Array.isArray(s.source_refs)?s.source_refs:[]).map((ref,index)=>({
@@ -1452,7 +1466,10 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
       label:String(ref?.label||ref?.source||`Source ${index+1}`).slice(0,60)
     })).filter(ref=>ref.source&&ref.id);
 
-    if(!sources.length&&!sourceRefs.length)allHosts.forEach(host=>rejectedHostsSet.add(host));
+    if(!sources.length&&!sourceRefs.length){
+      if(rawStreamSourceEntries(s).length){blockedSourceCount++;allHosts.forEach(host=>rejectedHostsSet.add(host));}
+      else missingSourceCount++;
+    }
 
     return {
       id:String(s.id||'').slice(0,200),
@@ -1468,7 +1485,7 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
         label:String(entry.label||`Direct ${index+1}`).slice(0,60)
       })),
       source_refs:sourceRefs,
-      resolver_enabled:!!cfg.resolverPath,
+      resolver_enabled:!!cfg.resolverPath||cfg.mode==='titanium',
       source_count:sources.length+sourceRefs.length,
       thumbnail_url:safeHttpsUrl(s.thumbnail_url||''),
       team1:s.team1&&typeof s.team1==='object'?{
@@ -1489,14 +1506,19 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
     providerId:cfg.id,
     providerName:cfg.name,
     mode:cfg.mode,
+    site:data.site||null,
     count:streams.length,
     providerCount:providerStreams.length,
     rejectedCount:Math.max(0,providerStreams.length-streams.length),
+    missingSourceCount,
+    blockedSourceCount,
     configuredAllowedHosts,
     rejectedHosts,
-    diagnostic:
+    diagnostic:data.diagnostic||
       providerStreams.length>0&&streams.length===0
-        ?`${cfg.name} returned streams, but none had an allowed direct player URL or a usable resolver source reference.`
+        ?missingSourceCount===providerStreams.length
+          ?`${cfg.name} returned match listings without player links. Try Auto or another provider while it updates its streams.`
+          :`${cfg.name} returned no usable player links. ${missingSourceCount} listings had no player and ${blockedSourceCount} failed player URL validation.`
         :streams.some(s=>s.source_refs?.length)
           ?`${cfg.name} returned source references. They will be resolved only when you open or switch a source.`
           :rejectedHosts.length
@@ -1512,7 +1534,7 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
       if(!key){
         const u=new URL(requestUrl);
         u.pathname='/__cache/live-content';
-        u.search=new URLSearchParams({category:safeCategory,mode:cfg.mode,provider:cfg.id}).toString();
+        u.search=new URLSearchParams({category:safeCategory,mode:cfg.mode,provider:cfg.id,site:backup?'backup':'main',v:'2'}).toString();
         key=new Request(u.toString());
       }
       await cache.put(key,new Response(JSON.stringify(payload),{
@@ -1570,10 +1592,26 @@ function fixedMediaProviderBase(env,baseKey,hostsKey,fallback,label){
 function buildAtlanticUrl(env,{type,id,season,episode}){
   const base=fixedMediaProviderBase(env,'MEDIA_ATLANTIC_BASE_URL','MEDIA_ATLANTIC_ALLOWED_HOSTS','https://atlantic.st','Atlantic');
   const u=new URL(base.toString()),root=base.pathname.replace(/\/$/,'');
-  u.pathname=type==='tv'
-    ?`${root}/watch/${id}/${Number(season)}/${Number(episode)}`
-    :`${root}/watch/${id}`;
+  u.pathname=type==='tv'?`${root}/watch/${id}/${Number(season)}/${Number(episode)}`:`${root}/watch/${id}`;
   u.search='';return u.toString();
+}
+function buildShuttleTvUrl(env,{type,id,season,episode}){
+  const base=fixedMediaProviderBase(env,'MEDIA_SHUTTLETV_BASE_URL','MEDIA_SHUTTLETV_ALLOWED_HOSTS','https://shuttletv.su','ShuttleTV');
+  const u=new URL(base.toString()),root=base.pathname.replace(/\/$/,'');
+  u.pathname=`${root}/watch/${id}`;u.search='';u.hash='';
+  if(type==='tv'){
+    u.searchParams.set('s',String(Number(season)));u.searchParams.set('e',String(Number(episode)));
+  }
+  return u.toString();
+}
+function buildCineSrcUrl(env,{type,id,season,episode}){
+  const base=fixedMediaProviderBase(env,'MEDIA_CINESRC_BASE_URL','MEDIA_CINESRC_ALLOWED_HOSTS','https://cinesrc.st','CineSrc');
+  const u=new URL(base.toString()),root=base.pathname.replace(/\/$/,'');
+  u.pathname=`${root}/embed/${type}/${id}`;u.search='';u.hash='';
+  if(type==='tv'){
+    u.searchParams.set('s',String(Number(season)));u.searchParams.set('e',String(Number(episode)));
+  }
+  return u.toString();
 }
 function buildBoomflixUrl(env,{type,id}){
   const base=fixedMediaProviderBase(env,'MEDIA_BOOMFLIX_BASE_URL','MEDIA_BOOMFLIX_ALLOWED_HOSTS','https://boomflix.qzz.io','Boomflix');
@@ -1581,17 +1619,36 @@ function buildBoomflixUrl(env,{type,id}){
   u.pathname=`${root}/title/${type}/${id}`;
   u.search='';return u.toString();
 }
+function buildOneShowsUrl(env,{type,id,season,episode}){
+  const base=fixedMediaProviderBase(env,'MEDIA_ONESHOWS_BASE_URL','MEDIA_ONESHOWS_ALLOWED_HOSTS','https://www.1shows.org','1Shows');
+  const u=new URL(base.toString()),root=base.pathname.replace(/\/$/,'');
+  u.pathname=`${root}/${type==='tv'?'tv':'movies'}/${id}`;
+  u.search='';u.searchParams.set('streaming','true');
+  if(type==='tv'){u.searchParams.set('season',String(Number(season)));u.searchParams.set('episode',String(Number(episode)));}
+  return u.toString();
+}
+function buildAnicineUrl(env,{type,id,season,episode}){
+  const base=fixedMediaProviderBase(env,'MEDIA_ANICINE_BASE_URL','MEDIA_ANICINE_ALLOWED_HOSTS','https://anicine.xyz','Anicine');
+  const u=new URL(base.toString()),root=base.pathname.replace(/\/$/,'');
+  u.pathname=`${root}/watch/${type}/${id}`;u.search='';
+  if(type==='tv'){u.searchParams.set('s',String(Number(season)));u.searchParams.set('e',String(Number(episode)));}
+  return u.toString();
+}
 function buildMediaEmbedUrl(env,{type,id,season,episode,mode='standard'}){
   if(!['movie','tv'].includes(type)){const e=new Error('type must be movie or tv.');e.status=400;throw e}
   if(!/^\d+$/.test(String(id||''))){const e=new Error('A numeric TMDB id is required.');e.status=400;throw e}
-  if(!['standard','torrent','agg','flixer','atlantic','boomflix'].includes(mode)){const e=new Error('Unsupported provider mode.');e.status=400;throw e}
+  if(!['standard','torrent','agg','flixer','shuttletv','cinesrc','atlantic','boomflix'].includes(mode)){const e=new Error('Unsupported provider mode.');e.status=400;throw e}
   if(type==='tv'){
     if(!Number.isInteger(Number(season))||Number(season)<1){const e=new Error('A valid season is required for TV.');e.status=400;throw e}
     if(!Number.isInteger(Number(episode))||Number(episode)<1){const e=new Error('A valid episode is required for TV.');e.status=400;throw e}
   }
   if(mode==='flixer')return buildFlixerEmbedUrl(env,{type,id,season,episode});
   if(mode==='atlantic')return buildAtlanticUrl(env,{type,id,season,episode});
+  if(mode==='shuttletv')return buildShuttleTvUrl(env,{type,id,season,episode});
+  if(mode==='cinesrc')return buildCineSrcUrl(env,{type,id,season,episode});
   if(mode==='boomflix')return buildBoomflixUrl(env,{type,id,season,episode});
+  if(mode==='torrent')return buildOneShowsUrl(env,{type,id,season,episode});
+  if(mode==='agg')return buildAnicineUrl(env,{type,id,season,episode});
   const base=mediaBaseUrl(env);
   const u=new URL(base.toString());
   const path=mediaPathForMode(env,mode);
@@ -1957,7 +2014,7 @@ async function youtubeStatus(env){
 }
 
 
-const FOOTBALL_COMPETITIONS=new Set(['PL','PD','BL1','SA','FL1','DED','PPL','ELC','EL1','EL2','ENL','CL','EL','UCL','FAC','FLC']);
+const FOOTBALL_COMPETITIONS=new Set(['PL','PD','BL1','SA','FL1','DED','PPL','ELC','EL1','EL2','ENL','CL','EL','UCL','FAC','FLC','WSL','UWCL','NWSL','WLC','WFAC']);
 
 // football-data.org remains the primary provider where the user's key has access.
 // Competitions commonly restricted on its free tier go straight to API-Football
@@ -1985,6 +2042,10 @@ const API_FOOTBALL_COMPETITIONS={
 // English pyramid without requiring another Worker secret. These IDs are the
 // league-page IDs used by fotmob.com (not the API-Football IDs above).
 const FOTMOB_LEAGUE_COMPETITIONS={
+  PL:{id:47,name:'Premier League'},PD:{id:87,name:'La Liga'},BL1:{id:54,name:'Bundesliga'},SA:{id:55,name:'Serie A'},FL1:{id:53,name:'Ligue 1'},DED:{id:57,name:'Eredivisie'},PPL:{id:61,name:'Primeira Liga'},
+  CL:{id:42,name:'Champions League'},EL:{id:73,name:'Europa League'},UCL:{id:10216,name:'Conference League'},
+  FAC:{id:132,name:'FA Cup',knockout:true,extraIds:[10626]},FLC:{id:133,name:'League Cup',knockout:true},
+  WSL:{id:9227,name:'Women’s Super League',gender:'female'},UWCL:{id:9375,name:'Women’s Champions League',gender:'female'},NWSL:{id:9134,name:'NWSL',gender:'female'},WLC:{id:9717,name:'Women’s League Cup',gender:'female'},WFAC:{id:10082,name:'Women’s FA Cup',gender:'female',knockout:true},
   ELC:{id:48,name:'Championship',country:'England'},
   EL1:{id:108,name:'League One',country:'England'},
   EL2:{id:109,name:'League Two',country:'England'},
@@ -2082,7 +2143,7 @@ const FOTMOB_ID_PREFIX=800000000000;
 async function fotmobWebsiteFetch(path,params={}){
   const u=new URL(`${FOTMOB_WEB_BASE}/${String(path||'').replace(/^\/+/, '')}`);
   Object.entries(params).forEach(([key,value])=>{if(value!==undefined&&value!==null&&String(value)!=='')u.searchParams.set(key,String(value))});
-  const r=await fetch(u.toString(),{headers:{
+  const r=await fetch(u.toString(),{signal:AbortSignal.timeout(7500),headers:{
     accept:'application/json',referer:'https://www.fotmob.com/matches',
     'user-agent':'Mozilla/5.0 (compatible; CommandCentre/1.0; +https://bcommand-center.wolvesgidaree.workers.dev)'
   }});
@@ -2098,7 +2159,7 @@ function fotmobStatus(row){
   const status=row?.status||{};
   if(status.finished)return 'FINISHED';
   if(status.cancelled||status.awarded)return 'CANCELLED';
-  if(status.started)return /half|pause/i.test(String(status?.reason?.long||status?.reason?.short||''))?'PAUSED':'IN_PLAY';
+  if(status.started)return /half.?time|^ht$|pause/i.test(String(status?.reason?.long||status?.reason?.short||status?.liveTime?.short||''))?'PAUSED':'IN_PLAY';
   return 'SCHEDULED';
 }
 function cleanFotmobFootballMatch(row,league={}){
@@ -2109,12 +2170,14 @@ function cleanFotmobFootballMatch(row,league={}){
   const homeScore=row?.home?.score??(scoreMatch?Number(scoreMatch[1]):null),awayScore=row?.away?.score??(scoreMatch?Number(scoreMatch[2]):null);
   return {
     id:rawId?FOTMOB_ID_PREFIX+rawId:0,fotmobId:rawId,utcDate:String(kickoff||''),status:fotmobStatus(row),minute:minuteMatch?Number(minuteMatch[0]):null,
+    round:String(row?.roundName||row?.round||''),gender:footballGender(league?.gender||[league?.name,row?.home?.name,row?.away?.name].join(' ')),
     competition:{id:Number(league?.primaryId||league?.id)||0,name:String(league?.name||'Football'),code:String(league?.ccode||''),emblem:Number(league?.primaryId||league?.id)?`https://images.fotmob.com/image_resources/logo/leaguelogo/${league.primaryId||league.id}.png`:''},
     homeTeam:fotmobTeam(row?.home),awayTeam:fotmobTeam(row?.away),
     score:{fullTime:{home:homeScore==null?null:Number(homeScore),away:awayScore==null?null:Number(awayScore)}},
     source:'fotmob-website'
   };
 }
+function footballGender(value){return /female|women|wsl|nwsl|ladies|\(w\)/i.test(String(value||''))?'female':'male';}
 async function fotmobFootballSchedule(){
   const dates=Array.from({length:10},(_,index)=>isoDayOffset(index-1));
   const settled=await Promise.allSettled(dates.map(date=>fotmobWebsiteFetch('matches',{date:date.replaceAll('-',''),timezone:'Europe/London',ccode3:'GBR'})));
@@ -2158,23 +2221,44 @@ function fotmobLeagueTableRows(payload){
 async function fotmobLeagueBundle(code){
   const cfg=FOTMOB_LEAGUE_COMPETITIONS[code];
   if(!cfg)throw Object.assign(new Error('No FotMob league mapping exists for this competition.'),{status:503});
-  const data=await fotmobWebsiteFetch('leagues',{id:cfg.id,ccode3:'GBR_MA',timezone:'Europe/London',language:'en'});
+  const payloads=await Promise.allSettled([cfg.id,...(cfg.extraIds||[])].map(id=>fotmobWebsiteFetch('leagues',{id,ccode3:'GBR_MA',timezone:'Europe/London',language:'en'})));
+  const available=payloads.filter(result=>result.status==='fulfilled').map(result=>result.value);
+  if(!available.length)throw payloads[0].reason;
+  // The main FA Cup may still expose last season while qualification is active.
+  const seasons=available.map(data=>String(data?.details?.selectedSeason||''));
+  const season=seasons.slice().sort().at(-1)||'';
+  const currentData=available.filter(data=>!season||String(data?.details?.selectedSeason||'')===season);
+  const data=currentData[0];
   const rows=fotmobLeagueTableRows(data).map(cleanFotmobStandingRow).filter(row=>row.team.id);
-  if(!rows.length)throw Object.assign(new Error(`FotMob returned no ${cfg.name} table.`),{status:502});
-  const rawMatches=Array.isArray(data?.fixtures?.allMatches)?data.fixtures.allMatches
-    :(Array.isArray(data?.matches?.allMatches)?data.matches.allMatches
-      :(Array.isArray(data?.matches?.fixtures)?data.matches.fixtures:[]));
-  const league={id:cfg.id,primaryId:cfg.id,name:cfg.name,ccode:code};
-  const allMatches=rawMatches.map(row=>cleanFotmobFootballMatch(row,league)).filter(match=>match.id&&match.utcDate);
+  const allMatches=currentData.flatMap(part=>{
+    const rawMatches=Array.isArray(part?.fixtures?.allMatches)?part.fixtures.allMatches:(Array.isArray(part?.matches?.allMatches)?part.matches.allMatches:(Array.isArray(part?.matches?.fixtures)?part.matches.fixtures:[]));
+    return rawMatches.map(row=>cleanFotmobFootballMatch(row,{id:part?.details?.id||cfg.id,name:part?.details?.name||cfg.name,ccode:code,gender:cfg.gender}));
+  }).filter(match=>match.id&&match.utcDate);
+  if(!rows.length&&!allMatches.length)throw Object.assign(new Error(`FotMob returned no ${cfg.name} fixtures or standings.`),{status:502});
   const recent=allMatches.filter(match=>match.status==='FINISHED').sort((a,b)=>Date.parse(b.utcDate)-Date.parse(a.utcDate)).slice(0,48);
   const current=allMatches.filter(match=>match.status!=='FINISHED').sort((a,b)=>Date.parse(a.utcDate)-Date.parse(b.utcDate)).slice(0,80);
-  const matches=[...recent,...current];
+  const matches=cfg.knockout?allMatches:[...recent,...current];
+  const roundMap=new Map();if(cfg.knockout)for(const match of matches){const round=(Number(match.competition.id)===10626?'Qualifying round ':'')+(match.round||'Draw');if(!roundMap.has(round))roundMap.set(round,[]);roundMap.get(round).push(match);}
   return {
-    competition:{id:cfg.id,name:cfg.name,code,emblem:`https://images.fotmob.com/image_resources/logo/leaguelogo/${cfg.id}.png`},
-    standings:[{type:'TOTAL',group:'',table:rows}],matches,
+    competition:{id:cfg.id,name:cfg.name,code,season,gender:cfg.gender||'male',format:cfg.knockout?'knockout':'league',emblem:`https://images.fotmob.com/image_resources/logo/leaguelogo/${cfg.id}.png`},
+    standings:rows.length?[{type:'TOTAL',group:'',table:rows}]:[],matches,rounds:[...roundMap].map(([name,matches])=>({name,matches})),season,
     provider:'FotMob website feed',providerMode:'public-league-page',
     updatedAt:new Date().toISOString()
   };
+}
+
+async function searchFootballTeams(query){
+  const term=String(query||'').trim().slice(0,50);if(term.length<2)return {teams:[]};
+  const data=await fotmobWebsiteFetch('search/suggest',{term,hits:50,lang:'en'}),seen=new Set();
+  const rows=(Array.isArray(data)?data:[]).flatMap(group=>Array.isArray(group.suggestions)?group.suggestions:[]).filter(row=>row.type==='team'&&Number(row.id)>0);
+  const teams=rows.filter(row=>{if(seen.has(String(row.id)))return false;seen.add(String(row.id));return true;}).map(row=>({...fotmobTeam(row),league:String(row.leagueName||''),gender:footballGender([row.name,row.leagueName].join(' '))}));
+  teams.sort((a,b)=>Number(a.gender==='female')-Number(b.gender==='female'));return {teams,provider:'FotMob website feed'};
+}
+async function footballTeamFixtures(teamId){
+  const id=Number(teamId)-FOTMOB_ID_PREFIX;if(!Number.isSafeInteger(id)||id<=0||id>100000000)throw Object.assign(new Error('Choose a team from search.'),{status:400});
+  const data=await fotmobWebsiteFetch('teams',{id}),rows=data?.fixtures?.allFixtures?.fixtures||[],gender=footballGender(data?.details?.gender);
+  const matches=rows.map(row=>cleanFotmobFootballMatch(row,{id:row?.tournament?.leagueId,name:row?.tournament?.name,gender})).filter(row=>row.id&&row.utcDate);
+  return {team:{...fotmobTeam(data.details),gender},matches,updatedAt:new Date().toISOString()};
 }
 
 async function footballFetch(path,env,extraHeaders={}){
@@ -2205,7 +2289,7 @@ async function getFootballSchedule(env,force=false,requestUrl='https://local/api
   try{
     cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
     if(cache){
-      const u=new URL(requestUrl);u.pathname='/__cache/football-schedule-v2';u.search='';
+      const u=new URL(requestUrl);u.pathname='/__cache/football-schedule-v3';u.search='';
       cacheKey=new Request(u.toString(),{method:'GET'});
       const hit=await cache.match(cacheKey);if(hit){try{cachedPayload=await hit.json()}catch{}}
     }
@@ -2357,7 +2441,8 @@ function cleanFotmobLineupTeam(side,headerTeam={}){
   const players=list=>(Array.isArray(list)?list:[]).map(player=>({
     id:Number(player?.id)||0,name:String(player?.name||'Player').slice(0,120),
     number:player?.shirtNumber==null?null:Number(player.shirtNumber),
-    position:positionName(player?.usualPlayingPositionId),rating:Number(player?.performance?.rating)||null
+    position:positionName(player?.usualPlayingPositionId),rating:Number(player?.performance?.rating)||null,
+    x:player?.verticalLayout?.x==null?null:Number(player.verticalLayout.x),y:player?.verticalLayout?.y==null?null:Number(player.verticalLayout.y),captain:player?.isCaptain===true
   }));
   const rawId=Number(side?.id||headerTeam?.id)||0;
   return {
@@ -2377,7 +2462,7 @@ async function getFotmobFootballMatch(fotmobId){
   const homeTeam=fotmobTeam({...general?.homeTeam,...homeRaw}),awayTeam=fotmobTeam({...general?.awayTeam,...awayRaw});
   const match={
     id:FOTMOB_ID_PREFIX+rawId,fotmobId:rawId,utcDate:String(status?.utcTime||general?.matchTimeUTCDate||''),
-    status:fotmobStatus({status}),minute:Number(String(status?.liveTime?.short||'').match(/\d+/)?.[0])||null,
+    status:fotmobStatus({status}),minute:Number(String(status?.liveTime?.short||'').match(/\d+/)?.[0])||null,halftimeEndsAt:fotmobHalftimeEnd(status),gender:footballGender(general?.gender||general?.leagueName),
     venue:String(data?.content?.matchFacts?.infoBox?.Stadium?.name||''),
     competition:{id:Number(general?.leagueId)||0,name:String(general?.leagueName||'Football'),code:String(general?.countryCode||''),emblem:Number(general?.leagueId)?`https://images.fotmob.com/image_resources/logo/leaguelogo/${general.leagueId}.png`:''},
     homeTeam,awayTeam,score:{fullTime:{home:homeRaw?.score==null?null:Number(homeRaw.score),away:awayRaw?.score==null?null:Number(awayRaw.score)}},
@@ -2414,7 +2499,7 @@ async function getFootballMatchCentre(env,matchId,force=false,requestUrl='https:
   try{
     cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
     if(cache){
-      const u=new URL(requestUrl);u.pathname=live?'/__cache/football-match-live-v2':'/__cache/football-match-centre-v2';u.search=new URLSearchParams({matchId:String(id)}).toString();
+      const u=new URL(requestUrl);u.pathname=live?'/__cache/football-match-live-v3':'/__cache/football-match-centre-v3';u.search=new URLSearchParams({matchId:String(id)}).toString();
       cacheKey=new Request(u.toString(),{method:'GET'});
       if(!force){const hit=await cache.match(cacheKey);if(hit)return hit.json()}
     }
@@ -2638,7 +2723,7 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
     cache=(typeof caches!=='undefined'&&caches.default)?caches.default:null;
     if(cache){
       const u=new URL(requestUrl);
-      u.pathname='/__cache/football-v5';
+      u.pathname='/__cache/football-v6';
       u.search=new URLSearchParams({competition:code}).toString();
       cacheKey=new Request(u.toString(),{method:'GET'});
       const hit=await cache.match(cacheKey);
@@ -2709,7 +2794,7 @@ async function getFootballBundle(env,competition='PL',force=false,requestUrl='ht
       try{
         if(!cacheKey){
           const u=new URL(requestUrl);
-          u.pathname='/__cache/football-v5';
+          u.pathname='/__cache/football-v6';
           u.search=new URLSearchParams({competition:code}).toString();
           cacheKey=new Request(u.toString(),{method:'GET'});
         }
@@ -3333,6 +3418,10 @@ async function footballTeamMatches(env,teamId,daysBack=2,daysForward=21){
   const numericId=Number(teamId)||0;
   if(!numericId)return [];
   const dateFrom=isoDayOffset(-daysBack),dateTo=isoDayOffset(daysForward);
+  if(numericId>FOTMOB_ID_PREFIX&&numericId<SOFASCORE_ID_PREFIX){
+    const data=await footballTeamFixtures(numericId);
+    return data.matches.filter(match=>String(match.utcDate).slice(0,10)>=dateFrom&&String(match.utcDate).slice(0,10)<=dateTo);
+  }
   if(numericId<0){
     const data=await apiFootballFetch('fixtures',{
       team:Math.abs(numericId),from:dateFrom,to:dateTo,timezone:'UTC'
@@ -3844,7 +3933,9 @@ async function audiusStreamResponse(request,env,trackId){
 
 export default {
   async fetch(request,env,ctx){
+    if(new URL(request.url).pathname.startsWith('/api/accounts/'))return handleAccounts(request,env);
     const url=new URL(request.url);
+    if(url.pathname.startsWith('/api/manga/'))return handleManga(request,ctx);
     if(url.pathname.startsWith('/api/live-activities/'))return handleLiveActivities(request,env);
       if(url.pathname.startsWith('/api/notification-companion')) return handleNotificationCompanion(request,env,ctx,sendOne);
     if(url.pathname.startsWith('/api/transfers/')) return handleTransfers(request,env,ctx,sendOne);
@@ -3937,7 +4028,8 @@ export default {
           url.searchParams.get('category')||'soccer',
           request.url,
           url.searchParams.get('refresh')==='1',
-          url.searchParams.get('provider')||'1'
+          url.searchParams.get('provider')||'1',
+          url.searchParams.get('site')==='backup'
         ));
       }
 
@@ -3963,6 +4055,9 @@ export default {
       if(url.pathname==='/api/football/schedule'&&request.method==='GET'){
         return json(await getFootballSchedule(env,url.searchParams.get('refresh')==='1',request.url));
       }
+
+      if(url.pathname==='/api/football/teams/search'&&request.method==='GET')return json(await searchFootballTeams(url.searchParams.get('q')));
+      if(url.pathname==='/api/football/team'&&request.method==='GET')return json(await footballTeamFixtures(url.searchParams.get('id')));
 
       if(url.pathname==='/api/football/lineups'&&request.method==='GET'){
         return json(await getFootballLineups(
@@ -4074,10 +4169,12 @@ export default {
           tmdbConfigured,
           routes:{
            standard:env.MEDIA_EMBED_PATH_STANDARD||'/embed',
-           alternate:env.MEDIA_EMBED_PATH_TORRENT||'/embed/torrent',
-            aggregator:env.MEDIA_EMBED_PATH_AGG||'/embed/agg',
+           alternate:'https://www.1shows.org/{movies|tv}/{tmdbId}?streaming=true',
+            aggregator:'https://anicine.xyz/watch/{type}/{tmdbId}',
             flixer:'/watch/{type}/{tmdbId}',
             atlantic:'/watch/{tmdbId}/{season?}/{episode?}',
+            shuttletv:'/watch/{tmdbId}?s={season}&e={episode}',
+            cinesrc:'/embed/{movie|tv}/{tmdbId}?s={season}&e={episode}',
             boomflix:'/title/{type}/{tmdbId}'
           }
         },tmdbConfigured?200:503);
@@ -4111,6 +4208,14 @@ export default {
         ));
       }
 
+      if(url.pathname==='/api/media/provider-health'&&request.method==='GET'){
+        const target=buildMediaEmbedUrl(env,{
+          type:url.searchParams.get('type')||'',id:url.searchParams.get('id')||'',
+          season:url.searchParams.get('season')||'',episode:url.searchParams.get('episode')||'',
+          mode:url.searchParams.get('mode')||'standard'
+        });
+        return json(await probeMediaProvider(target));
+      }
       if(url.pathname==='/api/media/embed-url'&&request.method==='GET'){
         const mode=url.searchParams.get('mode')||'standard';
         return json({

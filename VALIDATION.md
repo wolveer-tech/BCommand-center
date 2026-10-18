@@ -450,3 +450,51 @@ The preview used disposable local data and a local R2 upload bridge. Backend tes
 - Installing the unpacked Chrome/Edge extension and Windows Send to shortcut on your own machine. Their packages are included; they were not installed or connected to your real account here.
 
 See `TRANSFERS-SETUP.md` for the ordered setup and smoke-test steps.
+# v10.32.0 validation — 12 October 2026
+
+- `npm run build`: compiled Messages and Transfers browser bundles.
+- `npm run check`: parsed all app scripts, checked feature IDs and bundled the Worker.
+- Full Node regression suite: 137 passed, 0 failed; report in
+  `artifacts/v10.32-test-results.txt`. Subsequent music-player DOM persistence and
+  watchlist checks: all 19 relevant tests passed.
+- Browser recovery fixture: 12 passed, 0 failed, including exact upgrade snapshots
+  and image/page restoration after storage loss.
+- Isolated browser QA: book covers, two separate pages, inline image, save/reload,
+  and a 390px mobile layout; no real app data was used.
+- Watchlist browser QA: movie and TV entries persisted across reload; removing one
+  retained the other; opening a saved series restored its saved button state.
+- Cloudflare was not deployed. Swift/IPA compilation and physical iOS audio/camera
+  checks were unavailable on Windows. TimStreams homepage reachable; live-feed
+  and stream playback unverified.
+
+
+
+## v10.32.1 editor and Provider 2 hotfix
+
+- `npm run check`: passed inline/editor syntax and full Worker dependency bundle validation (314755 bytes).
+- 18 relevant Node tests passed: existing notes keyboard/caret/formatting foundations, backup encryption, dynamic provider parsing, SportsindX and the new Provider 2 host checks.
+- 10 browser keyboard checks passed in `tests/note-editor.browser.html`: literal tabs; Shift+Tab removing tabs/four spaces; unchanged unindented text; selected paragraph indent/outdent; rich text preservation; newline/BR-separated lines; read-only behavior; Escape focus exit.
+- Manual browser checks passed: ruled/grid row alignment, wrapping, large font formatting, embedded photo row spacing, 390px phone layout with no horizontal overflow, regular-note Tab support and saved indentation after reload.
+- Provider tests accept the four reported ehgembxe.cfd HTTPS player URLs and the existing epiembeds.online host; unrelated hosts, misleading host suffixes and HTTP remain blocked. Live playback was not tested.
+- QA used only a disposable localhost origin and in-memory account database. No existing user notes or account records were changed. The preview server was stopped after testing.
+
+
+## v10.32.2 schoolbook scrolling
+
+14 relevant Node tests and project validation passed. Browser QA verified whole-page scrolling and a 600px minimum writing sheet in a short 640x600 laptop viewport. A 45-line note grew to 1465px; its final line remained above the sticky save controls. Background-page scrolling was disabled while the book was open. On a 390x844 phone, writing focus retained the full-height editor and scrolling caret, while leaving focus restored whole-page scrolling and growing paper. Save/reopen retained the test book. QA used disposable local data only, and the preview server was stopped afterwards.
+
+
+## v10.32.3 Schoolbooks tab, crossword input and manga reader
+
+41 relevant Node tests passed with no failures. Project validation passed, including client script syntax and the complete 321013-byte Worker dependency bundle. Schoolbooks tests confirm original record IDs and page text are unchanged, deleted books remain recoverable, and search includes lesson titles and text. Crossword tests cover automatic Across/Down movement, read-only given squares, Backspace, direction switching, arrows, paste and given-letter paste alignment. Manga tests cover encoded search, chapter metadata and pagination, ordered image delivery, original image fallback, ID/offset/language validation, host/path validation and rate-limit errors.
+
+Browser QA verified direct home/sidebar Schoolbooks navigation, creating/saving a disposable book, separation from ordinary Notes, typing CORN across successive crossword squares and automatic movement to an unfinished Down clue, and Backspace. Live MangaDex search and English chapter retrieval succeeded. The reader displayed three consecutive chapter images with positive intrinsic widths (1075, 835, 835), including original-image fallback. Phone and compact laptop reader layouts had no horizontal overflow. Test screenshots are in artifacts/. No existing user account or note data was accessed or changed. Local previews were stopped afterwards.
+
+
+## v10.32.4 manga Worker compatibility
+
+14 manga test cases passed, including actual workerd fetch validation for search, chapter feeds, image metadata and non-following redirect rejection. The runtime test uses fixture upstream responses and disposes Miniflare afterwards. Project validation passed. The earlier Node preview did not reproduce the Workers restriction on redirect:error; this regression is now exercised in the correct runtime. The fix does not change note/account storage or frontend assets.
+
+## v10.32.5 Asura reader
+
+The public Asura search returned Solo Leveling, its series exposed 201 chapters and chapter 1 supplied 22 ordered page images. In the isolated local browser preview, the first two images loaded at 720px intrinsic width, and the phone reader displayed actual manga panels without horizontal overflow at 390px. The preview did not access the user's notes or account. Asura and MangaDex both remain selectable; the reader says when a title has no readable chapters. All 180 Node regression tests passed, including the Cloudflare Workers runtime tests. The full project check bundled the Worker successfully (328333 bytes).

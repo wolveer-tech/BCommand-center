@@ -10,7 +10,7 @@
   }
   function counts(value){return {notes:value?.notes?.length||0,events:value?.events?.length||0,reminders:value?.reminders?.length||0,bible:Object.values(value?.bibleRead||{}).filter(Boolean).length}}
   const total=value=>Object.values(counts(value)).reduce((a,b)=>a+b,0);
-  const signature=value=>JSON.stringify([value.notes,value.events,value.reminders,value.bibleRead,value.bibleRecommendations,value.noteFolders]);
+  const signature=value=>JSON.stringify([value.notes,value.events,value.reminders,value.bibleRead,value.bibleRecommendations,value.noteFolders,value.mangaLibrary]);
   function create({storage=root.localStorage,indexedDB=root.indexedDB,dbName=DB,nativeRows=root.CommandCentreNativeRecovery||[],onError=()=>{}}={}){
     let dbPromise,ready=false,locked=false,current=null,queue=Promise.resolve(),lastError='';
     function report(error){lastError=error.message||String(error);onError(lastError)}
@@ -105,6 +105,14 @@
     async function snapshot(value,reason='manual'){
       if(!save(value,{reason}))throw new Error(lastError||'Recovery is still loading.');await queue;
     }
+    async function protectUpgrade(value,version){
+      if(!value||value._ccProtectedUpgrade===version)return value;
+      // Commit the exact old state before allowing any new-version migrations.
+      await snapshot(value,'before '+version+' update');
+      const next=copy(value);next._ccProtectedUpgrade=version;
+      if(!save(next))throw new Error(lastError||'Could not protect the update.');
+      await queue;return next;
+    }
     async function restore(id){
       await queue.catch(()=>{});
       const selected=(await list()).find(row=>row.id===id);if(!selected)throw new Error('That snapshot is no longer available.');
@@ -113,7 +121,7 @@
       if(!save(selected.state,{reason:'restored',allowEmpty:true}))throw new Error(lastError||'Restore was blocked.');
       await queue;return copy(current);
     }
-    return {initial,initialize,save,snapshot,restore,list,flush:()=>queue,get ready(){return ready&&!locked},get error(){return lastError}};
+    return {initial,initialize,save,snapshot,protectUpgrade,restore,list,flush:()=>queue,get ready(){return ready&&!locked},get error(){return lastError}};
   }
   root.CommandCentreSafety={create,valid,counts,total};
 })(globalThis);

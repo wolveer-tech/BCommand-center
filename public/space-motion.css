@@ -2,6 +2,18 @@
 #ccSpaceIntro{display:none;position:fixed;inset:0;z-index:2147483300;overflow:hidden;background:#02040c;color:#f3f7ff;isolation:isolate;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 html[data-cc-launch] #ccSpaceIntro{display:block}
 #ccSpaceCanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#ccSpaceStars{display:none;position:absolute;inset:0;overflow:hidden;pointer-events:none;background:radial-gradient(ellipse at 50% 47%,#20345380,transparent 65%)}
+#ccSpaceIntro[data-renderer="compositor"] #ccSpaceCanvas{display:none}
+#ccSpaceIntro[data-renderer="compositor"] #ccSpaceStars{display:block}
+.cc-star-layer{position:absolute;inset:0;background-repeat:repeat;background-size:271px 293px;background-image:radial-gradient(circle at 24px 45px,#dceeff 1px,transparent 2px),radial-gradient(circle at 159px 187px,#a5c9ff 1px,transparent 2px),radial-gradient(circle at 226px 87px,#eaf4ff 1px,transparent 2px),radial-gradient(circle at 74px 238px,#b7d7ff 1px,transparent 2px);transform-origin:50% 47%;animation:cc-native-stars 2.55s cubic-bezier(.45,0,.9,.45) both;will-change:transform,opacity}
+.cc-star-layer:nth-child(2){background-size:379px 353px;opacity:.65;animation-delay:-.2s}
+.cc-star-layer:nth-child(3){background-size:521px 461px;opacity:.4;animation-delay:-.4s}
+#ccSpaceIntro[data-renderer="compositor"] .cc-space-brand{filter:none;transform:none}
+#ccSpaceIntro[data-renderer="compositor"] .cc-space-progress span{animation:cc-native-progress 2.55s linear forwards}
+#ccSpaceIntro[data-renderer="compositor"][data-motion="gentle"] .cc-star-layer{animation:none;will-change:auto}
+@keyframes cc-native-stars{0%{transform:scale(.7);opacity:.3}35%{opacity:.85}100%{transform:scale(2.65);opacity:.65}}
+@keyframes cc-native-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media(min-width:600px){#ccSpaceIntro[data-renderer="compositor"] .cc-star-layer,#ccSpaceIntro[data-renderer="compositor"] .cc-space-progress span{animation-duration:3.1s}}
 .cc-space-brand{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:28px;text-align:center;pointer-events:none;transition:opacity .7s ease,transform 1.2s cubic-bezier(.2,.7,.2,1);will-change:transform,opacity}
 .cc-space-monogram{display:grid;place-items:center;width:70px;height:70px;border:1px solid #b9dcff50;border-radius:22px;margin-bottom:30px;background:#0c173740;box-shadow:0 0 65px #789eff20,inset 0 0 24px #b2d3ff0c;color:#deebff;font-size:34px;font-weight:300;letter-spacing:-4px;padding-right:4px}
 .cc-space-eyebrow{font-size:12px;letter-spacing:.32em;color:#a4bbdb;margin:0 0 16px;text-transform:uppercase}

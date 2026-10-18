@@ -2,7 +2,7 @@
   'use strict';
 
   const LEVELS = ['easy', 'medium', 'hard'];
-  const runtime = { crosswordWrong: {}, strandsBoards: {}, sudokuSelected: '', sudokuWrong: new Set(), tileTimer: null, activeGame: null };
+  const runtime = { crosswordWrong: {}, crosswordSelection: {}, strandsBoards: {}, sudokuSelected: '', sudokuWrong: new Set(), tileTimer: null, activeGame: null };
   const GAME_CONTENT = window.CommandCentreGameContent;
   if (!GAME_CONTENT?.CONNECTION_BOARDS || !GAME_CONTENT?.WORDLE_LEVELS) throw new Error('The expanded game content pack did not load.');
   const GAME_CATALOG = [
@@ -136,6 +136,7 @@
       const stats = entertainment.gameStats || (entertainment.gameStats = {});
       Object.assign(stats, { wordleGuesses: [], wordleCurrent: '', wordleFinished: false, wordleWon: false, wordleDate: '', triviaLastDate: '', triviaLastCorrect: null, triviaLastAnswer: null });
       runtime.crosswordWrong = {};
+    runtime.crosswordSelection = {};
       runtime.strandsBoards = {};
       runtime.sudokuSelected = '';
       runtime.sudokuWrong = new Set();
@@ -188,7 +189,15 @@
     return pool[((s.seed % pool.length) + pool.length) % pool.length];
   }
 
-  function connectionsPuzzle() { return GAME_CONTENT.connectionsFor(suite().difficulty, suite().seed); }
+  function connectionsPuzzle() {
+    const s=suite(),id=puzzleId('connections');
+    if(s.generatedConnections?.id!==id){
+      const recent=Array.isArray(s.connectionHistory)?s.connectionHistory:[];
+      const groups=GAME_CONTENT.connectionsFor(s.difficulty,s.seed,recent);
+      s.generatedConnections={id,groups};s.connectionHistory=[...recent,...groups].slice(-16);
+    }
+    return s.generatedConnections.groups;
+  }
   function strandsPuzzle() { return GAME_CONTENT.strandsFor(suite().difficulty, suite().seed); }
 
   function setSuiteStatus(message) {
@@ -236,6 +245,7 @@
     applyGameScreen();
     setSuiteStatus(`${GAME_CATALOG.find(game => game.id === id).title} · ${suite().difficulty} mode`);
     document.querySelector('#gamesDetailHeader')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if(id==='wordle'){const current=ensureWordleState().wordleCurrent;focusWordleCell(Math.min(4,current.length));}
   }
 
   function showGameLobby() {
@@ -387,10 +397,10 @@
         const prefilled = easy && hashSeed(`${puzzleId(kind)}:${key}`) % 5 === 0;
         const value = s.revealed ? cell.letter : (prefilled ? cell.letter : (s.values[key] || ''));
         const cls = s.revealed && !prefilled ? ' revealed' : wrong.has(key) ? ' wrong' : value && value === cell.letter ? ' correct' : '';
-        squares.push(`<label class="crossword-cell${prefilled ? ' prefilled' : ''}${cls}">${cell.number ? `<span class="crossword-number">${cell.number}</span>` : ''}<input aria-label="${kind} crossword row ${row + 1} column ${col + 1}" data-cross-kind="${kind}" data-cross-key="${key}" maxlength="1" value="${value}" ${prefilled || s.revealed ? 'readonly' : ''}></label>`);
+        squares.push(`<label class="crossword-cell${prefilled ? ' prefilled' : ''}${cls}">${cell.number ? `<span class="crossword-number">${cell.number}</span>` : ''}<input aria-label="${kind} crossword row ${row + 1} column ${col + 1}" data-cross-kind="${kind}" data-cross-key="${key}" maxlength="1" inputmode="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" value="${value}" ${prefilled || s.revealed ? 'readonly' : ''}></label>`);
       }
     }
-    const clues = ['Across', 'Down'].map(direction => `<div><h4>${direction}</h4><ol>${puzzle.entries.filter(entry => entry.direction === direction).map(entry => `<li value="${entry.number}">${entry.clue}</li>`).join('')}</ol></div>`).join('');
+    const clues = ['Across', 'Down'].map(direction => `<div><h4>${direction}</h4><ol>${puzzle.entries.filter(entry => entry.direction === direction).map(entry => `<li value="${entry.number}"><button type="button" class="crossword-clue" data-cross-clue-kind="${kind}" data-cross-clue="${entry.direction}:${entry.number}">${entry.clue}</button></li>`).join('')}</ol></div>`).join('');
     const complete = !s.revealed && [...cells].every(([key, cell]) => (s.values[key] || (easy && hashSeed(`${puzzleId(kind)}:${key}`) % 5 === 0 ? cell.letter : '')) === cell.letter);
     const emptyCount = [...cells].filter(([key]) => !(s.values[key] || (easy && hashSeed(`${puzzleId(kind)}:${key}`) % 5 === 0))).length;
     const feedback = s.revealed
@@ -399,20 +409,123 @@
         ? 'Crossword complete.'
         : s.checked
           ? `${wrong.size ? `${wrong.size} incorrect` : 'No incorrect letters'}${emptyCount ? ` • ${emptyCount} empty` : ''}.`
-          : 'Tap a square and type one letter.';
-    el.innerHTML = `<div class="crossword-layout"><div class="crossword-grid" style="grid-template-columns:repeat(${puzzle.size},1fr)">${squares.join('')}</div><div class="crossword-clues">${clues}</div></div>${s.checked && !complete && !s.revealed ? `<div class="puzzle-actions"><button class="btn" data-suite-action="${kind}-reveal">Show answer</button></div>` : ''}<div class="puzzle-note${complete ? ' win' : s.revealed ? ' answer' : ''}">${feedback}</div>`;
+          : 'Choose a clue or square, then type. Space switches Across/Down; Backspace moves back.';
+    el.innerHTML = `<div class="crossword-current-clue" data-cross-current="${kind}" aria-live="polite"></div><div class="crossword-layout"><div class="crossword-grid" style="grid-template-columns:repeat(${puzzle.size},1fr)">${squares.join('')}</div><div class="crossword-clues">${clues}</div></div>${s.checked && !complete && !s.revealed ? `<div class="puzzle-actions"><button class="btn" data-suite-action="${kind}-reveal">Show answer</button></div>` : ''}<div class="puzzle-note${complete ? ' win' : s.revealed ? ' answer' : ''}">${feedback}</div>`;
+    highlightCrossword(kind);
   }
 
+  function crosswordEntryKeys(entry) {
+    return [...entry.answer].map((_,i)=>`${entry.row+entry.dr*i},${entry.col+entry.dc*i}`);
+  }
+  function crosswordInput(kind,key) {
+    return document.querySelector(`[data-cross-kind="${kind}"][data-cross-key="${key}"]`);
+  }
+  function activeCrosswordEntry(kind,key,direction) {
+    const candidates=crosswordPuzzle(kind).entries.filter(entry=>crosswordEntryKeys(entry).includes(key));
+    return candidates.find(entry=>entry.direction===(direction||runtime.crosswordSelection[kind]?.direction))||candidates[0];
+  }
+  function highlightCrossword(kind) {
+    const puzzle=crosswordPuzzle(kind),selected=runtime.crosswordSelection[kind]||{key:crosswordEntryKeys(puzzle.entries[0])[0],direction:'Across'};
+    const entry=activeCrosswordEntry(kind,selected.key,selected.direction);if(!entry)return;
+    runtime.crosswordSelection[kind]={key:selected.key,direction:entry.direction};
+    const keys=new Set(crosswordEntryKeys(entry));
+    document.querySelectorAll(`[data-cross-kind="${kind}"]`).forEach(input=>{
+      input.closest('.crossword-cell').classList.toggle('active-word',keys.has(input.dataset.crossKey));
+      input.closest('.crossword-cell').classList.toggle('active-cell',input.dataset.crossKey===selected.key);
+    });
+    document.querySelectorAll(`[data-cross-clue-kind="${kind}"]`).forEach(button=>{
+      const active=button.dataset.crossClue===`${entry.direction}:${entry.number}`;
+      button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
+    });
+    const label=document.querySelector(`[data-cross-current="${kind}"]`);
+    if(label)label.textContent=`${entry.number} ${entry.direction} · ${entry.clue}`;
+  }
+  function focusCrossword(kind,key,direction) {
+    const input=crosswordInput(kind,key);if(!input)return;
+    const entry=activeCrosswordEntry(kind,key,direction);if(!entry)return;
+    runtime.crosswordSelection[kind]={key,direction:entry.direction};
+    input.focus({preventScroll:true});input.select();highlightCrossword(kind);
+  }
+  function chooseCrosswordClue(kind,clue) {
+    const entry=crosswordPuzzle(kind).entries.find(e=>`${e.direction}:${e.number}`===clue);if(!entry)return;
+    const keys=crosswordEntryKeys(entry),key=keys.find(k=>{const input=crosswordInput(kind,k);return input&&!input.readOnly&&!input.value})||keys.find(k=>!crosswordInput(kind,k)?.readOnly)||keys[0];
+    focusCrossword(kind,key,entry.direction);
+  }
+  function nextCrosswordClue(kind,step=1,onlyEmpty=false) {
+    const entries=crosswordPuzzle(kind).entries,selected=runtime.crosswordSelection[kind];
+    const current=activeCrosswordEntry(kind,selected?.key,selected?.direction),start=entries.indexOf(current);
+    for(let i=1;i<=entries.length;i++){
+      const entry=entries[(start+step*i+entries.length*2)%entries.length];
+      if(onlyEmpty&&!crosswordEntryKeys(entry).some(key=>{const input=crosswordInput(kind,key);return input&&!input.readOnly&&!input.value}))continue;
+      chooseCrosswordClue(kind,`${entry.direction}:${entry.number}`);return;
+    }
+  }
+  function moveCrossword(input,step) {
+    const kind=input.dataset.crossKind,key=input.dataset.crossKey,entry=activeCrosswordEntry(kind,key);
+    if(!entry)return;
+    const keys=crosswordEntryKeys(entry),index=keys.indexOf(key);
+    for(let i=index+step;i>=0&&i<keys.length;i+=step){
+      if(!crosswordInput(kind,keys[i])?.readOnly){focusCrossword(kind,keys[i],entry.direction);return;}
+    }
+    if(step>0)nextCrosswordClue(kind,1,true);
+  }
+  function crosswordEdited(kind) {
+    const s=crosswordState(kind);s.checked=false;runtime.crosswordWrong[kind]=new Set();saveSuite();
+    const cells=crosswordCells(crosswordPuzzle(kind));
+    const meta=document.querySelector('#gamesDetailMeta');if(meta&&runtime.activeGame===(kind==='mini'?'mini-crossword':'crossword'))meta.textContent=gameProgress(runtime.activeGame);
+    document.querySelectorAll(`[data-cross-kind="${kind}"]`).forEach(input=>{
+      const cell=input.closest('.crossword-cell');cell.classList.remove('wrong');
+      cell.classList.toggle('correct',!!input.value&&input.value===cells.get(input.dataset.crossKey)?.letter);
+    });
+    const target=document.querySelector(kind==='mini'?'#miniCrosswordGame':'#crosswordGame'),feedback=target?.querySelector('.puzzle-note');
+    const complete=[...cells].every(([key,cell])=>crosswordInput(kind,key)?.value===cell.letter);
+    if(feedback){feedback.textContent=complete?'Crossword complete.':'Choose a clue or square, then type. Space switches Across/Down; Backspace moves back.';feedback.classList.toggle('win',complete);}
+  }
   function updateCrossword(input) {
-    const kind = input.dataset.crossKind;
-    const key = input.dataset.crossKey;
-    const s = crosswordState(kind);
-    if (s.revealed) return;
-    const value = String(input.value || '').replace(/[^A-Za-z]/g, '').slice(-1).toUpperCase();
-    input.value = value;
-    s.values[key] = value;
-    runtime.crosswordWrong[kind] = new Set();
-    saveSuite();
+    const kind=input.dataset.crossKind;
+    if(input.readOnly||crosswordState(kind).revealed)return;
+    const value=String(input.value||'').replace(/[^A-Za-z]/g,'').slice(-1).toUpperCase();
+    input.value=value;crosswordState(kind).values[input.dataset.crossKey]=value;crosswordEdited(kind);
+    if(value)moveCrossword(input,1);
+  }
+  function backspaceCrossword(input) {
+    if(input.readOnly)return;
+    if(!input.value){moveCrossword(input,-1);input=document.activeElement;}
+    if(!input?.matches('[data-cross-key]')||input.readOnly)return;
+    input.value='';crosswordState(input.dataset.crossKind).values[input.dataset.crossKey]='';crosswordEdited(input.dataset.crossKind);
+  }
+  function crosswordKeydown(event) {
+    const input=event.target,kind=input.dataset.crossKind;
+    if(event.ctrlKey||event.metaKey||event.altKey||event.isComposing)return;
+    if(/^[a-z]$/i.test(event.key)&&!input.readOnly){event.preventDefault();input.value=event.key;updateCrossword(input);return;}
+    if(event.key==='Backspace'&&!input.readOnly){event.preventDefault();backspaceCrossword(input);return;}
+    if(event.key==='Delete'&&!input.readOnly){event.preventDefault();input.value='';updateCrossword(input);return;}
+    if(event.key===' '||event.key==='Enter'){
+      event.preventDefault();const selected=runtime.crosswordSelection[kind];
+      focusCrossword(kind,input.dataset.crossKey,selected?.direction==='Down'?'Across':'Down');return;
+    }
+    if(event.key==='Tab'){event.preventDefault();nextCrosswordClue(kind,event.shiftKey?-1:1);return;}
+    if(event.key==='Escape'){input.blur();return;}
+    const arrows={ArrowLeft:[0,-1,'Across'],ArrowRight:[0,1,'Across'],ArrowUp:[-1,0,'Down'],ArrowDown:[1,0,'Down']};
+    if(!arrows[event.key])return;
+    event.preventDefault();const [dr,dc,direction]=arrows[event.key],size=crosswordPuzzle(kind).size;
+    let [row,col]=input.dataset.crossKey.split(',').map(Number);
+    for(row+=dr,col+=dc;row>=0&&col>=0&&row<size&&col<size;row+=dr,col+=dc){
+      if(crosswordInput(kind,`${row},${col}`)){focusCrossword(kind,`${row},${col}`,direction);return;}
+    }
+  }
+  function pasteCrossword(event) {
+    const input=event.target;if(input.readOnly)return;
+    event.preventDefault();const text=event.clipboardData.getData('text/plain').replace(/[^A-Za-z]/g,'').toUpperCase();
+    const kind=input.dataset.crossKind,entry=activeCrosswordEntry(kind,input.dataset.crossKey);if(!entry)return;
+    const keys=crosswordEntryKeys(entry),start=keys.indexOf(input.dataset.crossKey);let letter=0,last=input;
+    for(const key of keys.slice(start)){
+      const target=crosswordInput(kind,key);if(!target)continue;
+      if(target.readOnly){if(text[letter]===target.value)letter++;continue;}
+      if(letter>=text.length)break;
+      target.value=text[letter++];crosswordState(kind).values[key]=target.value;last=target;
+    }
+    if(letter){crosswordEdited(kind);focusCrossword(kind,last.dataset.crossKey,entry.direction);moveCrossword(last,1);}
   }
 
   function checkCrossword(kind) {
@@ -823,6 +936,7 @@
     stats.triviaLastCorrect = null;
     stats.triviaLastAnswer = null;
     runtime.crosswordWrong = {};
+    runtime.crosswordSelection = {};
     runtime.strandsBoards = {};
     runtime.sudokuSelected = '';
     runtime.sudokuWrong = new Set();
@@ -860,6 +974,8 @@
     if (!panel || panel.dataset.suiteBound === '1') return;
     panel.dataset.suiteBound = '1';
     panel.addEventListener('click', event => {
+      const clue=event.target.closest('[data-cross-clue]');
+      if(clue){chooseCrosswordClue(clue.dataset.crossClueKind,clue.dataset.crossClue);return;}
       const launch = event.target.closest('[data-game-launch]');
       if (launch) { openArcadeGame(launch.dataset.gameLaunch); return; }
       const word = event.target.closest('[data-connection-word]');
@@ -892,8 +1008,21 @@
       else if (action === 'letter-submit') submitLetterBox();
       else if (action === 'pips-check') { pipsState().checked = true; saveSuite(); renderPips(); }
     });
+    panel.addEventListener('focusin',event=>{
+      if(event.target.matches('[data-wordle-cell]')){wordleCursor=Number(event.target.dataset.wordleCell);event.target.select();}
+      if(event.target.matches('[data-cross-key]')){const input=event.target;runtime.crosswordSelection[input.dataset.crossKind]={key:input.dataset.crossKey,direction:activeCrosswordEntry(input.dataset.crossKind,input.dataset.crossKey)?.direction};input.select();highlightCrossword(input.dataset.crossKind);}
+    });
+    panel.addEventListener('pointerdown',event=>{
+      const input=event.target;if(input.matches('[data-cross-key]')&&document.activeElement===input){const current=runtime.crosswordSelection[input.dataset.crossKind];focusCrossword(input.dataset.crossKind,input.dataset.crossKey,current?.direction==='Down'?'Across':'Down');}
+    });
+    panel.addEventListener('paste',event=>{if(event.target.matches('[data-cross-key]'))pasteCrossword(event);else if(event.target.matches('[data-wordle-cell]'))pasteWordle(event);});
+    panel.addEventListener('beforeinput',event=>{
+      if(event.target.matches('[data-cross-key]')&&event.inputType==='deleteContentBackward'&&!event.target.value&&!event.target.readOnly){event.preventDefault();backspaceCrossword(event.target);}
+      else if(event.target.matches('[data-wordle-cell]')&&['deleteContentBackward','deleteContentForward'].includes(event.inputType)){event.preventDefault();wordleInput(event.inputType==='deleteContentBackward'?'BACKSPACE':'DELETE');}
+    });
     panel.addEventListener('input', event => {
-      if (event.target.matches('[data-cross-key]')) updateCrossword(event.target);
+      if (event.target.matches('[data-cross-key]')) {if(!event.isComposing)updateCrossword(event.target);}
+      else if(event.target.matches('[data-wordle-cell]')&&!event.isComposing){const letter=event.target.value.replace(/[^A-Za-z]/g,'').toUpperCase().slice(-1);if(letter)wordleInput(letter);else paintWordleEntry();}
       else if (event.target.id === 'beeInput') { beeState().current = event.target.value.replace(/[^A-Za-z]/g, '').toUpperCase(); saveSuite(); }
       else if (event.target.id === 'letterBoxInput') { letterBoxState().current = event.target.value.replace(/[^A-Za-z]/g, '').toUpperCase(); saveSuite(); }
     });
@@ -907,6 +1036,8 @@
       }
     });
     panel.addEventListener('keydown', event => {
+      if(event.target.matches('[data-cross-key]')){crosswordKeydown(event);return;}
+      if(event.target.matches('[data-wordle-cell]')){wordleKeydown(event);return;}
       if (event.key !== 'Enter') return;
       if (event.target.id === 'beeInput') { event.preventDefault(); submitBee(); }
       else if (event.target.id === 'letterBoxInput') { event.preventDefault(); submitLetterBox(); }

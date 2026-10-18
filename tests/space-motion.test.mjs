@@ -10,7 +10,7 @@ function harness({preference='cinematic',reduced=false,native=false,noCanvas=fal
   const listen=(type,fn)=>{const list=events.get(type)||[];list.push(fn);events.set(type,list);};
   const emit=(type,event={})=>(events.get(type)||[]).forEach(fn=>fn(event));
   const root={dataset:{},hasAttribute:name=>name==='data-cc-launch'&&root.dataset.ccLaunch!==undefined,removeAttribute:()=>delete root.dataset.ccLaunch};
-  const element=(tagName='DIV')=>({tagName,inert:false,style:{},attributes:{},classList:{add(){},remove(){},contains(){return false;}},setAttribute(name,value){this.attributes[name]=value;},querySelectorAll:()=>[],addEventListener:listen,focus(){}});
+  const element=(tagName='DIV')=>({tagName,inert:false,dataset:{},style:{},attributes:{},classList:{add(){},remove(){},contains(){return false;}},setAttribute(name,value){this.attributes[name]=value;},querySelectorAll:()=>[],addEventListener:listen,focus(){}});
   const overlay=element(),canvas=element(),progress=element(),page=element(),alreadyInert=element();alreadyInert.inert=true;
   const ctx={setTransform(){},fillRect(){},beginPath(){},arc(){},fill(){},moveTo(){},lineTo(){},stroke(){},createRadialGradient(){return {addColorStop(){}};}};
   canvas.getContext=()=>noCanvas?null:ctx;
@@ -36,8 +36,8 @@ test('Reduce Motion uses a brief fade and Off skips startup entirely',()=>{
   const h=harness({reduced:true});h.ready();h.run(600);assert.equal(h.root.dataset.ccMotion,'gentle');assert.equal(h.page.inert,false);
   const off=harness({preference:'off'});off.ready();assert.equal(off.root.dataset.ccLaunch,undefined);assert.equal(off.frames.size,0);
 });
-test('native intro waits for unlock, including an unlock after the fail-safe',()=>{
-  const h=harness({native:true});h.ready();assert.equal(h.frames.size,0);h.tick(11000);
+test('a confirmed native lock defers the intro until unlock, including a long authentication delay',()=>{
+  const h=harness({native:true});h.ready();h.emit('cc-native-privacy-status',{detail:{locked:true}});assert.equal(h.frames.size,0);h.tick(11000);
   assert.equal(h.root.dataset.ccLaunch,undefined);
   h.emit('cc-native-privacy-status',{detail:{locked:false}});assert.equal(h.root.dataset.ccLaunch,'playing');
   h.run(4000);assert.equal(h.page.inert,false);assert.equal(h.frames.size,0);

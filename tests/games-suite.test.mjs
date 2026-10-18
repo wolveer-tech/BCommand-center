@@ -28,7 +28,7 @@ test('Puzzle controls expose difficulty and a full refresh', () => {
 test('New puzzle suite JavaScript parses and is available offline', () => {
   new vm.Script(script);
   new vm.Script(content);
-  assert.match(serviceWorker, /command-centre-shell-v10\.31\.0-year-of-games/);
+  assert.match(serviceWorker, /command-centre-shell-v10\.(?:32|33)\.\d+-/);
   assert.match(serviceWorker, /\/games-suite\.css/);
   assert.match(serviceWorker, /\/games-content\.js/);
   assert.match(serviceWorker, /\/games-suite\.js/);

@@ -1,0 +1,29 @@
+<!doctype html><meta charset="utf-8"><title>Note image editing checks</title>
+<link rel="stylesheet" href="/notebooks.css?v=10.33.6">
+<style>body{margin:24px;background:#16191e;color:#eee;font:15px system-ui}button{padding:10px;margin:4px;cursor:pointer}#noteModal{max-width:850px;margin:auto}#noteBody{background:#242a33;border:1px solid #687284;border-radius:12px;padding:25px;min-height:500px;max-height:650px;overflow:auto}#noteModal.book-mode #noteBody{--paper-baseline:20px}#results{max-width:850px;margin:20px auto}#results li{margin:7px}.pass{color:#9ce5b2}.fail{color:#ff8b8b}h1{font-size:24px}</style>
+<div id="noteModal"><h1>Resize and move inserted photos</h1><p>Tap the photo, use Size or drag its corner. Drag Move to another paragraph, or use the arrows. Left, Centre and Right place it across the page.</p><div><button id="prepare">Reset demo</button><button id="paper">Switch Notes / Schoolbook</button><button id="save">Save and reopen layout</button><button id="run">Run image checks</button></div><div id="noteBody" contenteditable="true" role="textbox" aria-label="Demo note"></div></div><ol id="results"></ol>
+<script src="/note-images.js?v=10.33.6"></script>
+<script>
+const editor=document.getElementById('noteBody'),modal=document.getElementById('noteModal'),results=document.getElementById('results');
+const canvas=document.createElement('canvas');canvas.width=640;canvas.height=300;const ctx=canvas.getContext('2d');ctx.fillStyle='#7396ad';ctx.fillRect(0,0,640,300);ctx.fillStyle='#274553';ctx.fillRect(45,35,550,230);ctx.fillStyle='#e5eef4';ctx.font='30px Georgia';ctx.fillText('A photo in your notes',135,160);const image=canvas.toDataURL('image/png');
+const frame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
+function prepare(){editor.contentEditable='true';editor.innerHTML=`<p>First paragraph — keep this writing.</p><figure class="note-photo" contenteditable="false" style="width:70%"><img src="${image}" alt="Demo photo"></figure><p>Second paragraph — move the photo here.</p><p>Third paragraph — more writing.</p>`;}
+function assert(value,message){if(!value)throw Error(message);}
+const api=CommandCentreNoteImages.bind(editor);prepare();
+document.getElementById('prepare').onclick=prepare;
+document.getElementById('paper').onclick=()=>modal.classList.toggle('book-mode');
+document.getElementById('save').onclick=()=>{editor.innerHTML=api.serialize();};
+document.getElementById('run').onclick=async()=>{
+results.replaceChildren();
+const tests=[
+ ['Existing photos receive editing controls',async()=>{prepare();await frame();assert(editor.querySelector('[data-photo-action="move"]'),'No move handle');assert(editor.querySelector('input[aria-label="Photo width"]'),'No size control');}],
+ ['Resizing and centring survive save and reopen without saving editor controls',async()=>{prepare();await frame();editor.querySelector('img').click();const slider=editor.querySelector('input');slider.value='45';slider.dispatchEvent(new Event('input',{bubbles:true}));editor.querySelector('[data-photo-action="center"]').click();const saved=api.serialize();assert(!saved.includes('data-photo-tools')&&!saved.includes('data-photo-selected'),'Editor UI leaked into saved note');editor.innerHTML=saved;await frame();const photo=editor.querySelector('figure');assert(photo.style.width==='45%','Width lost');assert(photo.style.marginLeft==='auto'&&photo.style.marginRight==='auto','Position lost');assert(editor.querySelector('input').value==='45','Size control not restored');}],
+ ['Move earlier and later preserve writing and image size',async()=>{prepare();await frame();editor.querySelector('[data-photo-action="down"]').click();assert(editor.children[2].tagName==='FIGURE','Image did not move later');editor.querySelector('[data-photo-action="up"]').click();assert(editor.children[1].tagName==='FIGURE','Image did not move earlier');assert(editor.querySelectorAll('p').length===3,'Writing lost');assert(editor.querySelector('figure').style.width==='70%','Size changed while moving');}],
+ ['Schoolbook images retain the same layout after reopening a page',async()=>{modal.classList.add('book-mode');prepare();await frame();editor.querySelector('[data-photo-action="right"]').click();const saved=api.serialize();editor.innerHTML=saved;await frame();assert(editor.querySelector('figure').style.marginLeft==='auto','Schoolbook alignment lost');assert(editor.querySelector('figure').style.marginRight==='0px','Schoolbook right edge lost');}],
+ ['Old plain images receive a figure and controls',async()=>{editor.innerHTML=`<p>Old image</p><img src="${image}">`;await frame();assert(editor.querySelector('figure img'),'Old photo not upgraded');assert(editor.querySelector('[data-photo-action="resize"]'),'Old photo has no resize handle');}],
+ ['Deleted notes stay read-only',async()=>{prepare();await frame();editor.contentEditable='false';await frame();assert(!editor.querySelector('[data-photo-tools]'),'Read-only image has editing controls');}]
+];
+for(const [name,run] of tests){const item=document.createElement('li');try{await run();item.textContent='PASS: '+name;item.className='pass';}catch(error){item.textContent='FAIL: '+name+' — '+error.message;item.className='fail';}results.append(item);}
+modal.classList.remove('book-mode');prepare();await frame();editor.querySelector('img').click();
+};
+</script>

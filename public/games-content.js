@@ -390,29 +390,51 @@
     return result;
   }
 
-  const connectionVariantCache = {};
-  function connectionVariants(level) {
-    if (connectionVariantCache[level]) return connectionVariantCache[level];
-    const source = CONNECTION_BOARDS[level];
-    const variants = [];
-    const possible = source.length ** 4;
-    for (let variant = 0; variant < possible; variant += 1) {
-      let cursor = variant;
-      const groups = [0, 1, 2, 3].map(lane => {
-        const boardIndex = cursor % source.length;
-        cursor = Math.floor(cursor / source.length);
-        return source[boardIndex][lane];
-      });
-      const boardWords = groups.flatMap(item => item.words);
-      if (new Set(boardWords).size === 16) variants.push(groups);
+  const EXTRA_CONNECTIONS = [
+    group('Chess pieces',['PAWN','BISHOP','ROOK','KNIGHT']),group('Punctuation',['COMMA','COLON','PERIOD','SEMICOLON']),
+    group('Swimming strokes',['CRAWL','BACKSTROKE','BREASTSTROKE','BUTTERFLY']),group('Baking ingredients',['FLOUR','YEAST','SUGAR','BUTTER']),
+    group('Types of pasta',['PENNE','FUSILLI','RIGATONI','SPAGHETTI']),group('Computer peripherals',['MOUSE','PRINTER','SCANNER','MONITOR']),
+    group('Precious stones',['RUBY','SAPPHIRE','EMERALD','DIAMOND']),group('Planets',['MARS','VENUS','NEPTUNE','JUPITER']),
+    group('Units of length',['METRE','INCH','MILE','CENTIMETRE']),group('Types of triangle',['EQUILATERAL','ISOSCELES','SCALENE','RIGHT']),
+    group('Shades of red',['SCARLET','CRIMSON','MAROON','VERMILION']),group('In a theatre',['STAGE','WINGS','STALLS','BALCONY']),
+    group('Types of cloud',['CIRRUS','CUMULUS','STRATUS','NIMBUS']),group('Greek gods',['ZEUS','APOLLO','HERMES','ARES']),
+    group('Dog breeds',['POODLE','BEAGLE','LABRADOR','COLLIE']),group('Big cats',['LEOPARD','JAGUAR','CHEETAH','LION']),
+    group('Kitchen measurements',['CUP','TABLESPOON','TEASPOON','OUNCE']),group('Parts of a bicycle',['PEDAL','SADDLE','HANDLEBAR','SPOKE']),
+    group('Musical tempo markings',['LARGO','ADAGIO','ANDANTE','PRESTO']),group('Types of knot',['BOWLINE','REEF','CLOVE','SHEET']),
+    group('Poetic forms',['SONNET','HAIKU','LIMERICK','ODE']),group('Breakfast spreads',['JAM','MARMALADE','HONEY','MARMITE']),
+    group('Money in other countries',['YEN','EURO','PESO','RUPEE']),group('Types of hat',['FEDORA','BERET','BEANIE','BOWLER']),
+    group('Garden herbs',['BASIL','THYME','ROSEMARY','OREGANO']),group('Metals',['COPPER','TIN','ZINC','IRON']),
+    group('Parts of an atom',['PROTON','NEUTRON','ELECTRON','NUCLEUS']),group('Orchestral strings',['VIOLA','CELLO','VIOLIN','BASS']),
+    group('Egg preparations',['POACHED','SCRAMBLED','FRIED','BOILED']),group('Ways to preserve food',['PICKLE','FREEZE','CURE','DRY']),
+    group('Ballet movements',['PLIE','RELEVE','PIROUETTE','ARABESQUE']),group('Types of bridge',['ARCH','BEAM','SUSPENSION','CANTILEVER']),
+    group('Names of oceans',['ATLANTIC','PACIFIC','INDIAN','ARCTIC']),group('Cuts of gemstone',['OVAL','PEAR','PRINCESS','CUSHION']),
+    group('Under the sea',['CORAL','ANEMONE','KELP','SPONGE']),group('On a restaurant table',['NAPKIN','MENU','CUTLERY','SALT']),
+    group('Types of fabric',['DENIM','LINEN','SATIN','VELVET']),group('On a map',['LEGEND','CONTOUR','COMPASS','GRID']),
+    group('Can follow “snow”',['BALL','MAN','FLAKE','PLOUGH']),group('Can follow “book”',['MARK','WORM','SHELF','END']),
+    group('Can precede “cake”',['PAN','CUP','CHEESE','SPONGE']),group('Can precede “house”',['GREEN','LIGHT','WARE','DOG']),
+    group('Can follow “tooth”',['BRUSH','PASTE','ACHE','PICK']),group('Can precede “fish”',['STAR','JELLY','SWORD','CAT']),
+    group('Silent K at the start',['KNEE','KNOCK','KNIT','KNOT']),group('Silent W at the start',['WRITE','WRONG','WREATH','WRECK']),
+    group('Anagrams of “stop”',['POST','POTS','SPOT','TOPS']),group('Anagrams of “east”',['EATS','SEAT','TEAS','SATE']),
+    group('Words for a small stream',['BROOK','CREEK','RILL','RIVULET']),group('Ways to praise',['APPLAUD','COMMEND','LAUD','EXTOL']),
+    group('Can have a crown',['TOOTH','TREE','MONARCH','HAT']),group('Can have a neck',['BOTTLE','GUITAR','SHIRT','SWAN']),
+    group('Can have a tongue',['SHOE','BELL','FLAME','PERSON']),group('Can have a tail',['COMET','COIN','KITE','PEACOCK']),
+    group('Board games',['CHESS','DRAUGHTS','MONOPOLY','SCRABBLE']),group('Racket sports',['TENNIS','BADMINTON','SQUASH','PADEL']),
+    group('Indefinite pronouns',['ANYONE','SOMEONE','EVERYONE','NOBODY']),group('Literary genres',['MYSTERY','FANTASY','ROMANCE','HORROR']),
+    group('Lunar phases',['NEW','CRESCENT','GIBBOUS','FULL']),group('Layers of the Earth',['CRUST','MANTLE','OUTER CORE','INNER CORE'])
+  ];
+  function connectionsFor(level, seed, recent = []) {
+    const blocked=new Set(recent.map(item=>item.title)),previousWords=new Set(recent.slice(-4).flatMap(item=>item.words));
+    const pool=[...CONNECTION_BOARDS[level].flat(),...EXTRA_CONNECTIONS];
+    let a=(positive(seed)+1)>>>0;
+    const random=()=>{a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t^=t+Math.imul(t^(t>>>7),61|t);return ((t^(t>>>14))>>>0)/4294967296;};
+    for(let i=pool.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+    const chosen=[],used=new Set();
+    for(const item of pool){
+      if(blocked.has(item.title)||item.words.some(word=>used.has(word)||previousWords.has(word)))continue;
+      chosen.push(item);item.words.forEach(word=>used.add(word));if(chosen.length===4)break;
     }
-    connectionVariantCache[level] = variants;
-    return variants;
-  }
-
-  function connectionsFor(level, seed) {
-    const variants = connectionVariants(level);
-    return variants[positive(seed) % variants.length];
+    if(chosen.length!==4)throw new Error('Not enough independent Connections groups.');
+    return chosen;
   }
 
   function strandsFor(level, seed) {
@@ -426,6 +448,7 @@
   }
 
   const explicitClues = new Map();
+  for(const [answer,clue] of Object.entries(window.CommandCentreCrosswordClues||{}))explicitClues.set(answer,clue);
   for (const bank of [MINI_CROSSWORDS, CROSSWORDS]) {
     for (const puzzles of Object.values(bank)) {
       for (const puzzle of puzzles) {
@@ -436,16 +459,14 @@
   }
 
   function generatedClue(answer, seed) {
-    if (explicitClues.has(answer)) return explicitClues.get(answer);
-    const shift = 1 + positive(seed) % (answer.length - 1);
-    let mixed = answer.slice(shift) + answer.slice(0, shift);
-    if (mixed === answer) mixed = answer.split('').reverse().join('');
-    return `Unscramble “${mixed}”`;
+    if (!explicitClues.has(answer))throw new Error(`Missing definition for ${answer}`);
+    return explicitClues.get(answer);
   }
 
   function uniqueEntries(values, seed) {
     const seen = new Set();
     return values.filter(value => {
+      if(!explicitClues.has(value))return false;
       if (seen.has(value)) return false;
       seen.add(value);
       return true;
@@ -471,20 +492,24 @@
     const normalizedSeed = positive(seed);
     const across = usableAcross[normalizedSeed % usableAcross.length];
     const cycle = Math.floor(normalizedSeed / usableAcross.length);
-    const used = new Set();
-    const down = acrossIndexes.map((answerIndex, position) => {
-      const candidates = candidatesFor(across.answer[answerIndex]);
-      let candidateIndex = (cycle * (position * 2 + 1) + normalizedSeed + position * 11) % candidates.length;
-      while (used.has(candidates[candidateIndex].answer) && candidates.length > used.size) candidateIndex = (candidateIndex + 1) % candidates.length;
-      const chosen = candidates[candidateIndex];
-      used.add(chosen.answer);
-      return chosen;
-    });
+    const options=acrossIndexes.map(index=>candidatesFor(across.answer[index]));
+    const variants=[],target=cycle%4096;
+    function visit(position,chosen,used){
+      if(variants.length>target)return;
+      if(position===options.length){variants.push(chosen);return;}
+      for(const entry of options[position]){
+        if(used.has(entry.answer))continue;
+        visit(position+1,[...chosen,entry],new Set([...used,entry.answer]));
+        if(variants.length>target)return;
+      }
+    }
+    visit(0,[],new Set());
+    const down=variants[target%variants.length];
     return { size: miniMode ? 5 : 6, across, down };
   }
 
   window.CommandCentreGameContent = Object.freeze({
-    version: 4,
+    version: 5,
     WORDLE_LEVELS,
     TRIVIA_LEVELS,
     CONNECTION_BOARDS,

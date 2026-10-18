@@ -18,7 +18,7 @@ const migration=read('../migrations/0010_native_apns.sql');
 test('notes keep the live caret visible above the iPhone keyboard',()=>{
   assert.match(html,/#noteModal \.note-body-input\{[^}]*font-size:16px[^}]*caret-color:var\(--cyan\)[^}]*scroll-padding-block/);
   assert.match(html,/function keepNoteCaretVisible\(\)/);
-  assert.match(html,/body\.scrollTop\+=caret\.bottom-safeBottom\+28/);
+  assert.match(html,/scroller\.scrollTop\+=caret\.bottom-safeBottom\+28/);
   assert.match(html,/body\.addEventListener\('input',[^\n]*syncNoteVisualViewport\(\)[^\n]*keepNoteCaretVisible\(\)/);
   assert.match(html,/#noteModal\.note-keyboard-open\.note-body-focused \.modal-head/);
 });

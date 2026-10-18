@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8"><title>Note editor keyboard checks</title>
+<style>#editor{white-space:pre-wrap;tab-size:4;border:1px solid;padding:20px}li{margin:8px}</style>
+<button id="run">Run keyboard checks</button><div id="editor" contenteditable="true"></div><ol id="results"></ol>
+<script src="/note-editor.js?v=10.32.1"></script>
+<script>
+const editor=document.getElementById('editor');CommandCentreNoteEditor.bind(editor);
+function assert(value,message){if(!value)throw Error(message)}
+function select(node,offset,end=node,endOffset=offset){const r=document.createRange();r.setStart(node,offset);r.setEnd(end,endOffset);const s=getSelection();s.removeAllRanges();s.addRange(r);editor.focus()}
+function key(shiftKey=false){const e=new KeyboardEvent('keydown',{key:'Tab',shiftKey,bubbles:true,cancelable:true});editor.dispatchEvent(e);return e.defaultPrevented}
+function reset(html){editor.innerHTML=html;editor.contentEditable='true';select(editor,editor.childNodes.length)}
+document.getElementById('run').onclick=()=>{
+const tests=[
+ ['Tab inserts a literal tab at the caret',()=>{reset('Alpha');select(editor.firstChild,5);assert(key(),'Tab not handled');assert(editor.textContent==='Alpha\t','Tab not inserted');assert(document.activeElement===editor,'Editor lost focus')}],
+ ['Shift+Tab removes the leading tab and keeps the caret',()=>{reset('\tAlpha');select(editor.firstChild,6);key(true);assert(editor.textContent==='Alpha','Indent not removed');assert(getSelection().anchorOffset===5,'Caret moved incorrectly')}],
+ ['Shift+Tab removes four leading spaces',()=>{reset('    Alpha');select(editor.firstChild,9);key(true);assert(editor.textContent==='Alpha','Spaces not removed')}],
+ ['Shift+Tab leaves unindented text untouched',()=>{reset('Alpha');select(editor.firstChild,3);key(true);assert(editor.textContent==='Alpha','Text changed')}],
+ ['Tab indents selected paragraphs and preserves bold text',()=>{reset('<p>Alpha <b>bold</b></p><p>Beta</p>');select(editor,0,editor,2);key();assert([...editor.children].every(p=>p.textContent.startsWith('\t')),'Not every paragraph indented');assert(editor.querySelector('b')?.textContent==='bold','Formatting lost')}],
+ ['Shift+Tab outdents selected paragraphs',()=>{reset('<p>\tAlpha</p><p>    Beta</p>');select(editor,0,editor,2);key(true);assert(editor.children[0].textContent==='Alpha'&&editor.children[1].textContent==='Beta','Selected paragraph outdent failed')}],
+ ['Tab indents plain text containing newline characters',()=>{reset('Alpha\nBeta');select(editor,0,editor,1);key();assert(editor.textContent==='\tAlpha\n\tBeta','Plain text line indentation failed')}],
+ ['Tab indents lines separated with Shift+Enter',()=>{reset('Alpha<br>Beta');select(editor,0,editor,3);key();assert(editor.textContent==='\tAlpha\tBeta','BR line indentation failed')}],
+ ['Read-only notes keep normal Tab navigation',()=>{reset('Alpha');editor.contentEditable='false';assert(!key(),'Read-only Tab blocked');assert(editor.textContent==='Alpha','Read-only text changed')}],
+ ['Escape leaves the editor',()=>{reset('Alpha');editor.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert(document.activeElement!==editor,'Editor kept focus')}]
+];
+const results=document.getElementById('results');results.textContent='';
+for(const [name,run] of tests){const li=document.createElement('li');try{run();li.textContent='PASS: '+name;li.style.color='green'}catch(e){li.textContent='FAIL: '+name+' — '+e.message;li.style.color='red'}results.append(li)}
+};
+</script>

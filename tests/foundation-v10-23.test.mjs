@@ -50,8 +50,8 @@ test('Messages and Transfers prefer the linked Web Push receiver',()=>{
 test('League One uses the keyless FotMob league table and normalises clubs',()=>{
   assert.match(worker,/EL1:\{id:108,name:'League One'/);
   assert.match(worker,/fotmobWebsiteFetch\('leagues'/);
-  assert.match(worker,/data\?\.fixtures\?\.allMatches/);
-  assert.match(worker,/__cache\/football-v5/);
+  assert.match(worker,/part\?\.fixtures\?\.allMatches/);
+  assert.match(worker,/__cache\/football-v6/);
   assert.match(worker,/status\?\.scoreStr/);
   assert.match(worker,/slice\(0,48\)/);
   assert.match(worker,/FOTMOB_LEAGUE_COMPETITIONS\[code\]/);

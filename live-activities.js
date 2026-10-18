@@ -1,6 +1,7 @@
 import {authenticateTransferDevice,readTransferJSON} from './transfers.js';
 import {apnsConfigured,sendActivityPush} from './apns.js';
 import './public/football-following.js';
+import {halftimeDeadline} from './football-timing.js';
 const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json','cache-control':'no-store'}});
 const ids=value=>[...new Set((Array.isArray(value)?value:[]).map(Number).filter(n=>Number.isSafeInteger(n)&&n!==0))].slice(0,200);
 const token=value=>/^[a-f0-9]{32,512}$/i.test(String(value||''))?String(value).toLowerCase():null;
@@ -9,6 +10,11 @@ export async function ensureLiveActivities(env){
   env.DB.prepare(`CREATE TABLE IF NOT EXISTS live_activity_devices(device_id TEXT PRIMARY KEY,start_token TEXT,preferences TEXT NOT NULL DEFAULT '{}',updated_at INTEGER NOT NULL,last_error TEXT)`),
   env.DB.prepare(`CREATE TABLE IF NOT EXISTS live_activity_matches(device_id TEXT NOT NULL,match_id INTEGER NOT NULL,activity_id TEXT,update_token TEXT,last_sent INTEGER NOT NULL DEFAULT 0,lease_until INTEGER NOT NULL DEFAULT 0,ended INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,PRIMARY KEY(device_id,match_id))`)
  ]);
+ const columns=(await env.DB.prepare('PRAGMA table_info(live_activity_matches)').all()).results||[];
+ if(!columns.some(column=>column.name==='halftime_ends_at')){
+  try{await env.DB.prepare('ALTER TABLE live_activity_matches ADD COLUMN halftime_ends_at INTEGER').run();}
+  catch(error){if(!/duplicate column/i.test(String(error.message)))throw error;}
+ }
 }
 export async function handleLiveActivities(request,env){
  try{
@@ -23,7 +29,7 @@ export async function handleLiveActivities(request,env){
   const body=await readTransferJSON(request),now=Date.now();
   await env.DB.prepare(`INSERT OR IGNORE INTO live_activity_devices(device_id,updated_at) VALUES(?,?)`).bind(device.id,now).run();
   if(path==='/preferences'){
-   const prefs={footballAutoFollowTeams:body.autoFollow!==false,footballFavouriteTeams:(Array.isArray(body.teams)?body.teams:[]).slice(0,30).map(t=>({id:Number(t.id)||0,name:String(t.name||'').slice(0,120)})),footballFollowedMatches:ids(body.followed),footballExcludedMatches:ids(body.excluded)};
+   const prefs={footballAutoFollowTeams:body.autoFollow!==false,footballFavouriteTeams:(Array.isArray(body.teams)?body.teams:[]).slice(0,30).map(t=>({id:Number(t.id)||0,name:String(t.name||'').slice(0,120),gender:t.gender==='female'?'female':'male'})),footballFollowedMatches:ids(body.followed),footballExcludedMatches:ids(body.excluded)};
    await env.DB.prepare('UPDATE live_activity_devices SET preferences=?,updated_at=? WHERE device_id=?').bind(JSON.stringify(prefs),now,device.id).run();
   }else if(path==='/start-token'){
    const value=token(body.token);if(!value)return reply({error:'Invalid ActivityKit start token'},400);
@@ -41,10 +47,11 @@ export async function handleLiveActivities(request,env){
   return reply({ok:true,configured:apnsConfigured(env),message:apnsConfigured(env)?'Server push configured.':'Closed-app Live Activities need APNS_CONFIG for this signing team.'});
  }catch(error){return reply({error:error.message||'Live Activity request failed'},Number(error.status)||500)}
 }
-export function activityContent(match,now=Date.now()){
+export function activityContent(match,now=Date.now(),previousDeadline=null){
  const phase=String(match.status||'SCHEDULED'),finished=['FINISHED','CANCELLED','POSTPONED'].includes(phase);
  const score=value=>typeof value==='number'&&Number.isFinite(value)?value:null;
- return {timestamp:Math.floor(now/1000),event:finished?'end':'update','content-state':{homeScore:score(match.score?.fullTime?.home),awayScore:score(match.score?.fullTime?.away),phase,minute:score(match.minute),updatedAt:now/1000-978307200},'stale-date':Math.floor(now/1000)+180,...(finished?{'dismissal-date':Math.floor(now/1000)+1800}:{})};
+ const deadline=halftimeDeadline(match,now,previousDeadline);
+ return {timestamp:Math.floor(now/1000),event:finished?'end':'update','content-state':{homeScore:score(match.score?.fullTime?.home),awayScore:score(match.score?.fullTime?.away),phase,minute:score(match.minute),halftimeEndsAt:deadline==null?null:deadline/1000-978307200,updatedAt:now/1000-978307200},'stale-date':Math.floor(now/1000)+180,...(finished?{'dismissal-date':Math.floor(now/1000)+1800}:{})};
 }
 export async function refreshLiveActivityPushes(env,getSchedule,getMatch){
  if(!env.DB||!apnsConfigured(env))return;
@@ -68,7 +75,9 @@ export async function refreshLiveActivityPushes(env,getSchedule,getMatch){
     if(!claim)continue;
     try{
      const payload=await detail(row.match_id),match=payload.match;if(!match)throw Error('No current match data');
-     const aps=activityContent(match);
+     const deadline=halftimeDeadline(match,now,row.halftime_ends_at);
+     await env.DB.prepare('UPDATE live_activity_matches SET halftime_ends_at=? WHERE device_id=? AND match_id=?').bind(deadline,device.device_id,row.match_id).run();
+     const aps=activityContent(match,now,deadline);
      // A disappeared schedule entry alone must not cancel an already active favourite match.
      const stillWanted=wanted.has(row.match_id)||(!(prefs.footballExcludedMatches||[]).includes(row.match_id)&&prefs.footballAutoFollowTeams!==false&&globalThis.CommandCentreFootballFollowing.favourite(match,prefs.footballFavouriteTeams));
      if(!stillWanted){aps.event='end';aps['dismissal-date']=Math.floor(now/1000)}
@@ -88,7 +97,9 @@ export async function refreshLiveActivityPushes(env,getSchedule,getMatch){
     if(!claim)continue;
     try{
      const current=(await detail(Number(match.id))).match;if(!current||['FINISHED','CANCELLED','POSTPONED'].includes(current.status)){await env.DB.prepare('UPDATE live_activity_matches SET ended=1 WHERE device_id=? AND match_id=?').bind(device.device_id,Number(match.id)).run();continue}
-     const aps={...activityContent(current),event:'start','attributes-type':'FootballMatchAttributes',attributes:{matchID:Number(current.id),competition:current.competition?.name||'Football',homeTeam:current.homeTeam?.name||'Home',awayTeam:current.awayTeam?.name||'Away',kickoff:Date.parse(current.utcDate)/1000-978307200},alert:{title:'Followed match',body:`${current.homeTeam?.name||'Home'} vs ${current.awayTeam?.name||'Away'}`},'input-push-token':1};
+     const deadline=halftimeDeadline(current,now);
+     await env.DB.prepare('UPDATE live_activity_matches SET halftime_ends_at=? WHERE device_id=? AND match_id=?').bind(deadline,device.device_id,Number(match.id)).run();
+     const aps={...activityContent(current,now,deadline),event:'start','attributes-type':'FootballMatchAttributes',attributes:{matchID:Number(current.id),competition:current.competition?.name||'Football',homeTeam:current.homeTeam?.name||'Home',awayTeam:current.awayTeam?.name||'Away',kickoff:Date.parse(current.utcDate)/1000-978307200},alert:{title:'Followed match',body:`${current.homeTeam?.name||'Home'} vs ${current.awayTeam?.name||'Away'}`},'input-push-token':1};
      await sendActivityPush(device.start_token,aps,env,`start-${match.id}`);activeCount++;
     }catch(error){
      // Keep the claim on ambiguous network errors to avoid duplicate remote starts.

@@ -35,11 +35,23 @@ test('Flixer requires HTTPS and an allowed hostname',async()=>{
   );
 });
 
-test('Atlantic builds direct movie and episode watch pages',async()=>{
+test('ShuttleTV uses its movie and episode watch routes',async()=>{
   const {buildMediaEmbedUrl}=await mediaHelpers();
-  const env={MEDIA_ATLANTIC_BASE_URL:'https://atlantic.st',MEDIA_ATLANTIC_ALLOWED_HOSTS:'atlantic.st'};
-  assert.equal(buildMediaEmbedUrl(env,{type:'movie',id:'550',mode:'atlantic'}),'https://atlantic.st/watch/550');
-  assert.equal(buildMediaEmbedUrl(env,{type:'tv',id:'1399',season:'2',episode:'3',mode:'atlantic'}),'https://atlantic.st/watch/1399/2/3');
+  assert.equal(buildMediaEmbedUrl({},{type:'movie',id:'550',mode:'shuttletv'}),'https://shuttletv.su/watch/550');
+  assert.equal(buildMediaEmbedUrl({},{type:'tv',id:'1399',season:'2',episode:'3',mode:'shuttletv'}),'https://shuttletv.su/watch/1399?s=2&e=3');
+});
+
+test('CineSrc uses its documented movie and episode embeds',async()=>{
+  const {buildMediaEmbedUrl}=await mediaHelpers();
+  assert.equal(buildMediaEmbedUrl({},{type:'movie',id:'550',mode:'cinesrc'}),'https://cinesrc.st/embed/movie/550');
+  assert.equal(buildMediaEmbedUrl({},{type:'tv',id:'1399',season:'2',episode:'3',mode:'cinesrc'}),'https://cinesrc.st/embed/tv/1399?s=2&e=3');
+});
+
+test('Atlantic remains independent and removed Flystream routes cannot be used',async()=>{
+  const {buildMediaEmbedUrl}=await mediaHelpers();
+  assert.equal(buildMediaEmbedUrl({},{type:'movie',id:'550',mode:'atlantic'}),'https://atlantic.st/watch/550');
+  assert.equal(buildMediaEmbedUrl({},{type:'tv',id:'1399',season:'2',episode:'3',mode:'atlantic'}),'https://atlantic.st/watch/1399/2/3');
+  assert.throws(()=>buildMediaEmbedUrl({MEDIA_FLYSTREAM_BASE_URL:'https://flystream.net'},{type:'movie',id:'550',mode:'flystream'}),/Unsupported provider mode/);
 });
 
 test('Boomflix builds its stable TMDB title pages',async()=>{
@@ -51,12 +63,26 @@ test('Boomflix builds its stable TMDB title pages',async()=>{
 
 test('new provider hosts require HTTPS and explicit host approval',async()=>{
   const {buildMediaEmbedUrl}=await mediaHelpers();
-  assert.throws(
-    ()=>buildMediaEmbedUrl({MEDIA_ATLANTIC_BASE_URL:'http://atlantic.st'},{type:'movie',id:'550',mode:'atlantic'}),
-    /HTTPS/
-  );
+  for(const [mode,key,host] of [['shuttletv','SHUTTLETV','shuttletv.su'],['cinesrc','CINESRC','cinesrc.st']]){
+    assert.throws(()=>buildMediaEmbedUrl({[`MEDIA_${key}_BASE_URL`]:'http://'+host},{type:'movie',id:'550',mode}),/HTTPS/);
+    assert.throws(()=>buildMediaEmbedUrl({[`MEDIA_${key}_BASE_URL`]:'https://'+host+'.attacker.example',[`MEDIA_${key}_ALLOWED_HOSTS`]:host},{type:'movie',id:'550',mode}),/allowed/i);
+    assert.throws(()=>buildMediaEmbedUrl({},{type:'tv',id:'1399',season:0,episode:1,mode}),/season/);
+    assert.throws(()=>buildMediaEmbedUrl({},{type:'tv',id:'1399',season:1,episode:0,mode}),/episode/);
+    assert.throws(()=>buildMediaEmbedUrl({},{type:'movie',id:'550/other',mode}),/numeric TMDB/);
+  }
   assert.throws(
     ()=>buildMediaEmbedUrl({MEDIA_BOOMFLIX_BASE_URL:'https://boomflix.qzz.io',MEDIA_BOOMFLIX_ALLOWED_HOSTS:'example.com'},{type:'movie',id:'550',mode:'boomflix'}),
     /allowed/i
   );
+});
+
+test('Alternate uses 1Shows and Aggregator uses Anicine for exact TMDB titles and episodes',async()=>{
+  const {buildMediaEmbedUrl}=await mediaHelpers();
+  const env={MEDIA_EMBED_BASE_URL:'https://existing.example',MEDIA_EMBED_PATH_TORRENT:'/old-route',MEDIA_EMBED_PATH_AGG:'/old-aggregator'};
+  assert.equal(buildMediaEmbedUrl(env,{type:'movie',id:550,mode:'torrent'}),'https://www.1shows.org/movies/550?streaming=true');
+  assert.equal(buildMediaEmbedUrl(env,{type:'tv',id:1399,season:2,episode:3,mode:'torrent'}),'https://www.1shows.org/tv/1399?streaming=true&season=2&episode=3');
+  assert.equal(buildMediaEmbedUrl({}, {type:'movie',id:550,mode:'agg'}),'https://anicine.xyz/watch/movie/550');
+  assert.equal(buildMediaEmbedUrl({}, {type:'tv',id:1399,season:2,episode:3,mode:'agg'}),'https://anicine.xyz/watch/tv/1399?s=2&e=3');
+  assert.equal(buildMediaEmbedUrl(env,{type:'movie',id:550,mode:'standard'}),'https://existing.example/embed?type=movie&id=550');
+  for(const mode of ['torrent','agg'])assert.throws(()=>buildMediaEmbedUrl({}, {type:'tv',id:1399,season:0,episode:3,mode}),/season/);
 });

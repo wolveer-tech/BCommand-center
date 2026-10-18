@@ -1,0 +1,64 @@
+.book-shelf-intro{display:flex;flex-direction:column;gap:6px;padding:8px 2px 20px}.book-shelf-intro strong{font:600 25px Georgia,serif}.book-shelf-intro span{font-size:11px;color:var(--muted)}.book-shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:24px;padding:5px 8px 22px}.exercise-cover{position:relative;min-height:290px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:30px 22px 35px 29px;background:linear-gradient(90deg,#0004 0 9px,transparent 10px),repeating-linear-gradient(20deg,#ffffff04 0 1px,transparent 1px 4px),var(--book-cover);border:1px solid #ffffff25;border-radius:3px 12px 12px 3px;box-shadow:5px 5px 0 #e3dbbf,8px 8px 0 #0003,0 14px 26px #0004;cursor:pointer;text-align:center;transition:transform .18s;color:#24364a;font:inherit}.exercise-cover:hover{transform:translateY(-5px) rotate(-1deg)}.book-cover-label{background:#f4edda;display:flex;flex-direction:column;gap:15px;width:100%;padding:20px 12px;border:3px double #53645a;box-shadow:0 2px 3px #0002}.book-cover-heading{font:700 9px Georgia,serif;letter-spacing:2px}.book-cover-label strong{font:600 23px Georgia,serif;overflow-wrap:anywhere}.book-cover-subject{font:italic 14px Georgia,serif;border-bottom:1px solid #9eaa9d;padding-bottom:9px}.book-cover-label>span:last-child{font-size:9px}.book-cover-footer{color:#ffffff70;position:absolute;bottom:15px;font-size:7px;letter-spacing:1.8px}#bookControls[hidden]{display:none!important}#bookControls{display:flex;flex-direction:column;gap:8px;margin:8px 0 12px}.book-settings,.book-page-nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.book-settings input{flex:1;min-width:110px}.book-settings select{width:auto}.book-page-nav select{flex:1;min-width:100px}.book-page-nav .btn{min-height:36px}#bookPageNumber{font:italic 11px Georgia,serif;color:var(--muted);margin-left:auto}#bookPageTitle{font:600 18px Georgia,serif;padding:10px 14px!important}#noteSaveStatus{font-size:10px;color:var(--muted);align-self:center}#noteModal.book-mode{background:#1e2a24}#noteModal.book-mode .note-editor-card{background:var(--book-cover);padding:14px max(14px,calc((100vw - 1000px)/2)) 0}#noteModal.book-mode .note-body-field{background:#fbf7e9;box-shadow:inset 12px 0 18px #6c563220,4px 0 #d1c6aa,8px 0 #eee5ce;border-radius:3px 10px 0 0;overflow:hidden;margin-bottom:0}/* Every text row shares the paper pitch. The measured font baseline places each rule. */
+#noteModal.book-mode #noteBody{
+ --paper-row:30px;--paper-top:15px;--paper-left:60px;--paper-margin:44px;
+ color:#263851;font-family:Georgia,serif;font-size:17px;line-height:var(--paper-row);
+ padding:var(--paper-top) 20px 100px var(--paper-left);
+ background-image:linear-gradient(90deg,transparent var(--paper-margin),#db818980 var(--paper-margin),#db818980 calc(var(--paper-margin) + 2px),transparent calc(var(--paper-margin) + 2px)),linear-gradient(#9fbad37a 1px,transparent 1px);
+ background-size:100% 100%,100% var(--paper-row);
+ background-position:0 0,0 calc(var(--paper-top) + var(--paper-baseline,21px) + 1px);
+ background-repeat:no-repeat,repeat;background-attachment:local;caret-color:#263851
+}
+#noteModal.book-mode[data-paper="grid"] #noteBody{
+ background-image:linear-gradient(90deg,transparent var(--paper-margin),#db818980 var(--paper-margin),#db818980 calc(var(--paper-margin) + 2px),transparent calc(var(--paper-margin) + 2px)),linear-gradient(#9fbad37a 1px,transparent 1px),linear-gradient(90deg,#9fbad350 1px,transparent 1px);
+ background-size:100% 100%,100% var(--paper-row),var(--paper-row) 100%;
+ background-position:0 0,0 calc(var(--paper-top) + var(--paper-baseline,21px) + 1px),var(--paper-left) 0;
+ background-repeat:no-repeat,repeat,repeat
+}
+#noteModal.book-mode #noteBody :is(p,div,h1,h2,h3,h4,h5,h6,blockquote){margin:0;padding:0;min-height:var(--paper-row);line-height:var(--paper-row)}
+#noteModal.book-mode #noteBody :is(ul,ol){margin:0;padding:0 0 0 var(--paper-row)}
+#noteModal.book-mode #noteBody li{margin:0;padding:0;line-height:var(--paper-row)}
+/* Inline formatting keeps a common baseline instead of expanding individual rows. */
+#noteModal.book-mode #noteBody :is(span,font,b,strong,i,em,u,s,strike,a){line-height:0}
+#noteModal.book-mode #noteBody .note-photo{margin:var(--paper-row) 0;line-height:normal}
+#noteModal.book-mode #noteBody .note-photo-remove{line-height:16px}
+#noteModal.book-mode #noteBody[data-empty="true"]:before{color:#7c8c99}#noteModal.book-mode #noteTitle{color:#fff}#noteModal.book-mode #bookPageTitle{background:#fbf7e9;color:#263851;border-color:#c5bea8}#noteModal.book-mode .modal-actions{background:var(--book-cover);box-shadow:none}.note-photo{position:relative;display:block;width:fit-content;max-width:100%;margin:16px 0;padding:7px;background:#fff;border-radius:4px;box-shadow:0 3px 12px #0002;line-height:1.4}.note-photo img,#noteBody>img{display:block;max-width:100%;height:auto;max-height:650px;object-fit:contain}.note-photo-remove{display:block;margin-top:7px;padding:5px 8px;border:1px solid #d6dce1;background:#f3f5f7;color:#435164;border-radius:5px;font:11px system-ui;cursor:pointer}#noteModal .photo-tool{width:auto;padding:0 9px;white-space:nowrap}#noteModal.book-mode .note-toolbar{flex:none}#noteModal.book-mode .note-editor-options{margin-bottom:0}@media(max-width:520px){.book-shelf{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 14px;padding:4px 3px 20px}.exercise-cover{min-height:235px;padding:20px 12px 30px 19px}.book-cover-label{padding:16px 6px;gap:12px}.book-cover-label strong{font-size:19px}.book-cover-heading{font-size:7px;letter-spacing:1px}#noteModal.book-mode .note-editor-card{padding:12px 9px 0}#noteModal.book-mode #noteBody{--paper-left:43px;--paper-margin:30px}#noteModal.book-mode.note-keyboard-open.note-body-focused #bookControls{display:none}#noteSaveStatus{display:none}}
+.book-settings input,.book-settings select,.book-page-nav select{font:inherit;font-size:12px;color:var(--text);background:#0b1220;border:1px solid var(--line);border-radius:9px;padding:9px 10px;min-height:36px}.book-settings input{max-width:100%}.book-settings select{flex:0 1 auto}.book-mode #noteSaveStatus{color:#eef3e8}.book-mode .modal-head .sub{color:#d1ddd3}.book-mode #bookPageNumber{color:#d1ddd3}
+
+/* Preserve typed tabs, repeated spaces and newlines in both note editors. */
+#noteModal #noteBody{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4}
+
+/* Layout survives saving; these editing controls are stripped from saved HTML. */
+#noteBody .note-photo{box-sizing:border-box;min-width:70px;white-space:normal}
+#noteBody .note-photo img{width:100%;height:auto;max-height:none;user-select:none;-webkit-user-drag:none}
+#noteBody .note-photo[data-photo-selected]{outline:2px solid #72a6e8;outline-offset:3px}
+#noteBody .note-photo-tools{display:none;flex-wrap:wrap;gap:5px;margin-top:8px;line-height:normal;min-height:0;padding:0}
+#noteBody .note-photo[data-photo-selected] .note-photo-tools{display:flex}
+#noteBody .note-photo-tools button,#noteBody .note-photo-tools label{font:12px system-ui;color:#e9edf4;background:#252b35;border:1px solid #566173;border-radius:6px;padding:7px;min-height:34px;line-height:18px;cursor:pointer}
+#noteBody .note-photo-tools label{display:flex;align-items:center;flex-wrap:wrap;gap:5px;flex:1 1 150px;min-width:0}
+#noteBody .note-photo-tools input{width:80px;min-width:0;flex:1 1 30px;accent-color:#72a6e8;padding:0}
+#noteBody [data-photo-action="move"],#noteBody .note-photo-resize{touch-action:none;user-select:none;cursor:move}
+#noteBody .note-photo-resize{display:none;position:absolute;right:-8px;bottom:-8px;width:30px;height:30px;border:2px solid #fff;border-radius:8px;background:#426fa9;color:#fff;font:20px system-ui;cursor:nwse-resize;padding:0;line-height:26px}
+#noteBody .note-photo[data-photo-selected] .note-photo-resize{display:block}
+#noteBody[contenteditable="false"] [data-photo-tools]{display:none!important}
+
+/* The exercise book scrolls as one page, with paper that grows with the writing. */
+#noteModal.book-mode{overflow:hidden}
+#noteModal.book-mode .modal-card.note-editor-card{overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;scroll-padding-block:20px 100px}
+#noteModal.book-mode .note-editor-card>*{flex-shrink:0}
+#noteModal.book-mode .note-body-field{flex:0 0 auto;display:block;overflow:visible}
+#noteModal.book-mode #noteBody{flex:none;height:auto;min-height:max(600px,75dvh);overflow:visible;resize:none}
+#noteModal.book-mode .modal-actions{position:sticky;bottom:0}
+@media(max-width:520px){
+ #noteModal.book-mode #noteBody{min-height:max(480px,75dvh)}
+ /* While the phone keyboard is open, keep the full remaining viewport for writing. */
+ #noteModal.book-mode.note-keyboard-open.note-body-focused .modal-card.note-editor-card{overflow:hidden}
+ #noteModal.book-mode.note-keyboard-open.note-body-focused .note-body-field{flex:1;display:flex;min-height:0;overflow:hidden}
+ #noteModal.book-mode.note-keyboard-open.note-body-focused #noteBody{flex:1;min-height:0;overflow:auto;padding-bottom:84px}
+}
+html:has(#noteModal.book-mode.open){overflow:hidden}
+
+#schoolbooksPage,#schoolbooksPage .stack,#schoolbooksPage .card,#schoolbooksList{min-width:0;max-width:100%}
+.schoolbooks-tools{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;align-items:center}
+.schoolbooks-tools .notes-search{flex:1;min-width:min(220px,100%)}
+.schoolbooks-tools select{max-width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--text);font:inherit}
+#schoolbooksNavigation{flex-wrap:wrap}

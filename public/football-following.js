@@ -1,6 +1,14 @@
 (function(root){
   const key=value=>String(value||'').toLowerCase().replace(/\b(fc|afc|football club)\b/g,'').replace(/[^a-z0-9]/g,'');
-  function favourite(match,teams=[]){return teams.some(team=>[match.homeTeam,match.awayTeam].some(other=>other&&((Number(team.id)!==0&&Number(team.id)===Number(other.id))||(key(team.name)&&key(team.name)===key(other.name))))) }
+  const female=value=>value?.gender==='female'||/women|\(w\)|ladies/i.test(String(value?.name||''));
+  const namespace=id=>Math.abs(Number(id))>=900000000000?'sofascore':Math.abs(Number(id))>=800000000000?'fotmob':Number(id)<0?'api-football':'football-data';
+  function favourite(match,teams=[]){return teams.some(team=>[match.homeTeam,match.awayTeam].some(other=>{
+    if(!other)return false;
+    if(Number(team.id)&&Number(team.id)===Number(other.id))return true;
+    if(female(team)!==(match.gender==='female'||female(other)))return false;
+    if(Number(team.id)&&Number(other.id)&&namespace(team.id)===namespace(other.id))return false;
+    return !!key(team.name)&&key(team.name)===key(other.name);
+  }));}
   function followed(state,matches,now=Date.now()){
     const manual=new Set((state.footballFollowedMatches||[]).map(Number).filter(Number.isSafeInteger).filter(Boolean));
     const excluded=new Set((state.footballExcludedMatches||[]).map(Number));

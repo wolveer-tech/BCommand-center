@@ -1,7 +1,7 @@
 <!doctype html><html><meta charset="utf-8"><title>Command Centre recovery tests</title>
 <style>body{font:16px system-ui;margin:40px;background:#101828;color:#eef}li{margin:12px}h1{font-size:26px}</style>
 <h1>Recovery regression tests</h1><ol id="results"></ol><p id="summary">Running…</p>
-<script src="/state-safety.js"></script><script>
+<script src="/state-safety.js?v=10.32"></script><script>
 const results=document.querySelector('#results'),summary=document.querySelector('#summary');let failed=0,passed=0;
 const key='commandCenterV3';
 function memory(){const map=new Map();return {getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,String(v)),removeItem:k=>map.delete(k),clear:()=>map.clear()}}
@@ -45,6 +45,16 @@ await test('Unavailable storage locks writes until recovery can be checked',asyn
 });
 await test('Native recovery restores data after all website storage is empty',async()=>{
  const opts=config();opts.nativeRows=[{id:'native-current',savedAt:Date.now(),state:state(8)}];const a=CommandCentreSafety.create(opts);assert((await a.initialize()).notes.length===8,'Native recovery ignored');
+});
+await test('Upgrades preserve an exact snapshot of all existing local data',async()=>{
+ const opts=config(),old={...state(3),holdings:[{id:'holding',shares:42}],customSetting:'keep me',noteFolders:['Notes','School']};
+ old.notes.push({id:'book',kind:'schoolbook',title:'Biology',pages:[{id:'p1',title:'Cells',body:'<p>Writing</p><img src="data:image/jpeg;base64,YWJj">'}]});
+ opts.storage.setItem(key,JSON.stringify(old));const a=CommandCentreSafety.create(opts),recovered=await a.initialize();
+ const protectedValue=await a.protectUpgrade(recovered,'v10.32');assert(protectedValue._ccProtectedUpgrade==='v10.32','No version marker');
+ const before=(await a.list()).find(row=>row.reason==='before v10.32 update');assert(!!before,'Missing upgrade snapshot');
+ for(const k of ['notes','events','reminders','bibleRead','holdings','customSetting','noteFolders'])assert(JSON.stringify(before.state[k])===JSON.stringify(old[k]),'Changed old '+k);
+ const count=(await a.list()).length;await a.protectUpgrade(protectedValue,'v10.32');assert((await a.list()).length===count,'Repeated upgrade snapshot');
+ opts.storage.clear();const b=CommandCentreSafety.create(opts),loaded=await b.initialize();assert(loaded.notes[3].pages[0].body===old.notes[3].pages[0].body,'Photo/page missing after recovery');
 });
 await test('Malformed states are rejected without replacing a valid saved record',async()=>{
  const opts=config(),a=CommandCentreSafety.create(opts);await a.initialize();a.save(state(3));await a.flush();assert(!a.save({...state(0),notes:null}),'Malformed state accepted');assert(JSON.parse(opts.storage.getItem(key)).notes.length===3,'Valid record overwritten');

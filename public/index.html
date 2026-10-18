@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="cc-release" content="10.33.7" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#070b14" />
 <meta name="description" content="Personal Command Center — portfolio, manga, Reddit, weather, reminders and daily briefing." />
@@ -1795,8 +1796,8 @@ body:not(.home-fullscreen) .nav-back-btn{display:grid}
   background:linear-gradient(90deg,#795cff,#26d5aa)
 }
 
-/* YouTube uses one official embedded player. The floating module is controls/metadata only. */
-.music-mini-youtube{display:none!important}
+/* Keep the official player in one persistent DOM location so navigation cannot reload it. */
+.music-mini-youtube{display:none}.music-mini-youtube.has-player{display:block}.music-mini-youtube .music-youtube-stage{margin:7px 0 0;padding:0;border:0}.music-mini-youtube .music-youtube-stage iframe{width:100%;height:auto;aspect-ratio:16/9;min-height:180px}
 .music-mini-player.youtube-mode{
   width:min(350px,calc(100vw - 24px));
   padding:6px 7px 5px
@@ -2058,17 +2059,20 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media(max-width:520px){.btn{min-height:42px}.btn.small{min-height:36px}.youtube-library-row{grid-template-columns:78px minmax(0,1fr)}.youtube-library-row img{width:78px}.match-centre-hero{gap:7px;padding:12px}.match-centre-team img{width:36px;height:36px}.match-centre-score{font-size:20px}.match-centre-overview{grid-template-columns:1fr}.match-stat{grid-template-columns:minmax(0,1fr) 66px minmax(0,1fr)}}
 
 </style>
-<link rel="stylesheet" href="/transfers.css">
-<script defer src="/transfers.bundle.js"></script>
-<link rel="stylesheet" href="/messages.css">
-<script defer src="/messages.bundle.js"></script>
-<link rel="stylesheet" href="space-motion.css" />
-<link rel="stylesheet" href="games-suite.css" />
-<script src="space-motion.js"></script>
+<link rel="stylesheet" href="/transfers.css?v=10.33.7">
+<script defer src="/transfers.bundle.js?v=10.33.7"></script>
+<link rel="stylesheet" href="/messages.css?v=10.33.7">
+<script defer src="/messages.bundle.js?v=10.33.7"></script>
+<link rel="stylesheet" href="space-motion.css?v=10.33.7" />
+<link rel="stylesheet" href="/games-suite.css?v=10.33.7" />
+<link rel="stylesheet" href="/manga-reader.css?v=10.33.7" />
+<link rel="stylesheet" href="/glass-design.css?v=10.33.7" />
+<script src="space-motion.js?v=10.33.7"></script>
 </head>
 <body>
 <div id="ccSpaceIntro" role="dialog" aria-modal="true" aria-labelledby="ccSpaceTitle" aria-hidden="true">
   <canvas id="ccSpaceCanvas" aria-hidden="true"></canvas>
+  <div id="ccSpaceStars" aria-hidden="true"><span class="cc-star-layer"></span><span class="cc-star-layer"></span><span class="cc-star-layer"></span></div>
   <div class="cc-space-brand">
     <div class="cc-space-monogram" aria-hidden="true">cc</div>
     <p class="cc-space-eyebrow">Your personal universe</p>
@@ -2096,6 +2100,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <button class="sidebar-item" data-page="weather"><span class="sidebar-emoji">🌤️</span> Weather</button>
       <button class="sidebar-item" data-page="calendar"><span class="sidebar-emoji">🗓️</span> Calendar</button>
       <button class="sidebar-item" data-page="notes"><span class="sidebar-emoji">📝</span> Notes</button>
+      <button class="sidebar-item" data-page="schoolbooks"><span class="sidebar-emoji">📚</span> Schoolbooks</button>
+      <button class="sidebar-item" data-page="account"><span class="sidebar-emoji">◎</span> <span data-account-label>Account</span></button>
       <button class="sidebar-item" data-page="music"><span class="sidebar-emoji">🎵</span> Music</button>
       <button class="sidebar-item" data-page="news"><span class="sidebar-emoji">📰</span> News</button>
       <button class="sidebar-item" data-page="bible"><span class="sidebar-emoji">📖</span> Bible</button>
@@ -2114,6 +2120,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <button class="icon-btn" id="universalSearchBtn" aria-label="Search Command Centre" title="Search">⌕</button>
       <button class="icon-btn watch-quick-btn" id="watchQuickBtn" aria-label="Open Watch" title="Watch">🎬</button>
       <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙️</button>
+      <button class="icon-btn" data-page-jump="account" aria-label="Account and sync" title="Account and sync">◎</button>
     </div>
   </header>
 
@@ -2162,7 +2169,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
               <div class="launcher-date" id="launcherDate">Monday 15</div>
               <div class="launcher-time" id="launcherTime">10:37 • Your shortcuts and sections</div>
             </div>
-            <div class="launcher-header-actions"><span class="launcher-swipe-hint">Swipe down to search</span><button class="launcher-utility" id="launcherLockNow" type="button" data-launch-action="lock" aria-label="Lock Command Centre now" title="Lock now">🔒</button><button class="launcher-utility" type="button" data-launch-action="customize" aria-label="Customise Home" title="Customise Home">⋯</button></div>
+            <div class="launcher-header-actions"><button class="launcher-account" type="button" data-launch-page="account"><span aria-hidden="true">◎</span><span data-account-label>Account</span></button><button class="launcher-utility" id="launcherLockNow" type="button" data-launch-action="lock" aria-label="Lock Command Centre now" title="Lock now">🔒</button><button class="launcher-utility" type="button" data-launch-action="customize" aria-label="Customise Home" title="Customise Home">⋯</button></div>
           </div>
 
           <div class="launcher-widget-grid">
@@ -2217,6 +2224,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
           </div>
 
           <div class="launcher-app-grid" id="homeLauncherApps">
+            <button class="iphone-app" type="button" data-launch-page="manga"><span class="iphone-app-icon">本</span><span class="iphone-app-label">Manga library</span></button>
             <button class="iphone-app" type="button" data-launch-page="today"><span class="iphone-app-icon app-theme-today">☀️</span><span class="iphone-app-badge" id="launcherBadgeToday"></span><span class="iphone-app-label">Today</span></button>
             <button class="iphone-app" type="button" data-launch-page="entertainment"><span class="iphone-app-icon app-theme-entertainment">🍿</span><span class="iphone-app-label">Entertainment</span></button>
             <button class="iphone-app" type="button" data-launch-page="mirror"><span class="iphone-app-icon app-theme-mirror">📺</span><span class="iphone-app-label">Mirror</span></button>
@@ -2224,6 +2232,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
             <button class="iphone-app" type="button" data-launch-page="weather"><span class="iphone-app-icon app-theme-weather">🌤️</span><span class="iphone-app-label">Weather</span></button>
             <button class="iphone-app" type="button" data-launch-page="calendar"><span class="iphone-app-icon app-theme-calendar">🗓️</span><span class="iphone-app-badge" id="launcherBadgeCalendar"></span><span class="iphone-app-label">Calendar</span></button>
             <button class="iphone-app" type="button" data-launch-page="notes"><span class="iphone-app-icon app-theme-notes">📝</span><span class="iphone-app-badge" id="launcherBadgeNotes"></span><span class="iphone-app-label">Notes</span></button>
+            <button class="iphone-app" type="button" data-launch-page="schoolbooks"><span class="iphone-app-icon app-theme-notes">📚</span><span class="iphone-app-badge" id="launcherBadgeSchoolbooks"></span><span class="iphone-app-label">Schoolbooks</span></button>
             <button class="iphone-app" type="button" data-launch-page="news"><span class="iphone-app-icon app-theme-news">📰</span><span class="iphone-app-label">News</span></button>
             <button class="iphone-app" type="button" data-launch-page="bible"><span class="iphone-app-icon app-theme-bible">📖</span><span class="iphone-app-label">Bible</span></button>
             <button class="iphone-app" type="button" data-launch-page="briefing"><span class="iphone-app-icon app-theme-briefing">📋</span><span class="iphone-app-label">Briefing</span></button>
@@ -2231,17 +2240,17 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
             <button class="iphone-app" type="button" data-launch-page="transfers"><span class="iphone-app-icon app-theme-transfers">⇄</span><span class="iphone-app-label">Transfers</span></button>
           </div>
 
-          <div class="launcher-dock">
-            <button class="launcher-dock-app" type="button" data-launch-page="messages"><span class="launcher-dock-icon">☷</span><span class="launcher-dock-label">Messages</span></button>
-            <button class="launcher-dock-app" type="button" data-launch-watch="youtube"><span class="launcher-dock-icon">▶️</span><span class="launcher-dock-label">YouTube</span></button>
-            <button class="launcher-dock-app" type="button" data-launch-watch="movies"><span class="launcher-dock-icon">🎬</span><span class="launcher-dock-label">Movies & TV</span></button>
-            <button class="launcher-dock-app" type="button" data-launch-page="music"><span class="launcher-dock-icon">🎵</span><span class="launcher-dock-label">Music</span></button>
-          </div>
         </div>
       </div>
         </div>
         <div class="home-pager-dots"><button class="home-page-dot active" type="button" data-home-slide-to="0" aria-label="Open dashboard panel"></button><button class="home-page-dot" type="button" data-home-slide-to="1" aria-label="Open launcher panel"></button></div>
       </div>
+      <nav class="launcher-dock" aria-label="Home shortcuts">
+        <button class="launcher-dock-app" type="button" data-launch-page="messages"><span class="launcher-dock-icon">☷</span><span class="launcher-dock-label">Messages</span></button>
+        <button class="launcher-dock-app" type="button" data-launch-watch="youtube"><span class="launcher-dock-icon">▶️</span><span class="launcher-dock-label">YouTube</span></button>
+        <button class="launcher-dock-app" type="button" data-launch-watch="movies"><span class="launcher-dock-icon">🎬</span><span class="launcher-dock-label">Movies & TV</span></button>
+        <button class="launcher-dock-app" type="button" data-launch-page="music"><span class="launcher-dock-icon">🎵</span><span class="launcher-dock-label">Music</span></button>
+      </nav>
     </section>
 
 <section class="page" id="messagesPage">
@@ -2362,8 +2371,34 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       </div>
     </section>
 
+    <section class="page" id="accountPage">
+      <div id="accountContent" class="stack"></div>
+      <div class="account-overview"><article class="account-feature"><span>01</span><h2>Notes &amp; schoolbooks</h2><p>Your writing, photos and pages, across your devices.</p></article><article class="account-feature"><span>02</span><h2>Manga library</h2><p>Favourites, recent chapters and your saved reading page.</p></article><article class="account-feature"><span>03</span><h2>Offline, too</h2><p>Keep reading and writing. Changes sync when you reconnect.</p></article></div>
+    </section>
     <section class="page" id="mangaPage">
+      <header class="manga-library-heading"><div><div class="glass-eyebrow">YOUR READING SPACE</div><h1>Manga library<span>Every chapter, remembered.</span></h1></div><div id="mangaLibrarySummary" class="pill">Your collection starts here</div></header>
+      <nav class="manga-library-tabs" aria-label="Manga library"><button type="button" class="active" data-manga-view="explore" aria-pressed="true">Discover</button><button type="button" data-manga-view="favourites" aria-pressed="false">♡ Favourites <span id="mangaFavouriteCount">0</span></button><button type="button" data-manga-view="history" aria-pressed="false">↺ History <span id="mangaHistoryCount">0</span></button></nav>
+      <div class="manga-sync-note"><span id="mangaSyncLabel">Keep your place on PC and phone.</span><button class="btn small" data-page-jump="account" type="button">Account &amp; sync ↗</button></div>
+      <section id="mangaLibraryPanel" class="card manga-library-panel" aria-label="Saved manga" hidden><div class="card-head"><div><div class="title" id="mangaLibraryTitle">Favourites</div><div class="sub" id="mangaLibraryDescription"></div></div></div><div id="mangaLibraryItems" class="manga-library-grid"></div></section>
+      <div id="mangaDiscoverPanel">
+      <div id="mangaContinueReading" class="manga-continue" hidden></div>
+      <article class="card manga-reader-card">
+        <div class="card-head"><div><div class="title">📖 Manga Reader</div><div class="sub">Find a title, choose a chapter and read its pages here.</div></div></div>
+        <form id="mangaReaderForm" class="manga-reader-search"><select id="mangaReaderProvider" aria-label="Manga source"><option value="asura">Asura Scans</option><option value="mangadex">MangaDex</option><option value="comix">Comix</option></select><input id="mangaReaderSearch" class="notes-search" aria-label="Search manga to read" placeholder="Search Asura Scans titles..." required maxlength="200"><button id="mangaReaderSearchBtn" class="btn primary" type="submit">Search</button></form>
+        <div id="mangaReaderStatus" class="section-note" role="status">Search Asura Scans or choose a recommendation below.</div>
+        <div id="comixReaderTools" hidden><div class="comix-source-links"><a id="comixSearchLink" href="https://comix.to/" target="_blank" rel="noopener noreferrer">Search Comix ↗</a><a href="https://comix.ws/" target="_blank" rel="noopener noreferrer">Open fallback domain ↗</a></div><details class="comix-link-form" open><summary>Save a Comix title or chapter</summary><p>Comix uses its own browser reader. Paste a reading link here to sync the title and chapter with your phone.</p><form id="comixLinkForm"><label>Title<input id="comixLinkTitle" placeholder="Manga title" required maxlength="300"></label><label>Comix link<input id="comixLinkUrl" type="url" placeholder="https://comix.to/title/…" required maxlength="1000"></label><button class="btn primary" type="submit">Save link</button></form></details></div>
+        <div id="mangaReaderResults" class="manga-reader-results"></div>
+        <div id="mangaReaderBook" hidden>
+          <div class="manga-book-heading"><h2 id="mangaReaderSeries"></h2><button type="button" id="mangaReaderFavourite" class="btn" aria-pressed="false">♡ Add favourite</button></div><a id="mangaReaderSource" class="manga-reader-source" target="_blank" rel="noopener noreferrer">View source ↗</a>
+          <div class="manga-reader-controls">
+            <select id="mangaReaderLanguage" aria-label="Chapter language"><option value="en">English</option><option value="ja">Japanese</option><option value="ko">Korean</option><option value="zh">Chinese</option><option value="es">Spanish</option><option value="fr">French</option><option value="de">German</option><option value="pt-br">Portuguese (Brazil)</option><option value="it">Italian</option></select>
+            <select id="mangaReaderChapter" aria-label="Choose manga chapter" disabled></select><button id="mangaReaderRead" class="btn primary" type="button">Read chapter</button><button id="mangaReaderRetry" class="btn" type="button">Retry pages</button>
+            <button id="mangaReaderPrev" class="btn" type="button" disabled>Previous chapter</button><button id="mangaReaderNext" class="btn" type="button" disabled>Next chapter</button><button id="mangaReaderMore" class="btn" type="button" hidden>Load more chapters</button>
+          </div><div id="mangaReaderPages" class="manga-reader-pages"></div>
+        </div>
+      </article>
       <article class="card"><div class="card-head"><div><div class="title">📚 Manga Recommendations</div><div class="sub">Random picks from current popular manga</div></div><button class="btn primary" id="moreManga">🎲 More</button></div><div id="mangaStatus" class="section-note"></div><div id="mangaContent"></div></article>
+      </div>
     </section>
 
     <section class="page" id="redditPage">
@@ -2575,6 +2610,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
                   <button class="media-view-tab active" data-media-view="explore">Explore</button>
                   <button class="media-view-tab" data-media-view="search">Search</button>
                   <button class="media-view-tab" data-media-view="player">Player</button>
+                  <button class="media-view-tab" data-media-view="watchlist">Watchlist</button>
                 </div>
 
                 <div class="media-view active" data-media-view-panel="explore">
@@ -2616,19 +2652,26 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
                   <div id="mediaSearchResults" class="media-results" style="margin-top:10px"></div>
                 </div>
 
+                <div class="media-view" data-media-view-panel="watchlist">
+                  <div class="media-section-title"><strong>Your watchlist</strong><span>Movies and shows saved for later</span></div>
+                  <div id="mediaWatchlist" class="media-results"></div>
+                </div>
+
                 <div class="media-view" data-media-view-panel="player">
                   <div class="media-player-shell">
                     <div class="media-toolbar">
                       <button class="media-mode active" data-media-mode="standard">Primary</button>
-                      <button class="media-mode" data-media-mode="torrent">Alternate</button>
-                      <button class="media-mode" data-media-mode="agg">Aggregator</button>
+                      <button class="media-mode" data-media-mode="torrent">Alternate · 1Shows</button>
+                      <button class="media-mode" data-media-mode="agg">Aggregator · Anicine</button>
                       <button class="media-mode" data-media-mode="flixer">Flixer</button>
                       <button class="media-mode" data-media-mode="atlantic">Atlantic</button>
                       <button class="media-mode" data-media-mode="boomflix">Boomflix</button>
+                      <button class="media-mode" data-media-mode="shuttletv">ShuttleTV</button>
+                      <button class="media-mode" data-media-mode="cinesrc">CineSrc</button>
                     </div>
 
                     <div class="media-provider-note">
-                      Six sources are available. Atlantic opens the exact movie or episode; Boomflix opens the title page so its own player can choose the stream.
+                      Eight sources are available. ShuttleTV opens the selected movie or episode; CineSrc opens its embedded player. Boomflix opens the title page so its own player can choose the stream.
                     </div>
 
                     <div id="mediaPlayerEmpty" class="media-player-empty">
@@ -2657,12 +2700,18 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
                       <div class="toolbar">
                         <button class="btn primary" id="mediaPlayBtn">▶ Play</button>
+                        <button class="btn" id="mediaReloadBtn" type="button" onclick="playSelectedMedia()">↻ Reload player</button>
+                        <button class="btn" id="mediaStopBtn" type="button" onclick="stopVideoPlayback('media');mediaStatus('Player stopped. Choose Play to retry.')">Stop player</button>
+                        <button class="btn" id="mediaWatchlistBtn" type="button" aria-pressed="false">＋ Add to watchlist</button>
                         <button class="btn" id="mediaOpenExternalBtn">↗ Open provider</button>
                         <button class="btn" id="mediaFullscreenBtn" type="button" aria-pressed="false" disabled>⛶ Full screen</button>
                         <button class="btn" id="mediaMarkWatchedBtn" type="button" disabled>✓ Mark watched</button>
                       </div>
                     </div>
 
+                    <label class="player-compatibility" for="mediaCompatibility">Player mode <select id="mediaCompatibility"><option value="compatible">Compatible · full provider support</option><option value="restricted">Restricted · blocks player popups</option></select><span id="mediaProtectionStatus" aria-live="polite">Compatible mode supports providers that reject sandboxed players.</span></label>
+                    <label id="mediaAdFilterControl" hidden><input type="checkbox" id="mediaAdFilter" checked> Filter common ads <span class="muted">Turn off if a provider will not play.</span></label>
+                    <div id="mediaProviderNotice" class="media-provider-notice" role="status" hidden></div>
                     <div class="media-player-stage app-video-stage" id="mediaPlayerStage">
                       <iframe sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" id="mediaWatchFrame" class="media-player"
                         allow="autoplay; fullscreen; picture-in-picture"
@@ -2729,6 +2778,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
                     <option value="FAC">FA Cup</option>
                     <option value="FLC">League Cup</option>
                   </optgroup>
+                  <optgroup label="Women’s football">
+                    <option value="WSL">Women’s Super League</option>
+                    <option value="UWCL">Women’s Champions League</option>
+                    <option value="NWSL">NWSL</option>
+                    <option value="WLC">Women’s League Cup</option>
+                    <option value="WFAC">Women’s FA Cup</option>
+                  </optgroup>
                 </select>
               </div>
             </div>
@@ -2739,7 +2795,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
         <div id="footballSportContent">
 
         <article class="card">
-          <div class="card-head"><div><div class="title">⭐ Favourite teams</div><div class="sub">Star as many clubs as you want. For Boreham Wood, choose National League and tap ☆ beside the club.</div></div></div>
+          <div class="card-head"><div><div class="title">⭐ Favourite teams</div><div class="sub">Search for any club to follow it. Men’s results appear first; women’s teams are labelled separately.</div></div></div>
+          <div class="football-team-search"><form id="footballTeamSearchForm"><input id="footballTeamSearch" type="search" aria-label="Search football teams" placeholder="Search a team · Arsenal, Boreham Wood…" minlength="2" maxlength="50"><button class="btn" type="submit">Search teams</button></form><div id="footballTeamSearchStatus" class="section-note" role="status"></div><div id="footballTeamSearchResults" class="football-team-search-results"></div></div>
           <div id="footballFavourite"><div class="empty">No favourite teams selected yet.</div></div>
         </article>
 
@@ -2822,11 +2879,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
             <button class="btn" id="liveFootballRefreshBtn">↻ Refresh streams</button>
           </div>
           <div id="liveFootballProviders" class="live-provider-switcher"></div>
+          <button class="btn small" id="liveFootballBackupBtn" type="button" hidden>Use StreamPortal backup</button>
           <div id="liveFootballStatus" class="section-note">Choose a configured provider, then refresh.</div>
           <div id="liveFootballGrid" class="live-stream-grid"></div>
           <div id="liveFootballPlayerWrap" style="display:none;margin-top:12px">
             <div class="card-head"><div><div class="title" id="liveFootballPlayerTitle">Live stream</div><div class="sub" id="liveFootballPlayerMeta"></div></div><button class="btn small" id="closeLiveFootballBtn">Close player</button></div>
             <div id="liveFootballSources" class="live-source-switcher"></div>
+            <label class="live-player-policy">Player mode <select id="liveFootballCompatibility"><option value="compatible">Compatible</option><option value="restricted">Restricted · blocks popups</option></select></label>
+            <p class="section-note">The native app blocks player popups and navigation away. In a browser, Restricted mode blocks popups but some providers may refuse to play.</p>
+            <div class="toolbar"><button class="btn small" type="button" onclick="setLiveFootballSource(liveFootballCurrentSourceIndex)">↻ Retry player</button><button class="btn small" type="button" onclick="stopLiveFootballPlayer()">Stop player</button></div>
+            <p id="liveFootballPlayerNotice" class="section-note" role="status" hidden></p>
             <iframe sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" id="liveFootballFrame" class="live-stream-frame" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
             <video id="liveFootballVideo" class="live-stream-frame" controls playsinline preload="metadata" style="display:none;background:#000"></video>
           </div>
@@ -2942,7 +3004,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <div class="stack">
         <article class="card">
           <div class="card-head">
-            <div><div class="title">📝 Notes</div><div class="sub">Folders, pinned notes and Recently Deleted.</div></div>
+            <div><div class="title">📝 Notes</div><div class="sub">Photo notes and Recently Deleted.</div></div>
             <div class="toolbar"><button class="btn" id="addNoteFolderBtn">+ Folder</button><button class="btn primary" id="addNoteBtn">+ New note</button></div>
           </div>
           <div class="notes-shell">
@@ -2951,6 +3013,18 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
           </div>
         </article>
       </div>
+    </section>
+
+    <section class="page" id="schoolbooksPage">
+      <div class="stack"><article class="card">
+        <div class="card-head"><div><div class="title">📚 Schoolbooks</div><div class="sub">Your exercise books, pages and lesson notes.</div></div><div class="toolbar"><button class="btn" id="schoolbooksAccountBtn">Account &amp; sync</button><button class="btn primary" id="addSchoolbookBtn">+ Schoolbook</button></div></div>
+        <div class="schoolbooks-tools">
+          <input id="schoolbooksSearch" class="notes-search" aria-label="Search schoolbooks" placeholder="Search schoolbooks...">
+          <select id="schoolbooksFolder" aria-label="Schoolbook folder"><option value="">All folders</option></select>
+          <div class="toolbar" id="schoolbooksNavigation" aria-label="Schoolbook filters"></div>
+        </div>
+        <div id="schoolbooksList"></div>
+      </article></div>
     </section>
 
     <section class="page" id="musicPage">
@@ -2987,7 +3061,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
             <div><div class="title">Now Playing</div><div class="sub" id="musicNowSource">Choose a track to start listening.</div></div>
           </div>
           <div id="musicNowPlaying"><div class="music-empty">Nothing playing yet.</div></div>
-          <div class="music-youtube-stage" id="musicYouTubeStage"></div>
         </article>
 
         <article class="card">
@@ -3062,6 +3135,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   <div class="settings-panels">
   <section class="settings-section active" data-settings-panel="general"><article class="card settings-card-clean">
     <div class="title">⚙️ General</div><div class="settings-description">Basic Command Centre behaviour.</div>
+    <div class="setting-note">Share notes, schoolbooks and manga with your phone from Account.</div><button type="button" class="btn" onclick="closeModal('settingsModal');switchPage('account')">Account &amp; sync ↗</button>
     <div class="field"><label>Weather city</label><input id="settingsCity" value="London" /></div>
   </article>
   <article class="card settings-card-clean">
@@ -3077,6 +3151,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <div class="settings-description">Your data has a separate recovery record. Keep up to 20 spaced automatic snapshots and 10 manual or restore snapshots, plus native iPhone recovery copies.</div>
     <label for="safetySnapshotList">Choose a snapshot by date and contents</label><select id="safetySnapshotList" style="width:100%;margin-top:8px" aria-label="Saved safety snapshots"></select><div class="backup-actions"><button class="btn" id="createSafetySnapshotBtn" type="button">Create snapshot</button><button class="btn" id="restoreSafetySnapshotBtn" type="button">Restore selected</button></div>
     <div class="foundation-status" id="foundationStorageStatus"><span>●</span><span>Checking durable storage…</span></div>
+  </article>
+  <article class="card settings-card-clean" id="nativeStorageTools" hidden>
+    <div class="title">Storage</div>
+    <div class="settings-description">Clear cached web and media files. Your notes, schoolbooks, reading progress, accounts, saved downloads and recovery snapshots are kept. Temporary web caches are also cleaned weekly.</div>
+    <button class="btn" id="clearNativeCachedFiles" type="button">Clear cached files</button>
+    <div class="setting-note" id="nativeCacheStatus" role="status">Recovery snapshots are compressed automatically.</div>
   </article></section>
 
   <section class="settings-section" data-settings-panel="home"><article class="card settings-card-clean cc-motion-settings">
@@ -3144,7 +3224,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="notificationCompanionContent"><div class="empty">Checking this installation…</div></div>
 <div class="modal-actions"><button class="btn" data-close="notificationCompanionModal">Close</button></div>
 </div></div>
-<div class="modal" id="footballLineupModal"><div class="modal-card" style="max-width:780px">
+<div class="modal" id="footballLineupModal"><div class="modal-card">
 <div class="modal-head"><div><div class="title" id="footballLineupTitle">Match Centre</div><div class="sub" id="footballLineupStatus">Loading…</div></div><button class="icon-btn" data-close="footballLineupModal">×</button></div>
 <div id="footballMatchHero"></div>
 <div class="match-centre-actions"><button class="btn primary" id="footballMatchFollowBtn" type="button">☆ Follow match</button><button class="btn" id="footballMatchCalendarBtn" type="button">＋ Add to calendar</button><button class="btn" id="footballMatchRefreshBtn" type="button">↻ Refresh</button></div>
@@ -3166,7 +3246,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 </div></div></div>
 <div class="modal" id="holdingModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="holdingModalTitle">Add holding</div><div class="sub">Enter the position you own</div></div><button class="icon-btn" data-close="holdingModal">×</button></div><div class="form"><div class="field"><label>Ticker</label><input id="holdSymbol" placeholder="VWRP.L" autocapitalize="characters" /></div><div class="field"><label>Name</label><input id="holdName" placeholder="Vanguard FTSE All-World" /></div><div class="field"><label>Shares</label><input id="holdShares" type="number" min="0" step="0.000001" placeholder="12" /></div><div class="field"><label>Average buy price (native currency)</label><input id="holdBuyPrice" type="number" min="0" step="0.000001" placeholder="95.50" /></div><div class="field"><label>Exchange</label><select id="holdExchange"><option value="LSE">London Stock Exchange (LSE)</option><option value="NASDAQ">NASDAQ</option><option value="NYSE">NYSE</option><option value="AMEX">AMEX</option></select></div><div class="field"><label>Market currency</label><select id="holdCurrency"><option value="GBP">GBP</option><option value="GBp">GBp (pence)</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="Other">Other</option></select></div><div class="field"><label>Exchange note</label><input id="holdNote" placeholder="Optional" /></div></div><div class="modal-actions"><button class="btn red" id="deleteHoldingBtn" style="display:none;margin-right:auto">Delete</button><button class="btn" data-close="holdingModal">Cancel</button><button class="btn primary" id="saveHolding">Save</button></div></div></div>
 <div class="modal" id="reminderModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="reminderModalTitle">Add reminder</div><div class="sub">Choose when it should appear in your briefing.</div></div><button class="icon-btn" data-close="reminderModal">×</button></div><div class="field"><label>Reminder</label><textarea id="reminderText" placeholder="e.g. Check ISA contribution"></textarea></div><div class="form"><div class="field"><label>Category</label><select id="reminderCategory"></select></div><div class="field"><label>First / due date</label><input id="reminderStartDate" type="date" /></div><div class="field"><label>Time (optional)</label><input id="reminderTime" type="time" /></div><div class="field"><label>Frequency</label><select id="reminderFrequency"><option value="none">One time</option><option value="daily">Daily</option><option value="every2days">Every 2 days</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div></div><div class="field" id="newCategoryField" style="display:none"><label>New category name</label><input id="newCategoryInput" placeholder="e.g. Shopping" /></div><div class="setting-note" style="margin-top:8px">A recurring reminder is shown in the briefing only when it is due on that briefing date. “Every 2 days” is the bi-daily option.</div><div class="modal-actions"><button class="btn" data-close="reminderModal">Cancel</button><button class="btn primary" id="saveReminder">Add reminder</button></div></div></div><div class="modal" id="calendarEventModal"><div class="modal-card"><div class="modal-head"><div><div class="title" id="calendarEventModalTitle">Add calendar event</div><div class="sub">Put an event on a specific day.</div></div><button class="icon-btn" data-close="calendarEventModal">×</button></div><div class="form"><div class="field full"><label>Event</label><input id="calendarEventTitle" placeholder="e.g. Dentist appointment" /></div><div class="field"><label>Date</label><input id="calendarEventDate" type="date" /></div><div class="field"><label>Time (optional)</label><input id="calendarEventTime" type="time" /></div><div class="field full"><label>Notes (optional)</label><textarea id="calendarEventNotes" placeholder="Anything you want included in the briefing"></textarea></div></div><div class="modal-actions"><button class="btn red" id="deleteCalendarEventBtn" style="display:none;margin-right:auto">Delete</button><button class="btn" data-close="calendarEventModal">Cancel</button><button class="btn primary" id="saveCalendarEvent">Save event</button></div></div></div><div class="modal" id="noteModal"><div class="modal-card note-editor-card"><div class="modal-head"><div><div class="title" id="noteModalTitle">New note</div><div class="sub">Write anything you want to keep.</div></div><button class="icon-btn" data-close="noteModal">×</button></div><div class="field note-title-field"><input id="noteTitle" placeholder="Note title" /></div>
-<div class="note-editor-options"><div class="field"><label>Folder</label><select id="noteFolder"></select></div><label class="note-pin-control"><input id="notePinned" type="checkbox" /> 📌 Pin note</label></div><div class="note-toolbar" id="noteToolbar">
+<div class="note-editor-options"><div class="field"><label>Folder</label><select id="noteFolder"></select></div><label class="note-pin-control"><input id="notePinned" type="checkbox" /> 📌 Pin note</label></div><div id="bookControls" hidden><div class="book-settings"><input id="bookSubject" aria-label="Subject" placeholder="Subject / class" maxlength="100"><select id="bookColor" aria-label="Cover colour"></select><select id="bookPaper" aria-label="Paper style"><option value="lined">Lined paper</option><option value="grid">Squared paper</option></select></div><div class="book-page-nav"><button type="button" class="btn small" id="bookPrevious" aria-label="Previous page">←</button><select id="bookPageSelect" aria-label="Choose page"></select><button type="button" class="btn small" id="bookNext" aria-label="Next page">→</button><button type="button" class="btn small" id="bookAddPage">+ Page</button><span id="bookPageNumber"></span></div><input id="bookPageTitle" aria-label="Page title" placeholder="Lesson / page title" maxlength="200"></div><div class="note-toolbar" id="noteToolbar">
+<button type="button" class="fmt-btn photo-tool" id="notePhotoBtn" title="Add images">＋ Photo</button><button type="button" class="fmt-btn photo-tool" id="noteCameraBtn" title="Take a photo">Camera</button><input type="file" id="notePhotoInput" accept="image/*" multiple hidden><input type="file" id="noteCameraInput" accept="image/*" capture="environment" hidden>
 <button type="button" class="fmt-btn note-format-toggle" id="noteFormatToggle" title="More formatting" aria-expanded="false">Aa</button>
 <button type="button" class="fmt-btn" data-cmd="bold" title="Bold"><b>B</b></button>
 <button type="button" class="fmt-btn" data-cmd="insertUnorderedList" title="Checklist / list">☑</button>
@@ -3201,7 +3282,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <button type="button" class="fmt-btn" data-cmd="removeFormat" title="Clear formatting">⨯</button>
 </div>
 <button type="button" class="fmt-btn note-keyboard-done" id="noteKeyboardDone" title="Hide keyboard" aria-label="Hide keyboard">⌄</button>
-</div><div class="field note-body-field"><div id="noteBody" class="note-body-input" contenteditable="true" data-placeholder="Start writing..." data-empty="true"></div></div><div class="modal-actions"><button class="btn" id="restoreNoteBtn" style="display:none;margin-right:auto">Restore</button><button class="btn red" id="deleteNoteBtn" style="display:none">Delete</button><button class="btn" data-close="noteModal">Cancel</button><button class="btn primary" id="saveNote">Save note</button></div></div></div>
+</div><div class="field note-body-field"><div id="noteBody" class="note-body-input" contenteditable="true" role="textbox" aria-label="Note text" aria-multiline="true" aria-description="Tab indents. Shift+Tab removes indentation. Escape leaves the editor." data-placeholder="Start writing..." data-empty="true"></div></div><div class="modal-actions"><button class="btn" id="restoreNoteBtn" style="display:none;margin-right:auto">Restore</button><button class="btn red" id="deleteNoteBtn" style="display:none">Delete</button><button class="btn" data-close="noteModal">Cancel</button><span id="noteSaveStatus" role="status"></span><button class="btn primary" id="saveNote">Save note</button></div></div></div>
 <audio id="commandMusicAudio" preload="metadata"></audio>
 <div class="music-mini-player" id="musicMiniPlayer" aria-live="polite">
   <div class="music-mini-main">
@@ -3221,7 +3302,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     </div>
   </div>
   <div class="music-mini-progress"><div class="music-mini-progress-fill" id="musicMiniProgress"></div></div>
-  <div class="music-mini-youtube" id="musicMiniYoutube"></div>
+  <div class="music-mini-youtube" id="musicMiniYoutube"><div class="music-youtube-stage" id="musicYouTubeStage"></div></div>
 </div>
 <button class="mobile-watch-fab" id="mobileWatchFab" aria-label="Open Watch">
   <span>🎬</span><strong>Watch</strong>
@@ -3246,8 +3327,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   onclick="backToTop()"
 >↑</button>
 
-<script src="/football-following.js"></script>
-<script src="/state-safety.js"></script>
+<script src="/football-following.js?v=10.33.7"></script>
+<script src="/state-safety.js?v=10.33.7"></script>
+<link rel="stylesheet" href="/notebooks.css?v=10.33.7">
+<link rel="stylesheet" href="/football-pitch.css?v=10.33.7">
+<script src="/football-pitch.js?v=10.33.7"></script>
+<link rel="stylesheet" href="/workspace-design.css?v=10.33.7">
+<script src="/playback-safety.js?v=10.33.7"></script>
+<script src="/note-images.js?v=10.33.7"></script>
+<script src="/notebooks.js?v=10.33.7"></script>
+<script src="/note-editor.js?v=10.33.7"></script>
+<script src="/accounts-client.js?v=10.33.7"></script>
+<script src="/manga-library.js?v=10.33.7"></script>
+<script src="/comix-links.js?v=10.33.7"></script>
 <script>
 'use strict';
 
@@ -3273,6 +3365,7 @@ const DEFAULT_STATE = {
   reminderCategories:['General','Finance','Personal','Shopping','Work','Health'],
   events:[],
   notes:[],
+  mangaLibrary:{favourites:[],history:[]},
   noteFolders:['Notes','Personal','Work'],
   homeLayout:['today','continue','words','reading','markets','reminders','assistant'],
   homeHidden:{},
@@ -3333,6 +3426,7 @@ const DEFAULT_STATE = {
 const stateSafety=CommandCentreSafety.create({onError:message=>{console.error(message);const el=document.querySelector('#foundationStorageStatus');if(el)el.textContent=message;}});
 let state = loadState();
 function normalizeLoadedState(){
+state.mangaLibrary=CommandCentreMangaLibrary.merge(state.mangaLibrary);
 document.body.classList.add('home-fullscreen');
 state.noteFolders=Array.isArray(state.noteFolders)&&state.noteFolders.length?state.noteFolders:['Notes','Personal','Work'];
 state.homeLayout=Array.isArray(state.homeLayout)&&state.homeLayout.length?state.homeLayout:['today','continue','words','reading','markets','reminders','assistant'];
@@ -3359,7 +3453,7 @@ if(!state.footballFavouriteTeams.length&&state.footballFavouriteTeamId){
 }
 state.footballFavouriteTeams=state.footballFavouriteTeams
   .filter(t=>Number(t?.id)!==0)
-  .map(t=>({id:Number(t.id),name:String(t.name||'Team'),crest:String(t.crest||'')}))
+  .map(t=>({id:Number(t.id),name:String(t.name||'Team'),crest:String(t.crest||''),gender:t.gender==='female'||/women|\(w\)/i.test(t.name||'')?'female':'male'}))
   .filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i);
 state.footballFollowedMatches=Array.isArray(state.footballFollowedMatches)?state.footballFollowedMatches.map(Number).filter(Boolean).slice(0,30):[];
 
@@ -3382,6 +3476,7 @@ state.entertainment={
     ?state.entertainment.youtubeForYouCache
     :{version:7,items:[],signals:[],reason:'',updatedAt:''},
   mediaHistory:Array.isArray(state.entertainment?.mediaHistory)?state.entertainment.mediaHistory:[],
+  mediaWatchlist:Array.isArray(state.entertainment?.mediaWatchlist)?state.entertainment.mediaWatchlist:[],
   twitchHistory:Array.isArray(state.entertainment?.twitchHistory)?state.entertainment.twitchHistory:[],
   gameStats:{...DEFAULT_STATE.entertainment.gameStats,...(state.entertainment?.gameStats||{})},
   gameSuite:{...DEFAULT_STATE.entertainment.gameSuite,...(state.entertainment?.gameSuite||{})},
@@ -3420,6 +3515,7 @@ async function safetySnapshots(){return stateSafety.list()}
 function queueSafetySnapshot(){stateSafety.save(state)}
 async function writeSafetySnapshot(reason='manual'){await stateSafety.snapshot(state,reason);await updateSafetySnapshotStatus()}
 async function updateSafetySnapshotStatus(){
+ if(!qs('#settingsModal')?.classList.contains('open'))return;
  const el=qs('#foundationStorageStatus'),list=qs('#safetySnapshotList');if(!el)return;
  try{const rows=await safetySnapshots();el.textContent=stateSafety.error||`${rows.length} saved snapshots • automatic history is spaced at least 30 minutes apart.`;
  if(list){const selectedId=list.value;list.replaceChildren();for(const row of rows){const counts=CommandCentreSafety.counts(row.state),option=document.createElement('option');option.value=row.id;option.textContent=`${new Date(row.savedAt).toLocaleString('en-GB')} • ${row.reason||'snapshot'} • ${counts.notes} notes, ${counts.events} events, ${counts.reminders} reminders, ${counts.bible} chapters`;list.append(option)}list.value=rows.some(row=>row.id===selectedId)?selectedId:(rows.find(row=>CommandCentreSafety.total(row.state)>0)||rows[0])?.id||'';list.disabled=!rows.length;}
@@ -3472,6 +3568,8 @@ function commandCentreBackupPayload(deviceConnection=null){
     format:'command-centre-backup',schemaVersion:1,exportedAt:nowIso(),
     data:{
       notes:state.notes||[],noteFolders:state.noteFolders||[],
+      mediaWatchlist:state.entertainment.mediaWatchlist||[],
+      mangaLibrary:CommandCentreMangaLibrary.merge(state.mangaLibrary),
       reminders:state.reminders||[],reminderCategories:state.reminderCategories||[],
       events:state.events||[],
       bibleRead:state.bibleRead||{},bibleRecommendations:state.bibleRecommendations||{date:'',items:[]}
@@ -3505,11 +3603,12 @@ async function exportCommandCentreBackup(){
   finally{if(button)button.disabled=false;}
 }
 function sanitizeImportedNoteHtml(value){
-  const doc=new DOMParser().parseFromString(String(value||'').slice(0,250000),'text/html');
-  doc.querySelectorAll('script,style,iframe,object,embed,link,meta,form').forEach(node=>node.remove());
+  if(String(value||'').length>8*1024*1024)throw new Error('This note exceeds the 8 MB limit.');
+  const doc=new DOMParser().parseFromString(String(value||''),'text/html');
+  doc.querySelectorAll('script,style,iframe,object,embed,link,meta,form,svg,math,video,audio,input,textarea,select,base').forEach(node=>node.remove());
   doc.querySelectorAll('*').forEach(node=>[...node.attributes].forEach(attr=>{
     const name=attr.name.toLowerCase(),val=String(attr.value||'').trim().toLowerCase();
-    if(name.startsWith('on')||name==='srcdoc'||((name==='href'||name==='src')&&val.startsWith('javascript:')))node.removeAttribute(attr.name);
+    if(name.startsWith('on')||['srcdoc','srcset','formaction','action'].includes(name)||((name==='href'||name==='src')&&!/^(https?:\/\/|data:image\/(png|jpeg|gif|webp);base64,|#)/i.test(val)))node.removeAttribute(attr.name);
   }));
   return doc.body.innerHTML;
 }
@@ -3528,9 +3627,12 @@ async function importCommandCentreBackup(raw){
     restoredSession=await decryptBackupDeviceSession(payload.deviceConnection,password);
   }
   const data=payload.data,frequencies=new Set(['none','daily','every2days','weekly','monthly','yearly']);
+  mergeMediaWatchlist(data.mediaWatchlist);
+  state.mangaLibrary=CommandCentreMangaLibrary.merge(state.mangaLibrary,data.mangaLibrary);
+  window.CommandCentreMangaReader?.refresh();
   state.notes=mergeBackupRows(state.notes,data.notes,n=>n&&typeof n==='object'?{
     id:String(n.id||makeId('note')).slice(0,140),title:String(n.title||'Untitled note').slice(0,300),body:sanitizeImportedNoteHtml(n.body),
-    folder:String(n.folder||'Notes').slice(0,80),pinned:!!n.pinned,deletedAt:String(n.deletedAt||''),createdAt:String(n.createdAt||nowIso()),updatedAt:String(n.updatedAt||n.createdAt||nowIso())
+    ...(n.kind==='schoolbook'?CommandCentreNotebooks.normalise(n):{}),folder:String(n.folder||'Notes').slice(0,80),pinned:!!n.pinned,purged:!!n.purged,deletedAt:String(n.deletedAt||''),createdAt:String(n.createdAt||nowIso()),updatedAt:String(n.updatedAt||n.createdAt||nowIso())
   }:null);
   state.reminders=mergeBackupRows(state.reminders,data.reminders,r=>r&&typeof r==='object'?{
     id:String(r.id||makeId('rem')).slice(0,140),text:String(r.text||'Reminder').slice(0,1000),category:String(r.category||'General').slice(0,80),
@@ -3567,7 +3669,8 @@ function chooseCommandCentreBackup(){
 function makeId(prefix='item'){return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,9)}`}
 function toast(msg){const el=qs('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2400)}
 function openModal(id){qs('#'+id).classList.add('open')}
-function closeModal(id){qs('#'+id)?.classList.remove('open');if(id==='notificationCompanionModal'){clearInterval(notificationCompanionPollTimer);notificationCompanionPollTimer=null}}
+function closeModal(id){
+  if(id==='noteModal'&&CommandCentreNotebooks.flush()===false)return false;qs('#'+id)?.classList.remove('open');if(id==='notificationCompanionModal'){clearInterval(notificationCompanionPollTimer);notificationCompanionPollTimer=null}return true;}
 function dayOfYear(d=new Date()){const start=new Date(d.getFullYear(),0,0);return Math.floor((d-start)/86400000)}
 function dayKey(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 
@@ -3752,7 +3855,7 @@ function renderTodayPage(){
   const nl=qs('#todayRecentNotes');
   const recent=notes.slice(0,4);
   if(nl)nl.innerHTML=recent.length
-    ?`<div class="notes-list">${recent.map(n=>`<button class="note-card" style="width:100%;text-align:left;color:inherit;font:inherit" data-today-note="${esc(n.id)}"><div class="note-icon">${n.pinned?'📌':'📝'}</div><div class="note-card-main"><div class="note-card-title">${esc(n.title)}</div><div class="note-card-preview">${esc(notePreview(n.body)||'No text')}</div></div></button>`).join('')}</div>`
+    ?`<div class="notes-list">${recent.map(n=>`<button class="note-card" style="width:100%;text-align:left;color:inherit;font:inherit" data-today-note="${esc(n.id)}"><div class="note-icon">${n.pinned?'📌':'📝'}</div><div class="note-card-main"><div class="note-card-title">${esc(n.title)}</div><div class="note-card-preview">${esc(notePreview(n.body)||(n.kind==='schoolbook'?'Open your exercise book':n.body?.includes('<img')?'Photo note':'No text'))}</div></div></button>`).join('')}</div>`
     :'<div class="empty">No notes yet.</div>';
 
   renderContinueWatchingInto('todayContinueWatching',6);
@@ -3819,6 +3922,7 @@ function setActiveVideoPlayback(kind,title=''){
   requestAnimationFrame(updateFloatingVideoPlayer);
 }
 function stopVideoPlayback(kind=videoPlaybackState.kind){
+  window.CommandCentrePlaybackSafety?.stop(kind);
   if(kind==='youtube'){
     captureYoutubeProgress(true);
     try{youtubeWatchPlayer?.stopVideo?.()}catch{}
@@ -3826,6 +3930,7 @@ function stopVideoPlayback(kind=videoPlaybackState.kind){
     youtubeWatchPlayer=null;youtubeWatchPlayerReady=false;youtubeWatchRuntime.playing=false;
     clearInterval(youtubeWatchRuntime.timer);youtubeWatchRuntime.timer=null;
   }else if(kind==='media'){
+    mediaEmbedState.playRequest=(mediaEmbedState.playRequest||0)+1;
     captureMediaProgress(true);
     const frame=qs('#mediaWatchFrame');if(frame)frame.src='about:blank';
     mediaEmbedState.currentEmbedUrl='';mediaPlaybackRuntime.playing=false;
@@ -3844,7 +3949,7 @@ const SEARCH_PAGES=[
   ['messages','Messages','☷'],
   ['transfers','Transfers','⇄'],
   ['home','Home','🏠'],['today','Today','☀️'],['calendar','Calendar','🗓️'],
-  ['notes','Notes','📝'],['music','Music','🎵'],['watch','Watch','🎬'],['entertainment','Entertainment','🍿'],
+  ['notes','Notes','📝'],['schoolbooks','Schoolbooks','📚'],['music','Music','🎵'],['watch','Watch','🎬'],['entertainment','Entertainment','🍿'],
   ['mirror','Mirror','📺'],['football','Sport','🏟️'],['weather','Weather','🌤️'],
   ['news','News','📰'],['status','Status Check','🩺'],['portfolio','Portfolio','📈'],
   ['briefing','Briefing','📋'],['bible','Bible','📖']
@@ -3878,7 +3983,7 @@ function localUniversalResults(q){
   const favTeams=typeof footballFavouriteTeams==='function'?footballFavouriteTeams():[];
   favTeams.forEach(t=>{
     if(String(t.name||'').toLowerCase().includes(n)){
-      sports.push({sport:'football',title:t.name||'Football team',sub:'Followed football team'});
+      sports.push({sport:'football',title:t.name||'Football team',gender:t.gender,sub:'Followed football team'});
     }
   });
 
@@ -3886,7 +3991,7 @@ function localUniversalResults(q){
   footballMatches.forEach(m=>{
     const matchTitle=`${footballTeamName(m.homeTeam)} vs ${footballTeamName(m.awayTeam)}`;
     if(matchTitle.toLowerCase().includes(n)){
-      sports.push({sport:'football',title:matchTitle,sub:footballDateTime(m.utcDate)});
+      sports.push({sport:'football',title:matchTitle,gender:m.gender,sub:footballDateTime(m.utcDate)});
     }
   });
 
@@ -3909,6 +4014,7 @@ function localUniversalResults(q){
   });
 
   const seen=new Set();
+  sports.sort((a,b)=>Number(a.gender==='female'||/women|wta|\(w\)/i.test(a.title))-Number(b.gender==='female'||/women|wta|\(w\)/i.test(b.title)));
   const sportsUnique=sports.filter(x=>{
     const key=`${x.sport}:${x.title}`.toLowerCase();
     if(seen.has(key))return false;
@@ -3994,7 +4100,7 @@ function handleUniversalSearchAction(type,index){
     x[0]==='watch'?openWatchPage():x[0]==='home'?openHomeLauncher():switchPage(x[0]);
   }else if(type==='note'){
     const x=l.notes[index];
-    if(x){closeModal('universalSearchModal');openNote(x.id)}
+    if(x){closeModal('universalSearchModal');switchPage(x.kind==='schoolbook'?'schoolbooks':'notes');openNote(x.id)}
   }else if(type==='schedule'){
     const x=l.schedule[index];if(!x)return;
     closeModal('universalSearchModal');
@@ -4090,7 +4196,7 @@ function nativeFootballMatchPayload(extra=[]){
   const followed=new Set(effectiveFollowedMatchIDs().map(Number)),seen=new Map();
   const runtime=typeof footballMatchRuntime!=='undefined'?footballMatchRuntime?.data?.match:null;
   [...footballAllScheduleMatches(),runtime,...nativeLiveMatches.values(),...extra].filter(Boolean).forEach(match=>{const id=Number(match.id)||0;if(id&&followed.has(id))seen.set(id,match)});
-  return [...seen.values()].map(match=>({id:Number(match.id),competition:String(match?.competition?.name||'Football'),homeTeam:footballTeamName(match.homeTeam),awayTeam:footballTeamName(match.awayTeam),kickoff:Date.parse(match.utcDate||''),homeScore:Number.isFinite(match?.score?.fullTime?.home)?Number(match.score.fullTime.home):null,awayScore:Number.isFinite(match?.score?.fullTime?.away)?Number(match.score.fullTime.away):null,status:String(match.status||'SCHEDULED').toUpperCase(),minute:match.minute!=null&&Number.isFinite(Number(match.minute))?Number(match.minute):null})).filter(match=>Number.isFinite(match.kickoff));
+  return [...seen.values()].map(match=>({id:Number(match.id),competition:String(match?.competition?.name||'Football'),homeTeam:footballTeamName(match.homeTeam),awayTeam:footballTeamName(match.awayTeam),kickoff:Date.parse(match.utcDate||''),homeScore:Number.isFinite(match?.score?.fullTime?.home)?Number(match.score.fullTime.home):null,awayScore:Number.isFinite(match?.score?.fullTime?.away)?Number(match.score.fullTime.away):null,halftimeEndsAt:match.halftimeEndsAt||null,status:String(match.status||'SCHEDULED').toUpperCase(),minute:match.minute!=null&&Number.isFinite(Number(match.minute))?Number(match.minute):null})).filter(match=>Number.isFinite(match.kickoff));
 }
 function nativeDashboardPayload(extraMatches=[]){
   return {livePreferences:nativeLivePreferences(),snapshot:{weather:nativeWeatherPayload(),nextEvent:nativeNextEventPayload(),reminders:nativeReminderPayload()},followedMatchIDs:effectiveFollowedMatchIDs().map(Number).filter(Boolean),matches:nativeFootballMatchPayload(extraMatches)};
@@ -4471,7 +4577,7 @@ function collectNativeFootballNotifications(){
   if(!favouriteIds.size&&!followedIds.size)return [];
   const now=Date.now(),items=[];
   footballAllScheduleMatches().forEach(match=>{
-    if(!favouriteIds.has(Number(match.homeTeam?.id))&&!favouriteIds.has(Number(match.awayTeam?.id))&&!favouriteNames.has(footballTeamKey(footballTeamName(match.homeTeam)))&&!favouriteNames.has(footballTeamKey(footballTeamName(match.awayTeam)))&&!followedIds.has(Number(match.id)))return;
+    if(!CommandCentreFootballFollowing.favourite(match,footballFavouriteTeams())&&!followedIds.has(Number(match.id)))return;
     const kickoff=Date.parse(match.utcDate||'');if(!Number.isFinite(kickoff)||kickoff<=now)return;
     const fixture=`${footballTeamName(match.homeTeam)} vs ${footballTeamName(match.awayTeam)}`;
     const add=(suffix,offset,body)=>{const due=kickoff-offset;if(due>now)items.push({id:`football-${match.id}-${suffix}`,matchId:Number(match.id),offsetMinutes:Math.round(offset/60000),kind:'football',dueAt:new Date(due).toISOString(),title:'⚽ Football',body,url:'#football'})};
@@ -4599,9 +4705,8 @@ function init(){
     runInitStep('entertainment controls',bindEntertainmentControls);
     bind('navBackBtn','click',goBack);
     bind('backToTopBtn','click',backToTop);
-    window.addEventListener('scroll',updateBackToTopButton,{passive:true});
-    document.addEventListener('scroll',updateBackToTopButton,{passive:true,capture:true});
-    window.addEventListener('resize',updateBackToTopButton);
+    document.addEventListener('scroll',queueBackToTopUpdate,{passive:true,capture:true});
+    window.addEventListener('resize',queueBackToTopUpdate,{passive:true});
     bind('sidebarToggle','click',toggleSidebar);
     bind('sidebarOverlay','click',closeSidebar);
     document.addEventListener('keydown',e=>{
@@ -4637,7 +4742,7 @@ function init(){
     bind('restoreSafetySnapshotBtn','click',restoreLatestSafetySnapshot);
     bind('backupFileInput','change',async event=>{
       const file=event.target.files?.[0];event.target.value='';if(!file)return;
-      if(file.size>10*1024*1024){toast('Backup file is too large');return}
+      if(file.size>64*1024*1024){toast('Backup file is too large (64 MB maximum)');return}
       try{await importCommandCentreBackup(await file.text())}catch(e){const status=qs('#backupStatus');if(status)status.textContent=e.message||'Could not restore backup.';toast(e.message||'Could not restore backup')}
     });
     bind('clearContinueWatchingBtn','click',()=>{if(confirm('Clear Continue Watching?')){state.entertainment.youtubeHistoryDetailed=[];state.entertainment.mediaHistory=[];saveState();renderAllContinueWatching();toast('Continue Watching cleared')}});
@@ -4663,6 +4768,7 @@ function init(){
     bind('redditRetry','click',loadReddit);
     bind('footballRefreshBtn','click',refreshSelectedSport);
     bind('footballCompetition','change',()=>{footballVisibleLimit=60;footballResultsVisibleLimit=24;loadFootball(false)});
+    bind('footballTeamSearchForm','submit',event=>{event.preventDefault();searchFootballTeamsUi();});
     runInitStep('sport controls',bindSportSwitcher);
     runInitStep('football match centre',bindFootballMatchCentre);
     bind('liveFootballRefreshBtn','click',()=>loadLiveFootball(true));
@@ -4690,10 +4796,14 @@ function init(){
      bind('saveCalendarEvent','click',saveCalendarEvent);
      bind('deleteCalendarEventBtn','click',deleteEditingCalendarEvent);
      bind('addNoteBtn','click',()=>openNote());
-     runInitStep('note editor controls',bindNoteToolbar);
+     runInitStep('note editor controls',()=>{bindNoteToolbar();CommandCentreNotebooks.bind();CommandCentreAccounts.bind()});
      bind('saveNote','click',saveNote);
      bind('deleteNoteBtn','click',deleteEditingNote);
      bind('notesSearch','input',renderNotes);
+     bind('schoolbooksSearch','input',renderSchoolbooks);
+     bind('schoolbooksFolder','change',renderSchoolbooks);
+     bind('schoolbooksAccountBtn','click',()=>switchPage('notes'));
+     qs('#schoolbooksNavigation')?.addEventListener('click',e=>{const b=e.target.closest('[data-schoolbooks-filter]');if(b){schoolbooksFilter=b.dataset.schoolbooksFilter;renderSchoolbooks()}});
      qs('#universalSearchResults')?.addEventListener('click',e=>{const b=e.target.closest('[data-search-type]');if(b)handleUniversalSearchAction(b.dataset.searchType,Number(b.dataset.searchIndex))});
      qs('#notesNavigation')?.addEventListener('click',e=>{const b=e.target.closest('[data-notes-filter]');if(b)setNotesFilter(b.dataset.notesFilter)});
      document.addEventListener('click',e=>{
@@ -4773,7 +4883,7 @@ function init(){
       if(document.visibilityState==='hidden'){
         captureYoutubeProgress(true);captureMediaProgress(true);
         try{if(videoPlaybackState.kind==='youtube')youtubeWatchPlayer?.pauseVideo?.()}catch{}
-        if(musicRuntime.current?.source==='youtube')musicTogglePlay(false);
+        // Keep music playing when another app or tab gains focus.
       }
       else mediaPlaybackRuntime.lastTick=Date.now();
     });
@@ -4785,7 +4895,7 @@ function init(){
     toast(`App recovered from a startup error${err?.message?`: ${err.message}`:''}`);
   }
 }
-function updateClock(){const d=new Date();qs('#clock').textContent=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' • '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
+function updateClock(){const d=new Date(),clock=qs('#clock'),text=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' • '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});if(clock&&clock.textContent!==text)clock.textContent=text}
 function syncMobileDock(page){
   qsa('[data-mobile-page]').forEach(btn=>{
     const key=btn.dataset.mobilePage;
@@ -4813,7 +4923,7 @@ function nextLauncherFootballMatch(){
   const candidates=source.filter(match=>{
     const id=Number(match?.id||0),home=Number(match?.homeTeam?.id||0),away=Number(match?.awayTeam?.id||0),time=Date.parse(match?.utcDate||'');
     if(!id||seen.has(id)||!Number.isFinite(time)||time<now-2*60*60*1000)return false;
-    seen.add(id);return followed.has(id)||teams.has(home)||teams.has(away)||teamNames.has(footballTeamKey(footballTeamName(match.homeTeam)))||teamNames.has(footballTeamKey(footballTeamName(match.awayTeam)));
+    seen.add(id);return followed.has(id)||CommandCentreFootballFollowing.favourite(match,footballFavouriteTeams());
   }).sort((a,b)=>Date.parse(a.utcDate)-Date.parse(b.utcDate));
   const match=candidates[0];if(!match)return null;
   const home=String(match.homeTeam?.shortName||match.homeTeam?.name||'Home'),away=String(match.awayTeam?.shortName||match.awayTeam?.name||'Away');
@@ -4825,7 +4935,7 @@ function renderHomeLauncher(){
   const dateEl=qs('#launcherDate'),timeEl=qs('#launcherTime');
   const now=new Date();
   if(dateEl)dateEl.textContent=now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
-  if(timeEl)timeEl.textContent=`${now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})} • Swipe and tap to jump around`;
+  if(timeEl)timeEl.textContent=`${now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})} • Everything, within reach`;
 
   const todayItems=typeof sortedTodayItems==='function'?sortedTodayItems():[];
   const todayValue=qs('#launcherTodayValue'),todayMeta=qs('#launcherTodayMeta');
@@ -4852,7 +4962,7 @@ function renderHomeLauncher(){
   }
 
   const reminderCount=Array.isArray(state.reminders)?state.reminders.length:0;
-  const noteCount=Array.isArray(state.notes)?state.notes.filter(n=>!n.deletedAt).length:0;
+  const noteCount=Array.isArray(state.notes)?state.notes.filter(n=>!n.deletedAt&&n.kind!=='schoolbook').length:0;
   const todayCount=todayItems.length;
   const favTeams=Array.isArray(state.footballFavouriteTeams)?state.footballFavouriteTeams.length:(state.footballFavouriteTeamId?1:0);
   const briefValue=qs('#launcherBriefingValue'),briefMeta=qs('#launcherBriefingMeta');
@@ -4865,6 +4975,7 @@ function renderHomeLauncher(){
   if(qs('#launcherRemindersCount'))qs('#launcherRemindersCount').textContent=String(reminderCount);
   setLauncherBadge('#launcherBadgeToday',todayCount);
   setLauncherBadge('#launcherBadgeNotes',noteCount);
+  setLauncherBadge('#launcherBadgeSchoolbooks',state.notes.filter(n=>!n.deletedAt&&n.kind==='schoolbook').length);
   setLauncherBadge('#launcherBadgeCalendar',Array.isArray(state.events)?state.events.length:0);
   setLauncherBadge('#launcherBadgeSport',favTeams);
 }
@@ -4909,20 +5020,6 @@ function bindHomeLauncher(){
   if(pager){
     pager.addEventListener('scroll',()=>{clearTimeout(bindHomeLauncher._t);bindHomeLauncher._t=setTimeout(syncHomePager,50)});
   }
-  const launcher=qs('#homePage .launcher-screen');
-  if(launcher&&!launcher.dataset.searchSwipeBound){
-    launcher.dataset.searchSwipeBound='1';
-    let sy=0,sx=0;
-    launcher.addEventListener('touchstart',e=>{
-      const t=e.touches?.[0];if(!t)return;
-      sy=t.clientY;sx=t.clientX;
-    },{passive:true});
-    launcher.addEventListener('touchend',e=>{
-      const t=e.changedTouches?.[0];if(!t)return;
-      const dy=t.clientY-sy,dx=Math.abs(t.clientX-sx);
-      if(dy>70&&dx<70)openUniversalSearch();
-    },{passive:true});
-  }
   document.addEventListener('click',e=>{
     const slideBtn=e.target.closest('[data-home-slide-to]');
     if(slideBtn){setHomeSlide(Number(slideBtn.dataset.homeSlideTo||0));return;}
@@ -4951,6 +5048,14 @@ window.openWatchPage=openWatchPage;
 let appCurrentPage='home';
 const appNavigationStack=[];
 
+const commandCentreObservedScrollers=new Set();
+let backToTopUpdateFrame=0;
+function queueBackToTopUpdate(event){
+  const target=event?.target;
+  if(target?.nodeType===1&&target!==document.body&&target!==document.documentElement)commandCentreObservedScrollers.add(target);
+  if(backToTopUpdateFrame)return;
+  backToTopUpdateFrame=requestAnimationFrame(()=>{backToTopUpdateFrame=0;updateBackToTopButton()});
+}
 function commandCentreScrollCandidates(){
   const active=qs('.page.active');
   const candidates=[
@@ -4959,19 +5064,9 @@ function commandCentreScrollCandidates(){
     document.body,
     qs('.main-area'),
     active,
-    active?.querySelector('.stack')
+    active?.querySelector('.stack'),
+    ...[...commandCentreObservedScrollers].filter(el=>el.isConnected&&active?.contains(el))
   ].filter(Boolean);
-
-  // Include any actually scrollable descendants on the active page.
-  if(active){
-    active.querySelectorAll('*').forEach(el=>{
-      const style=getComputedStyle(el);
-      const oy=style.overflowY;
-      if((oy==='auto'||oy==='scroll') && el.scrollHeight>el.clientHeight+20){
-        candidates.push(el);
-      }
-    });
-  }
 
   return [...new Set(candidates)];
 }
@@ -4987,6 +5082,7 @@ function commandCentreCurrentScrollTop(){
 function updateBackToTopButton(){
   const btn=qs('#backToTopBtn');
   if(!btn)return;
+  if(document.body.classList.contains('home-fullscreen')){btn.classList.remove('visible');return;}
 
   const candidates=commandCentreScrollCandidates();
   const hasScrollableArea=candidates.some(el=>
@@ -4994,9 +5090,8 @@ function updateBackToTopButton(){
   );
 
   const shouldShow=
-    !document.body.classList.contains('home-fullscreen') &&
     hasScrollableArea &&
-    commandCentreCurrentScrollTop()>350;
+    Math.max(window.scrollY||0,...candidates.map(el=>Number(el.scrollTop)||0))>350;
 
   btn.classList.toggle('visible',shouldShow);
 }
@@ -5058,7 +5153,9 @@ function switchPage(page,persist=true,navMode='push'){
   const target=qs('#'+page+'Page');
   if(!target){console.warn('Unknown page',page);return}
   const motionFrom=appCurrentPage;
-  if(page!=='music'&&musicRuntime.current?.source==='youtube')musicTogglePlay(false);
+  // Playback is independent of page navigation.
+  if(CommandCentreNotebooks.flush()===false)return;
+  if(motionFrom!==page)commandCentreObservedScrollers.clear();
 
   if(page!==appCurrentPage){
     if(navMode==='push'&&appCurrentPage){
@@ -5073,7 +5170,9 @@ function switchPage(page,persist=true,navMode='push'){
   qsa('.page').forEach(p=>p.classList.remove('active'));
   qsa('.sidebar-item').forEach(t=>t.classList.toggle('active',t.dataset.page===page));
   target.classList.add('active');
+  if(motionFrom!==page)window.scrollTo({top:0,behavior:'instant'});
   window.dispatchEvent(new CustomEvent('cc-pagechange',{detail:page}));
+  positionMusicYouTubeStage();
   syncMobileDock(page);
   requestAnimationFrame(updateFloatingVideoPlayer);
 
@@ -5115,6 +5214,7 @@ function switchPage(page,persist=true,navMode='push'){
   }
   if(page==='today')renderTodayPage();
   if(page==='notes')renderNotes();
+  if(page==='schoolbooks')renderSchoolbooks();
   if(page==='news')loadNews(false);
   if(page==='bible'){renderBible();renderBibleChecklist()}
   if(page==='words')loadWords();
@@ -5132,6 +5232,7 @@ function openSettings(){
   try{updateNotificationCompanionUI()}catch(e){console.error('Notification companion status failed to load',e)}
   try{showSettingsSection('general')}catch(e){console.error('Settings tabs failed to initialize',e)}
   modal.classList.add('open');
+  updateSafetySnapshotStatus();
 }
 let nativePrivacyState={available:false,enabled:false,locked:false,authenticating:false,graceSeconds:0,error:''};
 function nativePrivacyBridge(){return window.webkit?.messageHandlers?.nativePrivacy}
@@ -5533,7 +5634,7 @@ async function loadManga(force=false){
     renderMangaGrid([...mangaPool].sort(()=>Math.random()-0.5).slice(0,9));renderDailyManga();
   }
 }
-function renderMangaGrid(items){qs('#mangaContent').innerHTML=`<div class="manga-grid">${items.map(item=>`<article class="manga" data-url="${esc(item.url||`https://myanimelist.net/manga/${item.mal_id}`)}"><img src="${esc(item.images?.jpg?.large_image_url||item.images?.jpg?.image_url||'')}" alt="${esc(item.title)} cover" loading="lazy" onerror="this.style.visibility='hidden'"><div class="manga-body"><div class="manga-title">${esc(item.title)}</div><div class="manga-meta">⭐ ${item.score??'—'} • ${esc(item.type||'Manga')}</div></div></article>`).join('')}</div>`;qsa('.manga').forEach(card=>card.onclick=()=>window.open(card.dataset.url,'_blank','noopener'))}
+function renderMangaGrid(items){qs('#mangaContent').innerHTML=`<div class="manga-grid">${items.map(item=>`<article class="manga" data-manga-title="${esc(item.title)}" data-url="${esc(item.url||`https://myanimelist.net/manga/${item.mal_id}`)}"><img src="${esc(item.images?.jpg?.large_image_url||item.images?.jpg?.image_url||'')}" alt="${esc(item.title)} cover" loading="lazy" onerror="this.style.visibility='hidden'"><div class="manga-body"><div class="manga-title">${esc(item.title)}</div><div class="manga-meta">⭐ ${item.score??'—'} • ${esc(item.type||'Manga')}</div></div></article>`).join('')}</div>`;qsa('.manga').forEach(card=>card.onclick=()=>{if(window.CommandCentreMangaReader){CommandCentreMangaReader.search(card.dataset.mangaTitle);qs('#mangaReaderForm').scrollIntoView({block:'start',behavior:'smooth'})}else window.open(card.dataset.url,'_blank','noopener')})}
 
 function normalizeQuote(raw, holding, fx){
   let price=Number(raw.price);
@@ -6301,6 +6402,17 @@ function mediaStatus(text,kind=''){
 }
 
 function initMediaEmbedUi(){
+  const compatibility=qs('#mediaCompatibility');
+  if(compatibility&&!compatibility.dataset.bound){
+    compatibility.dataset.bound='1';compatibility.value=state.entertainment.mediaCompatibility==='restricted'?'restricted':'compatible';
+    compatibility.addEventListener('change',()=>{state.entertainment.mediaCompatibility=compatibility.value;saveState();applyMediaPlayerPolicy();if(mediaEmbedState.currentEmbedUrl&&qs('#mediaWatchFrame')?.src!=='about:blank')qs('#mediaWatchFrame').src=mediaEmbedState.currentEmbedUrl;});
+  }
+  const adFilter=qs('#mediaAdFilter');
+  if(adFilter&&!adFilter.dataset.bound){adFilter.dataset.bound='1';adFilter.addEventListener('change',()=>{
+    const handler=window.webkit?.messageHandlers?.nativePlayerFiltering;
+    if(handler){mediaAdFilterReloadPending=true;handler.postMessage({enabled:adFilter.checked});}
+  });}
+  updateMediaProtectionStatus();
   qsa('[data-media-mode]').forEach(btn=>{
     btn.classList.toggle('active',btn.dataset.mediaMode===mediaEmbedState.mode);
   });
@@ -6321,6 +6433,7 @@ function initMediaEmbedUi(){
   }
 
   renderMediaContinueWatching();
+  renderMediaWatchlist();
   loadMediaRecommendations();
   if(!mediaEmbedState.exploreLoaded){
     loadMediaExplore(mediaEmbedState.exploreSection,false);
@@ -6328,12 +6441,13 @@ function initMediaEmbedUi(){
 }
 
 function showMediaView(view,scroll=false){
-  if(!['explore','search','player'].includes(view))view='explore';
+  if(!['explore','search','player','watchlist'].includes(view))view='explore';
   mediaEmbedState.view=view;
   qsa('[data-media-view]').forEach(btn=>btn.classList.toggle('active',btn.dataset.mediaView===view));
   qsa('[data-media-view-panel]').forEach(panel=>panel.classList.toggle('active',panel.dataset.mediaViewPanel===view));
   requestAnimationFrame(updateFloatingVideoPlayer);
   if(view==='explore'&&!mediaEmbedState.exploreLoaded)loadMediaExplore(mediaEmbedState.exploreSection,false);
+  if(view==='watchlist')renderMediaWatchlist();
   if(scroll){
     const tabs=qs('.media-view-tabs');
     if(tabs){
@@ -6423,10 +6537,10 @@ async function selectMediaExplore(index){
 
 
 function setMediaMode(mode){
-  if(!['standard','torrent','agg','flixer','atlantic','boomflix'].includes(mode))mode='standard';
+  if(!['standard','torrent','agg','flixer','atlantic','boomflix','shuttletv','cinesrc'].includes(mode))mode='standard';
   mediaEmbedState.mode=mode;
   qsa('[data-media-mode]').forEach(btn=>btn.classList.toggle('active',btn.dataset.mediaMode===mode));
-  const labels={standard:'Primary provider route',torrent:'Alternate provider route',agg:'Aggregator provider route',flixer:'Flixer in-app provider',atlantic:'Atlantic direct player',boomflix:'Boomflix title and player'};
+  const labels={standard:'Primary provider route',torrent:'1Shows alternate source',agg:'Anicine aggregator source',flixer:'Flixer in-app provider',atlantic:'Atlantic direct player',boomflix:'Boomflix title and player',shuttletv:'ShuttleTV movie and episode player',cinesrc:'CineSrc embedded player'};
   mediaStatus(`${labels[mode]}. Select a title to play.`);
 }
 
@@ -6488,6 +6602,7 @@ async function selectMediaResult(index){
   const item=mediaEmbedState.results[index];
   if(!item)return;
   mediaEmbedState.selected=item;
+  updateMediaWatchlistButton();
   mediaEmbedState.currentEmbedUrl='';
   mediaEmbedState.currentExternalOnly=false;
   const fullscreenBtn=qs('#mediaFullscreenBtn');if(fullscreenBtn)fullscreenBtn.disabled=true;
@@ -6508,6 +6623,7 @@ function clearSelectedMedia(){
   exitMediaFullscreen();
   stopVideoPlayback('media');
   mediaEmbedState.selected=null;
+  updateMediaWatchlistButton();
   mediaEmbedState.seasons=[];
   mediaEmbedState.episodes=[];
   mediaEmbedState.currentEmbedUrl='';
@@ -6576,7 +6692,7 @@ async function resolveSelectedMediaUrl(){
     p.set('season',String(Number(qs('#mediaSeasonSelect')?.value||1)));
     p.set('episode',String(Number(qs('#mediaEpisodeSelect')?.value||1)));
   }
-  const r=await fetch(`/api/media/embed-url?${p.toString()}`,{cache:'no-store'});
+  const r=await fetch(`/api/media/embed-url?${p.toString()}`,{cache:'no-store',signal:AbortSignal.timeout(15000)});
   const data=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);
   if(!data.embedUrl)throw new Error('Provider did not return an embed URL.');
@@ -6585,6 +6701,38 @@ async function resolveSelectedMediaUrl(){
   return data.embedUrl;
 }
 
+function mergeMediaWatchlist(incoming){
+  if(!Array.isArray(incoming))return;
+  const merged=new Map((state.entertainment.mediaWatchlist||[]).map(item=>[item.type+':'+item.id,item]));
+  for(const item of incoming){
+    if(!item||!['movie','tv'].includes(item.type)||!Number.isSafeInteger(Number(item.id))||Number(item.id)<=0)continue;
+    merged.set(item.type+':'+Number(item.id),{id:Number(item.id),type:item.type,title:String(item.title||'Untitled').slice(0,300),year:String(item.year||'').slice(0,10),posterUrl:String(item.posterUrl||'').slice(0,2048),backdropUrl:String(item.backdropUrl||'').slice(0,2048),overview:String(item.overview||'').slice(0,5000),savedAt:String(item.savedAt||nowIso()).slice(0,40)});
+  }
+  state.entertainment.mediaWatchlist=[...merged.values()];
+}
+function mediaIsWatchlisted(item){
+  return !!item&&(state.entertainment.mediaWatchlist||[]).some(saved=>saved.type===item.type&&Number(saved.id)===Number(item.id));
+}
+function updateMediaWatchlistButton(){
+  const button=qs('#mediaWatchlistBtn');if(!button)return;
+  const selected=mediaEmbedState.selected,saved=mediaIsWatchlisted(selected);
+  button.disabled=!selected;button.textContent=saved?'✓ In watchlist':'＋ Add to watchlist';
+  button.setAttribute('aria-pressed',String(saved));button.title=saved?'Remove from watchlist':'Save this movie or show for later';
+}
+function toggleMediaWatchlist(item=mediaEmbedState.selected){
+  if(!item||!['movie','tv'].includes(item.type)||!Number.isSafeInteger(Number(item.id))||Number(item.id)<=0)return false;
+  const previous=state.entertainment.mediaWatchlist||[],saved=mediaIsWatchlisted(item);
+  state.entertainment.mediaWatchlist=saved?previous.filter(x=>!(x.type===item.type&&Number(x.id)===Number(item.id))):[
+    {id:Number(item.id),type:item.type,title:item.title||'Untitled',year:item.year||'',posterUrl:item.posterUrl||'',backdropUrl:item.backdropUrl||'',overview:item.overview||'',savedAt:nowIso()},...previous
+  ];
+  if(!saveState()){state.entertainment.mediaWatchlist=previous;toast('Could not save the watchlist. Try again.');return false;}
+  updateMediaWatchlistButton();renderMediaWatchlist();toast(saved?'Removed from watchlist':'Added to watchlist');return true;
+}
+function renderMediaWatchlist(){
+  const container=qs('#mediaWatchlist');if(!container)return;
+  const items=state.entertainment.mediaWatchlist||[];
+  container.innerHTML=items.length?items.map((item,index)=>`<article class="media-result" style="cursor:default">${mediaPoster(item)}<div class="media-result-body"><div class="media-result-title">${esc(item.title||'Untitled')}</div><div class="media-result-meta">${item.type==='tv'?'TV show':'Movie'}${item.year?' • '+esc(item.year):''}</div><div class="toolbar" style="margin-top:10px"><button class="btn small primary" data-watchlist-open="${index}">Open player</button><button class="btn small" data-watchlist-remove="${index}" aria-label="Remove ${esc(item.title||'title')} from watchlist">Remove</button></div></div></article>`).join(''):'<div class="empty">Save a movie or TV show using Add to watchlist in the player.</div>';
+}
 function selectedMediaIdentity(){
   const item=mediaEmbedState.selected;
   if(!item)return null;
@@ -6729,27 +6877,82 @@ document.addEventListener('webkitfullscreenchange',syncMediaFullscreenState);
 window.toggleMediaFullscreen=toggleMediaFullscreen;
 window.exitMediaFullscreen=exitMediaFullscreen;
 
+let mediaAdFilterReloadPending=false;
+function updateMediaProtectionStatus(){
+  const protection=window.CommandCentrePlayerProtection;
+  const native=protection?.popupProtection===true||window.CommandCentreNative?.platform==='ios';
+  const restricted=qs('#mediaCompatibility')?.value==='restricted';
+  const status=qs('#mediaProtectionStatus');
+  if(status)status.textContent=restricted?'Player popups and redirects blocked. Some providers reject this mode.':
+    native?(protection?.adFilterEnabled?'Player popups and redirects blocked; common ad requests filtered. Some in-player ads may remain.':'Player popups and redirects blocked. In-player ads may remain.'):
+    'Compatible mode removes the player sandbox. Browser popup protection applies; use Restricted mode to block player tabs.';
+  const control=qs('#mediaAdFilterControl'),filter=qs('#mediaAdFilter');
+  if(control)control.hidden=!protection?.adFilterAvailable;
+  if(filter)filter.checked=!!protection?.adFilterEnabled;
+}
+window.addEventListener('cc-player-protection-change',()=>{
+  updateMediaProtectionStatus();
+  if(mediaAdFilterReloadPending){mediaAdFilterReloadPending=false;const frame=qs('#mediaWatchFrame');if(frame&&mediaEmbedState.currentEmbedUrl&&frame.src!=='about:blank')frame.src=mediaEmbedState.currentEmbedUrl;}
+});
+function applyMediaPlayerPolicy(){
+  const frame=qs('#mediaWatchFrame');if(!frame)return;
+  const restricted=qs('#mediaCompatibility')?.value==='restricted';
+  // Compatibility must be genuinely unsandboxed; browser popup restrictions
+  // belong to Restricted mode. Native navigation guards work independently.
+  if(restricted)frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-presentation');
+  else frame.removeAttribute('sandbox');
+  updateMediaProtectionStatus();
+}
+async function checkMediaProviderHealth(url,mode){
+  const notice=qs('#mediaProviderNotice');if(!notice)return;
+  const params=new URLSearchParams({type:mediaEmbedState.selected?.type||'movie',id:String(mediaEmbedState.selected?.id||''),mode});
+  if(mediaEmbedState.selected?.type==='tv'){params.set('season',qs('#mediaSeasonSelect')?.value||'1');params.set('episode',qs('#mediaEpisodeSelect')?.value||'1');}
+  try{
+    const response=await fetch('/api/media/provider-health?'+params,{cache:'no-store'});
+    if(!response.ok)return;
+    const result=await response.json();
+    if(mediaEmbedState.currentEmbedUrl!==url||mediaEmbedState.mode!==mode)return;
+    if(result.state==='unavailable'){
+      notice.textContent=`The provider check returned HTTP ${result.status}. Its server may be unavailable. Try Reload player or choose another source.`;
+      notice.hidden=false;
+    }else if(result.state==='unknown'&&result.status===null){
+      notice.textContent='Provider availability could not be confirmed. If the player stays blank, try Reload player or choose another source.';
+      notice.hidden=false;
+    }
+  }catch{}
+}
 async function playSelectedMedia(openExternal=false){
+  const playRequest=mediaEmbedState.playRequest=(mediaEmbedState.playRequest||0)+1;
+  window.CommandCentrePlaybackSafety?.stop('media');
+  const oldFrame=qs('#mediaWatchFrame');if(oldFrame)oldFrame.src='about:blank';
   const shouldOpenExternal=openExternal;
   const pendingWindow=shouldOpenExternal?window.open('about:blank','_blank'):null;
   if(pendingWindow)try{pendingWindow.opener=null}catch{}
   mediaStatus(shouldOpenExternal?'Opening provider…':'Loading player…');
+  const notice=qs('#mediaProviderNotice');if(notice)notice.hidden=true;
   try{
     const url=await resolveSelectedMediaUrl();
+    if(mediaEmbedState.playRequest!==playRequest){if(pendingWindow&&!pendingWindow.closed)pendingWindow.close();return;}
+    if(!shouldOpenExternal&&mediaEmbedState.currentExternalOnly){
+      mediaStatus('This source opens outside the player. Choose another source to stay in the app, or tap Open provider.');
+      return;
+    }
     recordMediaContinue({},true);
-    if(shouldOpenExternal||mediaEmbedState.currentExternalOnly){
+    if(shouldOpenExternal){
       if(pendingWindow&&!pendingWindow.closed)pendingWindow.location.replace(url);
       else window.open(url,'_blank','noopener,noreferrer');
       mediaStatus('Opened provider in a new window.','ok');
       return;
     }
     const frame=qs('#mediaWatchFrame');
-    if(frame)frame.src=url;
+    applyMediaPlayerPolicy();
+    if(frame){window.CommandCentrePlaybackSafety?.watch('media',frame,url);frame.src=url;}
+    checkMediaProviderHealth(url,mediaEmbedState.mode);
     const fullscreenBtn=qs('#mediaFullscreenBtn');if(fullscreenBtn)fullscreenBtn.disabled=false;
     const watchedBtn=qs('#mediaMarkWatchedBtn');if(watchedBtn)watchedBtn.disabled=false;
     startMediaProgressTracking();
     setActiveVideoPlayback('media',mediaEmbedState.selected?.title||'Movies & TV');
-    mediaStatus('Player loaded. It moves into a mini-player when you navigate elsewhere. Progress is exact when the provider reports it; otherwise time watched is estimated.','ok');
+    mediaStatus('Player opened. If the video stays blank, stop it or choose another source.','ok');
   }catch(e){
     if(pendingWindow&&!pendingWindow.closed)pendingWindow.close();
     mediaStatus(e.message||'Could not load the provider.','bad');
@@ -6763,6 +6966,8 @@ let liveFootballProviderId='auto';
 let liveFootballResolvedProviderId='';
 let liveFootballCurrentStreamIndex=-1;
 let liveFootballCurrentSourceIndex=0;
+let liveFootballSource1Backup=false;
+let liveFootballLoadGeneration=0;
 
 function liveSportKind(){
   const kind=typeof currentSportTab==='function'?currentSportTab():'football';
@@ -6834,6 +7039,8 @@ function renderLiveFootballProviders(){
       ${esc(p.name)}<span class="mode">${esc(p.mode)}</span>
     </button>`).join('');
   wrap.innerHTML=auto+manual;
+  const backup=qs('#liveFootballBackupBtn');
+  if(backup){backup.hidden=liveFootballProviderId!=='1'&&liveFootballResolvedProviderId!=='1';backup.textContent=liveFootballSource1Backup?'Use TitaniumStream main site':'Use StreamPortal backup';}
 }
 async function loadLiveFootballProviders(){
   try{
@@ -6863,13 +7070,22 @@ async function selectLiveFootballProvider(providerId){
   renderLiveFootballProviders();
   await loadLiveFootball(true);
 }
+async function fetchPpvOnDevice(category){
+  const {fetchPublicSports}=await import('/sports-providers.js?v=10.33.7');
+  const data=await fetchPublicSports('ppv',category,{fetcher:(url,options)=>fetch(url,{...options,headers:{accept:'application/json'},credentials:'omit'})});
+  return {...data,providerId:'5',providerName:'PPV',mode:'ppv',count:data.streams.length,updatedAt:nowIso()};
+}
 async function fetchLiveProviderForSport(providerId,kind,force=false){
   const q=new URLSearchParams({
     category:liveSportCategory(kind),
     provider:String(providerId)
   });
   if(force)q.set('refresh','1');
-  return fetchJson(`/api/live-content?${q.toString()}`,{},20000);
+  if(String(providerId)==='1'&&liveFootballSource1Backup)q.set('site','backup');
+  try{
+    const data=await fetchJson(`/api/live-content?${q.toString()}`,{},20000);
+    return String(providerId)==='5'&&!data.streams?.length?fetchPpvOnDevice(liveSportCategory(kind)):data;
+  }catch(error){if(String(providerId)==='5')return fetchPpvOnDevice(liveSportCategory(kind));throw error;}
 }
 
 function liveAutoProviderOrder(kind){
@@ -6881,15 +7097,17 @@ function liveAutoProviderOrder(kind){
 }
 
 async function loadLiveFootball(force=false,kind=liveSportKind()){
+  const generation=++liveFootballLoadGeneration,current=()=>generation===liveFootballLoadGeneration;
   const status=qs('#liveFootballStatus'),grid=qs('#liveFootballGrid');
   if(!status||!grid)return;
 
   updateLiveSportStreamingUi(kind);
 
   if(!liveFootballProviders.length)await loadLiveFootballProviders();
+  if(!current())return;
   if(!liveFootballProviders.length){
     grid.innerHTML='<div class="empty">No live Sport providers are configured in Cloudflare.</div>';
-    status.textContent='Configure Provider 1, Provider 2 and/or Provider 3.';
+    status.textContent='No sports providers could be loaded. Try Refresh.';
     return;
   }
 
@@ -6912,11 +7130,13 @@ async function loadLiveFootball(force=false,kind=liveSportKind()){
       status.textContent=`Auto is checking ${display.toLowerCase()} providers…`;
 
       for(const id of order){
+        if(!current())return;
         const provider=liveFootballProviders.find(p=>p.id===id);
         if(!provider)continue;
         attempted.push(provider.name);
         try{
           const candidate=await fetchLiveProviderForSport(id,kind,force);
+          if(!current())return;
           if(Array.isArray(candidate.streams)&&candidate.streams.length){
             data=candidate;
             selected=provider;
@@ -6929,6 +7149,7 @@ async function loadLiveFootball(force=false,kind=liveSportKind()){
         }
       }
 
+      if(!current())return;
       if(!data){
         liveFootballStreams=[];
         grid.innerHTML=`<div class="empty">Auto checked ${esc(attempted.join(', ')||'all configured providers')}, but none currently returned usable ${esc(display.toLowerCase())} streams.</div>`;
@@ -6942,13 +7163,16 @@ async function loadLiveFootball(force=false,kind=liveSportKind()){
       data=await fetchLiveProviderForSport(selected.id,kind,force);
     }
 
+    if(!current())return;
     liveFootballStreams=Array.isArray(data.streams)?data.streams:[];
 
     if(!liveFootballStreams.length){
       const rejectedHosts=Array.isArray(data?.rejectedHosts)?data.rejectedHosts.filter(Boolean):[];
       const hostNote=rejectedHosts.length?` Rejected host${rejectedHosts.length===1?'':'s'}: ${rejectedHosts.join(', ')}.`:'';
-      const detail=data?.rejectedCount
-        ?`${data.providerName||selected?.name||'Provider'} returned ${data.providerCount||0} ${display.toLowerCase()} stream entries, but ${data.rejectedCount} were rejected by its allowed-host rules.${hostNote}`
+      const detail=data?.missingSourceCount
+        ?`${data.providerName||selected?.name||'Provider'} returned ${data.providerCount||0} listings, but ${data.missingSourceCount} have no player links yet.${data.blockedSourceCount?` ${data.blockedSourceCount} also failed player URL validation.${hostNote}`:''} Try Auto or another provider.`
+        :data?.rejectedCount
+        ?`${data.providerName||selected?.name||'Provider'} returned ${data.providerCount||0} ${display.toLowerCase()} stream entries, but ${data.rejectedCount} failed player URL validation.${hostNote}`
         :`No live ${display.toLowerCase()} streams are currently available from ${data.providerName||selected?.name||'this provider'}.`;
       grid.innerHTML=`<div class="empty">${esc(detail)}</div>`;
       status.textContent=data?.diagnostic||`No live ${display.toLowerCase()} streams right now.`;
@@ -6969,10 +7193,10 @@ async function loadLiveFootball(force=false,kind=liveSportKind()){
 
     const providerName=data.providerName||selected?.name||'Provider';
     const autoNote=liveFootballProviderId==='auto'?`Auto → ${providerName}`:providerName;
-    status.textContent=`${autoNote} • ${display} • ${liveFootballStreams.length} stream${liveFootballStreams.length===1?'':'s'} • ${data.mode==='sportsindx'?'live schedule mode':data.mode==='scrape'?'page mode':data.mode==='dynamic'?'dynamic-data mode':'API mode'}`;
+    renderLiveFootballProviders();
+    status.textContent=`${autoNote} • ${display} • ${liveFootballStreams.length} stream${liveFootballStreams.length===1?'':'s'} • ${data.mode==='titanium'?(data.site==='backup'?'StreamPortal backup':'Titanium main site'):data.mode==='sportsindx'?'live schedule mode':data.mode==='scrape'?'page mode':data.mode==='dynamic'?'dynamic-data mode':'API mode'}`;
   }catch(e){
-    grid.innerHTML='';
-    status.textContent=e.message||'Live provider unavailable';
+    if(current()){grid.innerHTML='';status.textContent=e.message||'Live provider unavailable';}
   }
 }
 function renderLiveFootballSources(stream){
@@ -6985,6 +7209,7 @@ function renderLiveFootballSources(stream){
 function setLivePlaybackUrl(url,kind='iframe'){
   const frame=qs('#liveFootballFrame');
   const video=qs('#liveFootballVideo');
+  window.CommandCentrePlaybackSafety?.stop('live');
 
   if(kind==='hls'||kind==='video'){
     if(frame){
@@ -6993,6 +7218,7 @@ function setLivePlaybackUrl(url,kind='iframe'){
     }
     if(video){
       video.style.display='block';
+      window.CommandCentrePlaybackSafety?.watch('live',video,url);
       video.src=url;
       video.load();
       video.play().catch(()=>{});
@@ -7008,8 +7234,29 @@ function setLivePlaybackUrl(url,kind='iframe'){
   }
   if(frame){
     frame.style.display='block';
+    if(qs('#liveFootballCompatibility')?.value==='restricted')frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-presentation');
+    else frame.removeAttribute('sandbox');
+    window.CommandCentrePlaybackSafety?.watch('live',frame,url);
     frame.src=url;
   }
+}
+let liveFootballSourceRequest=0;
+window.addEventListener('cc-playerfailure',event=>{
+  if(event.detail.kind==='live')stopLiveFootballPlayer(event.detail.message);
+  else if(event.detail.kind==='media'){stopVideoPlayback('media');mediaStatus(event.detail.message,'bad');}
+});
+window.addEventListener('cc-playerslow',event=>{
+  const notice=qs(event.detail.kind==='live'?'#liveFootballPlayerNotice':'#mediaProviderNotice');
+  if(notice){notice.hidden=false;notice.textContent='If the video is still blank, use Stop player, Retry or another source.';}
+});
+window.addEventListener('load',()=>{if(window.CommandCentrePlaybackSafety?.interrupted||new URLSearchParams(location.search).has('playerRecovery'))toast('Previous player closed. Choose Play to start a stream.');},{once:true});
+function stopLiveFootballPlayer(message='Player stopped. Retry or choose another source.'){
+  liveFootballSourceRequest++;
+  window.CommandCentrePlaybackSafety?.stop('live');
+  const frame=qs('#liveFootballFrame'),video=qs('#liveFootballVideo'),notice=qs('#liveFootballPlayerNotice');
+  if(frame)frame.src='about:blank';
+  if(video){video.pause();video.removeAttribute('src');video.load();}
+  if(notice){notice.hidden=false;notice.textContent=message;}
 }
 async function setLiveFootballSource(sourceIndex){
   const stream=liveFootballStreams[liveFootballCurrentStreamIndex];
@@ -7017,6 +7264,12 @@ async function setLiveFootballSource(sourceIndex){
   const index=Number(sourceIndex);
   const source=sources[index];
   if(!source)return;
+  const notice=qs('#liveFootballPlayerNotice');if(notice)notice.hidden=true;
+  const request=++liveFootballSourceRequest;
+  window.CommandCentrePlaybackSafety?.stop('live');
+  const oldFrame=qs('#liveFootballFrame'),oldVideo=qs('#liveFootballVideo');
+  if(oldFrame)oldFrame.src='about:blank';
+  if(oldVideo){oldVideo.pause();oldVideo.removeAttribute('src');oldVideo.load();}
 
   liveFootballCurrentSourceIndex=index;
   renderLiveFootballSources(stream);
@@ -7037,6 +7290,7 @@ async function setLiveFootballSource(sourceIndex){
       });
       const resolved=await fetchJson(`/api/live-content/resolve?${q.toString()}`,{},15000);
 
+      if(request!==liveFootballSourceRequest||stream!==liveFootballStreams[liveFootballCurrentStreamIndex]||index!==liveFootballCurrentSourceIndex)return;
       if(!resolved?.url)throw new Error('Source resolver returned no player URL.');
       setLivePlaybackUrl(resolved.url,resolved.kind||'iframe');
 
@@ -7048,6 +7302,7 @@ async function setLiveFootballSource(sourceIndex){
     setLivePlaybackUrl(source.url,'iframe');
     if(meta)meta.textContent=[provider?.name||'',base,source.label||`Source ${index+1}`].filter(Boolean).join(' • ');
   }catch(e){
+    if(request!==liveFootballSourceRequest)return;
     if(meta)meta.textContent=[provider?.name||'',base,e.message||'Could not resolve this source'].filter(Boolean).join(' • ');
   }
 }
@@ -7068,6 +7323,8 @@ function openLiveFootball(index){
   }
 }
 function closeLiveFootball(){
+  liveFootballSourceRequest++;
+  window.CommandCentrePlaybackSafety?.stop('live');
   const frame=qs('#liveFootballFrame'),video=qs('#liveFootballVideo'),wrap=qs('#liveFootballPlayerWrap'),sources=qs('#liveFootballSources');
   if(frame){
     frame.src='about:blank';
@@ -7085,6 +7342,10 @@ function closeLiveFootball(){
   liveFootballCurrentSourceIndex=0;
 }
 function bindLiveFootball(){
+  const backup=qs('#liveFootballBackupBtn');
+  if(backup&&!backup.dataset.bound){backup.dataset.bound='1';backup.addEventListener('click',()=>{liveFootballSource1Backup=!liveFootballSource1Backup;selectLiveFootballProvider('1');});}
+  const policy=qs('#liveFootballCompatibility');
+  if(policy&&!policy.dataset.bound){policy.dataset.bound='1';policy.addEventListener('change',()=>{if(liveFootballCurrentStreamIndex>=0)setLiveFootballSource(liveFootballCurrentSourceIndex);});}
   const providers=qs('#liveFootballProviders');
   if(providers&&!providers.dataset.bound){
     providers.dataset.bound='1';
@@ -7335,7 +7596,7 @@ const FOOTBALL_COMPETITIONS={
   EL:'Europa League',
   UCL:'Conference League',
   FAC:'FA Cup',
-  FLC:'League Cup'
+  FLC:'League Cup',WSL:'Women’s Super League',UWCL:'Women’s Champions League',NWSL:'NWSL',WLC:'Women’s League Cup',WFAC:'Women’s FA Cup'
 };
 const FOOTBALL_COMPETITION_RULES={
   PL:{names:['Premier League'],countries:['ENG','GBR']},
@@ -7352,10 +7613,30 @@ const FOOTBALL_COMPETITION_RULES={
   CL:{names:['Champions League','UEFA Champions League'],countries:[]},
   EL:{names:['Europa League','UEFA Europa League'],countries:[]},
   UCL:{names:['Conference League','UEFA Conference League','UEFA Europa Conference League'],countries:[]},
-  FAC:{names:['FA Cup'],countries:['ENG','GBR']},
-  FLC:{names:['League Cup','EFL Cup','Carabao Cup'],countries:['ENG','GBR']}
+  FAC:{names:['FA Cup','FA Cup Qualification'],countries:['ENG','GBR']},
+  FLC:{names:['League Cup','EFL Cup','Carabao Cup'],countries:['ENG','GBR']},
+  WSL:{names:['WSL','Women’s Super League',"Women's Super League"],countries:['ENG','GBR']},UWCL:{names:["Women's Champions League",'Women’s Champions League'],countries:[]},NWSL:{names:['NWSL'],countries:['USA']},WLC:{names:["Women's League Cup",'Women’s League Cup'],countries:['ENG','GBR']},WFAC:{names:['FA Cup (Women)',"Women's FA Cup",'Women’s FA Cup','FA Cup'],countries:['ENG','GBR']}
 };
 let footballCache={competition:'',matches:[],standings:[],competitionName:'',updatedAt:''};
+let footballTeamFixtureRows=[],footballTeamSearchRows=[],footballTeamSearchGeneration=0;
+function footballIsWomen(item){return item?.gender==='female'||/women|wsl|nwsl|\(w\)/i.test([item?.name,item?.competition?.name,item?.homeTeam?.name,item?.awayTeam?.name].join(' '));}
+async function searchFootballTeamsUi(){
+  const query=qs('#footballTeamSearch')?.value.trim(),status=qs('#footballTeamSearchStatus'),results=qs('#footballTeamSearchResults');if(!status||!results)return;
+  const generation=++footballTeamSearchGeneration;if(!query||query.length<2){results.innerHTML='';status.textContent='Enter at least two letters of a team name.';return;}
+  status.textContent='Searching teams…';results.innerHTML='';
+  try{const data=await fetchJson('/api/football/teams/search?q='+encodeURIComponent(query),{},12000);if(generation!==footballTeamSearchGeneration)return;
+    footballTeamSearchRows=Array.isArray(data.teams)?data.teams:[];status.textContent=footballTeamSearchRows.length?`${footballTeamSearchRows.length} teams · men’s teams first`:'No teams found. Try another spelling.';
+    results.innerHTML=footballTeamSearchRows.map((team,index)=>`<div class="football-search-team">${team.crest?`<img src="${esc(team.crest)}" alt="">`:''}<div><strong>${esc(team.name)}</strong><div class="sub">${team.gender==='female'?'Women':'Men'} · ${esc(team.league||'Football')}</div></div><button class="btn small" type="button" onclick="followFootballSearchTeam(${index})">${isFootballFavourite(team.id)?'★ Following':'☆ Follow'}</button></div>`).join('');
+  }catch(error){if(generation===footballTeamSearchGeneration)status.textContent=error.message||'Team search is unavailable. Try again.';}
+}
+function followFootballSearchTeam(index){const team=footballTeamSearchRows[Number(index)];if(!team)return;setFootballFavourite(team.id,encodeURIComponent(team.name),encodeURIComponent(team.crest||''),team.gender);searchFootballTeamsUi();}
+async function loadFootballTeamFixtures(id){
+  if(Number(id)<=800000000000)return;
+  try{const data=await fetchJson('/api/football/team?id='+encodeURIComponent(id),{},12000);if(!isFootballFavourite(id))return;
+    const seen=new Map([...footballTeamFixtureRows,...(data.matches||[])].map(match=>[Number(match.id),match]));footballTeamFixtureRows=[...seen.values()].slice(-1200);footballScheduleDerived=null;
+    if(appCurrentPage==='football')renderFootball();queueNativeDashboardSync();refreshNativeLiveActivities(false);
+  }catch(error){console.warn('Team fixtures unavailable',error.message);}
+}
 const FOOTBALL_SCHEDULE_CACHE_KEY='command-centre-football-schedule-v2';
 function loadStoredFootballSchedule(){try{const cached=JSON.parse(localStorage.getItem(FOOTBALL_SCHEDULE_CACHE_KEY)||'null');return Array.isArray(cached?.matches)?cached:{matches:[],competitions:[],provider:'',updatedAt:'',warning:''}}catch{return{matches:[],competitions:[],provider:'',updatedAt:'',warning:''}}}
 function persistFootballSchedule(){try{localStorage.setItem(FOOTBALL_SCHEDULE_CACHE_KEY,JSON.stringify(footballScheduleCache))}catch{}}
@@ -7373,6 +7654,7 @@ function footballTeamKey(name){return String(name||'').toLowerCase().normalize('
 function footballCompetitionToken(value){return String(value||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g,'')}
 function footballMatchInCompetition(match,selection){
   const selected=String(selection||'PL').toUpperCase();if(selected==='ALL')return true;
+  if(footballIsWomen(match)!==['WSL','UWCL','NWSL','WLC','WFAC'].includes(selected))return false;
   const competition=match?.competition||{},directCode=String(competition.code||'').toUpperCase();
   if(directCode===selected)return true;
   const rule=FOOTBALL_COMPETITION_RULES[selected];if(!rule)return false;
@@ -7383,9 +7665,7 @@ function footballMatchInCompetition(match,selection){
 }
 function footballMatchIsPersonal(match){
   const id=Number(match?.id)||0;if(effectiveFollowedMatchIDs().includes(id))return true;
-  const homeId=Number(match?.homeTeam?.id)||0,awayId=Number(match?.awayTeam?.id)||0;
-  const homeKey=footballTeamKey(footballTeamName(match?.homeTeam)),awayKey=footballTeamKey(footballTeamName(match?.awayTeam));
-  return footballFavouriteTeams().some(team=>{const teamId=Number(team.id)||0,teamKey=footballTeamKey(team.name);return (teamId&&(teamId===homeId||teamId===awayId))||(teamKey&&(teamKey===homeKey||teamKey===awayKey))});
+  return CommandCentreFootballFollowing.favourite(match,footballFavouriteTeams());
 }
 function footballCompetitionPriority(match){
   const name=footballCompetitionToken(match?.competition?.name),code=String(match?.competition?.code||'').toUpperCase();
@@ -7401,8 +7681,8 @@ function footballCompetitionPriority(match){
 function footballCompetitionGroupKey(match){const competition=match?.competition||{};return `${Number(competition.id)||0}:${String(competition.code||'').toUpperCase()}:${footballCompetitionToken(competition.name)||'football'}`}
 function footballPrioritiseWorldwide(rows,newestFirst=false){
   const groups=new Map();
-  rows.forEach(match=>{const key=footballCompetitionGroupKey(match);if(!groups.has(key))groups.set(key,{key,name:match?.competition?.name||'Football',priority:footballCompetitionPriority(match),personal:false,matches:[]});const group=groups.get(key);group.priority=Math.min(group.priority,footballCompetitionPriority(match));group.personal=group.personal||footballMatchIsPersonal(match);group.matches.push(match)});
-  return [...groups.values()].sort((a,b)=>(a.personal===b.personal?0:(a.personal?-1:1))||a.priority-b.priority||a.name.localeCompare(b.name)).flatMap(group=>group.matches.sort((a,b)=>{const personal=Number(footballMatchIsPersonal(b))-Number(footballMatchIsPersonal(a));if(personal)return personal;const delta=new Date(a.utcDate)-new Date(b.utcDate);return newestFirst?-delta:delta}));
+  rows.forEach(match=>{const key=footballCompetitionGroupKey(match);if(!groups.has(key))groups.set(key,{key,name:match?.competition?.name||'Football',women:footballIsWomen(match),priority:footballCompetitionPriority(match),personal:false,matches:[]});const group=groups.get(key);group.priority=Math.min(group.priority,footballCompetitionPriority(match));group.personal=group.personal||footballMatchIsPersonal(match);group.matches.push(match)});
+  return [...groups.values()].sort((a,b)=>Number(a.women)-Number(b.women)||(a.personal===b.personal?0:(a.personal?-1:1))||a.priority-b.priority||a.name.localeCompare(b.name)).flatMap(group=>group.matches.sort((a,b)=>{const personal=Number(footballMatchIsPersonal(b))-Number(footballMatchIsPersonal(a));if(personal)return personal;const delta=new Date(a.utcDate)-new Date(b.utcDate);return newestFirst?-delta:delta}));
 }
 function footballCompetitionTier(match){const priority=footballCompetitionPriority(match);if(footballMatchIsPersonal(match))return 'Your teams';if(priority<=15)return 'Top competition';if(priority<=50)return 'Featured';return 'Worldwide'}
 function footballMatchListHtml(visible,allRows,allMode){
@@ -7438,7 +7718,7 @@ function showMoreFootballResults(){footballResultsVisibleLimit+=48;renderFootbal
 window.showMoreFootballFixtures=showMoreFootballFixtures;window.showMoreFootballResults=showMoreFootballResults;
 function renderFootballScheduleTabs(){
   const el=qs('#footballScheduleTabs');if(!el)return;
-  const now=new Date(),tabs=[{value:'live',label:'🔴 Live'}];
+  const now=new Date(),tabs=[{value:'live',label:'🔴 Live'},{value:'upcoming',label:'Upcoming'}];
   for(let offset=-1;offset<=7;offset++){
     const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+offset);
     tabs.push({value:dayKey(d),label:offset===-1?'Yesterday':offset===0?'Today':offset===1?'Tomorrow':d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric'})});
@@ -7449,7 +7729,7 @@ let footballScheduleDerived=null;
 function footballAllScheduleMatches(){
   const live=[...nativeLiveMatches.values()],schedule=footballScheduleCache.matches,league=footballCache.matches,old=footballScheduleDerived;
   if(old&&old.schedule===schedule&&old.league===league&&old.live.length===live.length&&live.every((item,i)=>item===old.live[i]))return old.matches;
-  const rows=[...live,...(schedule||[]),...(league||[])];
+  const rows=[...live,...(schedule||[]),...(league||[]),...footballTeamFixtureRows];
   const seen=new Map();
   rows.forEach(match=>{
     const kickoff=Date.parse(match?.utcDate||''),minute=Number.isFinite(kickoff)?Math.round(kickoff/60000):String(match?.utcDate||'');
@@ -7460,7 +7740,7 @@ function footballAllScheduleMatches(){
   const matches=[...seen.values()];footballScheduleDerived={schedule,league,live,matches};return matches;
 }
 function footballLineupPlayerHtml(player){return `<div class="football-player"><span class="football-player-number">${player.number==null?'—':esc(player.number)}</span><span>${esc(player.name||'Player')}${player.position?`<small class="football-player-position">${esc(player.position)}</small>`:''}</span></div>`}
-function footballLineupTeamHtml(team){return `<section class="football-lineup-team"><div class="football-lineup-team-head">${team.crest?`<img src="${esc(team.crest)}" alt="">`:''}<div><strong>${esc(team.name||'Team')}</strong><div class="sub">${esc([team.formation?`Formation ${team.formation}`:'',team.coach?`Coach ${team.coach}`:''].filter(Boolean).join(' • ')||'Team sheet')}</div></div></div><div class="section-note">Starting XI</div>${team.starting?.length?team.starting.map(footballLineupPlayerHtml).join(''):'<div class="empty">Not announced</div>'}<div class="section-note" style="margin-top:8px">Bench</div>${team.bench?.length?team.bench.map(footballLineupPlayerHtml).join(''):'<div class="empty">Not announced</div>'}</section>`}
+function footballLineupTeamHtml(team){return `<section class="football-lineup-team"><div class="football-lineup-team-head">${team.crest?`<img src="${esc(team.crest)}" alt="">`:''}<div><strong>${esc(team.name||'Team')}</strong><div class="sub">${esc([team.formation?`Formation ${team.formation}`:'',team.coach?`Coach ${team.coach}`:''].filter(Boolean).join(' • ')||'Team sheet')}</div></div></div>${CommandCentreFootballPitch.render(team)}<details><summary>Starting XI list</summary>${(team.starting||[]).map(footballLineupPlayerHtml).join('')}</details><div class="section-note" style="margin-top:8px">Bench</div>${team.bench?.length?team.bench.map(footballLineupPlayerHtml).join(''):'<div class="empty">Not announced</div>'}</section>`}
 const footballMatchRuntime={matchId:0,data:null,tab:'overview'};
 function footballMatchCentreHero(match){
   const status=footballMatchIsLive(match)?`${Number(match.minute)||'LIVE'}${Number(match.minute)?"′":''}`:match.status==='FINISHED'?'Full time':footballDateTime(match.utcDate);
@@ -7645,13 +7925,13 @@ async function testFootballNotification(){
   }catch(e){toast(e.message||'Could not send football test notification')}
 }
 
-function setFootballFavourite(id,name,crest){
+function setFootballFavourite(id,name,crest,gender){
   const teamId=Number(id)||0;
   if(!teamId)return;
   const team={
     id:teamId,
     name:decodeURIComponent(name||'Team'),
-    crest:decodeURIComponent(crest||'')
+    crest:decodeURIComponent(crest||''),gender:gender||(/^W|^NWSL/.test(state.footballCompetition||'')?'female':'male')
   };
   const current=footballFavouriteTeams();
   const exists=current.some(t=>Number(t.id)===teamId);
@@ -7669,6 +7949,7 @@ function setFootballFavourite(id,name,crest){
   syncFootballNotificationPreferences(false);
   queueNativeDashboardSync(0);refreshNativeLiveActivities(true);
   toast(exists?`${team.name} removed from favourites`:`${team.name} added to favourites`);
+  if(!exists)loadFootballTeamFixtures(teamId);
 }
 function removeFootballFavourite(id){
   const t=footballFavouriteTeams().find(x=>Number(x.id)===Number(id));
@@ -7681,12 +7962,12 @@ function renderFootballFavourite(){
   const el=qs('#footballFavourite');if(!el)return;
   const teams=footballFavouriteTeams();
   if(!teams.length){
-    el.innerHTML='<div class="empty">No favourite teams selected yet. Tap ☆ beside any club in Standings.</div>';
+    el.innerHTML='<div class="empty">Search for a team above and tap Follow, or star a club in Standings.</div>';
     return;
   }
   el.innerHTML=`<div class="football-favourites-list">${teams.map(team=>{
     const id=Number(team.id);
-    const key=footballTeamKey(team.name),matches=footballAllScheduleMatches().filter(m=>Number(m.homeTeam?.id)===id||Number(m.awayTeam?.id)===id||footballTeamKey(footballTeamName(m.homeTeam))===key||footballTeamKey(footballTeamName(m.awayTeam))===key);
+    const matches=footballAllScheduleMatches().filter(m=>CommandCentreFootballFollowing.favourite(m,[team]));
     const next=matches.filter(m=>!['FINISHED','CANCELLED'].includes(m.status)&&new Date(m.utcDate)>=new Date()).sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate))[0];
     const last=matches.filter(m=>m.status==='FINISHED').sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate))[0];
     return `<div class="football-favourite">
@@ -7712,6 +7993,9 @@ function renderFootballStandings(){
     return;
   }
   const tables=footballCache.standings||[];
+  if(footballCache.competition===state.footballCompetition&&footballCache.rounds?.length){
+    el.innerHTML='<div class="section-note">Knockout competition · rounds and ties replace a league table.</div><div class="football-rounds">'+footballCache.rounds.map(round=>`<details><summary>${esc(/^\d+$/.test(round.name)?'Round '+round.name:round.name)} · ${round.matches.length} ties</summary>${round.matches.slice(-12).map(footballMatchCard).join('')}${round.matches.length>12?'<p class="section-note">Showing the latest 12 ties. See Results for all matches.</p>':''}</details>`).join('')+'</div>';return;
+  }
   if(!tables.length){
     el.innerHTML='<div class="empty">No league table is available for this competition right now.</div>';
     return;
@@ -7741,7 +8025,7 @@ function renderFootball(){
   if(!fixtureEl||!resultEl)return;
   const selection=String(state.footballCompetition||'PL').toUpperCase(),allMode=selection==='ALL';
   const matches=footballAllScheduleMatches(),scopedMatches=matches.filter(match=>footballMatchInCompetition(match,selection));
-  const upcomingRows=scopedMatches.filter(m=>footballScheduleFilter==='live'?footballMatchIsLive(m):footballLocalDay(m.utcDate)===footballScheduleFilter);
+  const upcomingRows=scopedMatches.filter(m=>footballScheduleFilter==='live'?footballMatchIsLive(m):footballScheduleFilter==='upcoming'?(!['FINISHED','CANCELLED','POSTPONED'].includes(m.status)&&Date.parse(m.utcDate)>Date.now()-3*3600000):footballLocalDay(m.utcDate)===footballScheduleFilter);
   const resultRows=scopedMatches.filter(m=>m.status==='FINISHED');
   const matchingUpcoming=allMode?footballPrioritiseWorldwide(upcomingRows):upcomingRows.sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
   const matchingResults=allMode?footballPrioritiseWorldwide(resultRows,true):resultRows.sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate));
@@ -7753,7 +8037,7 @@ function renderFootball(){
   renderFootballStandings();renderFootballFavourite();applyFootballNotificationUI();
 
   const sub=qs('#footballStandingsSub');
-  if(sub)sub.textContent=allMode?'Choose a league for its table':(footballCache.competitionName?`${footballCache.competitionName} • current season`:'Current season');
+  if(sub)sub.textContent=allMode?'Choose a competition for standings or cup rounds':(footballCache.competitionName?`${footballCache.competitionName}${footballCache.season?' • '+footballCache.season:''}`:'Current season');
   const scheduleSub=qs('#footballScheduleSub');
   if(scheduleSub)scheduleSub.textContent=allMode?`All worldwide • biggest and most relevant leagues first • showing ${upcoming.length} of ${matchingUpcoming.length}`:`${FOOTBALL_COMPETITIONS[selection]||footballCache.competitionName||selection} • ${footballScheduleCache.provider||'football data'} • showing ${upcoming.length} of ${matchingUpcoming.length}`;
   const resultsSub=qs('#footballResultsSub');if(resultsSub)resultsSub.textContent=allMode?`All worldwide • prioritised by competition`:`${FOOTBALL_COMPETITIONS[selection]||footballCache.competitionName||selection} • ${matchingResults.length} recent result${matchingResults.length===1?'':'s'}`;
@@ -7766,6 +8050,7 @@ async function loadFootball(force=false){
   if(footballLoadPromise&&footballLoadCompetition===competition&&!force)return footballLoadPromise;
   const generation=++footballLoadGeneration;footballLoadCompetition=competition;
   if(state.footballCompetition!==competition){state.footballCompetition=competition;saveState()}
+  if(['FAC','FLC'].includes(competition)&&footballScheduleFilter===dayKey())footballScheduleFilter='upcoming';
   if(status)status.textContent='Refreshing football… saved fixtures remain available.';
   const current=()=>generation===footballLoadGeneration;
   const paint=()=>{if(current()&&appCurrentPage==='football')renderFootball()};
@@ -7778,7 +8063,7 @@ async function loadFootball(force=false){
     await Promise.allSettled([
       leagueRequest.then(data=>{
         if(!current())return;if(data.error)throw Error(data.error);
-        footballCache={competition,matches:Array.isArray(data.matches)?data.matches:[],standings:Array.isArray(data.standings)?data.standings:[],competitionName:data.competition?.name||FOOTBALL_COMPETITIONS[competition]||competition,updatedAt:data.updatedAt||nowIso()};received++;paint();
+        footballCache={competition,matches:Array.isArray(data.matches)?data.matches:[],standings:Array.isArray(data.standings)?data.standings:[],rounds:data.rounds||[],season:data.season||'',competitionName:data.competition?.name||FOOTBALL_COMPETITIONS[competition]||competition,updatedAt:data.updatedAt||nowIso()};received++;paint();
         if(status)status.textContent='League loaded • refreshing wider schedule…';
       }).catch(error=>errors.push(error.message||'League unavailable')),
       fetchJson('/api/football/schedule?'+scheduleParams,{},20000).then(data=>{
@@ -7970,6 +8255,11 @@ function bindEntertainmentControls(){
     if(e.target.closest('#mediaSetupCheckBtn')){checkMediaSetup();return}
     if(e.target.closest('#mediaSearchBtn')){searchMediaCatalogue();return}
     if(e.target.closest('#mediaPlayBtn')){playSelectedMedia(false);return}
+    if(e.target.closest('#mediaWatchlistBtn')){toggleMediaWatchlist();return}
+    const watchlistOpen=e.target.closest('[data-watchlist-open]');
+    if(watchlistOpen){const item=state.entertainment.mediaWatchlist[Number(watchlistOpen.dataset.watchlistOpen)];if(item){mediaEmbedState.results=[item];selectMediaResult(0)}return}
+    const watchlistRemove=e.target.closest('[data-watchlist-remove]');
+    if(watchlistRemove){toggleMediaWatchlist(state.entertainment.mediaWatchlist[Number(watchlistRemove.dataset.watchlistRemove)]);return}
     if(e.target.closest('#mediaOpenExternalBtn')){playSelectedMedia(true);return}
     if(e.target.closest('#mediaFullscreenBtn')){toggleMediaFullscreen();return}
     if(e.target.closest('#mediaMarkWatchedBtn')){markSelectedMediaWatched();return}
@@ -8060,6 +8350,7 @@ function entertainmentActive(){return qs('#entertainmentPage')?.classList.contai
 function showEntertainmentPanel(name){
   qsa('.ent-panel').forEach(p=>p.classList.toggle('active',p.dataset.entPanel===name));
   qsa('.ent-tab').forEach(t=>t.classList.toggle('active',t.dataset.entTab===name));
+  window.dispatchEvent(new CustomEvent('cc-entpanelchange',{detail:name}));
   requestAnimationFrame(updateFloatingVideoPlayer);
   if(entertainmentActive()){
     qsa('.sidebar-item').forEach(t=>{
@@ -8413,7 +8704,7 @@ function submitWordleGuess(){
   const g=ensureWordleState();
   if(g.wordleFinished)return;
   const guess=g.wordleCurrent.toUpperCase();
-  if(guess.length!==5){toast('Enter five letters first');return}
+  if(!/^[A-Z]{5}$/.test(guess)){toast('Enter five letters first');return}
   const answer=wordleAnswer();
   g.wordleGuesses.push(guess);g.wordleCurrent='';
   if(guess===answer){
@@ -8424,14 +8715,47 @@ function submitWordleGuess(){
   }else saveState();
   renderWordle();renderEntertainmentStats();
 }
+let wordleCursor=0;
+function focusWordleCell(index=wordleCursor){
+  const next=Math.max(0,Math.min(5,index));
+  const input=qs(`[data-wordle-cell="${Math.min(4,next)}"]`);
+  if(input){input.focus({preventScroll:true});input.select();}
+  wordleCursor=next;
+}
+function paintWordleEntry(){
+  const g=ensureWordleState();
+  qsa('[data-wordle-cell]').forEach(input=>{input.value=g.wordleCurrent[Number(input.dataset.wordleCell)]?.trim()||'';input.closest('.wordle-cell').classList.toggle('filled',!!input.value);});
+}
 function wordleInput(key){
   const g=ensureWordleState();if(g.wordleFinished)return;
-  if(key==='ENTER'){submitWordleGuess();return}
-  if(key==='BACKSPACE'){g.wordleCurrent=g.wordleCurrent.slice(0,-1);saveState();renderWordle();return}
-  if(/^[A-Z]$/.test(key)&&g.wordleCurrent.length<5){g.wordleCurrent+=key;saveState();renderWordle()}
+  key=String(key).toUpperCase();
+  if(key==='ENTER'){submitWordleGuess();if(!g.wordleCurrent)wordleCursor=0;focusWordleCell();return;}
+  if(key==='ARROWLEFT'||key==='ARROWRIGHT'){focusWordleCell(wordleCursor+(key==='ARROWLEFT'?-1:1));return;}
+  if(key==='HOME'||key==='END'){focusWordleCell(key==='HOME'?0:4);return;}
+  const letters=g.wordleCurrent.padEnd(5,' ').split('');
+  if(key==='BACKSPACE'){
+    if(wordleCursor===5)wordleCursor=4;
+    if(!letters[wordleCursor].trim()&&wordleCursor>0)wordleCursor--;
+    letters[wordleCursor]=' ';
+  }else if(key==='DELETE'){letters[Math.min(4,wordleCursor)]=' ';}
+  else if(/^[A-Z]$/.test(key)&&wordleCursor<5){letters[wordleCursor]=key;wordleCursor++;}
+  else return;
+  g.wordleCurrent=letters.join('').trimEnd();saveState();paintWordleEntry();focusWordleCell();
+}
+function wordleKeydown(event){
+  if(event.isComposing||event.ctrlKey||event.metaKey||event.altKey)return;
+  if(/^[A-Za-z]$/.test(event.key)||['Backspace','Delete','Enter','ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();wordleInput(event.key);}
+}
+function pasteWordle(event){
+  event.preventDefault();const g=ensureWordleState();if(g.wordleFinished)return;
+  const text=String(event.clipboardData?.getData('text')||'').replace(/[^A-Za-z]/g,'').toUpperCase().slice(0,5-wordleCursor);
+  if(!text)return;const letters=g.wordleCurrent.padEnd(5,' ').split('');
+  for(const letter of text)letters[wordleCursor++]=letter;
+  g.wordleCurrent=letters.join('').trimEnd();saveState();paintWordleEntry();focusWordleCell();
 }
 function resetWordleToday(){
   const g=ensureWordleState();
+  wordleCursor=0;
   g.wordleGuesses=[];g.wordleCurrent='';g.wordleFinished=false;g.wordleWon=false;saveState();renderWordle();
 }
 function renderWordle(){
@@ -8442,7 +8766,8 @@ function renderWordle(){
     const submitted=g.wordleGuesses[r],current=!submitted&&r===g.wordleGuesses.length?g.wordleCurrent:'';
     const letters=(submitted||current||'').padEnd(5,' ').split('');
     const marks=submitted?scoreWordleGuess(submitted,answer):Array(5).fill('');
-    rows.push(`<div class="wordle-row">${letters.map((ch,i)=>`<div class="wordle-cell ${submitted?marks[i]:(ch.trim()?'filled':'')}">${esc(ch.trim())}</div>`).join('')}</div>`);
+    const editable=!submitted&&r===g.wordleGuesses.length&&!g.wordleFinished;
+    rows.push(`<div class="wordle-row">${letters.map((ch,i)=>`<div class="wordle-cell ${submitted?marks[i]:(ch.trim()?'filled':'')}">${editable?`<input data-wordle-cell="${i}" aria-label="Wordle attempt ${r+1} letter ${i+1}" maxlength="1" inputmode="text" enterkeyhint="go" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" value="${esc(ch.trim())}">`:esc(ch.trim())}</div>`).join('')}</div>`);
   }
   board.innerHTML=rows.join('');
 
@@ -8463,7 +8788,7 @@ function renderWordle(){
     status.textContent=g.wordleWon?`Solved in ${g.wordleGuesses.length}/6 — ${answer}`:`Finished — the word was ${answer}.`;
   }else{
     status.className='game-status';
-    status.textContent=`Attempt ${g.wordleGuesses.length+1} of 6`;
+    status.textContent=`Attempt ${g.wordleGuesses.length+1} of 6 · Type to fill the squares, Enter to submit`;
   }
   if(qs('#wordleStreak'))qs('#wordleStreak').textContent=g.wordleStreak||0;
   if(qs('#wordleBest'))qs('#wordleBest').textContent=g.wordleBest||0;
@@ -9817,16 +10142,18 @@ function keepNoteCaretVisible(){
     const toolbar=modal.classList.contains('note-keyboard-open')&&modal.classList.contains('note-body-focused')&&toolbarEl&&getComputedStyle(toolbarEl).display!=='none'?toolbarEl.getBoundingClientRect():null;
     const viewport=window.visualViewport,viewTop=viewport?.offsetTop||0,viewBottom=viewTop+(viewport?.height||window.innerHeight);
     const safeTop=Math.max(bodyRect.top,viewTop)+18,safeBottom=Math.min(bodyRect.bottom,actions?.top||viewBottom,toolbar?.top||viewBottom,viewBottom)-24;
-    if(caret.bottom>safeBottom)body.scrollTop+=caret.bottom-safeBottom+28;
-    else if(caret.top<safeTop)body.scrollTop-=safeTop-caret.top+18;
+    const bookPage=modal.classList.contains('book-mode')?modal.querySelector('.note-editor-card'):null;
+    const scroller=bookPage&&getComputedStyle(bookPage).overflowY==='auto'?bookPage:body;
+    if(caret.bottom>safeBottom)scroller.scrollTop+=caret.bottom-safeBottom+28;
+    else if(caret.top<safeTop)scroller.scrollTop-=safeTop-caret.top+18;
   });
 }
-let notesFilter='all';
+let notesFilter='all',schoolbooksFilter='all';
 function populateNoteFolderSelect(value='Notes'){const s=qs('#noteFolder');if(!s)return;const folders=[...new Set(state.noteFolders)].sort((a,b)=>a.localeCompare(b));s.innerHTML=folders.map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join('');s.value=folders.includes(value)?value:(folders[0]||'Notes')}
-function renderNotesNavigation(){const el=qs('#notesNavigation');if(!el)return;const active=state.notes.filter(n=>!n.deletedAt),deleted=state.notes.filter(n=>n.deletedAt);const items=[['all','📝 All Notes',active.length],['pinned','📌 Pinned',active.filter(n=>n.pinned).length],...[...new Set(state.noteFolders)].map(f=>[`folder:${f}`,`📁 ${f}`,active.filter(n=>n.folder===f).length]),['deleted','🗑 Recently Deleted',deleted.length]];el.innerHTML=items.map(([k,l,c])=>`<button class="notes-nav-btn ${notesFilter===k?'active':''}" data-notes-filter="${esc(k)}"><span>${esc(l)}</span><span class="notes-nav-count">${c}</span></button>`).join('')}
-function setNotesFilter(f){notesFilter=f||'all';renderNotesNavigation();renderNotes()}
+function renderNotesNavigation(){const el=qs('#notesNavigation');if(!el)return;const active=state.notes.filter(n=>!n.deletedAt&&n.kind!=='schoolbook'),deleted=state.notes.filter(n=>n.deletedAt&&!n.purged&&n.kind!=='schoolbook');const items=[['all','📝 All Notes',active.length],['pinned','📌 Pinned',active.filter(n=>n.pinned).length],...[...new Set(state.noteFolders)].map(f=>[`folder:${f}`,`📁 ${f}`,active.filter(n=>n.folder===f).length]),['deleted','🗑 Recently Deleted',deleted.length]];el.innerHTML=items.map(([k,l,c])=>`<button class="notes-nav-btn ${notesFilter===k?'active':''}" data-notes-filter="${esc(k)}"><span>${esc(l)}</span><span class="notes-nav-count">${c}</span></button>`).join('')}
+function setNotesFilter(f){if(f==='schoolbooks'){switchPage('schoolbooks');return}notesFilter=f||'all';renderNotesNavigation();renderNotes()}
 function addNoteFolder(){const n=prompt('New folder name');if(!n)return;const clean=n.trim().slice(0,40);if(!clean)return;if(!state.noteFolders.includes(clean))state.noteFolders.push(clean);saveState();setNotesFilter(`folder:${clean}`);toast(`Folder "${clean}" created`)}
-function openNote(id=null){editingNoteId=id;noteSavedRange=null;const n=id?state.notes.find(x=>x.id===id):null,deleted=!!n?.deletedAt;qs('#noteModalTitle').textContent=n?(deleted?'Deleted note':'Edit note'):'New note';qs('#noteTitle').value=n?.title||'';qs('#noteBody').innerHTML=n?.body||'';populateNoteFolderSelect(n?.folder||(notesFilter.startsWith('folder:')?notesFilter.slice(7):'Notes'));qs('#notePinned').checked=!!n?.pinned;updateNoteBodyEmptyState();qs('#deleteNoteBtn').style.display=n?'block':'none';qs('#deleteNoteBtn').textContent=deleted?'Delete forever':'Delete';qs('#restoreNoteBtn').style.display=deleted?'block':'none';qs('#saveNote').style.display=deleted?'none':'inline-flex';qs('#saveNote').textContent=n?'Save changes':'Save note';qs('#noteToolbar')?.classList.remove('expanded');qs('#noteFormatToggle')?.setAttribute('aria-expanded','false');openModal('noteModal');syncNoteVisualViewport();setTimeout(()=>{qs('#noteTitle')?.focus();syncNoteVisualViewport()},80)}
+function openNote(id=null,newBook=false){editingNoteId=id;noteSavedRange=null;const n=id?state.notes.find(x=>x.id===id):null,deleted=!!n?.deletedAt;qs('#noteModalTitle').textContent=n?(deleted?'Deleted note':'Edit note'):'New note';qs('#noteTitle').value=n?.title||'';qs('#noteBody').innerHTML=sanitizeImportedNoteHtml(n?.body||'');populateNoteFolderSelect(n?.folder||(newBook?(qs('#schoolbooksFolder')?.value||'Notes'):(notesFilter.startsWith('folder:')?notesFilter.slice(7):'Notes')));qs('#notePinned').checked=!!n?.pinned;updateNoteBodyEmptyState();qs('#deleteNoteBtn').style.display=n?'block':'none';qs('#deleteNoteBtn').textContent=deleted?'Delete forever':'Delete';qs('#restoreNoteBtn').style.display=deleted?'block':'none';qs('#saveNote').style.display=deleted?'none':'inline-flex';qs('#saveNote').textContent=n?'Save changes':'Save note';qs('#noteToolbar')?.classList.remove('expanded');qs('#noteFormatToggle')?.setAttribute('aria-expanded','false');CommandCentreNotebooks.open(n,newBook);openModal('noteModal');syncNoteVisualViewport();setTimeout(()=>{qs('#noteTitle')?.focus();syncNoteVisualViewport()},80)}
 function normalizeFontTags(root){const sizeMap={'1':'11px','2':'12px','3':'14px','4':'16px','5':'19px','6':'23px','7':'28px'};root.querySelectorAll('font').forEach(f=>{const span=document.createElement('span'),size=f.getAttribute('size'),face=f.getAttribute('face'),color=f.getAttribute('color');if(size)span.style.fontSize=sizeMap[size]||'14px';if(face)span.style.fontFamily=face;if(color)span.style.color=color;span.innerHTML=f.innerHTML;f.replaceWith(span)})}
 function noteExec(cmd,value=null){const el=qs('#noteBody');if(!el)return;el.focus({preventScroll:true});restoreNoteSelection();document.execCommand(cmd,false,value);normalizeFontTags(el);rememberNoteSelection();updateNoteBodyEmptyState();refreshToolbarState();keepNoteCaretVisible()}
 function refreshToolbarState(){['bold','italic','underline','strikeThrough','insertUnorderedList'].forEach(cmd=>{const btn=qs(`#noteToolbar [data-cmd="${cmd}"]`);if(!btn)return;let active=false;try{active=document.queryCommandState(cmd)}catch{}btn.classList.toggle('active',active)})}
@@ -9837,15 +10164,39 @@ function bindNoteToolbar(){
   done?.addEventListener('click',()=>{toolbar?.classList.remove('expanded');toggle?.setAttribute('aria-expanded','false');qs('#noteBody')?.blur();syncNoteVisualViewport()});
   qsa('#noteToolbar [data-cmd]').forEach(btn=>btn.addEventListener('click',()=>{const cmd=btn.dataset.cmd;if(cmd==='removeFormat'){noteExec('removeFormat');noteExec('unlink');return}noteExec(cmd)}));
   qs('#noteFontFamily')?.addEventListener('pointerdown',rememberNoteSelection);qs('#noteFontFamily')?.addEventListener('change',e=>noteExec('fontName',e.target.value));qs('#noteFontSize')?.addEventListener('pointerdown',rememberNoteSelection);qs('#noteFontSize')?.addEventListener('change',e=>noteExec('fontSize',e.target.value));
-  qsa('#noteColorSwatches .color-dot').forEach(dot=>dot.addEventListener('click',()=>{qsa('#noteColorSwatches .color-dot').forEach(d=>d.classList.remove('active'));dot.classList.add('active');noteExec('foreColor',dot.dataset.color)}));
-  const body=qs('#noteBody');if(body){body.addEventListener('beforeinput',keepNoteCaretVisible);body.addEventListener('input',()=>{rememberNoteSelection();updateNoteBodyEmptyState();syncNoteVisualViewport();keepNoteCaretVisible()});body.addEventListener('focus',()=>{syncNoteVisualViewport();keepNoteCaretVisible()});body.addEventListener('blur',()=>{rememberNoteSelection();syncNoteVisualViewport()});body.addEventListener('keyup',()=>{rememberNoteSelection();refreshToolbarState();keepNoteCaretVisible()});body.addEventListener('mouseup',()=>{rememberNoteSelection();keepNoteCaretVisible()});body.addEventListener('paste',e=>{e.preventDefault();const text=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,text);rememberNoteSelection();keepNoteCaretVisible()})}
+  qsa('#noteColorSwatches .color-dot').forEach(dot=>dot.addEventListener('click',()=>{qsa('#noteColorSwatches .color-dot').forEach(d=>d.classList.remove('active'));dot.classList.add('active');noteExec('foreColor',CommandCentreNotebooks.isBook&&dot.title==='Default'?'#24384b':dot.dataset.color);CommandCentreNotebooks.changed()}));
+  const body=qs('#noteBody');if(body){CommandCentreNoteEditor.bind(body);body.addEventListener('beforeinput',keepNoteCaretVisible);body.addEventListener('input',()=>{rememberNoteSelection();updateNoteBodyEmptyState();syncNoteVisualViewport();keepNoteCaretVisible()});body.addEventListener('focus',()=>{syncNoteVisualViewport();keepNoteCaretVisible()});body.addEventListener('blur',()=>{rememberNoteSelection();syncNoteVisualViewport()});body.addEventListener('keyup',()=>{rememberNoteSelection();refreshToolbarState();keepNoteCaretVisible()});body.addEventListener('mouseup',()=>{rememberNoteSelection();keepNoteCaretVisible()});body.addEventListener('paste',e=>{e.preventDefault();if(body.contentEditable==='false')return;const clipboard=e.clipboardData||window.clipboardData;const images=[...clipboard.files].filter(f=>f.type.startsWith('image/'));if(images.length){CommandCentreNotebooks.addImages(images);return}const text=clipboard.getData('text/plain');document.execCommand('insertText',false,text);rememberNoteSelection();updateNoteBodyEmptyState();CommandCentreNotebooks.changed();keepNoteCaretVisible()})}
   document.addEventListener('selectionchange',()=>{if(qs('#noteModal')?.classList.contains('open'))rememberNoteSelection()});qs('#noteTitle')?.addEventListener('focus',syncNoteVisualViewport);window.visualViewport?.addEventListener('resize',syncNoteVisualViewport,{passive:true});window.visualViewport?.addEventListener('scroll',syncNoteVisualViewport,{passive:true});window.addEventListener('resize',syncNoteVisualViewport,{passive:true})
 }
 window.editNote=id=>openNote(id);
-function renderNotes(){renderHomeLauncher();renderNotesNavigation();const el=qs('#notesList');if(!el)return;const q=(qs('#notesSearch')?.value||'').trim().toLowerCase();let notes=[...state.notes];if(notesFilter==='deleted')notes=notes.filter(n=>n.deletedAt);else{notes=notes.filter(n=>!n.deletedAt);if(notesFilter==='pinned')notes=notes.filter(n=>n.pinned);else if(notesFilter.startsWith('folder:'))notes=notes.filter(n=>n.folder===notesFilter.slice(7))}if(q)notes=notes.filter(n=>(`${n.title||''} ${notePreview(n.body)} ${n.folder||''}`).toLowerCase().includes(q));notes.sort((a,b)=>{if(!a.deletedAt&&!b.deletedAt&&a.pinned!==b.pinned)return a.pinned?-1:1;return new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt)});if(!notes.length){el.innerHTML=q?'<div class="notes-empty"><strong>No matching notes</strong>Try another search.</div>':'<div class="notes-empty"><strong>Nothing here</strong>Create a note or choose another folder.</div>';return}const card=n=>`<div class="note-card ${n.pinned?'pinned':''}" data-note-id="${esc(n.id)}"><div class="note-icon">${n.deletedAt?'🗑':(n.pinned?'📌':'📝')}</div><div class="note-card-main"><div class="note-card-title">${esc(n.title||'Untitled note')}</div><div class="note-card-preview">${esc(notePreview(n.body)||'No text')}</div><div class="note-card-meta"><span class="note-folder-pill">${esc(n.folder||'Notes')}</span><span>${esc(noteDateLabel(n.updatedAt||n.createdAt))}</span></div></div></div>`;const pinned=notesFilter!=='deleted'?notes.filter(n=>n.pinned):[],other=notesFilter!=='deleted'?notes.filter(n=>!n.pinned):notes;el.innerHTML=pinned.length&&other.length?`<div class="notes-section-label">Pinned</div><div class="notes-list">${pinned.map(card).join('')}</div><div class="notes-section-label">Notes</div><div class="notes-list">${other.map(card).join('')}</div>`:`<div class="notes-list">${notes.map(card).join('')}</div>`;qsa('#notesList [data-note-id]').forEach(c=>c.addEventListener('click',()=>openNote(c.dataset.noteId)))}
-function saveNote(){const title=qs('#noteTitle').value.trim()||'Untitled note',body=qs('#noteBody').innerHTML,folder=qs('#noteFolder')?.value||'Notes',pinned=!!qs('#notePinned')?.checked,now=nowIso();if(!state.noteFolders.includes(folder))state.noteFolders.push(folder);if(editingNoteId)state.notes=state.notes.map(n=>n.id===editingNoteId?{...n,title,body,folder,pinned,updatedAt:now}:n);else state.notes=[{id:makeId('note'),title,body,folder,pinned,createdAt:now,updatedAt:now,deletedAt:''},...state.notes];saveState();closeModal('noteModal');renderNotes();renderTodayPage();toast(editingNoteId?'Note updated':'Note saved');editingNoteId=null}
-function deleteEditingNote(){if(!editingNoteId)return;const n=state.notes.find(x=>x.id===editingNoteId);if(!n)return;if(n.deletedAt){if(confirm('Delete this note permanently?'))state.notes=state.notes.filter(x=>x.id!==editingNoteId);else return}else{if(!confirm('Move this note to Recently Deleted?'))return;state.notes=state.notes.map(x=>x.id===editingNoteId?{...x,deletedAt:nowIso(),updatedAt:nowIso()}:x)}saveState();closeModal('noteModal');renderNotes();renderTodayPage();toast(n.deletedAt?'Note permanently deleted':'Moved to Recently Deleted');editingNoteId=null}
-function restoreEditingNote(){if(!editingNoteId)return;state.notes=state.notes.map(x=>x.id===editingNoteId?{...x,deletedAt:'',updatedAt:nowIso()}:x);saveState();closeModal('noteModal');setNotesFilter('all');renderTodayPage();toast('Note restored');editingNoteId=null}
+function renderNotes(){renderHomeLauncher();renderNotesNavigation();renderSchoolbooks();const el=qs('#notesList');if(!el)return;const q=(qs('#notesSearch')?.value||'').trim().toLowerCase();let notes=state.notes.filter(n=>n.kind!=='schoolbook');if(notesFilter==='deleted')notes=notes.filter(n=>n.deletedAt&&!n.purged);else{notes=notes.filter(n=>!n.deletedAt);if(notesFilter==='schoolbooks')notes=notes.filter(n=>n.kind==='schoolbook');else if(notesFilter==='pinned')notes=notes.filter(n=>n.pinned);else if(notesFilter.startsWith('folder:'))notes=notes.filter(n=>n.folder===notesFilter.slice(7))}if(q)notes=notes.filter(n=>(`${n.title||''} ${notePreview(n.body)} ${n.folder||''}`).toLowerCase().includes(q));notes.sort((a,b)=>{if(!a.deletedAt&&!b.deletedAt&&a.pinned!==b.pinned)return a.pinned?-1:1;return new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt)});if(!notes.length){el.innerHTML=q?'<div class="notes-empty"><strong>No matching notes</strong>Try another search.</div>':'<div class="notes-empty"><strong>Nothing here</strong>Create a note or choose another folder.</div>';return}const card=n=>`<div class="note-card ${n.pinned?'pinned':''}" data-note-id="${esc(n.id)}"><div class="note-icon">${n.deletedAt?'🗑':(n.pinned?'📌':n.kind==='schoolbook'?'📚':'📝')}</div><div class="note-card-main"><div class="note-card-title">${esc(n.title||'Untitled note')}</div><div class="note-card-preview">${esc(notePreview(n.body)||'No text')}</div><div class="note-card-meta"><span class="note-folder-pill">${esc(n.folder||'Notes')}</span><span>${esc(noteDateLabel(n.updatedAt||n.createdAt))}</span></div></div></div>`;const pinned=notesFilter!=='deleted'?notes.filter(n=>n.pinned):[],other=notesFilter!=='deleted'?notes.filter(n=>!n.pinned):notes;el.innerHTML=pinned.length&&other.length?`<div class="notes-section-label">Pinned</div><div class="notes-list">${pinned.map(card).join('')}</div><div class="notes-section-label">Notes</div><div class="notes-list">${other.map(card).join('')}</div>`:`<div class="notes-list">${notes.map(card).join('')}</div>`;qsa('#notesList [data-note-id]').forEach(c=>c.addEventListener('click',()=>openNote(c.dataset.noteId)))}
+function renderSchoolbooks(){
+ const el=qs('#schoolbooksList');if(!el)return;
+ const books=state.notes.filter(n=>n.kind==='schoolbook'),active=books.filter(n=>!n.deletedAt),deleted=books.filter(n=>n.deletedAt&&!n.purged);
+ const nav=qs('#schoolbooksNavigation');nav.innerHTML=[['all','All books',active.length],['pinned','Pinned',active.filter(n=>n.pinned).length],['deleted','Recently Deleted',deleted.length]].map(([key,label,count])=>`<button class="btn small ${schoolbooksFilter===key?'primary':''}" data-schoolbooks-filter="${key}" aria-pressed="${schoolbooksFilter===key}">${label} · ${count}</button>`).join('');
+ const folder=qs('#schoolbooksFolder'),selectedFolder=folder.value;
+ folder.innerHTML='<option value="">All folders</option>'+[...new Set(books.filter(n=>!n.purged).map(n=>n.folder||'Notes'))].sort().map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('');folder.value=selectedFolder;
+ const query=qs('#schoolbooksSearch').value.trim().toLowerCase();
+ const visible=(schoolbooksFilter==='deleted'?deleted:active).filter(n=>(schoolbooksFilter!=='pinned'||n.pinned)&&(!folder.value||n.folder===folder.value)&&(!query||`${n.title||''} ${n.subject||''} ${n.body||''} ${(n.pages||[]).map(p=>p.title+' '+notePreview(p.body)).join(' ')}`.toLowerCase().includes(query))).sort((a,b)=>Number(b.pinned)-Number(a.pinned)||new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt));
+ el.innerHTML=visible.length?CommandCentreNotebooks.shelf(visible):`<div class="notes-empty"><strong>${query?'No matching schoolbooks':schoolbooksFilter==='deleted'?'No deleted schoolbooks':'Your bookshelf is empty'}</strong>${schoolbooksFilter==='deleted'?'Deleted books appear here for recovery.':'Create a schoolbook or adjust your search and filters.'}</div>`;
+ qsa('#schoolbooksList [data-note-id]').forEach(button=>button.addEventListener('click',()=>openNote(button.dataset.noteId)));
+}
+function saveNote(close=true){
+ if(CommandCentreNotebooks.busy){toast('Wait for the photo to finish loading');return false}
+ const book=CommandCentreNotebooks.record(),title=qs('#noteTitle').value.trim()||(CommandCentreNotebooks.isBook?'Untitled schoolbook':'Untitled note'),body=CommandCentreNotebooks.isBook?book.body:CommandCentreNoteImages.serialize(qs('#noteBody')),folder=qs('#noteFolder')?.value||'Notes',pinned=!!qs('#notePinned')?.checked,now=nowIso();
+ const previous=state.notes,old=editingNoteId?state.notes.find(n=>n.id===editingNoteId):null;
+ if(old?.deletedAt)return false;
+ const record={...old,...book,id:editingNoteId||makeId('note'),title,body,folder,pinned,createdAt:old?.createdAt||now,updatedAt:now,deletedAt:''};
+ if(JSON.stringify(record).length>8*1024*1024){toast('This note is full. Put more images in a new note or book.');return false}
+ state.notes=old?state.notes.map(n=>n.id===record.id?record:n):[record,...state.notes];
+ if(!state.noteFolders.includes(folder))state.noteFolders.push(folder);
+ if(!saveState()){state.notes=previous;toast('Could not save. Keep this editor open and try again.');return false}
+ editingNoteId=record.id;CommandCentreNotebooks.saved();CommandCentreAccounts.queue();
+ if(close){closeModal('noteModal');renderNotes();renderTodayPage();toast(CommandCentreNotebooks.isBook?'Schoolbook saved':'Note saved');editingNoteId=null}
+ return true;
+}
+function deleteEditingNote(){if(!editingNoteId)return;const n=state.notes.find(x=>x.id===editingNoteId);if(!n)return;if(n.deletedAt){if(confirm('Delete this note permanently?'))state.notes=state.notes.map(x=>x.id===editingNoteId?{...x,purged:true,updatedAt:nowIso()}:x);else return}else{if(!confirm('Move this note to Recently Deleted?'))return;state.notes=state.notes.map(x=>x.id===editingNoteId?{...x,deletedAt:nowIso(),updatedAt:nowIso()}:x)}saveState();closeModal('noteModal');renderNotes();renderTodayPage();CommandCentreAccounts.queue();toast(n.deletedAt?'Note permanently deleted':'Moved to Recently Deleted');editingNoteId=null}
+function restoreEditingNote(){if(!editingNoteId)return;state.notes=state.notes.map(x=>x.id===editingNoteId?{...x,deletedAt:'',updatedAt:nowIso()}:x);saveState();closeModal('noteModal');setNotesFilter('all');renderTodayPage();CommandCentreAccounts.queue();toast('Note restored');editingNoteId=null}
 
 async function sendChat(){const input=qs('#chatInput');const text=input.value.trim();if(!text)return;addChat('user',text);input.value='';if(!state.deepSeekKey){addChat('ai','DeepSeek is not connected. Add your API key in Settings to enable chat.');return}try{const data=await fetchJson('https://api.deepseek.com/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${state.deepSeekKey}`},body:JSON.stringify({model:'deepseek-chat',messages:[{role:'user',content:text}],temperature:.4})});addChat('ai',data.choices?.[0]?.message?.content||'No response returned.')}catch(e){addChat('ai','The assistant could not be reached. Check the API key and connection.')}}
 function addChat(role,text){const d=document.createElement('div');d.className='post';d.style.cursor='default';d.innerHTML=`<h4>${role==='user'?'You':'Assistant'}</h4><div class="post-meta" style="white-space:pre-wrap;color:${role==='user'?'#c9d6ef':'#b6c2d2'}">${esc(text)}</div>`;qs('#chatMessages').appendChild(d);qs('#chatMessages').scrollTop=qs('#chatMessages').scrollHeight}
@@ -9970,16 +10321,19 @@ function musicAddToQueue(track){
   if(!track)return;
   musicRuntime.queue.push({...track});
   state.musicQueue=musicRuntime.queue.slice(0,100);
+  if(musicUsesNativeAudio())musicNativeCommand('queue',{queue:state.musicQueue});
   saveState();renderMusicContent();toast('Added to queue');
 }
 function musicRemoveQueue(index){
   musicRuntime.queue.splice(index,1);
   state.musicQueue=musicRuntime.queue.slice(0,100);
+  if(musicUsesNativeAudio())musicNativeCommand('queue',{queue:state.musicQueue});
   saveState();renderMusicContent();
 }
 function musicClearQueue(){
   musicRuntime.queue=[];
   state.musicQueue=[];
+  if(musicUsesNativeAudio())musicNativeCommand('queue',{queue:[]});
   saveState();renderMusicContent();toast('Queue cleared');
 }
 function musicPlaylistPrompt(track=null){
@@ -10387,6 +10741,7 @@ function renderMusicContent(){
 function musicRenderYouTubeStage(track){
   const stage=qs('#musicYouTubeStage');
   if(!stage)return;
+  positionMusicYouTubeStage();
   if(track?.source!=='youtube'||!track.videoId){
     try{musicYoutubePlayer?.destroy?.()}catch{}
     musicYoutubePlayer=null;musicYoutubePlayerReady=false;
@@ -10423,7 +10778,11 @@ function musicRenderYouTubeStage(track){
   }).catch(()=>{});
 }
 
+let nativeMusicSnapshot={current:0,duration:0,playing:false};
+function musicUsesNativeAudio(){return !!window.CommandCentreNative?.nativeMusic&&musicRuntime.current?.source==='audius'}
+function musicNativeCommand(action,extra={}){window.webkit?.messageHandlers?.nativeMusic?.postMessage({action,...extra})}
 function musicPlaybackSnapshot(){
+  if(musicUsesNativeAudio())return nativeMusicSnapshot;
   const t=musicRuntime.current,audio=musicAudio();
   if(t?.source==='youtube'){
     if(musicYoutubePlayerReady&&musicYoutubePlayer){
@@ -10485,11 +10844,15 @@ function renderMusicNowPlaying(){
   const range=qs('#musicProgressRange');
   if(range)range.addEventListener('input',()=>{
     const seconds=Number(range.value)||0;
-    if(t.source==='youtube')try{musicYoutubePlayer?.seekTo?.(seconds,true)}catch{}
-    else if(musicAudio())musicAudio().currentTime=seconds;
+    musicSeekTo(seconds);
   });
 }
 
+function positionMusicYouTubeStage(){
+ const mini=qs('#musicMiniYoutube');if(!mini)return;
+ // Reparenting an iframe reloads its browsing context in some browsers.
+ mini.classList.toggle('has-player',musicRuntime.current?.source==='youtube');
+}
 function renderMusicMiniPlayer(){
   const wrap=qs('#musicMiniPlayer'),t=musicRuntime.current;
   if(!wrap)return;
@@ -10500,7 +10863,7 @@ function renderMusicMiniPlayer(){
   if(art){art.src=t.thumbnail||t.artwork||'';art.style.visibility=(t.thumbnail||t.artwork)?'visible':'hidden'}
   qs('#musicMiniTitle').textContent=t.title||'Track';
   qs('#musicMiniArtist').textContent=t.artist||t.channelTitle||'';
-  const y=qs('#musicMiniYoutube');if(y){y.dataset.videoId='';y.innerHTML=''}
+  positionMusicYouTubeStage();
   updateMusicControlState();
   updateMusicProgress();
 }
@@ -10518,6 +10881,7 @@ function updateMusicProgress(){
 
 function musicSeekTo(seconds){
   const t=musicRuntime.current,value=Math.max(0,Number(seconds)||0);if(!t)return;
+  if(musicUsesNativeAudio()){musicNativeCommand('seek',{seconds:value});return}
   if(t.source==='youtube')try{musicYoutubePlayer?.seekTo?.(value,true)}catch{}
   else if(musicAudio())musicAudio().currentTime=value;
   updateMusicProgress();
@@ -10558,6 +10922,7 @@ async function playMusicTrack(track,options={}){
 
   // Stop previous native audio before switching providers.
   if(audio){audio.pause();audio.removeAttribute('src');audio.load()}
+  if(window.CommandCentreNative?.nativeMusic)musicNativeCommand('stop');
   if(musicRuntime.current?.source==='youtube')musicRenderYouTubeStage(null);
 
   musicRuntime.current={...track};
@@ -10566,8 +10931,8 @@ async function playMusicTrack(track,options={}){
 
   if(track.source==='audius'){
     musicRuntime.current.streamUrl=track.streamUrl||`/api/music/audius/stream?id=${encodeURIComponent(track.id)}`;
-    audio.src=musicRuntime.current.streamUrl;
-    try{await audio.play()}catch(e){toast('Tap play to start audio')}
+    if(musicUsesNativeAudio()){nativeMusicSnapshot={current:0,duration:Number(track.duration)||0,playing:false};musicNativeCommand('start',{track:musicRuntime.current,queue:musicRuntime.queue});}
+    else{audio.src=musicRuntime.current.streamUrl;try{await audio.play()}catch(e){toast('Tap play to start audio')}}
   }
 
   renderMusicNowPlaying();
@@ -10579,6 +10944,7 @@ window.playMusicTrack=playMusicTrack;
 function musicTogglePlay(force=null){
   const t=musicRuntime.current,audio=musicAudio();
   if(!t)return;
+  if(musicUsesNativeAudio()){musicNativeCommand((force===null?!nativeMusicSnapshot.playing:!!force)?'play':'pause');return}
   if(t.source==='youtube'){
     const shouldPlay=force===null?!musicRuntime.youtubePlaying:Boolean(force);
     try{
@@ -10597,9 +10963,15 @@ function musicTogglePlay(force=null){
   else audio.pause();
 }
 function musicNext(){
+  if(musicUsesNativeAudio()){
+    if(musicRuntime.queue[0]?.source==='youtube'){
+      const track=musicRuntime.queue.shift();state.musicQueue=musicRuntime.queue.slice(0,100);saveState();playMusicTrack(track);return;
+    }
+    musicNativeCommand('next');return;
+  }
   if(musicRuntime.queue.length){
     const next=musicRuntime.queue.shift();
-    state.musicQueue=musicRuntime.queue.slice();saveState();
+    state.musicQueue=musicRuntime.queue.slice();saveState();if(musicUsesNativeAudio())musicNativeCommand('queue',{queue:musicRuntime.queue});
     playMusicTrack(next);
     if(musicRuntime.tab==='queue')renderMusicContent();
     return;
@@ -10611,6 +10983,7 @@ function musicNext(){
   if(next)playMusicTrack(next);
 }
 function musicPrevious(){
+  if(musicUsesNativeAudio()){musicNativeCommand('previous');return}
   const recent=state.musicRecent;
   const currentKey=musicTrackKey(musicRuntime.current);
   const i=recent.findIndex(x=>musicTrackKey(x)===currentKey);
@@ -10620,6 +10993,17 @@ function musicPrevious(){
 }
 
 function bindMusicPlayer(){
+  window.addEventListener('cc-native-music',event=>{
+    const d=event.detail;if(!d?.track)return;
+    const changed=musicTrackKey(musicRuntime.current)!==musicTrackKey(d.track);
+    musicRuntime.current=d.track;musicRuntime.queue=d.queue||[];
+    if(JSON.stringify(state.musicQueue)!==JSON.stringify(musicRuntime.queue)){state.musicQueue=musicRuntime.queue.slice(0,100);saveState();renderMusicContent()}
+    nativeMusicSnapshot={current:d.current||0,duration:d.duration||0,playing:!!d.playing};
+    if(changed){musicRecordRecent(d.track);renderMusicNowPlaying();renderMusicMiniPlayer()}
+    else{updateMusicControlState();updateMusicProgress()}
+    if(d.error)toast(d.error);
+  });
+  if(window.CommandCentreNative?.nativeMusic)musicNativeCommand('state');
   bind('musicSearchBtn','click',searchMusic);
   bind('musicRefreshBtn','click',()=>refreshMusicPage(true));
   bind('musicNewPlaylistBtn','click',()=>musicPlaylistPrompt());
@@ -10686,10 +11070,10 @@ function bindMusicPlayer(){
   bind('musicMiniNext','click',musicNext);
   bind('musicMiniOpen','click',()=>switchPage('music'));
   bind('musicMiniClose','click',()=>{
+    if(window.CommandCentreNative?.nativeMusic)musicNativeCommand('stop');
     const audio=musicAudio();if(audio)audio.pause();
     musicRuntime.current=null;
     const wrap=qs('#musicMiniPlayer');if(wrap)wrap.classList.remove('open','youtube-mode');
-    const y=qs('#musicMiniYoutube');if(y){y.innerHTML='';y.dataset.videoId=''}
     musicRenderYouTubeStage(null);
     updateMusicMediaSession();
   });
@@ -10720,9 +11104,14 @@ window.addEventListener('storage',event=>{
   },150);
 });
 (async()=>{
- const recovered=await stateSafety.initialize();
+ let recovered=await stateSafety.initialize();
+ if(recovered){
+   try{recovered=await stateSafety.protectUpgrade(recovered,'v10.32');}
+   catch(error){console.error('Update snapshot could not be saved',error);toast('Recovery storage needs attention. Existing data has been kept.');}
+ }
  if(recovered){state=loadState(recovered);normalizeLoadedState()}
  init();
+ window.CommandCentreMangaReader?.refresh();
  updateSafetySnapshotStatus();
  navigator.storage?.persist?.().catch(()=>{});
 })();
@@ -10730,7 +11119,11 @@ updateNotificationUI();
 loadNews(false);
 if(notificationPermission()==='granted')syncNewsPreferences();
 </script>
-<script src="/games-content.js"></script>
-<script src="/games-suite.js"></script>
+<script src="/manga-reader.js?v=10.33.7"></script>
+<script src="/workspace-design.js?v=10.33.7"></script>
+<script src="/storage-tools.js?v=10.33.7"></script>
+<script src="/crossword-clues.js?v=10.33.7"></script>
+<script src="/games-content.js?v=10.33.7"></script>
+<script src="/games-suite.js?v=10.33.7"></script>
 </body>
 </html>

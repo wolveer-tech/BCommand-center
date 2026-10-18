@@ -43,7 +43,8 @@ test('server Live Activities use authenticated device state and deduplicated rem
  env.APNS_CONFIG=JSON.stringify({keyId:'TESTKEY',teamId:'TESTTEAM',privateKey:Buffer.from(await crypto.subtle.exportKey('pkcs8',pair.privateKey)).toString('base64')});
  const fetchOriginal=globalThis.fetch,sent=[];
  globalThis.fetch=async(url,init)=>{assert.match(String(url),/^https:\/\/api.push.apple.com\/3\/device\//);sent.push({url,headers:init.headers,aps:JSON.parse(init.body).aps});return new Response('',{status:200})};t.after(()=>{globalThis.fetch=fetchOriginal});
- const schedule=async()=>({matches:[fixture(10)]}),detail=async id=>({match:fixture(id)});
+ let phase='IN_PLAY';
+ const schedule=async()=>({matches:[fixture(10)]}),detail=async id=>({match:{...fixture(id,phase),minute:phase==='PAUSED'?45:46}});
  await refreshLiveActivityPushes(env,schedule,detail);assert.equal(sent.length,1);assert.equal(sent[0].aps.event,'start');assert.equal(sent[0].headers['apns-push-type'],'liveactivity');assert.equal(sent[0].headers['apns-topic'],'tech.wolveer.commandcentre.native.push-type.liveactivity');
  await refreshLiveActivityPushes(env,schedule,detail);assert.equal(sent.length,1,'Duplicate remote start');
  assert.equal((await call('register',{matchId:10,activityId:'activity-10',token:'cd'.repeat(32)})).status,200);
@@ -52,6 +53,14 @@ test('server Live Activities use authenticated device state and deduplicated rem
  await env.DB.prepare('UPDATE live_activity_matches SET lease_until=0').run();
  await refreshLiveActivityPushes(env,schedule,detail);assert.equal(sent.at(-1).aps.event,'update');assert.equal(sent.length,2);
  await refreshLiveActivityPushes(env,schedule,detail);assert.equal(sent.length,2,'Duplicate minute update');
+ phase='PAUSED';await env.DB.prepare('UPDATE live_activity_matches SET lease_until=0,last_sent=0').run();
+ await refreshLiveActivityPushes(env,schedule,detail);
+ const halftime=await env.DB.prepare('SELECT halftime_ends_at FROM live_activity_matches WHERE match_id=10').first();assert.ok(halftime.halftime_ends_at>Date.now());
+ const firstDeadline=sent.at(-1).aps['content-state'].halftimeEndsAt;
+ await env.DB.prepare('UPDATE live_activity_matches SET lease_until=0,last_sent=0').run();await refreshLiveActivityPushes(env,schedule,detail);
+ assert.equal(sent.at(-1).aps['content-state'].halftimeEndsAt,firstDeadline,'Halftime countdown restarted on a minute refresh');
+ phase='IN_PLAY';await env.DB.prepare('UPDATE live_activity_matches SET lease_until=0,last_sent=0').run();await refreshLiveActivityPushes(env,schedule,detail);
+ assert.equal(sent.at(-1).aps['content-state'].halftimeEndsAt,null,'Second half retained the halftime timer');
  await call('preferences',{autoFollow:true,teams:[{id:1,name:'Wolves'}],followed:[],excluded:[10]});
  await env.DB.prepare('UPDATE live_activity_matches SET lease_until=0,last_sent=0').run();
  await refreshLiveActivityPushes(env,schedule,detail);assert.equal(sent.at(-1).aps.event,'end');
@@ -60,6 +69,6 @@ test('server Live Activities use authenticated device state and deduplicated rem
  row=await env.DB.prepare('SELECT * FROM live_activity_matches WHERE match_id=10').first();assert.equal(row.update_token,null,'New activity inherited a stale token');
  // A revoked owner cannot receive new starts even with a stored token.
  await env.DB.prepare('UPDATE transfer_devices SET revoked_at=? WHERE id=?').bind(Date.now(),device.device.id).run();
- await refreshLiveActivityPushes(env,async()=>({matches:[fixture(20)]}),detail);assert.equal(sent.length,3);
+ await refreshLiveActivityPushes(env,async()=>({matches:[fixture(20)]}),detail);assert.equal(sent.length,6);
  assert.equal((await call('status')).status,401);
 });

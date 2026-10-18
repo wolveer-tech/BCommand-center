@@ -1,0 +1,12 @@
+# Copy to .dev.vars for local development only. Never commit .dev.vars.
+TRANSFER_SETUP_KEY=replace-with-a-random-secret-of-at-least-32-characters
+# Invite-only note accounts. Keep this out of public JavaScript and backups.
+ACCOUNT_INVITE_CODE=replace-with-a-private-invitation-code-of-at-least-16-characters
+ACCOUNT_MAX_USERS=10
+TRANSFER_R2_ENDPOINT=https://YOUR_ACCOUNT_ID.r2.cloudflarestorage.com
+TRANSFER_R2_BUCKET=command-centre-transfers
+TRANSFER_R2_ACCESS_KEY_ID=YOUR_R2_ACCESS_KEY_ID
+TRANSFER_R2_SECRET_ACCESS_KEY=YOUR_R2_SECRET_ACCESS_KEY
+# Native APNs is optional. Production and the Command Centre bundle ID are defaults.
+# One packed secret saves binding slots: key ID, team ID, then the complete .p8.
+APNS_CONFIG=YOUR_KEY_ID|YOUR_TEAM_ID|-----BEGIN PRIVATE KEY-----\nYOUR_P8_KEY\n-----END PRIVATE KEY-----
