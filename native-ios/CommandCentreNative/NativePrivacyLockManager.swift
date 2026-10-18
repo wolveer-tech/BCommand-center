@@ -37,6 +37,7 @@ final class NativePrivacyLockManager: NSObject, ObservableObject, WKScriptMessag
     func bootstrapJavaScript() -> String {
         """
         (() => {
+          window.CommandCentrePrivacyState = {locked: \(isLocked), enabled: \(isEnabled)};
           const sendStatus = () => {
             try { window.webkit?.messageHandlers?.nativePrivacy?.postMessage({action: 'status'}); } catch (_) {}
           };
@@ -218,7 +219,7 @@ final class NativePrivacyLockManager: NSObject, ObservableObject, WKScriptMessag
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: payload),
               let json = String(data: data, encoding: .utf8) else { return }
-        webView?.evaluateJavaScript("window.dispatchEvent(new CustomEvent('cc-native-privacy-status',{detail:\(json)}));")
+        webView?.evaluateJavaScript("window.CommandCentrePrivacyState=\(json);window.dispatchEvent(new CustomEvent('cc-native-privacy-status',{detail:window.CommandCentrePrivacyState}));")
     }
 }
 

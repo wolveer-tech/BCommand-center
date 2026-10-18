@@ -9,17 +9,27 @@ final class NativeDataHandler: NSObject, WKScriptMessageHandler, UIDocumentPicke
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard message.frameInfo.isMainFrame,
+              message.frameInfo.securityOrigin.protocol == AppConfig.commandCentreURL.scheme,
               message.frameInfo.securityOrigin.host == (AppConfig.commandCentreURL.host ?? ""),
               message.name == "nativeData",
               let body = message.body as? [String: Any],
               let action = body["action"] as? String else { return }
         if action == "saveState", let state = body["state"] as? [String: Any] {
-            do { try NativeStateVault.save(state, reason: body["reason"] as? String ?? "automatic") }
-            catch { reportError(error.localizedDescription) }
+            let reason = body["reason"] as? String ?? "automatic"
+            NativeStateVault.queue.async { [weak self] in
+                do { try NativeStateVault.save(state, reason: reason) }
+                catch { DispatchQueue.main.async { self?.reportError(error.localizedDescription) } }
+            }
         } else if action == "stateHistory" || action == "stateRecovery" {
-            let rows = action == "stateRecovery" ? Array(NativeStateVault.rows().prefix(1)) : NativeStateVault.rows()
-            if let data = try? JSONSerialization.data(withJSONObject: rows), let json = String(data: data, encoding: .utf8) {
-                webView?.evaluateJavaScript("window.dispatchEvent(new CustomEvent('cc-native-state-history',{detail:\(json)}));")
+            NativeStateVault.queue.async { [weak self] in
+                let rows = action == "stateRecovery" ? NativeStateVault.latest() : NativeStateVault.rows()
+                if let data = try? JSONSerialization.data(withJSONObject: rows), let json = String(data: data, encoding: .utf8) {
+                    DispatchQueue.main.async { self?.webView?.evaluateJavaScript("window.dispatchEvent(new CustomEvent('cc-native-state-history',{detail:\(json)}));") }
+                }
+            }
+        } else if action == "clearCachedFiles" {
+            NativeStorageMaintenance.clearCachedFiles { [weak self] in
+                self?.webView?.evaluateJavaScript("window.dispatchEvent(new Event('cc-native-cache-cleared'));")
             }
         } else if action == "export" {
             exportFile(name: body["filename"] as? String ?? "command-centre-backup.json", contents: body["contents"] as? String ?? "")

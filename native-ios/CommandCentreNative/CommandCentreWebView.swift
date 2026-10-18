@@ -41,7 +41,7 @@ struct CommandCentreWebView: UIViewRepresentable {
 
         let bridgeScript = WKUserScript(
             source: """
-            window.CommandCentreNative = { nativeMusic: true, replayKit: true, nativeScreenMirror: true, nativeNotifications: true, backgroundRefresh: true, dataBridge: true, credentialVault: true, privacyLock: true, nativeHaptics: true, nativeWidgets: true, liveActivities: true, stateVault: true, platform: 'ios', minimumRuntime: 'iOS 26' };
+            window.CommandCentreNative = { nativeMusic: true, replayKit: true, nativeScreenMirror: true, nativeNotifications: true, backgroundRefresh: true, dataBridge: true, credentialVault: true, privacyLock: true, nativeHaptics: true, nativeWidgets: true, liveActivities: true, stateVault: true, storageMaintenance: true, platform: 'ios', minimumRuntime: 'iOS 26' };
             """,
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
@@ -49,6 +49,9 @@ struct CommandCentreWebView: UIViewRepresentable {
         configuration.userContentController.addUserScript(bridgeScript)
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.isOpaque = false
+        webView.backgroundColor = UIColor(red: 0.02, green: 0.04, blue: 0.09, alpha: 1)
+        webView.scrollView.backgroundColor = webView.backgroundColor
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
         webView.scrollView.contentInsetAdjustmentBehavior = .never
@@ -63,7 +66,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         NativeDeepLinkRouter.shared.attach(webView: webView)
         NativeMirrorManager.shared.webView = webView
         context.coordinator.playerProtection.prepare(webView: webView) { [weak webView] in
-            webView?.load(URLRequest(url: AppConfig.commandCentreURL, timeoutInterval: 25))
+            webView?.load(URLRequest(url: AppConfig.commandCentreURL, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 25))
         }
         return webView
     }
@@ -100,6 +103,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         private var processFailures: [Date] = []
         private var memoryObserver: NSObjectProtocol?
         private var recoveryAlertVisible = false
+        private var storageMaintenanceScheduled = false
 
         override init() {
             super.init()
@@ -120,7 +124,7 @@ struct CommandCentreWebView: UIViewRepresentable {
             var components = URLComponents(url: AppConfig.commandCentreURL, resolvingAgainstBaseURL: false)!
             components.queryItems = [URLQueryItem(name: "playerRecovery", value: "1")]
             webView.stopLoading()
-            webView.load(URLRequest(url: components.url!, timeoutInterval: 25))
+            webView.load(URLRequest(url: components.url!, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 25))
         }
 
         func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
@@ -155,6 +159,11 @@ struct CommandCentreWebView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            if !storageMaintenanceScheduled {
+                storageMaintenanceScheduled = true
+                // Let the intro and the first recovery read finish before maintenance.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 8) { NativeStorageMaintenance.schedule() }
+            }
             playerProtection.publish()
             NativeDeepLinkRouter.shared.webViewDidFinishLoading()
             dashboardHandler.webView = webView
