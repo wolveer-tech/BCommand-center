@@ -59,6 +59,21 @@ await test('Upgrades preserve an exact snapshot of all existing local data',asyn
 await test('Malformed states are rejected without replacing a valid saved record',async()=>{
  const opts=config(),a=CommandCentreSafety.create(opts);await a.initialize();a.save(state(3));await a.flush();assert(!a.save({...state(0),notes:null}),'Malformed state accepted');assert(JSON.parse(opts.storage.getItem(key)).notes.length===3,'Valid record overwritten');
 });
+await test('A silently closed database reopens and commits notes with their sync baseline',async()=>{
+ const connections=[],opts={...config(),indexedDB:{open(...args){const request=indexedDB.open(...args);request.addEventListener('success',()=>connections.push(request.result));return request}}};
+ const a=CommandCentreSafety.create(opts);await a.initialize();a.save(state(2));await a.flush();connections[0].close();
+ const next={...state(3),noteSyncMetadata:{accountId:'test',entries:{n0:{revision:7,hash:'saved-content',format:2}}}};
+ a.save(next);await a.flush();assert(connections.length===2,'Closed connection was reused');opts.storage.clear();
+ const recovered=await CommandCentreSafety.create(opts).initialize();assert(recovered.notes.length===3&&recovered.noteSyncMetadata.entries.n0.revision===7,'Note and baseline did not recover together');
+});
+await test('Account cache writes survive a close event without clearing saved account data',async()=>{
+ const connections=[],factory={open(...args){const request=indexedDB.open(...args);request.addEventListener('success',()=>connections.push(request.result));return request}};
+ const cache=CommandCentreSafety.database({indexedDB:factory,name:'cc-account-test-'+crypto.randomUUID(),store:'accounts'});
+ await cache.run('readwrite',store=>{store.put({notes:[{id:'original',body:'Saved writing'}]},'test');return ()=>true});
+ connections[0].close();connections[0].dispatchEvent(new Event('close'));
+ const saved=await cache.run('readonly',store=>{const req=store.get('test');return ()=>req.result});
+ assert(connections.length===2&&saved.notes[0].body==='Saved writing','Account cache was lost or did not reconnect');
+});
 summary.textContent=passed+' passed, '+failed+' failed';document.title=summary.textContent;
 })();
 </script></html>

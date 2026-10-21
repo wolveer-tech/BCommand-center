@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="cc-release" content="10.33.7" />
+<meta name="cc-release" content="10.42.0" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#070b14" />
 <meta name="description" content="Personal Command Center — portfolio, manga, Reddit, weather, reminders and daily briefing." />
@@ -1436,7 +1436,16 @@ body.home-fullscreen .mobile-watch-fab{
   width:100%;
   max-width:100%;
   min-width:0;
+  flex-wrap:wrap;
+  overflow:visible;
+  border-radius:18px;
 }
+#settingsModal .settings-panels{scrollbar-gutter:stable;scrollbar-width:auto;touch-action:pan-y}
+#settingsModal .settings-panels::-webkit-scrollbar{width:10px}
+#settingsModal .settings-panels::-webkit-scrollbar-thumb{background:#738299;border-radius:8px;border:2px solid #171d28}
+#settingsModal .settings-panels::-webkit-scrollbar-track{background:#ffffff08}
+#settingsModal .ai-key-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+#settingsModal [id^="aiKeyRemove-"][hidden]{display:none!important}
 #settingsModal .settings-section,
 #settingsModal .settings-card-clean,
 #settingsModal .home-widget-settings,
@@ -1509,9 +1518,8 @@ body.home-fullscreen .mobile-watch-fab{
     gap:6px;
     margin:0 0 8px;
     padding:2px 0 7px;
-    overflow-x:auto;
-    overflow-y:hidden;
-    scrollbar-width:none;
+    flex-wrap:wrap;
+    overflow:visible;
   }
   #settingsModal .settings-tabs::-webkit-scrollbar{
     display:none;
@@ -2059,15 +2067,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media(max-width:520px){.btn{min-height:42px}.btn.small{min-height:36px}.youtube-library-row{grid-template-columns:78px minmax(0,1fr)}.youtube-library-row img{width:78px}.match-centre-hero{gap:7px;padding:12px}.match-centre-team img{width:36px;height:36px}.match-centre-score{font-size:20px}.match-centre-overview{grid-template-columns:1fr}.match-stat{grid-template-columns:minmax(0,1fr) 66px minmax(0,1fr)}}
 
 </style>
-<link rel="stylesheet" href="/transfers.css?v=10.33.7">
-<script defer src="/transfers.bundle.js?v=10.33.7"></script>
-<link rel="stylesheet" href="/messages.css?v=10.33.7">
-<script defer src="/messages.bundle.js?v=10.33.7"></script>
-<link rel="stylesheet" href="space-motion.css?v=10.33.7" />
-<link rel="stylesheet" href="/games-suite.css?v=10.33.7" />
-<link rel="stylesheet" href="/manga-reader.css?v=10.33.7" />
-<link rel="stylesheet" href="/glass-design.css?v=10.33.7" />
-<script src="space-motion.js?v=10.33.7"></script>
+<link rel="stylesheet" href="/transfers.css?v=10.42.0">
+<script defer src="/transfers.bundle.js?v=10.42.0"></script>
+<link rel="stylesheet" href="/messages.css?v=10.42.0">
+<script defer src="/messages.bundle.js?v=10.42.0"></script>
+<link rel="stylesheet" href="space-motion.css?v=10.42.0" />
+<link rel="stylesheet" href="/games-suite.css?v=10.42.0" />
+<link rel="stylesheet" href="/manga-reader.css?v=10.42.0" />
+<link rel="stylesheet" href="/streamcorner-view.css?v=10.42.0" />
+<link rel="stylesheet" href="/glass-design.css?v=10.42.0" />
+<script src="space-motion.js?v=10.42.0"></script>
 </head>
 <body>
 <div id="ccSpaceIntro" role="dialog" aria-modal="true" aria-labelledby="ccSpaceTitle" aria-hidden="true">
@@ -2384,7 +2393,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <div id="mangaContinueReading" class="manga-continue" hidden></div>
       <article class="card manga-reader-card">
         <div class="card-head"><div><div class="title">📖 Manga Reader</div><div class="sub">Find a title, choose a chapter and read its pages here.</div></div></div>
-        <form id="mangaReaderForm" class="manga-reader-search"><select id="mangaReaderProvider" aria-label="Manga source"><option value="asura">Asura Scans</option><option value="mangadex">MangaDex</option><option value="comix">Comix</option></select><input id="mangaReaderSearch" class="notes-search" aria-label="Search manga to read" placeholder="Search Asura Scans titles..." required maxlength="200"><button id="mangaReaderSearchBtn" class="btn primary" type="submit">Search</button></form>
+        <form id="mangaReaderForm" class="manga-reader-search"><select id="mangaReaderProvider" aria-label="Manga source"><option value="asura">Asura Scans</option><option value="mangadex">MangaDex</option><option value="mangakatana">MangaKatana</option><option value="comix">Comix</option></select><input id="mangaReaderSearch" class="notes-search" aria-label="Search manga to read" placeholder="Search Asura Scans titles..." required maxlength="200"><button id="mangaReaderSearchBtn" class="btn primary" type="submit">Search</button></form>
         <div id="mangaReaderStatus" class="section-note" role="status">Search Asura Scans or choose a recommendation below.</div>
         <div id="comixReaderTools" hidden><div class="comix-source-links"><a id="comixSearchLink" href="https://comix.to/" target="_blank" rel="noopener noreferrer">Search Comix ↗</a><a href="https://comix.ws/" target="_blank" rel="noopener noreferrer">Open fallback domain ↗</a></div><details class="comix-link-form" open><summary>Save a Comix title or chapter</summary><p>Comix uses its own browser reader. Paste a reading link here to sync the title and chapter with your phone.</p><form id="comixLinkForm"><label>Title<input id="comixLinkTitle" placeholder="Manga title" required maxlength="300"></label><label>Comix link<input id="comixLinkUrl" type="url" placeholder="https://comix.to/title/…" required maxlength="1000"></label><button class="btn primary" type="submit">Save link</button></form></details></div>
         <div id="mangaReaderResults" class="manga-reader-results"></div>
@@ -2604,6 +2613,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
                     <div class="sub">Browse TMDB, then play from your configured authorised provider.</div>
                   </div>
                   <button class="btn small" id="mediaSetupCheckBtn">Check setup</button>
+                </div>
+
+                <div class="card" style="margin:10px 0 14px">
+                  <div class="card-head">
+                    <div><div class="title">⚽ Live sport · StreamCorner</div><div class="sub">Browse matches and choose a source without leaving Command Centre.</div></div>
+                    <button class="btn primary" type="button" data-open-streamcorner>Browse &amp; watch</button>
+                  </div>
                 </div>
 
                 <div class="media-view-tabs">
@@ -3016,15 +3032,15 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     </section>
 
     <section class="page" id="schoolbooksPage">
-      <div class="stack"><article class="card">
-        <div class="card-head"><div><div class="title">📚 Schoolbooks</div><div class="sub">Your exercise books, pages and lesson notes.</div></div><div class="toolbar"><button class="btn" id="schoolbooksAccountBtn">Account &amp; sync</button><button class="btn primary" id="addSchoolbookBtn">+ Schoolbook</button></div></div>
+      <div class="stack"><article class="card" id="schoolbooksShelfCard">
+        <div class="card-head"><div><div class="title">📚 Schoolbooks</div><div class="sub">Your exercise books, pages and lesson notes.</div></div><div class="toolbar"><button class="btn" id="schoolbookPracticeOpen">✦ Practise from a book or lesson</button><button class="btn" id="schoolbooksAccountBtn">Account &amp; sync</button><button class="btn primary" id="addSchoolbookBtn">+ Schoolbook</button></div></div>
         <div class="schoolbooks-tools">
           <input id="schoolbooksSearch" class="notes-search" aria-label="Search schoolbooks" placeholder="Search schoolbooks...">
           <select id="schoolbooksFolder" aria-label="Schoolbook folder"><option value="">All folders</option></select>
           <div class="toolbar" id="schoolbooksNavigation" aria-label="Schoolbook filters"></div>
         </div>
         <div id="schoolbooksList"></div>
-      </article></div>
+      </article><article class="card" id="schoolbookPractice" hidden aria-label="Schoolbook practice"></article></div>
     </section>
 
     <section class="page" id="musicPage">
@@ -3132,10 +3148,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <button class="btn settings-tab" data-settings-section="integrations">🔌 Integrations</button>
   </div>
 
-  <div class="settings-panels">
+  <div class="settings-panels" tabindex="0" aria-label="Settings content">
   <section class="settings-section active" data-settings-panel="general"><article class="card settings-card-clean">
     <div class="title">⚙️ General</div><div class="settings-description">Basic Command Centre behaviour.</div>
-    <div class="setting-note">Share notes, schoolbooks and manga with your phone from Account.</div><button type="button" class="btn" onclick="closeModal('settingsModal');switchPage('account')">Account &amp; sync ↗</button>
+    <div class="setting-note">Share notes, schoolbooks and manga with your phone from Account.</div><div class="ai-key-actions"><button type="button" class="btn" onclick="closeModal('settingsModal');switchPage('account')">Account &amp; sync ↗</button><button type="button" class="btn" onclick="showSettingsSection('integrations')">AI keys &amp; models ↗</button></div>
     <div class="field"><label>Weather city</label><input id="settingsCity" value="London" /></div>
   </article>
   <article class="card settings-card-clean">
@@ -3210,7 +3226,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </article></section>
 
   <section class="settings-section" data-settings-panel="integrations"><article class="card settings-card-clean"><div class="title">🔌 Integrations</div>
-    <div class="field"><label>DeepSeek API key</label><input id="settingsDeepSeek" type="password" placeholder="Optional" autocomplete="off" /></div>
+    <p class="settings-description">Save your AI keys once and use them on your laptop and phone when signed into the same app account. Keys stay encrypted on the server; your phone receives only connection status and model settings.</p>
+    <p id="aiKeyStatus" class="setting-note" role="status">Checking saved AI keys…</p>
+    <div class="ai-key-actions"><button type="button" class="btn" id="aiKeysAccount">Account &amp; sign in ↗</button></div>
+    <div class="field"><label for="settingsDeepSeek">DeepSeek API key</label><input id="settingsDeepSeek" type="password" placeholder="Paste your API key" autocomplete="off" maxlength="244" /></div>
+<div class="field"><label for="settingsDeepSeekModel">DeepSeek model · schoolbook practice</label><select id="settingsDeepSeekModel"><option value="deepseek-flash">Flash · current model, text &amp; photos</option><option value="deepseek-v4-pro">V4 Pro · text only</option></select></div><div class="field"><label for="settingsDeepSeekEffort">DeepSeek reasoning</label><select id="settingsDeepSeekEffort"><option value="high">High · think before answering</option><option value="max">Max · more reasoning, slower</option><option value="instant">Instant · thinking off</option></select><div class="setting-note">High and Max use more output tokens and can take longer. Flash supports photos; Pro needs text-only source pages.</div></div><div class="field"><label for="settingsQwen">QwenCloud API key</label><input id="settingsQwen" type="password" placeholder="Optional · QwenCloud key" autocomplete="off" maxlength="244"><div class="setting-note">Save securely to your account below to use this key on your other devices. Requests go through this app’s authenticated server to QwenCloud.</div></div><div class="field"><label for="settingsQwenModel">QwenCloud model</label><select id="settingsQwenModel"><option value="qwen3.7-plus">Qwen 3.7 Plus · balanced</option><option value="qwen3.8-flash">Qwen 3.8 Flash · faster</option><option value="qwen3.8-max">Qwen 3.8 Max</option></select><div class="setting-note">The endpoint is selected automatically for a standard API key or a Token Plan key beginning sk-sp-. Your plan must include the selected model.</div></div>
+    <label class="setting-note" style="display:flex;gap:8px;margin-top:12px"><input type="checkbox" id="aiKeysSecure" checked> Save AI keys securely to my account (recommended)</label>
+    <label class="setting-note" style="display:flex;gap:8px;margin-top:10px"><input type="checkbox" id="aiKeysAutomatic" checked> Use Automatic for schoolbook practice</label>
+    <p class="setting-note">Automatic prefers QwenCloud for photos and general questions, and DeepSeek for calculation and accounting marking. It uses one provider per request and shows its choice. Manual choices remain available. API credit is required.</p>
+    <div class="ai-key-actions"><button type="button" class="btn primary" id="aiKeysSave">Save AI keys to account</button><button type="button" class="btn" id="aiKeyRemove-deepseek" hidden>Remove saved DeepSeek key</button><button type="button" class="btn" id="aiKeyRemove-qwen" hidden>Remove saved QwenCloud key</button></div>
+    <p class="setting-note">If you turn off account storage, the main Save button keeps keys only on this device. Account keys are excluded from backups and never shown again. Saving to your account clears the current device key fields; older recovery snapshots may still contain earlier device keys.</p>
     <div class="field"><label>Spotify Client ID</label><input id="settingsSpotifyClientId" placeholder="From your Spotify Developer app" autocomplete="off" /></div>
     <div class="field"><label>Spotify redirect URI</label><div style="display:flex;gap:6px"><input id="spotifyRedirectDisplay" readonly style="flex:1;font-size:10px" /><button class="btn small" id="copyRedirectUriBtn" type="button">Copy</button></div></div>
     <div class="field"><label>Reddit proxy/API URL (optional)</label><input id="settingsRedditProxy" placeholder="https://your-server.example/reddit" /></div>
@@ -3327,19 +3352,23 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   onclick="backToTop()"
 >↑</button>
 
-<script src="/football-following.js?v=10.33.7"></script>
-<script src="/state-safety.js?v=10.33.7"></script>
-<link rel="stylesheet" href="/notebooks.css?v=10.33.7">
-<link rel="stylesheet" href="/football-pitch.css?v=10.33.7">
-<script src="/football-pitch.js?v=10.33.7"></script>
-<link rel="stylesheet" href="/workspace-design.css?v=10.33.7">
-<script src="/playback-safety.js?v=10.33.7"></script>
-<script src="/note-images.js?v=10.33.7"></script>
-<script src="/notebooks.js?v=10.33.7"></script>
-<script src="/note-editor.js?v=10.33.7"></script>
-<script src="/accounts-client.js?v=10.33.7"></script>
-<script src="/manga-library.js?v=10.33.7"></script>
-<script src="/comix-links.js?v=10.33.7"></script>
+<script src="/football-following.js?v=10.42.0"></script>
+<script src="/state-safety.js?v=10.42.0"></script>
+<link rel="stylesheet" href="/notebooks.css?v=10.42.0">
+<link rel="stylesheet" href="/football-pitch.css?v=10.42.0">
+<script src="/football-pitch.js?v=10.42.0"></script>
+<link rel="stylesheet" href="/workspace-design.css?v=10.42.0">
+<script src="/playback-safety.js?v=10.42.0"></script>
+<script src="/note-images.js?v=10.42.0"></script>
+<script src="/notebooks.js?v=10.42.0"></script>
+<link rel="stylesheet" href="/schoolbook-practice.bundle.css?v=10.42.0">
+<script src="/schoolbook-providers.js?v=10.42.0"></script>
+<script src="/ai-keys.js?v=10.42.0"></script>
+<script src="/schoolbook-practice.bundle.js?v=10.42.0"></script>
+<script src="/note-editor.js?v=10.42.0"></script>
+<script src="/accounts-client.js?v=10.42.0"></script>
+<script src="/manga-library.js?v=10.42.0"></script>
+<script src="/comix-links.js?v=10.42.0"></script>
 <script>
 'use strict';
 
@@ -3348,6 +3377,11 @@ const SAFETY_DB_NAME='command-centre-safety-v1',SAFETY_STORE='snapshots';
 const DEFAULT_STATE = {
   city:'London',
   deepSeekKey:'',
+  deepSeekModel:'deepseek-flash',
+  deepSeekEffort:'high',
+  qwenKey:'',
+  qwenModel:'qwen3.7-plus',
+  schoolbookProvider:'auto',
   marketProvider:'twelvedata',
   marketKey:'',
   finnhubKey:'',
@@ -4797,6 +4831,7 @@ function init(){
      bind('deleteCalendarEventBtn','click',deleteEditingCalendarEvent);
      bind('addNoteBtn','click',()=>openNote());
      runInitStep('note editor controls',()=>{bindNoteToolbar();CommandCentreNotebooks.bind();CommandCentreAccounts.bind()});
+     runInitStep('schoolbook practice',()=>CommandCentreSchoolbookPractice.bind());
      bind('saveNote','click',saveNote);
      bind('deleteNoteBtn','click',deleteEditingNote);
      bind('notesSearch','input',renderNotes);
@@ -5232,6 +5267,7 @@ function openSettings(){
   try{updateNotificationCompanionUI()}catch(e){console.error('Notification companion status failed to load',e)}
   try{showSettingsSection('general')}catch(e){console.error('Settings tabs failed to initialize',e)}
   modal.classList.add('open');
+  window.CommandCentreAIKeys?.open();
   updateSafetySnapshotStatus();
 }
 let nativePrivacyState={available:false,enabled:false,locked:false,authenticating:false,graceSeconds:0,error:''};
@@ -5286,6 +5322,10 @@ function applySettingsUI(){
   qs('#settingsNewsPush').value=state.newsPushMode||'major';
   qs('#settingsCity').value=state.city;
   qs('#settingsDeepSeek').value=state.deepSeekKey;
+  qs('#settingsDeepSeekModel').value=state.deepSeekModel||'deepseek-flash';
+  qs('#settingsDeepSeekEffort').value=state.deepSeekEffort||'high';
+  qs('#settingsQwen').value=state.qwenKey||'';
+  qs('#settingsQwenModel').value=state.qwenModel||'qwen3.7-plus';
   qs('#settingsMarketProvider').value=state.marketProvider||'twelvedata';
   qs('#settingsMarketKey').value=state.marketKey||'';
   qs('#settingsFinnhubKey').value=state.finnhubKey||'';
@@ -5300,7 +5340,8 @@ function applySettingsUI(){
   renderHomeCustomizer();
   requestPrivacyLockStatus();
 }
-function saveSettings(){
+async function saveSettings(){
+  if(window.CommandCentreAIKeys&&!await window.CommandCentreAIKeys.beforeSave())return;
   state.morningBriefingEnabled=qs('#settingsMorningBriefing').value==='on';
   state.morningBriefingTime=qs('#settingsMorningBriefingTime').value||'07:30';
   state.worldNewsEnabled=qs('#settingsWorldNews').value==='on';
@@ -5308,7 +5349,11 @@ function saveSettings(){
   state.financialNewsEnabled=qs('#settingsFinancialNews').value==='on';
   state.newsPushMode=qs('#settingsNewsPush').value;
   state.city=qs('#settingsCity').value.trim()||'London';
-  state.deepSeekKey=qs('#settingsDeepSeek').value.trim();
+  if(!window.CommandCentreAIKeys?.secure)state.deepSeekKey=qs('#settingsDeepSeek').value.trim();
+  state.deepSeekModel=qs('#settingsDeepSeekModel').value;
+  state.deepSeekEffort=qs('#settingsDeepSeekEffort').value;
+  if(!window.CommandCentreAIKeys?.secure)state.qwenKey=qs('#settingsQwen').value.trim();
+  state.qwenModel=qs('#settingsQwenModel').value;
   state.marketProvider=qs('#settingsMarketProvider').value;
   state.marketKey=qs('#settingsMarketKey').value.trim();
   state.finnhubKey=qs('#settingsFinnhubKey').value.trim();
@@ -5320,7 +5365,7 @@ function saveSettings(){
   if(qs('#settingsHomeDensity'))state.homeDensity=qs('#settingsHomeDensity').value||'comfortable';
   saveState();applySettingsUI();applyHomeLayout();syncNewsPreferences();syncMorningBriefingPreferences();closeModal('settingsModal');
   qs('#weatherPlace').textContent=state.city;qs('#weatherFullPlace').textContent=state.city;
-  loadWeather(true);loadPortfolio(true);toast('Settings saved')
+  loadWeather(true);loadPortfolio(true);window.CommandCentreSchoolbookPractice?.refresh();toast('Settings saved')
 }
 
 const BIBLE_BOOKS=[
@@ -7036,7 +7081,7 @@ function renderLiveFootballProviders(){
   const auto=`<button class="live-provider-btn${liveFootballProviderId==='auto'?' active':''}" type="button" data-live-provider="auto">✨ Auto<span class="mode">SMART</span></button>`;
   const manual=liveFootballProviders.map(p=>`
     <button class="live-provider-btn${p.id===liveFootballProviderId?' active':''}" type="button" data-live-provider="${esc(p.id)}">
-      ${esc(p.name)}<span class="mode">${esc(p.mode)}</span>
+      ${esc(p.name)}<span class="mode">${esc(['embedded','website'].includes(p.mode)?'In app':p.mode)}</span>
     </button>`).join('');
   wrap.innerHTML=auto+manual;
   const backup=qs('#liveFootballBackupBtn');
@@ -7071,7 +7116,7 @@ async function selectLiveFootballProvider(providerId){
   await loadLiveFootball(true);
 }
 async function fetchPpvOnDevice(category){
-  const {fetchPublicSports}=await import('/sports-providers.js?v=10.33.7');
+  const {fetchPublicSports}=await import('/sports-providers.js?v=10.42.0');
   const data=await fetchPublicSports('ppv',category,{fetcher:(url,options)=>fetch(url,{...options,headers:{accept:'application/json'},credentials:'omit'})});
   return {...data,providerId:'5',providerName:'PPV',mode:'ppv',count:data.streams.length,updatedAt:nowIso()};
 }
@@ -7090,7 +7135,7 @@ async function fetchLiveProviderForSport(providerId,kind,force=false){
 
 function liveAutoProviderOrder(kind){
   const preferred=localStorage.getItem(`cc_live_auto_last_${kind}`)||'';
-  const ids=liveFootballProviders.map(p=>p.id);
+  const ids=liveFootballProviders.filter(p=>!['embedded','website'].includes(p.mode)).map(p=>p.id);
   return preferred&&ids.includes(preferred)
     ?[preferred,...ids.filter(id=>id!==preferred)]
     :ids;
@@ -7165,6 +7210,16 @@ async function loadLiveFootball(force=false,kind=liveSportKind()){
 
     if(!current())return;
     liveFootballStreams=Array.isArray(data.streams)?data.streams:[];
+
+    if(['embedded','website'].includes(data.mode)){
+      if(selected?.id!=='2'||(data.browserUrl||data.websiteUrl)!=='https://streamcorner.st/')throw new Error('This provider returned an unsupported website address.');
+      liveFootballStreams=[];
+      closeLiveFootball();
+      grid.innerHTML='<div class="empty" style="grid-column:1 / -1"><h3>StreamCorner</h3><p>Browse matches and choose a player inside Command Centre.</p><button class="btn primary" type="button" data-open-streamcorner>Browse &amp; watch in app</button><p class="section-note">Back to Sport brings you straight here. On iPhone, choose a source showing the Apple icon.</p></div>';
+      status.textContent='StreamCorner • Inside Command Centre';
+      renderLiveFootballProviders();
+      return;
+    }
 
     if(!liveFootballStreams.length){
       const rejectedHosts=Array.isArray(data?.rejectedHosts)?data.rejectedHosts.filter(Boolean):[];
@@ -10180,6 +10235,7 @@ function renderSchoolbooks(){
  const visible=(schoolbooksFilter==='deleted'?deleted:active).filter(n=>(schoolbooksFilter!=='pinned'||n.pinned)&&(!folder.value||n.folder===folder.value)&&(!query||`${n.title||''} ${n.subject||''} ${n.body||''} ${(n.pages||[]).map(p=>p.title+' '+notePreview(p.body)).join(' ')}`.toLowerCase().includes(query))).sort((a,b)=>Number(b.pinned)-Number(a.pinned)||new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt));
  el.innerHTML=visible.length?CommandCentreNotebooks.shelf(visible):`<div class="notes-empty"><strong>${query?'No matching schoolbooks':schoolbooksFilter==='deleted'?'No deleted schoolbooks':'Your bookshelf is empty'}</strong>${schoolbooksFilter==='deleted'?'Deleted books appear here for recovery.':'Create a schoolbook or adjust your search and filters.'}</div>`;
  qsa('#schoolbooksList [data-note-id]').forEach(button=>button.addEventListener('click',()=>openNote(button.dataset.noteId)));
+ window.CommandCentreSchoolbookPractice?.refresh();
 }
 function saveNote(close=true){
  if(CommandCentreNotebooks.busy){toast('Wait for the photo to finish loading');return false}
@@ -10198,7 +10254,20 @@ function saveNote(close=true){
 function deleteEditingNote(){if(!editingNoteId)return;const n=state.notes.find(x=>x.id===editingNoteId);if(!n)return;if(n.deletedAt){if(confirm('Delete this note permanently?'))state.notes=state.notes.map(x=>x.id===editingNoteId?{...x,purged:true,updatedAt:nowIso()}:x);else return}else{if(!confirm('Move this note to Recently Deleted?'))return;state.notes=state.notes.map(x=>x.id===editingNoteId?{...x,deletedAt:nowIso(),updatedAt:nowIso()}:x)}saveState();closeModal('noteModal');renderNotes();renderTodayPage();CommandCentreAccounts.queue();toast(n.deletedAt?'Note permanently deleted':'Moved to Recently Deleted');editingNoteId=null}
 function restoreEditingNote(){if(!editingNoteId)return;state.notes=state.notes.map(x=>x.id===editingNoteId?{...x,deletedAt:'',updatedAt:nowIso()}:x);saveState();closeModal('noteModal');setNotesFilter('all');renderTodayPage();CommandCentreAccounts.queue();toast('Note restored');editingNoteId=null}
 
-async function sendChat(){const input=qs('#chatInput');const text=input.value.trim();if(!text)return;addChat('user',text);input.value='';if(!state.deepSeekKey){addChat('ai','DeepSeek is not connected. Add your API key in Settings to enable chat.');return}try{const data=await fetchJson('https://api.deepseek.com/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${state.deepSeekKey}`},body:JSON.stringify({model:'deepseek-chat',messages:[{role:'user',content:text}],temperature:.4})});addChat('ai',data.choices?.[0]?.message?.content||'No response returned.')}catch(e){addChat('ai','The assistant could not be reached. Check the API key and connection.')}}
+async function sendChat(){
+ const input=qs('#chatInput'),text=input.value.trim();if(!text)return;
+ addChat('user',text);input.value='';
+ try{
+  if(window.CommandCentreAIKeys&&!window.CommandCentreAIKeys.status)await window.CommandCentreAIKeys.refresh();
+  if(window.CommandCentreAIKeys?.has('deepseek')){
+   const response=await fetch('/api/accounts/practice/deepseek/chat',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},signal:AbortSignal.timeout(130000),body:JSON.stringify({message:text})}),data=await response.json();
+   if(!response.ok)throw Error(data.error||'The assistant could not be reached.');addChat('ai',data.text);return;
+  }
+  if(!state.deepSeekKey){addChat('ai','DeepSeek is not connected. Sign in to use your saved key, or add one in Settings → Integrations.');return}
+  const config=CommandCentreSchoolbookProviders.deepSeekConfig(state),data=await fetchJson('https://api.deepseek.com/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${state.deepSeekKey}`},body:JSON.stringify({model:config.model,thinking:{type:'disabled'},messages:[{role:'user',content:text}],temperature:.4})});
+  addChat('ai',data.choices?.[0]?.message?.content||'No response returned.');
+ }catch(error){addChat('ai',error.message||'The assistant could not be reached. Check the API key and connection.')}
+}
 function addChat(role,text){const d=document.createElement('div');d.className='post';d.style.cursor='default';d.innerHTML=`<h4>${role==='user'?'You':'Assistant'}</h4><div class="post-meta" style="white-space:pre-wrap;color:${role==='user'?'#c9d6ef':'#b6c2d2'}">${esc(text)}</div>`;qs('#chatMessages').appendChild(d);qs('#chatMessages').scrollTop=qs('#chatMessages').scrollHeight}
 
 /* ---------- Spotify ---------- */
@@ -11119,11 +11188,13 @@ updateNotificationUI();
 loadNews(false);
 if(notificationPermission()==='granted')syncNewsPreferences();
 </script>
-<script src="/manga-reader.js?v=10.33.7"></script>
-<script src="/workspace-design.js?v=10.33.7"></script>
-<script src="/storage-tools.js?v=10.33.7"></script>
-<script src="/crossword-clues.js?v=10.33.7"></script>
-<script src="/games-content.js?v=10.33.7"></script>
-<script src="/games-suite.js?v=10.33.7"></script>
+<dialog id="streamCornerView" aria-label="StreamCorner inside Command Centre"><header class="streamcorner-toolbar"><button id="streamCornerBack" type="button">← Back to Command Centre</button><strong>StreamCorner</strong><button id="streamCornerRestart" type="button">Restart</button></header><iframe id="streamCornerFrame" title="StreamCorner: browse matches and watch" src="about:blank" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe><p id="streamCornerNotice" role="status" aria-live="polite" hidden></p></dialog>
+<script src="/streamcorner-view.js?v=10.42.0"></script>
+<script src="/manga-reader.js?v=10.42.0"></script>
+<script src="/workspace-design.js?v=10.42.0"></script>
+<script src="/storage-tools.js?v=10.42.0"></script>
+<script src="/crossword-clues.js?v=10.42.0"></script>
+<script src="/games-content.js?v=10.42.0"></script>
+<script src="/games-suite.js?v=10.42.0"></script>
 </body>
 </html>

@@ -7,10 +7,17 @@ const html=readFileSync('public/index.html','utf8');
 let scripts=0;
 for(const match of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)){if(match[1].trim()){new vm.Script(match[1]);scripts++;}}
 new vm.Script(readFileSync('public/state-safety.js','utf8'));
+new vm.Script(readFileSync('public/schoolbook-practice-core.js','utf8'));
+new vm.Script(readFileSync('public/schoolbook-providers.js','utf8'));
+new vm.Script(readFileSync('public/ai-keys.js','utf8'));
+new vm.Script(readFileSync('public/practice-lesson.js','utf8'));
+new vm.Script(readFileSync('public/schoolbook-practice.js','utf8'));
+new vm.Script(readFileSync('public/schoolbook-practice.bundle.js','utf8'));
 new vm.Script(readFileSync('public/football-following.js','utf8'));
 new vm.Script(readFileSync('public/space-motion.js','utf8'));
 new vm.Script(readFileSync('public/storage-tools.js','utf8'));
 new vm.Script(readFileSync('public/games-suite.js','utf8'));
+new vm.Script(readFileSync('public/streamcorner-view.js','utf8'));
 for(const file of ['football-pitch.js','playback-safety.js','note-images.js','notebooks.js','manga-reader.js','manga-library.js','workspace-design.js','note-editor.js','accounts-client.js','crossword-clues.js','games-content.js'])new vm.Script(readFileSync('public/'+file,'utf8'));
 new vm.Script(readFileSync('public/transfers.bundle.js','utf8'));
 new vm.Script(readFileSync('public/messages.bundle.js','utf8'));

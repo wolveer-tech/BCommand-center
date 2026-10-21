@@ -1,11 +1,12 @@
 {
   "type": "module",
   "scripts": {
-    "build": "node scripts/build-transfers.mjs",
+    "build": "node scripts/build-transfers.mjs && node scripts/build-practice.mjs",
+    "build:practice": "node scripts/build-practice.mjs",
     "test": "node --test tests/*.test.mjs",
     "check": "node scripts/check-project.mjs",
     "dev": "wrangler dev",
-    "predeploy": "node scripts/check-web-assets.mjs",
+    "predeploy": "node scripts/build-practice.mjs && node scripts/check-web-assets.mjs",
     "deploy": "wrangler deploy"
   },
   "dependencies": {

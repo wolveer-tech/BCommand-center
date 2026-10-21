@@ -6,7 +6,7 @@
   const seriesKey=item=>`${item.source}:${item.id}`;
   const historyKey=item=>`${seriesKey(item)}:${item.chapter.id}`;
   function series(item){
-    if(!item||!['asura','mangadex','comix'].includes(item.source)||!item.id||!item.title)return null;
+    if(!item||!['asura','mangadex','comix','mangakatana'].includes(item.source)||!item.id||!item.title)return null;
     return {id:text(item.id,600),source:item.source,title:text(item.title),cover:web(item.cover),url:web(item.url),status:text(item.status,60),...(item.source==='comix'?{readingMode:'source'}:{})};
   }
   function favourite(item){const clean=series(item);return clean?{...clean,savedAt:number(item.savedAt,Date.now(),8640000000000000)}:null;}

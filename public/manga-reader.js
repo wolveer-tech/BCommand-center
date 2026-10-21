@@ -6,7 +6,7 @@
  const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const status=message=>{$('mangaReaderStatus').textContent=message;};
  const provider=()=>model.series?.source||$('mangaReaderProvider').value;
- const sourceName=(source=provider())=>({asura:'Asura Scans',mangadex:'MangaDex',comix:'Comix'}[source]||'Manga');
+ const sourceName=(source=provider())=>({asura:'Asura Scans',mangadex:'MangaDex',comix:'Comix',mangakatana:'MangaKatana'}[source]||'Manga');
  const library=()=>state.mangaLibrary||{favourites:[],history:[]};
  const saved=item=>library().favourites.some(row=>lib.seriesKey(row)===lib.seriesKey(item));
  const latest=item=>library().history.find(row=>lib.seriesKey(row)===lib.seriesKey(item));

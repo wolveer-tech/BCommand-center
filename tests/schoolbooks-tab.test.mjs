@@ -7,7 +7,7 @@ const source=html.slice(html.indexOf('function renderSchoolbooks(){'),html.index
 function render(filter='all',query=''){
  const records=[{id:'existing-book',kind:'schoolbook',title:'Biology',subject:'Cells',folder:'School',pages:[{id:'p1',title:'Membranes',body:'Original saved page'}],updatedAt:'2026-10-01'},{id:'note',title:'Regular note',body:'Keep this too'},{id:'deleted-book',kind:'schoolbook',title:'Old Maths',deletedAt:'2026-10-02',updatedAt:'2026-10-02',pages:[{id:'p2',body:'Recoverable writing'}]}];
  const before=JSON.stringify(records),elements={'#schoolbooksList':{},'#schoolbooksNavigation':{},'#schoolbooksFolder':{value:''},'#schoolbooksSearch':{value:query}};
- const context=vm.createContext({state:{notes:records},schoolbooksFilter:filter,qs:key=>elements[key],qsa:()=>[],esc:String,notePreview:String,CommandCentreNotebooks:{shelf:books=>JSON.stringify(books)}});
+ const context=vm.createContext({window:{},state:{notes:records},schoolbooksFilter:filter,qs:key=>elements[key],qsa:()=>[],esc:String,notePreview:String,CommandCentreNotebooks:{shelf:books=>JSON.stringify(books)}});
  vm.runInContext(source,context);context.renderSchoolbooks();assert.equal(JSON.stringify(records),before,'Rendering must not migrate or rewrite stored books');return elements['#schoolbooksList'].innerHTML;
 }
 test('existing schoolbooks appear on their own shelf with their original ID and pages',()=>{const books=JSON.parse(render());assert.equal(books.length,1);assert.equal(books[0].id,'existing-book');assert.equal(books[0].pages[0].body,'Original saved page')});

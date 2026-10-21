@@ -1,4 +1,53 @@
-# Latest release: v10.33.7
+# Latest release: v10.42.0
+
+[v10.42.0](RELEASE-v10.42.0.md) puts StreamCorner in Entertainment → Movies & TV,
+adds a separate native iPhone source view, and prepares iOS 1.17.0 (build 26)
+for Codemagic. The Windows package is updated to 1.0.1 without a persistent
+StreamCorner toolbar button. Sign the Codemagic IPA with your usual signing
+service before installing it on iPhone.
+
+# Previous release: v10.41.0
+
+[v10.41.0](RELEASE-v10.41.0.md) adds a portable Windows app with a separate native
+StreamCorner view, a persistent dashboard and a fixed, origin-checked source
+bridge. Extract artifacts/Command-Centre-Windows-1.0.1.zip and open
+CommandCentre.exe. See [Windows instructions](native-windows/README-WINDOWS.md).
+The iPhone native view is included in v10.42.0.
+
+# Previous release: v10.40.0
+
+[v10.40.0](RELEASE-v10.40.0.md) keeps StreamCorner browsing and player selection in a full-window view inside Command Centre, with Back to Sport and Restart controls.
+
+# Latest release: v10.39.0
+
+[v10.39.0](RELEASE-v10.39.0.md) replaces Provider 2 with StreamCorner and an explicit website-reader action.
+
+The older Provider 2 setup sections below are historical. Slot 2 now uses the
+fixed StreamCorner website action; its former dynamic-feed settings are ignored.
+
+# Latest release: v10.38.0
+
+[v10.38.0](RELEASE-v10.38.0.md) adds MangaKatana search, chapter reading, favourites and synced reading progress.
+
+# Latest release: v10.37.1
+
+[v10.37.1](RELEASE-v10.37.1.md) packages lesson practice together and fixes stale offline assets during updates, so the new transcript/picture option appears reliably. Usage: [LESSON-PRACTICE.md](LESSON-PRACTICE.md).
+
+[v10.37.0](RELEASE-v10.37.0.md) adds direct lesson practice from pasted transcripts and selected pictures, including clipboard paste, captions, local draft recovery and original-source viewing. See [LESSON-PRACTICE.md](LESSON-PRACTICE.md). This web update needs no new IPA.
+
+[v10.36.0](RELEASE-v10.36.0.md) adds encrypted account keys for DeepSeek and QwenCloud, cross-device use, optional Automatic provider selection, and repaired laptop Settings navigation/scrolling. See [AI-KEYS-SETUP.md](AI-KEYS-SETUP.md). SportsindX is retained. This web update needs no new IPA.
+
+Current update: [v10.35.1](RELEASE-v10.35.1.md) publishes mixed schoolbook tests with typed T-accounts and journal entries, adds QwenCloud, and exposes DeepSeek model and High/Max reasoning controls. See [QWEN-SETUP.md](QWEN-SETUP.md).
+
+Previous prepared update: [v10.35.0](RELEASE-v10.35.0.md) adds server-side OpenAI schoolbook practice across subjects: mixed tests, multiple choice, short paragraphs, calculations and accounting T-accounts. Key creation and activation remain pending; see [OPENAI-SETUP.md](OPENAI-SETUP.md).
+
+[RELEASE-v10.34.0.md](RELEASE-v10.34.0.md) adds **Schoolbooks → Practise from a book**. Choose pages and photos, generate a set at A-level / Higher by default, answer in your own words, and receive marking points, hints, model answers and source-page links. Difficulty adjusts to your results. Use your DeepSeek API key from Settings with API credit. Practice sessions are saved on this device, separately for each account; the schoolbook records are untouched. This is a web update and requires no new IPA.
+
+# Previous release: v10.33.8
+
+[RELEASE-v10.33.8.md](RELEASE-v10.33.8.md) recovers closed phone database connections, commits note sync baselines with the saved notes, prevents false conflicts caused by record formatting, and adds **Account → Clean up identical copies**. Cleanup saves a recovery snapshot and moves only identical conflict copies to Recently Deleted. Different writing, pages and photos are preserved. This is a web update; no new IPA is required.
+
+# Previous release: v10.33.7
 
 If this GitHub repository is connected to Cloudflare Builds as well as Codemagic,
 keep the full web source current before uploading iOS files. An iOS-only commit

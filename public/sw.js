@@ -1,4 +1,6 @@
-const SHELL_CACHE = 'command-centre-shell-v10.33.7-launch-ui-storage';
+const SHELL_CACHE = 'command-centre-shell-v10.42.0-streamcorner-ios';
+const SHELL_VERSION=SHELL_CACHE.match(/v(\d+\.\d+\.\d+)/)[1].split('.').map(Number);
+function newerVersion(value){if(!/^\d+\.\d+\.\d+$/.test(value||''))return false;const parts=value.split('.').map(Number);for(let i=0;i<3;i++){if(parts[i]!==SHELL_VERSION[i])return parts[i]>SHELL_VERSION[i]}return false}
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -31,6 +33,9 @@ const APP_SHELL = [
   '/games-suite.js'
 ];
 APP_SHELL.push('/sports-providers.js','/football-pitch.js','/football-pitch.css','/playback-safety.js','/note-images.js','/storage-tools.js');
+APP_SHELL.push('/schoolbook-providers.js','/schoolbook-practice.bundle.js','/schoolbook-practice.bundle.css');
+APP_SHELL.push('/ai-keys.js');
+APP_SHELL.push('/streamcorner-view.js','/streamcorner-view.css');
 
 // Version queries select a release at the network layer; one canonical cache
 // entry per asset prevents every release/query from duplicating the same files.
@@ -92,6 +97,11 @@ self.addEventListener('fetch', event => {
     event.respondWith((async () => {
       const cache = await caches.open(SHELL_CACHE);
       const cached = await cache.match(url.pathname);
+      // A fresh page can arrive before the replacement service worker activates.
+      // Never give its versioned scripts/styles older bytes from this shell.
+      if(newerVersion(url.searchParams.get('v'))){
+        try{const response=await fetch(request);if(validShellResponse(url.pathname,response)){await cache.put(url.pathname,response.clone());return response}return cached||response}catch{return cached||Response.error()}
+      }
       if (cached) {
         event.waitUntil(fetch(request).then(async response => {
           if (validShellResponse(url.pathname, response)) await cache.put(url.pathname, response.clone());

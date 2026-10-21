@@ -11,25 +11,59 @@
   function counts(value){return {notes:value?.notes?.length||0,events:value?.events?.length||0,reminders:value?.reminders?.length||0,bible:Object.values(value?.bibleRead||{}).filter(Boolean).length}}
   const total=value=>Object.values(counts(value)).reduce((a,b)=>a+b,0);
   const signature=value=>JSON.stringify([value.notes,value.events,value.reminders,value.bibleRead,value.bibleRecommendations,value.noteFolders,value.mangaLibrary]);
+  // iOS can close a connection while the app is suspended. Retry whole aborted
+  // transactions on a fresh connection; never delete or recreate saved records.
+  function database({indexedDB=root.indexedDB,name,store,keyPath}={}){
+    let opening,connection;
+    function discard(db){
+      if(db&&connection!==db)return;
+      const old=connection;connection=null;opening=null;try{old?.close()}catch{}
+    }
+    function open(){
+      if(!indexedDB)return Promise.reject(new Error('Recovery storage is unavailable. Existing backups have been preserved.'));
+      if(!opening){
+        const pending=new Promise((resolve,reject)=>{
+          const request=indexedDB.open(name,1);let failed=false;
+          request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains(store))request.result.createObjectStore(store,keyPath?{keyPath}:undefined)};
+          request.onsuccess=()=>{
+            const db=request.result;if(failed){db.close();return}
+            connection=db;db.onclose=()=>discard(db);db.onversionchange=()=>discard(db);resolve(db);
+          };
+          request.onerror=()=>{failed=true;reject(request.error)};
+          request.onblocked=()=>{failed=true;reject(new Error('Close other Command Centre tabs to unlock recovery storage.'))};
+        });
+        opening=pending;pending.catch(()=>{if(opening===pending)discard()});
+      }
+      return opening;
+    }
+    async function run(mode,action){
+      for(let attempt=0;attempt<3;attempt++){
+        let db;
+        try{
+          db=await open();
+          return await new Promise((resolve,reject)=>{
+            const tx=db.transaction(store,mode);let result;
+            tx.oncomplete=()=>resolve(result?.());
+            tx.onabort=()=>reject(tx.error||Object.assign(new Error('Local database transaction was interrupted.'),{name:'AbortError'}));
+            try{result=action(tx.objectStore(store),tx)}catch(error){try{tx.abort()}catch{}reject(error)}
+          });
+        }catch(error){
+          if(!['InvalidStateError','UnknownError','AbortError'].includes(error?.name))throw error;
+          discard(db);if(attempt===2)throw error;
+        }
+      }
+    }
+    return {run};
+  }
   function create({storage=root.localStorage,indexedDB=root.indexedDB,dbName=DB,nativeRows=root.CommandCentreNativeRecovery||[],onError=()=>{}}={}){
-    let dbPromise,ready=false,locked=false,current=null,queue=Promise.resolve(),lastError='';
+    let ready=false,locked=false,current=null,queue=Promise.resolve(),lastError='';
+    const saved=database({indexedDB,name:dbName,store:STORE,keyPath:'id'});
     function report(error){lastError=error.message||String(error);onError(lastError)}
     function parse(raw){try{const value=JSON.parse(raw);return valid(value)?value:null}catch{return null}}
     function read(key){try{return parse(storage.getItem(key))}catch{return null}}
     const native=Array.isArray(nativeRows)?nativeRows.filter(row=>valid(row.state)):[];
     function initial(){return read(KEY)||read(MIRROR)||native[0]?.state||null}
-    function open(){
-      if(!indexedDB)return Promise.reject(new Error('Recovery storage is unavailable. Existing backups have been preserved.'));
-      if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
-        const request=indexedDB.open(dbName,1);
-        request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains(STORE))request.result.createObjectStore(STORE,{keyPath:'id'})};
-        request.onsuccess=()=>{const db=request.result;db.onversionchange=()=>{db.close();dbPromise=null};resolve(db)};
-        request.onerror=()=>{dbPromise=null;reject(request.error)};
-        request.onblocked=()=>{dbPromise=null;reject(new Error('Close other Command Centre tabs to unlock recovery storage.'))};
-      });
-      return dbPromise;
-    }
-    async function rows(){const db=await open();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly'),req=tx.objectStore(STORE).getAll();tx.oncomplete=()=>resolve(req.result||[]);tx.onerror=tx.onabort=()=>reject(tx.error||new Error('Could not read recovery data.'))})}
+    function rows(){return saved.run('readonly',store=>{const req=store.getAll();return ()=>req.result||[]})}
     async function refreshNative(action='stateHistory'){
       if(root.CommandCentreNative?.stateVault){
         await new Promise(resolve=>{
@@ -56,9 +90,8 @@
     function enqueue(value,reason='automatic'){
       const captured=copy(value);
       const task=queue.catch(()=>{}).then(async()=>{
-        const db=await open();
-        return new Promise((resolve,reject)=>{
-          const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE),get=store.getAll();
+        return saved.run('readwrite',store=>{
+          const get=store.getAll();
           get.onsuccess=()=>{
             const history=get.result.filter(row=>row.id!=='current'&&valid(row.state)).sort((a,b)=>b.savedAt-a.savedAt);
             const previous=get.result.find(row=>row.id==='current');
@@ -77,7 +110,7 @@
             for(const automatic of [true,false])history.filter(row=>(row.reason==='automatic'||row.reason==='protected baseline')===automatic).slice(automatic?20:10).forEach(row=>store.delete(row.id));
             store.put({id:'current',savedAt:captured._ccSavedAt||now,reason:'current',state:captured});
           };
-          tx.oncomplete=()=>resolve(captured);tx.onerror=tx.onabort=()=>reject(tx.error||new Error('Could not save recovery data.'));
+          return ()=>captured;
         });
       });
       queue=task;task.catch(report);return task;
@@ -123,5 +156,5 @@
     }
     return {initial,initialize,save,snapshot,protectUpgrade,restore,list,flush:()=>queue,get ready(){return ready&&!locked},get error(){return lastError}};
   }
-  root.CommandCentreSafety={create,valid,counts,total};
+  root.CommandCentreSafety={create,database,valid,counts,total};
 })(globalThis);

@@ -3,6 +3,9 @@ TRANSFER_SETUP_KEY=replace-with-a-random-secret-of-at-least-32-characters
 # Invite-only note accounts. Keep this out of public JavaScript and backups.
 ACCOUNT_INVITE_CODE=replace-with-a-private-invitation-code-of-at-least-16-characters
 ACCOUNT_MAX_USERS=10
+# Schoolbook practice: server-only OpenAI key (never add it to public/ or app state).
+OPENAI_API_KEY=replace-with-your-openai-project-key
+OPENAI_SCHOOLBOOK_MODEL=gpt-6-luna
 TRANSFER_R2_ENDPOINT=https://YOUR_ACCOUNT_ID.r2.cloudflarestorage.com
 TRANSFER_R2_BUCKET=command-centre-transfers
 TRANSFER_R2_ACCESS_KEY_ID=YOUR_R2_ACCESS_KEY_ID

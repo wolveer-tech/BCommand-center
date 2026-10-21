@@ -1,6 +1,8 @@
 import {handleLiveActivities,refreshLiveActivityPushes} from './live-activities.js';
 import { sendPushNotification } from '@mmmike/web-push/send';
 import { handleTransfers, cleanTransfers, flushTransferPushes, authenticateTransferDevice, readTransferJSON } from './transfers.js';
+import {handleSchoolbookAI} from './schoolbook-ai.js';
+import {handleAIVault} from './ai-vault.js';
 import { handleMessages, cleanMessages, flushMessagePushes } from './messages.js';
 import { apnsConfigured, sendAPNSNotification } from './apns.js';
 import { handleAccounts } from './accounts.js';
@@ -479,6 +481,7 @@ function liveProviderConfig(env,providerId='1'){
   const id=cleanProviderId(providerId);
   if(id==='4')return {id,name:'Matchora',mode:'matchora',baseUrl:'https://matchora.to',embedHosts:'matchora.to',categoryAliases:{}};
   if(id==='5')return {id,name:'PPV',mode:'ppv',baseUrl:'https://ppv.tj',embedHosts:'taifood-blog.asia',categoryAliases:{}};
+  if(id==='2')return {id,name:'StreamCorner',mode:'embedded',baseUrl:'https://streamcorner.st',embedHosts:'streamcorner.st',categoryAliases:{}};
 
   if(id==='1'){
     return {
@@ -513,43 +516,6 @@ function liveProviderConfig(env,providerId='1'){
         soccer:String(env.LIVE_PROVIDER_1_CATEGORY_SOCCER||'soccer').trim(),
         tennis:String(env.LIVE_PROVIDER_1_CATEGORY_TENNIS||'tennis').trim(),
         basketball:String(env.LIVE_PROVIDER_1_CATEGORY_BASKETBALL||'basketball').trim()
-      }
-    };
-  }
-
-  if(id==='2'){
-    return {
-      id:'2',
-      name:String(env.LIVE_PROVIDER_2_NAME||'Provider 2').trim().slice(0,60)||'Provider 2',
-      mode:(['api','dynamic'].includes(String(env.LIVE_PROVIDER_2_MODE||env.LIVE_CONTENT_PROVIDER_MODE||'scrape').trim().toLowerCase())?String(env.LIVE_PROVIDER_2_MODE||env.LIVE_CONTENT_PROVIDER_MODE||'scrape').trim().toLowerCase():'scrape'),
-      baseUrl:String(env.LIVE_PROVIDER_2_BASE_URL||env.LIVE_CONTENT_BASE_URL||'').trim(),
-      apiPath:String(env.LIVE_PROVIDER_2_API_PATH||env.LIVE_CONTENT_API_PATH||'/api/v1/streams').trim()||'/api/v1/streams',
-      scrapePath:String(env.LIVE_PROVIDER_2_SCRAPE_PATH||env.LIVE_CONTENT_SCRAPE_PATH||'/').trim()||'/',
-      pageHosts:String(env.LIVE_PROVIDER_2_ALLOWED_PAGE_HOSTS||env.LIVE_CONTENT_ALLOWED_PAGE_HOSTS||'').trim(),
-      embedHosts:String(env.LIVE_PROVIDER_2_ALLOWED_EMBED_HOSTS||env.LIVE_CONTENT_ALLOWED_EMBED_HOSTS||'').trim(),
-      linkHints:String(env.LIVE_PROVIDER_2_LINK_HINTS||env.LIVE_CONTENT_LINK_HINTS||'').trim(),
-      maxScrapePages:Number(env.LIVE_PROVIDER_2_MAX_SCRAPE_PAGES||env.LIVE_CONTENT_MAX_SCRAPE_PAGES)||12,
-      apiKey:String(env.LIVE_PROVIDER_2_API_KEY||env.LIVE_CONTENT_API_KEY||'').trim(),
-      dynamicPath:String(env.LIVE_PROVIDER_2_DYNAMIC_PATH||'').trim(),
-      dynamicBaseUrl:String(env.LIVE_PROVIDER_2_DYNAMIC_BASE_URL||'').trim(),
-      dynamicAllowedHosts:String(env.LIVE_PROVIDER_2_ALLOWED_DATA_HOSTS||'').trim(),
-      dynamicCacheBustParam:String(env.LIVE_PROVIDER_2_DYNAMIC_CACHEBUST_PARAM||'').trim(),
-      dynamicRoot:String(env.LIVE_PROVIDER_2_DYNAMIC_ROOT||'').trim(),
-      dynamicCategoryField:String(env.LIVE_PROVIDER_2_DYNAMIC_CATEGORY_FIELD||'').trim(),
-      dynamicItemsField:String(env.LIVE_PROVIDER_2_DYNAMIC_ITEMS_FIELD||'').trim(),
-      dynamicCategoryParam:String(env.LIVE_PROVIDER_2_DYNAMIC_CATEGORY_PARAM||'').trim(),
-      resolverPath:String(env.LIVE_PROVIDER_2_RESOLVE_PATH||'').trim(),
-      resolverBaseUrl:String(env.LIVE_PROVIDER_2_RESOLVE_BASE_URL||'').trim(),
-      resolverAllowedHosts:String(env.LIVE_PROVIDER_2_ALLOWED_RESOLVE_HOSTS||'').trim(),
-      resolverSourceParam:String(env.LIVE_PROVIDER_2_RESOLVE_SOURCE_PARAM||'source').trim()||'source',
-      resolverIdParam:String(env.LIVE_PROVIDER_2_RESOLVE_ID_PARAM||'id').trim()||'id',
-      resolverUrlField:String(env.LIVE_PROVIDER_2_RESOLVE_URL_FIELD||'').trim(),
-      resolverCacheBustParam:String(env.LIVE_PROVIDER_2_RESOLVE_CACHEBUST_PARAM||'').trim(),
-
-      categoryAliases:{
-        soccer:String(env.LIVE_PROVIDER_2_CATEGORY_SOCCER||'soccer').trim(),
-        tennis:String(env.LIVE_PROVIDER_2_CATEGORY_TENNIS||'tennis').trim(),
-        basketball:String(env.LIVE_PROVIDER_2_CATEGORY_BASKETBALL||'basketball').trim()
       }
     };
   }
@@ -1425,6 +1391,15 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
   }
 
   const safeCategory=String(category||'soccer').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40)||'soccer';
+
+  // StreamCorner keeps its origin in a contained, full-window app view. Its own
+  // browser code supplies matches and player choices; no synthetic match feed.
+  if(cfg.mode==='embedded')return {
+    providerId:cfg.id,providerName:cfg.name,mode:cfg.mode,category:safeCategory,
+    browserUrl:'https://streamcorner.st/',count:0,providerCount:0,streams:[],
+    diagnostic:'Browse matches and choose a source inside Command Centre.',
+    updatedAt:new Date().toISOString()
+  };
 
   let cache=null,key=null;
   try{
@@ -3933,6 +3908,8 @@ async function audiusStreamResponse(request,env,trackId){
 
 export default {
   async fetch(request,env,ctx){
+    if(new URL(request.url).pathname==='/api/accounts/ai-keys'||new URL(request.url).pathname.startsWith('/api/accounts/ai-keys/'))return handleAIVault(request,env);
+    if(new URL(request.url).pathname.startsWith('/api/accounts/practice/'))return handleSchoolbookAI(request,env);
     if(new URL(request.url).pathname.startsWith('/api/accounts/'))return handleAccounts(request,env);
     const url=new URL(request.url);
     if(url.pathname.startsWith('/api/manga/'))return handleManga(request,ctx);

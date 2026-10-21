@@ -28,7 +28,7 @@ async function rate(request,env,username){
     if(row.attempts>20)fail(429,'Too many sign-in attempts. Try again in ten minutes.');
   }
 }
-async function account(request,env){
+export async function authenticateAccount(request,env){
   const token=(request.headers.get('cookie')||'').match(/(?:^|;\s*)cc_account=([a-f0-9]{64})(?:;|$)/)?.[1];
   if(!token)fail(401,'Sign in to sync your app data.');
   const row=await query(env,'SELECT a.id,a.username FROM accounts a JOIN account_sessions s ON s.account_id=a.id WHERE s.token_hash=? AND s.expires_at>?',await hash(token),Date.now()).first();
@@ -75,7 +75,7 @@ export async function handleAccounts(request,env){
       await query(env,'INSERT INTO account_sessions(token_hash,account_id,expires_at) VALUES(?,?,?)',await hash(token),user.id,expires).run();
       return reply({account:user},path==='/register'?201:200,{'set-cookie':cookie(token,30*86400)});
     }
-    const user=await account(request,env);
+    const user=await authenticateAccount(request,env);
     if(path==='/me'&&method==='GET')return reply({account:user});
     if(path==='/logout'&&method==='POST'){
       const token=(request.headers.get('cookie')||'').match(/cc_account=([a-f0-9]{64})/)?.[1];

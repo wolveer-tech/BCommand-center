@@ -1,5 +1,6 @@
 import {asuraRequest} from './asura-reader.js';
 import {comixRequest} from './comix-reader.js';
+import {mangaKatanaRequest} from './mangakatana-reader.js';
 const API='https://api.mangadex.org';
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const error=(message,status=400)=>Object.assign(new Error(message),{status});
@@ -18,6 +19,7 @@ export async function mangaRequest(url,fetcher=fetch){
  const source=url.searchParams.get('source')||'mangadex';
  if(source==='asura')return asuraRequest(url,fetcher);
  if(source==='comix')return comixRequest(url,fetcher);
+ if(source==='mangakatana')return mangaKatanaRequest(url,fetcher);
  if(source!=='mangadex')throw error('Choose a supported manga source.');
  if(url.pathname==='/api/manga/search'){
   const query=String(url.searchParams.get('q')||'').trim().slice(0,200);if(!query)throw error('Enter a manga title.');

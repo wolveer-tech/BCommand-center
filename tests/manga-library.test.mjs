@@ -34,3 +34,8 @@ test('Comix saved chapter links survive account/backup normalisation without pre
  const saved=merge({}, {history:[{...entry(),source:'comix',id:'/title/a-story',readingMode:'source'}]});
  assert.equal(saved.history[0].readingMode,'source');
 });
+test('MangaKatana favourites and page progress survive account/backup merge and stay separate from other sources',()=>{
+ const katana={...series,id:'/manga/a-story.42',source:'mangakatana',url:'https://mangakatana.com/manga/a-story.42'};
+ const original=merge({}, {favourites:[{...katana,savedAt:5}, {...katana,source:'asura',savedAt:4}],history:[{...katana,chapter:{id:katana.id+'/c2.5',chapter:'2.5',url:katana.url+'/c2.5'},page:3,pageCount:15,readAt:6}]});
+ const restored=merge({},JSON.parse(JSON.stringify(original)));assert.equal(restored.favourites.length,2);assert.equal(restored.history[0].source,'mangakatana');assert.equal(restored.history[0].page,3);assert.equal(restored.history[0].chapter.chapter,'2.5');
+});

@@ -103,5 +103,5 @@
     document.fonts?.ready.then(alignPaper);
     window.addEventListener('pagehide',()=>{if(draft&&$('noteModal').classList.contains('open')&&$('noteBody').contentEditable!=='false')saveNote(false);});
   }
-  window.CommandCentreNotebooks={open,record,bind,shelf,addImages,normalise,changed,get isBook(){return !!draft;},get busy(){return pending>0;},saved(){clearTimeout(timer);timer=null;$('noteSaveStatus').textContent='Saved on this device';},flush(){if(draft&&$('noteModal').classList.contains('open')&&$('noteBody').contentEditable!=='false'){if(editingNoteId&&state.notes.find(n=>n.id===editingNoteId)?.deletedAt)return true;return saveNote(false);}return true;}};
+  window.CommandCentreNotebooks={open,record,bind,shelf,addImages,normalise,changed,goToPage(index){if(draft){capture();page=Math.max(0,Math.min(draft.pages.length-1,index));display()}},get isBook(){return !!draft;},get busy(){return pending>0;},saved(){clearTimeout(timer);timer=null;$('noteSaveStatus').textContent='Saved on this device';},flush(){if(draft&&$('noteModal').classList.contains('open')&&$('noteBody').contentEditable!=='false'){if(editingNoteId&&state.notes.find(n=>n.id===editingNoteId)?.deletedAt)return true;return saveNote(false);}return true;}};
 })();

@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {build} from 'esbuild';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 import {searchHtml,chaptersHtml,pagesHtml} from './fixtures/asura.mjs';
+import * as katana from './fixtures/mangakatana.mjs';
 
 test('manga requests run in the actual Workers runtime',async t=>{
  const id='00000000-0000-4000-8000-000000000001',calls=[];
@@ -13,6 +14,7 @@ test('manga requests run in the actual Workers runtime',async t=>{
   outboundService:async request=>{
    const url=new URL(request.url);calls.push(url);
    if(url.hostname==='asurascans.com')return new Response(url.pathname==='/browse'?searchHtml:url.pathname.includes('/chapter/')?pagesHtml:chaptersHtml,{headers:{'content-type':'text/html'}});
+   if(url.hostname==='mangakatana.com')return new Response(url.pathname==='/'?katana.searchHtml:/\/c\d/.test(url.pathname)?katana.pagesHtml:katana.chaptersHtml,{headers:{'content-type':'text/html'}});
    assert.equal(url.hostname,'api.mangadex.org');
    if(url.searchParams.get('title')==='Redirect')return new Response(null,{status:302,headers:{location:'https://unrelated.example/'}});
    const data=url.pathname==='/manga'?{data:[{id,attributes:{title:{en:'Test manga'}}}]}:
@@ -30,5 +32,10 @@ test('manga requests run in the actual Workers runtime',async t=>{
   const search=await call('search?source=asura&q=test');assert.equal(search.status,200,JSON.stringify(search.data));assert.equal(search.data.results[0].title,'Test & Title');
   const chapters=await call('chapters?source=asura&id=%2Fcomics%2Ftest-title');assert.equal(chapters.status,200,JSON.stringify(chapters.data));assert.equal(chapters.data.chapters.length,2);
   const pages=await call('pages?source=asura&id=%2Fcomics%2Ftest-title%2Fchapter%2F2');assert.equal(pages.status,200,JSON.stringify(pages.data));assert.equal(pages.data.pages.length,2);
+ });
+ await t.test('MangaKatana search, chapters and pages run with Workers fetch validation',async()=>{
+  const search=await call('search?source=mangakatana&q=test');assert.equal(search.status,200,JSON.stringify(search.data));assert.equal(search.data.results[0].title,'Test & Story');
+  const chapters=await call('chapters?source=mangakatana&id=%2Fmanga%2Ftest-story.42');assert.equal(chapters.status,200,JSON.stringify(chapters.data));assert.equal(chapters.data.total,4);
+  const pages=await call('pages?source=mangakatana&id=%2Fmanga%2Ftest-story.42%2Fc2.5');assert.equal(pages.status,200,JSON.stringify(pages.data));assert.equal(pages.data.pages.length,2);
  });
 });

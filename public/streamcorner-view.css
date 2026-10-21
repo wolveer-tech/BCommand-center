@@ -1,0 +1,13 @@
+#streamCornerView{position:fixed;inset:0;margin:0;padding:0;border:0;max-width:none;max-height:none;width:100%;height:100vh;height:100dvh;background:#0a1019;color:#eef4ff;grid-template-rows:auto minmax(0,1fr);overscroll-behavior:none}
+#streamCornerView[open]{display:grid}
+#streamCornerView:not([open]){display:none}
+#streamCornerView::backdrop{background:#0a1019}
+.cc-streamcorner-open,.cc-streamcorner-open body{overflow:hidden!important}
+.streamcorner-toolbar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;min-height:48px;padding:6px 12px;padding-top:calc(6px + env(safe-area-inset-top));box-sizing:border-box;background:#0b1220;border-bottom:1px solid #ffffff20}
+.streamcorner-toolbar strong{text-align:center;font:650 13px system-ui;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.streamcorner-toolbar button{appearance:none;border:1px solid #ffffff30;border-radius:10px;padding:8px 11px;background:#1c283d;color:#eef4ff;font:600 12px system-ui;min-height:36px;cursor:pointer}
+.streamcorner-toolbar button:focus-visible{outline:2px solid #8bb4ff;outline-offset:2px}
+#streamCornerFrame{width:100%;height:100%;min-height:0;display:block;border:0;border-radius:0;max-width:none;background:#101010}
+#streamCornerNotice{position:absolute;top:calc(62px + env(safe-area-inset-top));left:12px;right:12px;padding:12px 16px;background:#101b2df5;border:1px solid #ffffff30;border-radius:12px;text-align:center;font:13px/1.5 system-ui;pointer-events:none}
+#streamCornerNotice[hidden]{display:none}
+@media(max-width:480px){.streamcorner-toolbar{gap:6px;padding-inline:8px}.streamcorner-toolbar button{padding-inline:8px;font-size:11px}.streamcorner-toolbar strong{font-size:12px}}

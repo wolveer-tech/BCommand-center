@@ -6,6 +6,7 @@ struct CommandCentreNativeApp: App {
     @UIApplicationDelegateAdaptor(NativePushAppDelegate.self) private var appDelegate
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var privacyLock = NativePrivacyLockManager.shared
+    @State private var streamCornerPresented = false
 
     init() {
         _ = NativeNotificationHandler.shared
@@ -18,7 +19,9 @@ struct CommandCentreNativeApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                CommandCentreWebView()
+                CommandCentreWebView(openStreamCorner: {
+                    if !privacyLock.isLocked && !privacyLock.isShielded { streamCornerPresented = true }
+                })
                     .privacySensitive()
                     .opacity(privacyLock.isLocked || privacyLock.isShielded ? 0 : 1)
                     .allowsHitTesting(!privacyLock.isLocked && !privacyLock.isShielded)
@@ -29,6 +32,21 @@ struct CommandCentreNativeApp: App {
             }
             .background(Color(red: 0.02, green: 0.04, blue: 0.09))
             .ignoresSafeArea(.container, edges: .bottom)
+            .fullScreenCover(isPresented: $streamCornerPresented) {
+                ZStack {
+                    NativeStreamCornerView()
+                        .privacySensitive()
+                        .opacity(privacyLock.isLocked || privacyLock.isShielded ? 0 : 1)
+                        .allowsHitTesting(!privacyLock.isLocked && !privacyLock.isShielded)
+                    if privacyLock.isLocked || privacyLock.isShielded {
+                        NativePrivacyLockView(manager: privacyLock)
+                    }
+                }
+                .background(Color(red: 0.02, green: 0.04, blue: 0.09))
+                .onChange(of: privacyLock.isLocked) { _, locked in
+                    if locked { streamCornerPresented = false }
+                }
+            }
             .onAppear {
                 privacyLock.handleScenePhase(.active)
                 privacyLock.authenticateIfNeeded()

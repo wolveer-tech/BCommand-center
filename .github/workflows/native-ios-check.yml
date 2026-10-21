@@ -1,0 +1,20 @@
+name: Native iOS compile check
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'native-ios/**'
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        working-directory: native-ios
+        run: xcodegen generate
+      - name: Resolve packages
+        run: xcodebuild -project native-ios/CommandCentreNative.xcodeproj -scheme CommandCentreNative -resolvePackageDependencies
+      - name: Compile without signing
+        run: xcodebuild -project native-ios/CommandCentreNative.xcodeproj -scheme CommandCentreNative -sdk iphoneos CODE_SIGNING_ALLOWED=NO build
