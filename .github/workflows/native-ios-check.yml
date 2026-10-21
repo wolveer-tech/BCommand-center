@@ -1,9 +1,10 @@
-name: Native iOS compile check
+name: Native iOS IPA
 on:
   workflow_dispatch:
   push:
     paths:
       - 'native-ios/**'
+      - '.github/workflows/native-ios-check.yml'
 jobs:
   build:
     runs-on: macos-latest
@@ -16,5 +17,30 @@ jobs:
         run: xcodegen generate
       - name: Resolve packages
         run: xcodebuild -project native-ios/CommandCentreNative.xcodeproj -scheme CommandCentreNative -resolvePackageDependencies
-      - name: Compile without signing
-        run: xcodebuild -project native-ios/CommandCentreNative.xcodeproj -scheme CommandCentreNative -sdk iphoneos CODE_SIGNING_ALLOWED=NO build
+      - name: Build unsigned device app
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild build \
+            -project native-ios/CommandCentreNative.xcodeproj \
+            -scheme CommandCentreNative \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$PWD/build/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            2>&1 | tee build/xcodebuild-device.log
+      - name: Package IPA for Signulous
+        run: bash native-ios/package-ipa.sh "$PWD/build"
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: CommandCentre-iOS26-v1.17.0
+          path: |
+            build/CommandCentre-iOS26-v1.17.0.ipa
+            build/ipa-structure-report.txt
+          if-no-files-found: error

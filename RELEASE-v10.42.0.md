@@ -21,6 +21,10 @@ before installation on an iPhone. Video compatibility depends on the selected
 provider source and must be verified on a device. Select an Apple-marked
 StreamCorner source on iPhone.
 
+GitHub Actions also builds the unsigned device app, ad-hoc signs its structure
+and uploads the same IPA and a structure report as a workflow artifact. Download
+it from the successful **Native iOS IPA** run, then sign it with Signulous.
+
 Windows portable package: `artifacts/Command-Centre-Windows-1.0.1.zip`.
 
 Validation: `node scripts/check-project.mjs`, `node scripts/check-web-assets.mjs`,

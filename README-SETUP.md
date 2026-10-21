@@ -2,9 +2,10 @@
 
 [v10.42.0](RELEASE-v10.42.0.md) puts StreamCorner in Entertainment → Movies & TV,
 adds a separate native iPhone source view, and prepares iOS 1.17.0 (build 26)
-for Codemagic. The Windows package is updated to 1.0.1 without a persistent
-StreamCorner toolbar button. Sign the Codemagic IPA with your usual signing
-service before installing it on iPhone.
+for Codemagic and the GitHub Actions IPA workflow. The Windows package is
+updated to 1.0.1 without a persistent StreamCorner toolbar button. Download
+the IPA from a successful build and sign it with your usual signing service
+before installing it on iPhone.
 
 # Previous release: v10.41.0
 

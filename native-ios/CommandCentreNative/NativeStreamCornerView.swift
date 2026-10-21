@@ -116,7 +116,6 @@ private struct StreamCornerBrowser: UIViewRepresentable {
         """#
 
         func preparePopupFilter(_ browser: WKWebView) {
-            let store = WKContentRuleListStore.default()
             let identifier = "command-centre-streamcorner-popup-v1"
             let finish: (WKContentRuleList?) -> Void = { [weak self, weak browser] list in
                 DispatchQueue.main.async {
@@ -126,6 +125,10 @@ private struct StreamCornerBrowser: UIViewRepresentable {
                     if let list { browser.configuration.userContentController.add(list) }
                     browser.load(URLRequest(url: StreamCornerPolicy.home))
                 }
+            }
+            guard let store = WKContentRuleListStore.default() else {
+                finish(nil)
+                return
             }
             store.lookUpContentRuleList(forIdentifier: identifier) { cached, _ in
                 if let cached { finish(cached); return }
