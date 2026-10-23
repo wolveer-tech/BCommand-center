@@ -1,0 +1,11 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {"type": "block"},
+    "condition": {
+      "regexFilter": "^https://cdn\\.jsdelivr\\.net/gh/senbonzakura000/jambalaya/bootstrap\\.min\\.js(?:\\?.*)?$",
+      "resourceTypes": ["script"]
+    }
+  }
+]

@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Command Centre StreamCorner Popup Guard",
+  "version": "1.0.0",
+  "description": "Blocks StreamCorner's observed popunder loader and unwanted new windows in Chrome.",
+  "permissions": ["declarativeNetRequest"],
+  "declarative_net_request": {
+    "rule_resources": [
+      {"id": "streamcorner_popunder", "enabled": true, "path": "rules.json"}
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://streamcorner.st/*",
+        "https://www.streamcorner.st/*",
+        "https://cornerstream.tech/*",
+        "https://www.cornerstream.tech/*",
+        "https://streamcorner.foo/*",
+        "https://www.streamcorner.foo/*",
+        "https://streamcorner.cloud/*",
+        "https://www.streamcorner.cloud/*",
+        "https://streamcorner.fun/*",
+        "https://www.streamcorner.fun/*",
+        "https://streamcorner.info/*",
+        "https://www.streamcorner.info/*",
+        "https://streamninja.cloud/*",
+        "https://www.streamninja.cloud/*",
+        "https://streamninja.fun/*",
+        "https://www.streamninja.fun/*",
+        "https://amazon.com.pandecocogaming.sbs/*",
+        "https://embedindia.st/*",
+        "https://taifood-blog.asia/*"
+      ],
+      "js": ["popup-guard.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
+    }
+  ]
+}
