@@ -5,7 +5,13 @@
     "action": {"type": "block"},
     "condition": {
       "regexFilter": "^https://cdn\\.jsdelivr\\.net/gh/senbonzakura000/jambalaya/bootstrap\\.min\\.js(?:\\?.*)?$",
-      "resourceTypes": ["script"]
+      "resourceTypes": ["script"],
+      "topDomains": [
+        "streamcorner.st", "cornerstream.tech", "streamcorner.foo",
+        "streamcorner.cloud", "streamcorner.fun", "streamcorner.info",
+        "streamninja.cloud", "streamninja.fun",
+        "amazon.com.pandecocogaming.sbs", "embedindia.st", "taifood-blog.asia"
+      ]
     }
   }
 ]

@@ -1,28 +1,25 @@
-# StreamCorner popup guard for the installed Chrome app
+# StreamCorner popunder-loader guard for Chrome
 
-This Chrome extension blocks the one popunder script observed in StreamCorner
-and suppresses new windows opened by StreamCorner and its listed player pages.
-A user-initiated link to a listed source is sent to the current window. It is
-an optional, local guard for the Chrome-installed Command Centre app, not part
-of the website or the iPhone app.
+This optional Chrome extension blocks one script URL previously observed loading
+a StreamCorner popunder. It acts only when a listed StreamCorner or player domain
+is the top-level page. It does not run JavaScript on websites, inspect page
+content, read browser history or account data, change browser security settings,
+or send data anywhere. There are no external libraries or automatic updates.
 
-Chrome will show permission to read and change data on the listed sites because
-the guard runs a content script there. The script only checks clicked links and
-`window.open` URLs; it does not collect page content, browsing history,
-passwords, or Command Centre account data, and it makes no network requests.
-An extension still adds a small security and compatibility risk. Its source is
-in this folder, it has no automatic updates, and it can be removed at any time.
+Chrome 145 or newer is required. The manifest requests only the
+`declarativeNetRequest` permission; Chrome may show a warning that the extension
+can block page content. The single packaged rule blocks a script request for
+`https://cdn.jsdelivr.net/gh/senbonzakura000/jambalaya/bootstrap.min.js` (with
+an optional query string) on the listed top-level domains. It does not block
+other ad scripts or prevent every new window. Chrome controls navigation outside
+the installed Command Centre app's scope, so the extension cannot guarantee
+that StreamCorner stays in that app window. It does not affect iPhone playback.
 
-To try it, extract the ZIP and load this folder in the same Chrome profile used
-by the **Command Centre** shortcut: open `chrome://extensions`, turn on Developer
-mode, choose **Load unpacked**, and select the extracted
-`streamcorner-guard` folder. Reload the installed Command Centre app before
-trying StreamCorner again. Keep the extracted folder while the extension is in
-use; Chrome loads the code from there.
+To try it, extract the ZIP. In the Chrome profile used by the **Command Centre**
+shortcut, open `chrome://extensions`, turn on Developer mode, choose **Load
+unpacked**, and select the extracted `streamcorner-guard` folder. Keep that
+folder while the extension is in use. Reload the installed Command Centre app
+before trying StreamCorner again.
 
-This has not been verified against your live Chrome session. Chrome controls
-navigation outside Command Centre's installed-app scope, so the guard cannot
-guarantee that StreamCorner stays in the same app window. It cannot make an
-incompatible iPhone stream play or guarantee that an upstream source remains
-available. To remove it, use Chrome's Extensions page and turn Developer mode
-off again if you no longer need it.
+This has not been verified against your live Chrome session. To remove it, use
+Chrome's Extensions page and turn Developer mode off if you no longer need it.
