@@ -1,4 +1,4 @@
-/* The provider keeps its own origin; browsing and playback stay in this view. */
+/* Open the provider at top level in browsers so its own player can load. */
 (() => {
  const SITE='https://streamcorner.st/',KIND='streamcorner';
  const dialog=document.getElementById('streamCornerView'),frame=document.getElementById('streamCornerFrame'),back=document.getElementById('streamCornerBack'),restart=document.getElementById('streamCornerRestart'),notice=document.getElementById('streamCornerNotice');
@@ -28,6 +28,11 @@
    // The desktop host validates this fixed command and the sending app origin.
    // The provider gets its own native view, with no dashboard iframe ancestor.
    try{window.chrome.webview.postMessage('cc-open-streamcorner');return;}catch{}
+  }
+  if(!window.CommandCentreNative&&!window.CommandCentreDesktop){
+   window.closeLiveFootball?.();window.stopVideoPlayback?.();
+   window.location.assign(SITE);
+   return;
   }
   if(dialog.open){back.focus();return;}
   opener=document.activeElement;

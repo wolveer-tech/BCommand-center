@@ -28,7 +28,7 @@ test('Auto skips StreamCorner’s website action even when Provider 2 was the pr
 });
 test('selecting StreamCorner offers its own reader, clears stale streams and requires an explicit click to open',async()=>{
  const h=client({mode:'embedded',providerName:'StreamCorner',browserUrl:'https://streamcorner.st/',streams:[]});await h.context.loadLiveFootball();
- assert.equal(h.context.liveFootballStreams.length,0);assert.equal(h.closes,1);assert.equal(h.nodes['#liveFootballStatus'].textContent,'StreamCorner • Inside Command Centre');assert.match(h.nodes['#liveFootballGrid'].innerHTML,/data-open-streamcorner/);assert.match(h.nodes['#liveFootballGrid'].innerHTML,/Browse &amp; watch in app/);assert.doesNotMatch(h.nodes['#liveFootballGrid'].innerHTML,/<iframe|href=|target=|data-live-stream-index|timst|ehgembxe/);
+ assert.equal(h.context.liveFootballStreams.length,0);assert.equal(h.closes,1);assert.equal(h.nodes['#liveFootballStatus'].textContent,'StreamCorner • Choose a source');assert.match(h.nodes['#liveFootballGrid'].innerHTML,/data-open-streamcorner/);assert.match(h.nodes['#liveFootballGrid'].innerHTML,/Browse &amp; watch/);assert.match(h.nodes['#liveFootballGrid'].innerHTML,/opens in this tab/);assert.doesNotMatch(h.nodes['#liveFootballGrid'].innerHTML,/<iframe|href=|target=|data-live-stream-index|timst|ehgembxe/);
 });
 test('a manipulated website action cannot open a different host',async()=>{
  const h=client({mode:'embedded',browserUrl:'https://streamcorner.st.attacker.test/',streams:[]});await h.context.loadLiveFootball();assert.match(h.nodes['#liveFootballStatus'].textContent,/unsupported website address/);assert.equal(h.nodes['#liveFootballGrid'].innerHTML,'');assert.equal(h.closes,0);

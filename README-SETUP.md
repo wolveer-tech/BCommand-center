@@ -1,4 +1,10 @@
-# Latest release: v10.42.0
+# Latest release: v10.42.1
+
+[v10.42.1](RELEASE-v10.42.1.md) opens StreamCorner as a top-level page in the
+same browser tab. Use the browser Back button to return to Command Centre.
+Native Windows and iPhone app routes are unchanged.
+
+# Previous release: v10.42.0
 
 [v10.42.0](RELEASE-v10.42.0.md) puts StreamCorner in Entertainment → Movies & TV,
 adds a separate native iPhone source view, and prepares iOS 1.17.0 (build 26)

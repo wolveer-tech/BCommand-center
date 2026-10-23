@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'command-centre-shell-v10.42.0-streamcorner-ios';
+const SHELL_CACHE = 'command-centre-shell-v10.42.1-streamcorner-browser';
 const SHELL_VERSION=SHELL_CACHE.match(/v(\d+\.\d+\.\d+)/)[1].split('.').map(Number);
 function newerVersion(value){if(!/^\d+\.\d+\.\d+$/.test(value||''))return false;const parts=value.split('.').map(Number);for(let i=0;i<3;i++){if(parts[i]!==SHELL_VERSION[i])return parts[i]>SHELL_VERSION[i]}return false}
 const APP_SHELL = [
