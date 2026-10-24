@@ -34,6 +34,13 @@ namespace CommandCentre.Desktop
         private bool openingSource;
         private bool closed;
         private bool sourceVisible;
+        private string sourceUrl = NavigationPolicy.SourceUrl;
+        private string sourceName = "StreamCorner";
+        private bool sourceFullscreen;
+        private FormBorderStyle previousBorderStyle;
+        private FormWindowState previousWindowState;
+        private Rectangle previousBounds;
+        private bool previousTopMost;
 
         internal CommandCentreWindow()
         {
@@ -71,7 +78,7 @@ namespace CommandCentre.Desktop
             };
             sourceHome.Click += async delegate
             {
-                if (sourceVisible && source != null && source.CoreWebView2 != null) source.CoreWebView2.Navigate(NavigationPolicy.SourceUrl);
+                if (sourceVisible && source != null && source.CoreWebView2 != null) source.CoreWebView2.Navigate(sourceUrl);
                 else await OpenSourceAsync();
             };
             KeyDown += delegate(object sender, KeyEventArgs args)
@@ -120,14 +127,15 @@ namespace CommandCentre.Desktop
                 {
                     string command;
                     try { command = args.TryGetWebMessageAsString(); } catch { return; }
-                    if (NavigationPolicy.CanOpenSource(args.Source, command)) await OpenSourceAsync();
+                    string requestedSource = NavigationPolicy.SourceForCommand(args.Source, command);
+                    if (requestedSource != null) await OpenSourceAsync(requestedSource);
                 };
                 core.NavigationStarting += delegate(object sender, CoreWebView2NavigationStartingEventArgs args)
                 {
                     if (args.Uri != "about:blank" && !NavigationPolicy.IsApp(args.Uri))
                     {
                         args.Cancel = true;
-                        if (NavigationPolicy.IsSource(args.Uri)) { BeginInvoke(new Action(async delegate { await OpenSourceAsync(); })); }
+                        if (NavigationPolicy.IsSource(args.Uri)) { string target = NavigationPolicy.IsTimStreams(args.Uri) ? NavigationPolicy.TimStreamsUrl : NavigationPolicy.SourceUrl; BeginInvoke(new Action(async delegate { await OpenSourceAsync(target); })); }
                         else SetStatus("That external link is outside this app view.");
                     }
                 };
@@ -136,7 +144,7 @@ namespace CommandCentre.Desktop
                     args.Handled = true;
                     if (!args.IsUserInitiated) return;
                     if (NavigationPolicy.IsApp(args.Uri)) core.Navigate(args.Uri);
-                    else if (NavigationPolicy.IsSource(args.Uri)) BeginInvoke(new Action(async delegate { await OpenSourceAsync(); }));
+                    else if (NavigationPolicy.IsSource(args.Uri)) { string target = NavigationPolicy.IsTimStreams(args.Uri) ? NavigationPolicy.TimStreamsUrl : NavigationPolicy.SourceUrl; BeginInvoke(new Action(async delegate { await OpenSourceAsync(target); })); }
                     else SetStatus("That external link is outside this app view.");
                 };
                 core.NavigationCompleted += delegate(object sender, CoreWebView2NavigationCompletedEventArgs args)
@@ -153,17 +161,21 @@ namespace CommandCentre.Desktop
             }
         }
 
-        private async Task OpenSourceAsync()
+        private async Task OpenSourceAsync(string requestedUrl = null)
         {
             if (closed || openingSource) return;
+            string targetUrl = requestedUrl ?? NavigationPolicy.SourceUrl;
+            if (targetUrl != NavigationPolicy.SourceUrl && targetUrl != NavigationPolicy.TimStreamsUrl) return;
             if (sourceVisible && source != null) { source.Focus(); return; }
+            sourceUrl = targetUrl;
+            sourceName = targetUrl == NavigationPolicy.TimStreamsUrl ? "TimStreams" : "StreamCorner";
             openingSource = true;
             sourceHome.Enabled = false;
-            SetStatus("Opening StreamCorner...");
+            SetStatus("Opening " + sourceName + "...");
             WebView2 pending = null;
             try
             {
-                if (sourceEnvironment == null) sourceEnvironment = await CoreWebView2Environment.CreateAsync(null, Profile("StreamCorner"), null);
+                sourceEnvironment = await CoreWebView2Environment.CreateAsync(null, Profile(sourceName), null);
                 if (closed) return;
                 pending = new WebView2();
                 pending.Dock = DockStyle.Fill;
@@ -186,6 +198,7 @@ namespace CommandCentre.Desktop
                 core.Settings.AreDefaultScriptDialogsEnabled = false;
                 core.Settings.IsStatusBarEnabled = false;
                 core.Settings.AreDefaultContextMenusEnabled = false;
+                core.ContainsFullScreenElementChanged += delegate { SetSourceFullscreen(core.ContainsFullScreenElement); };
                 // This observed aclib/PopUnder loader repeatedly intercepts source-link clicks.
                 // Block that exact advertising script; retain all provider/player scripts and CSP.
                 core.AddWebResourceRequestedFilter(NavigationPolicy.PopupScript + "*", CoreWebView2WebResourceContext.Script);
@@ -196,18 +209,18 @@ namespace CommandCentre.Desktop
                 };
                 core.NavigationStarting += delegate(object sender, CoreWebView2NavigationStartingEventArgs args)
                 {
-                    if (args.Uri != "about:blank" && !NavigationPolicy.IsSource(args.Uri))
+                    if (args.Uri != "about:blank" && !NavigationPolicy.IsSource(args.Uri, sourceUrl))
                     {
                         args.Cancel = true;
-                        SetStatus("StreamCorner blocked an outside navigation. Your player stays in this window.");
+                        SetStatus(sourceName + " blocked an outside navigation. Your player stays in this window.");
                     }
                 };
                 core.NewWindowRequested += delegate(object sender, CoreWebView2NewWindowRequestedEventArgs args)
                 {
                     args.Handled = true;
-                    if (args.IsUserInitiated && NavigationPolicy.IsSource(args.Uri)) core.Navigate(args.Uri);
+                    if (args.IsUserInitiated && NavigationPolicy.IsSource(args.Uri, sourceUrl)) core.Navigate(args.Uri);
                 };
-                core.DownloadStarting += delegate(object sender, CoreWebView2DownloadStartingEventArgs args) { args.Cancel = true; SetStatus("Downloads are disabled in the StreamCorner view."); };
+                core.DownloadStarting += delegate(object sender, CoreWebView2DownloadStartingEventArgs args) { args.Cancel = true; SetStatus("Downloads are disabled in the " + sourceName + " view."); };
                 core.PermissionRequested += delegate(object sender, CoreWebView2PermissionRequestedEventArgs args)
                 {
                     // Keep normal media support, without exposing cameras, microphones or location.
@@ -217,10 +230,10 @@ namespace CommandCentre.Desktop
                 core.HistoryChanged += delegate { UpdateToolbar(); };
                 core.NavigationCompleted += delegate(object sender, CoreWebView2NavigationCompletedEventArgs args)
                 {
-                    if (sourceVisible) SetStatus(args.IsSuccess ? "StreamCorner - choose a match and a compatible source. Ctrl+Home returns to Command Centre." : "StreamCorner could not load: " + args.WebErrorStatus + ". Use Reload to retry.");
+                    if (sourceVisible) SetStatus(args.IsSuccess ? sourceName + " - choose a match and a compatible source. Ctrl+Home returns to Command Centre." : sourceName + " could not load: " + args.WebErrorStatus + ". Use Reload to retry.");
                     UpdateToolbar();
                 };
-                core.ProcessFailed += delegate { if (sourceVisible) SetStatus("The source browser stopped. Return to Command Centre, then reopen StreamCorner."); };
+                core.ProcessFailed += delegate { if (sourceVisible) SetStatus("The source browser stopped. Return to Command Centre, then reopen " + sourceName + "."); };
                 if (dashboard.CoreWebView2 != null && NavigationPolicy.IsApp(dashboard.CoreWebView2.Source))
                     await dashboard.CoreWebView2.ExecuteScriptAsync("window.CommandCentreStreamCorner?.close();window.closeLiveFootball?.();window.stopVideoPlayback?.();");
                 if (closed) { pending.Dispose(); return; }
@@ -229,9 +242,9 @@ namespace CommandCentre.Desktop
                 dashboard.Visible = false;
                 source.BringToFront();
                 source.Visible = true;
-                Text = "StreamCorner - Command Centre";
+                Text = sourceName + " - Command Centre";
                 UpdateToolbar();
-                core.Navigate(NavigationPolicy.SourceUrl);
+                core.Navigate(sourceUrl);
                 source.Focus();
             }
             catch (Exception error)
@@ -240,13 +253,14 @@ namespace CommandCentre.Desktop
                 source = null;
                 sourceVisible = false;
                 dashboard.Visible = true;
-                SetStatus("StreamCorner could not open: " + error.Message);
+                SetStatus(sourceName + " could not open: " + error.Message);
             }
             finally { openingSource = false; if (!closed) { sourceHome.Enabled = true; UpdateToolbar(); } }
         }
 
         private void DisposeSource()
         {
+            SetSourceFullscreen(false);
             WebView2 previous = source;
             source = null;
             sourceVisible = false;
@@ -254,6 +268,38 @@ namespace CommandCentre.Desktop
             if (previous.CoreWebView2 != null) previous.CoreWebView2.Stop();
             browserPanel.Controls.Remove(previous);
             previous.Dispose();
+            sourceEnvironment = null;
+        }
+
+        private void SetSourceFullscreen(bool enabled)
+        {
+            if (closed || sourceFullscreen == enabled) return;
+            sourceFullscreen = enabled;
+            SuspendLayout();
+            if (enabled)
+            {
+                previousBorderStyle = FormBorderStyle;
+                previousWindowState = WindowState;
+                previousBounds = WindowState == FormWindowState.Normal ? Bounds : RestoreBounds;
+                previousTopMost = TopMost;
+                toolbar.Visible = false;
+                status.Visible = false;
+                WindowState = FormWindowState.Normal;
+                FormBorderStyle = FormBorderStyle.None;
+                Bounds = Screen.FromControl(this).Bounds;
+                TopMost = true;
+            }
+            else
+            {
+                TopMost = previousTopMost;
+                WindowState = FormWindowState.Normal;
+                FormBorderStyle = previousBorderStyle;
+                Bounds = previousBounds;
+                WindowState = previousWindowState;
+                toolbar.Visible = true;
+                status.Visible = true;
+            }
+            ResumeLayout(true);
         }
 
         private void ReturnToDashboard()
@@ -273,7 +319,7 @@ namespace CommandCentre.Desktop
             sourceBack.Visible = sourceVisible;
             sourceBack.Enabled = source != null && source.CoreWebView2 != null && source.CoreWebView2.CanGoBack;
             sourceHome.Visible = sourceVisible;
-            sourceHome.Text = sourceVisible ? "StreamCorner home" : "StreamCorner";
+            sourceHome.Text = sourceVisible ? sourceName + " home" : "StreamCorner";
             if (sourceVisible) sourceHome.AccessibleDescription = "Return to the source catalogue. This closes the current player.";
         }
 

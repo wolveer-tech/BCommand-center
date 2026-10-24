@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $sdkVersion = '1.0.4258.31'
 $sdkRoot = Join-Path $projectRoot "artifacts/native-windows-sdk/$sdkVersion"
-$outputRoot = Join-Path $projectRoot 'artifacts/Command-Centre-Windows-1.0.1'
+$outputRoot = Join-Path $projectRoot 'artifacts/Command-Centre-Windows-1.0.2'
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
 if (!(Test-Path -LiteralPath $compiler)) { throw 'The Windows .NET Framework 4.x compiler is required.' }
 New-Item -ItemType Directory -Force -Path $sdkRoot, $outputRoot | Out-Null
@@ -34,7 +34,7 @@ Copy-Item -LiteralPath $coreDll, $formsDll, $loader -Destination $outputRoot -Fo
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'README-WINDOWS.md') -Destination $outputRoot -Force
 Get-ChildItem -LiteralPath $sdkRoot -Filter '*LICENSE*' -File | Copy-Item -Destination $outputRoot -Force
 Copy-Item -LiteralPath (Join-Path $sdkRoot 'NOTICE.txt') -Destination $outputRoot -Force
-$zip = Join-Path $projectRoot 'artifacts/Command-Centre-Windows-1.0.1.zip'
+$zip = Join-Path $projectRoot 'artifacts/Command-Centre-Windows-1.0.2.zip'
 Compress-Archive -Path (Join-Path $outputRoot '*') -DestinationPath $zip -Force
 Write-Output "Built $executable"
 Write-Output "Portable package: $zip"

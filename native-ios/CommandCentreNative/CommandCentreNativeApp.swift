@@ -7,6 +7,7 @@ struct CommandCentreNativeApp: App {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var privacyLock = NativePrivacyLockManager.shared
     @State private var streamCornerPresented = false
+    @State private var timStreamsPresented = false
 
     init() {
         _ = NativeNotificationHandler.shared
@@ -21,6 +22,8 @@ struct CommandCentreNativeApp: App {
             ZStack {
                 CommandCentreWebView(openStreamCorner: {
                     if !privacyLock.isLocked && !privacyLock.isShielded { streamCornerPresented = true }
+                }, openTimStreams: {
+                    if !privacyLock.isLocked && !privacyLock.isShielded { timStreamsPresented = true }
                 })
                     .privacySensitive()
                     .opacity(privacyLock.isLocked || privacyLock.isShielded ? 0 : 1)
@@ -45,6 +48,21 @@ struct CommandCentreNativeApp: App {
                 .background(Color(red: 0.02, green: 0.04, blue: 0.09))
                 .onChange(of: privacyLock.isLocked) { _, locked in
                     if locked { streamCornerPresented = false }
+                }
+            }
+            .fullScreenCover(isPresented: $timStreamsPresented) {
+                ZStack {
+                    NativeTimStreamsView()
+                        .privacySensitive()
+                        .opacity(privacyLock.isLocked || privacyLock.isShielded ? 0 : 1)
+                        .allowsHitTesting(!privacyLock.isLocked && !privacyLock.isShielded)
+                    if privacyLock.isLocked || privacyLock.isShielded {
+                        NativePrivacyLockView(manager: privacyLock)
+                    }
+                }
+                .background(Color(red: 0.02, green: 0.04, blue: 0.09))
+                .onChange(of: privacyLock.isLocked) { _, locked in
+                    if locked { timStreamsPresented = false }
                 }
             }
             .onAppear {

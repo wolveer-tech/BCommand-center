@@ -17,7 +17,7 @@ before installing it on iPhone.
 
 [v10.41.0](RELEASE-v10.41.0.md) adds a portable Windows app with a separate native
 StreamCorner view, a persistent dashboard and a fixed, origin-checked source
-bridge. Extract artifacts/Command-Centre-Windows-1.0.1.zip and open
+bridge. Extract artifacts/Command-Centre-Windows-1.0.2.zip and open
 CommandCentre.exe. See [Windows instructions](native-windows/README-WINDOWS.md).
 The iPhone native view is included in v10.42.0.
 

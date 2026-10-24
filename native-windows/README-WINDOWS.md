@@ -1,4 +1,6 @@
-# Command Centre for Windows 1.0.1
+# Command Centre for Windows 1.0.2
+
+Sport includes TimStreams alongside the existing sources. Each website opens in its own isolated WebView2 profile. The player fullscreen button expands the Windows app over the whole screen and restores the previous window when fullscreen ends.
 
 Extract the entire ZIP to a folder and open CommandCentre.exe. Keep the three
 WebView2 DLL files beside it. This portable app targets 64-bit Windows with
@@ -10,7 +12,7 @@ usual Command Centre account to access its synced data and account API keys.
 Its browser profile is separate from Edge/Chrome, so browser-only data is not
 automatically imported. Use the app's existing export/import tools if needed.
 
-Use Entertainment → Movies & TV → StreamCorner → Browse & watch. The source
+Use Entertainment → Movies & TV → StreamCorner → Browse & watch, or choose TimStreams under Sport. The source
 loads directly in its own native WebView2, with
 no Command Centre iframe above its player. Back to Command Centre closes the
 source, stops its media and returns to the dashboard without reloading it.
@@ -24,7 +26,7 @@ No CSP headers, certificate checks, DRM or browser security policies are altered
 Source availability and video compatibility still depend on the provider.
 
 Profiles are stored under %LOCALAPPDATA%\CommandCentre\Browser\Dashboard and
-\StreamCorner. The app never reads or imports your normal browser profile.
+\StreamCorner or \TimStreams. The app never reads or imports your normal browser profile.
 
 If WebView2 is missing, install Microsoft's official Evergreen WebView2 Runtime:
 https://developer.microsoft.com/microsoft-edge/webview2/
@@ -35,5 +37,5 @@ Build from the project root with:
 
 The build pins Microsoft.Web.WebView2 1.0.4258.31 from the official NuGet feed,
 runs native navigation policy checks and creates the portable ZIP in artifacts.
-Use -Offline once that SDK is cached. A Windows build does not update the iOS
-IPA; iPhone would need its own separate WKWebView implementation and rebuild.
+Use -Offline once that SDK is cached. The iOS app has its own separate WKWebView
+implementation and must be rebuilt independently.

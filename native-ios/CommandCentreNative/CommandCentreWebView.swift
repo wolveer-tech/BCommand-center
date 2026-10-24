@@ -4,8 +4,9 @@ import WebKit
 
 struct CommandCentreWebView: UIViewRepresentable {
     var openStreamCorner: () -> Void
+    var openTimStreams: () -> Void
 
-    func makeCoordinator() -> Coordinator { Coordinator(openStreamCorner: openStreamCorner) }
+    func makeCoordinator() -> Coordinator { Coordinator(openStreamCorner: openStreamCorner, openTimStreams: openTimStreams) }
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
@@ -17,6 +18,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         configuration.userContentController.add(context.coordinator, name: "nativeIntro")
         configuration.userContentController.add(context.coordinator, name: "nativePlayerFiltering")
         configuration.userContentController.add(context.coordinator, name: "nativeStreamCorner")
+        configuration.userContentController.add(context.coordinator, name: "nativeTimStreams")
         configuration.userContentController.addUserScript(WKUserScript(source: "window.CommandCentreIntroSessionManaged = true; window.CommandCentreIntroPlayed = \(Coordinator.introPlayedThisLaunch ? "true" : "false");", injectionTime: .atDocumentStart, forMainFrameOnly: true))
         configuration.userContentController.add(context.coordinator.transferHandler, name: "nativeTransfer")
         configuration.userContentController.add(context.coordinator.notificationHandler, name: "nativeNotifications")
@@ -44,7 +46,7 @@ struct CommandCentreWebView: UIViewRepresentable {
 
         let bridgeScript = WKUserScript(
             source: """
-            window.CommandCentreNative = { nativeMusic: true, replayKit: true, nativeScreenMirror: true, nativeNotifications: true, backgroundRefresh: true, dataBridge: true, credentialVault: true, privacyLock: true, nativeHaptics: true, nativeWidgets: true, liveActivities: true, stateVault: true, storageMaintenance: true, nativeStreamCorner: true, platform: 'ios', minimumRuntime: 'iOS 26' };
+            window.CommandCentreNative = { nativeMusic: true, replayKit: true, nativeScreenMirror: true, nativeNotifications: true, backgroundRefresh: true, dataBridge: true, credentialVault: true, privacyLock: true, nativeHaptics: true, nativeWidgets: true, liveActivities: true, stateVault: true, storageMaintenance: true, nativeStreamCorner: true, nativeTimStreams: true, platform: 'ios', minimumRuntime: 'iOS 26' };
             """,
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
@@ -84,6 +86,7 @@ struct CommandCentreWebView: UIViewRepresentable {
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeIntro")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativePlayerFiltering")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeStreamCorner")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeTimStreams")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeTransfer")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeNotifications")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeData")
@@ -109,9 +112,11 @@ struct CommandCentreWebView: UIViewRepresentable {
         private var recoveryAlertVisible = false
         private var storageMaintenanceScheduled = false
         private let openStreamCorner: () -> Void
+        private let openTimStreams: () -> Void
 
-        init(openStreamCorner: @escaping () -> Void) {
+        init(openStreamCorner: @escaping () -> Void, openTimStreams: @escaping () -> Void) {
             self.openStreamCorner = openStreamCorner
+            self.openTimStreams = openTimStreams
             super.init()
             memoryObserver = NotificationCenter.default.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main) { [weak self] _ in
                 Task { @MainActor [weak self] in
@@ -184,6 +189,14 @@ struct CommandCentreWebView: UIViewRepresentable {
                       message.body as? String == "cc-open-streamcorner" else { return }
                 webView?.evaluateJavaScript("window.CommandCentreStreamCorner?.close();window.closeLiveFootball?.();window.stopVideoPlayback?.();")
                 openStreamCorner()
+                return
+            }
+            if message.name == "nativeTimStreams" {
+                guard trustedMainFrame(message.frameInfo),
+                      message.webView === webView,
+                      message.body as? String == "cc-open-timstreams" else { return }
+                webView?.evaluateJavaScript("window.closeLiveFootball?.();window.stopVideoPlayback?.();")
+                openTimStreams()
                 return
             }
             if message.name == "nativePlayerFiltering" {

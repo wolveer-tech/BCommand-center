@@ -10,12 +10,19 @@ function harness(native={}){
  const opener=new Element('provider-button');document.activeElement=opener;document.getElementById=id=>nodes[id];document.documentElement={classList:{add:c=>classes.add(c),remove:c=>classes.delete(c)}};
  window.CommandCentrePlaybackSafety={stop:kind=>calls.push(['stop',kind]),watch:(...args)=>calls.push(['watch',...args])};window.closeLiveFootball=()=>calls.push(['close-live']);window.stopVideoPlayback=()=>calls.push(['stop-video']);
  window.location={assign:url=>calls.push(['navigate',url])};
+ window.alert=value=>calls.push(['alert',value]);
  Object.assign(window,native);
  vm.runInContext(script,vm.createContext({document,window}));return {api:window.CommandCentreStreamCorner,window,document,nodes,classes,calls,opener};
 }
 const click=node=>node.dispatchEvent(new Event('click'));
 test('browser opens StreamCorner at the fixed top-level URL in the same tab',()=>{
  const h=harness();assert.equal(h.nodes.streamCornerFrame.src,'about:blank');assert.equal(h.calls.length,0);h.api.open();assert.equal(h.api.active,false);assert.equal(h.nodes.streamCornerFrame.src,'about:blank');assert.equal(h.classes.size,0);assert.deepEqual(h.calls.filter(c=>c[0]==='navigate'),[['navigate','https://streamcorner.st/']]);assert.ok(h.calls.some(c=>c[0]==='close-live'));assert.ok(h.calls.some(c=>c[0]==='stop-video'));assert.equal(h.calls.filter(c=>c[0]==='watch').length,0);
+});
+test('TimStreams opens at its fixed top-level URL or through the matching native bridge',()=>{
+ const browser=harness();browser.window.CommandCentreTimStreams.open();assert.deepEqual(browser.calls.filter(c=>c[0]==='navigate'),[['navigate','https://tim-streams.com/']]);
+ const winMessages=[],windows=harness({CommandCentreDesktop:{timStreams:true},chrome:{webview:{postMessage:value=>winMessages.push(value)}}});windows.window.CommandCentreTimStreams.open();assert.deepEqual(winMessages,['cc-open-timstreams']);assert.equal(windows.calls.some(c=>c[0]==='navigate'),false);
+ const iosMessages=[],ios=harness({CommandCentreNative:{nativeTimStreams:true},webkit:{messageHandlers:{nativeTimStreams:{postMessage:value=>iosMessages.push(value)}}}});ios.window.CommandCentreTimStreams.open();assert.deepEqual(iosMessages,['cc-open-timstreams']);
+ const old=harness({CommandCentreNative:{nativeTimStreams:false}});old.window.CommandCentreTimStreams.open();assert.equal(old.calls.some(c=>c[0]==='navigate'),false);assert.match(old.calls.find(c=>c[0]==='alert')?.[1]||'',/Update/);
 });
 test('older native builds retain the contained source view',()=>{
  const h=harness({CommandCentreNative:{nativeStreamCorner:false}});h.api.open();assert.equal(h.api.active,true);assert.equal(h.nodes.streamCornerFrame.src,'https://streamcorner.st/');assert.ok(h.classes.has('cc-streamcorner-open'));assert.equal(h.document.activeElement,h.nodes.streamCornerBack);assert.equal(h.calls.find(c=>c[0]==='watch')[1],'streamcorner');

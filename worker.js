@@ -470,7 +470,7 @@ function hostMatchesAllowed(hostname,allowedHosts){
 }
 function cleanProviderId(value){
   const id=String(value||'1');
-  return ['1','2','3','4','5'].includes(id)?id:'1';
+  return ['1','2','3','4','5','6'].includes(id)?id:'1';
 }
 function liveProviderCategory(cfg,category){
   const key=String(category||'soccer').toLowerCase();
@@ -482,6 +482,7 @@ function liveProviderConfig(env,providerId='1'){
   if(id==='4')return {id,name:'Matchora',mode:'matchora',baseUrl:'https://matchora.to',embedHosts:'matchora.to',categoryAliases:{}};
   if(id==='5')return {id,name:'PPV',mode:'ppv',baseUrl:'https://ppv.tj',embedHosts:'taifood-blog.asia',categoryAliases:{}};
   if(id==='2')return {id,name:'StreamCorner',mode:'embedded',baseUrl:'https://streamcorner.st',embedHosts:'streamcorner.st',categoryAliases:{}};
+  if(id==='6')return {id,name:'TimStreams',mode:'website',baseUrl:'https://tim-streams.com',embedHosts:'tim-streams.com',categoryAliases:{}};
 
   if(id==='1'){
     return {
@@ -568,7 +569,7 @@ function liveProviderPublicInfo(env,providerId){
   };
 }
 function configuredLiveProviders(env){
-  return ['1','2','3','4','5'].map(id=>liveProviderPublicInfo(env,id)).filter(x=>x.configured);
+  return ['1','2','3','4','5','6'].map(id=>liveProviderPublicInfo(env,id)).filter(x=>x.configured);
 }
 function allowedEmbedUrl(embedUrl,base,cfg){
   try{
@@ -1392,11 +1393,10 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
 
   const safeCategory=String(category||'soccer').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40)||'soccer';
 
-  // StreamCorner keeps its origin in a contained, full-window app view. Its own
-  // browser code supplies matches and player choices; no synthetic match feed.
-  if(cfg.mode==='embedded')return {
+  // These sites supply their own matches and player choices; no synthetic feed.
+  if(['embedded','website'].includes(cfg.mode))return {
     providerId:cfg.id,providerName:cfg.name,mode:cfg.mode,category:safeCategory,
-    browserUrl:'https://streamcorner.st/',count:0,providerCount:0,streams:[],
+    browserUrl:cfg.id==='2'?'https://streamcorner.st/':'https://tim-streams.com/',count:0,providerCount:0,streams:[],
     diagnostic:'Browse matches and choose a source inside Command Centre.',
     updatedAt:new Date().toISOString()
   };

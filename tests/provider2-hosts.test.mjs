@@ -9,16 +9,13 @@ const context=vm.createContext({URL});
 vm.runInContext(worker.slice(worker.indexOf('function normaliseBaseUrl'),worker.indexOf('function safeHttpsUrl')),context);
 const cfg=context.liveProviderConfig(env,'2'),base=new URL(cfg.baseUrl);
 
-test('Provider 2 accepts all four returned streams on its updated player host',()=>{
-  for(let i=1;i<=4;i++){
-    const sources=context.allowedStreamSources({sources:[{url:`https://ehgembxe.cfd/embed/${i}`,label:'Main'}]},base,cfg);
-    assert.equal(sources.length,1);
-  }
-  assert.equal(context.allowedEmbedUrl('https://epiembeds.online/embed/old',base,cfg),true);
+test('Provider 2 keeps only its fixed StreamCorner host',()=>{
+  assert.equal(context.allowedEmbedUrl('https://streamcorner.st/stream/example',base,cfg),true);
+  assert.equal(context.allowedEmbedUrl('https://www.streamcorner.st/stream/example',base,cfg),true);
 });
 
-test('Provider 2 still rejects unrelated hosts, misleading suffixes and non-HTTPS players',()=>{
-  for(const url of ['https://unrelated.example/player','https://ehgembxe.cfd.attacker.example/player','https://fakeehgembxe.cfd/player','http://ehgembxe.cfd/player']){
+test('Provider 2 rejects former feed hosts, misleading suffixes and non-HTTPS players',()=>{
+  for(const url of ['https://ehgembxe.cfd/embed/1','https://epiembeds.online/embed/old','https://unrelated.example/player','https://streamcorner.st.attacker.example/player','http://streamcorner.st/player']){
     assert.equal(context.allowedEmbedUrl(url,base,cfg),false,url);
   }
 });

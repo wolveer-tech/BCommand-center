@@ -10,12 +10,17 @@ function server(){
 }
 test('Provider 2 becomes StreamCorner and ignores old feed settings while preserving the other providers',()=>{
  const context=server(),env={...vars,LIVE_PROVIDER_2_NAME:'Old provider',LIVE_PROVIDER_2_BASE_URL:'https://timst.top',LIVE_PROVIDER_2_MODE:'dynamic',LIVE_PROVIDER_2_ALLOWED_EMBED_HOSTS:'ehgembxe.cfd'};
- const providers=context.configuredLiveProviders(env);assert.deepEqual(Array.from(providers,p=>p.id),['1','2','3','4','5']);assert.equal(providers[1].name,'StreamCorner');assert.equal(providers[1].mode,'embedded');assert.equal(providers[1].hostname,'streamcorner.st');assert.equal(providers[2].name,'SportsindX');
+ const providers=context.configuredLiveProviders(env);assert.deepEqual(Array.from(providers,p=>p.id),['1','2','3','4','5','6']);assert.equal(providers[1].name,'StreamCorner');assert.equal(providers[1].mode,'embedded');assert.equal(providers[1].hostname,'streamcorner.st');assert.equal(providers[2].name,'SportsindX');assert.equal(providers[5].name,'TimStreams');assert.equal(providers[5].hostname,'tim-streams.com');
  assert.equal(vars.LIVE_PROVIDER_2_BASE_URL,'https://streamcorner.st');assert.equal(vars.LIVE_PROVIDER_2_DYNAMIC_PATH,'');assert.equal(vars.LIVE_PROVIDER_2_ALLOWED_DATA_HOSTS,'');
 });
 test('StreamCorner exposes a fixed website action with zero fabricated matches and no upstream request',async()=>{
  const context=server();for(const category of ['soccer','tennis','athletics']){
   const result=await context.liveContentStreams(vars,category,'https://test/api/live-content',false,'2');assert.equal(result.browserUrl,'https://streamcorner.st/');assert.equal(result.mode,'embedded');assert.equal(result.category,category);assert.equal(result.count,0);assert.equal(result.streams.length,0);
+ }
+});
+test('TimStreams adds a fixed website action without replacing a provider or fabricating matches',async()=>{
+ const context=server();for(const category of ['soccer','tennis','athletics']){
+  const result=await context.liveContentStreams(vars,category,'https://test/api/live-content',false,'6');assert.equal(result.browserUrl,'https://tim-streams.com/');assert.equal(result.mode,'website');assert.equal(result.category,category);assert.equal(result.count,0);assert.equal(result.streams.length,0);
  }
 });
 function client(payload){
@@ -32,4 +37,9 @@ test('selecting StreamCorner offers its own reader, clears stale streams and req
 });
 test('a manipulated website action cannot open a different host',async()=>{
  const h=client({mode:'embedded',browserUrl:'https://streamcorner.st.attacker.test/',streams:[]});await h.context.loadLiveFootball();assert.match(h.nodes['#liveFootballStatus'].textContent,/unsupported website address/);assert.equal(h.nodes['#liveFootballGrid'].innerHTML,'');assert.equal(h.closes,0);
+});
+test('TimStreams uses its own action and rejects a tampered URL',async()=>{
+ const h=client({mode:'website',browserUrl:'https://tim-streams.com/',streams:[]});h.context.liveFootballProviderId='6';h.context.liveFootballProviders.push({id:'6',name:'TimStreams',mode:'website'});await h.context.loadLiveFootball();
+ assert.match(h.nodes['#liveFootballGrid'].innerHTML,/data-open-timstreams/);assert.equal(h.nodes['#liveFootballStatus'].textContent,'TimStreams • Choose a source');
+ const bad=client({mode:'website',browserUrl:'https://tim-streams.com.evil.test/',streams:[]});bad.context.liveFootballProviderId='6';bad.context.liveFootballProviders.push({id:'6',name:'TimStreams',mode:'website'});await bad.context.loadLiveFootball();assert.match(bad.nodes['#liveFootballStatus'].textContent,/unsupported website address/);
 });

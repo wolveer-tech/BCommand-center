@@ -32,5 +32,5 @@ test('both sources are additive and require no extra Worker variables',()=>{
  const worker=readFileSync('worker.js','utf8'),start=worker.indexOf('function cleanProviderId('),end=worker.indexOf('function allowedEmbedUrl(',start);
  const context=vm.createContext({URL,normaliseBaseUrl:value=>value?new URL(value):null});vm.runInContext(worker.slice(start,end),context);
  const list=context.configuredLiveProviders({LIVE_PROVIDER_1_BASE_URL:'https://one.example',LIVE_PROVIDER_2_BASE_URL:'https://two.example'});
- assert.deepEqual(Array.from(list,p=>p.id),['1','2','3','4','5']);assert.equal(list[3].name,'Matchora');assert.equal(list[4].hostname,'ppv.tj');
+ assert.deepEqual(Array.from(list,p=>p.id),['1','2','3','4','5','6']);assert.equal(list[3].name,'Matchora');assert.equal(list[4].hostname,'ppv.tj');assert.equal(list[5].hostname,'tim-streams.com');
 });
