@@ -50,8 +50,20 @@ namespace CommandCentre.Desktop
         internal static bool IsSource(string value, string sourceHome)
         {
             Uri uri;
-            return sourceHome == TimStreamsUrl ? IsTimStreams(value) :
+            return IsTimStreams(sourceHome) ? IsTimStreams(value) :
                 HttpsUrl(value, out uri) && SourceHosts.Contains(uri.IdnHost);
+        }
+
+        internal static bool IsTimStreamsGame(string value)
+        {
+            Uri uri;
+            if (!IsTimStreams(value) || !Uri.TryCreate(value, UriKind.Absolute, out uri) ||
+                !uri.AbsolutePath.StartsWith("/watch/", StringComparison.Ordinal) ||
+                !String.IsNullOrEmpty(uri.Query) || !String.IsNullOrEmpty(uri.Fragment)) return false;
+            string slug = uri.AbsolutePath.Substring("/watch/".Length);
+            if (slug.Length == 0 || slug.Length > 120) return false;
+            foreach (char c in slug) if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-')) return false;
+            return true;
         }
 
         internal static string SourceForCommand(string sender, string command)
@@ -59,6 +71,12 @@ namespace CommandCentre.Desktop
             if (!IsApp(sender)) return null;
             if (String.Equals(command, OpenCommand, StringComparison.Ordinal)) return SourceUrl;
             if (String.Equals(command, OpenTimStreamsCommand, StringComparison.Ordinal)) return TimStreamsUrl;
+            const string gamePrefix = OpenTimStreamsCommand + ":";
+            if (command != null && command.StartsWith(gamePrefix, StringComparison.Ordinal))
+            {
+                string candidate = TimStreamsUrl + "watch/" + command.Substring(gamePrefix.Length);
+                if (IsTimStreamsGame(candidate)) return candidate;
+            }
             return null;
         }
 
@@ -77,6 +95,6 @@ namespace CommandCentre.Desktop
         // No arbitrary URL, credentials, host objects or RPC are exposed to web content.
         internal const string Bootstrap =
             "(()=>{if(window.top!==window||location.origin!=='https://bcommand-center.wolvesgidaree.workers.dev')return;" +
-            "Object.defineProperty(window,'CommandCentreDesktop',{value:Object.freeze({platform:'windows',streamCorner:true,timStreams:true}),writable:false,configurable:false});})();";
+            "Object.defineProperty(window,'CommandCentreDesktop',{value:Object.freeze({platform:'windows',streamCorner:true,timStreams:true,timStreamsGame:true}),writable:false,configurable:false});})();";
     }
 }

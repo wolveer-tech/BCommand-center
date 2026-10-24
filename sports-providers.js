@@ -1,1 +1,1 @@
-export {parseMatchoraFeed,parsePpvFeed,fetchPublicSports} from './public/sports-providers.js';
+export {parseMatchoraFeed,parsePpvFeed,parseTimStreamsFeed,fetchPublicSports} from './public/sports-providers.js';

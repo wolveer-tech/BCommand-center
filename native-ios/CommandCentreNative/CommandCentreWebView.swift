@@ -4,7 +4,7 @@ import WebKit
 
 struct CommandCentreWebView: UIViewRepresentable {
     var openStreamCorner: () -> Void
-    var openTimStreams: () -> Void
+    var openTimStreams: (String?) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(openStreamCorner: openStreamCorner, openTimStreams: openTimStreams) }
 
@@ -112,9 +112,9 @@ struct CommandCentreWebView: UIViewRepresentable {
         private var recoveryAlertVisible = false
         private var storageMaintenanceScheduled = false
         private let openStreamCorner: () -> Void
-        private let openTimStreams: () -> Void
+        private let openTimStreams: (String?) -> Void
 
-        init(openStreamCorner: @escaping () -> Void, openTimStreams: @escaping () -> Void) {
+        init(openStreamCorner: @escaping () -> Void, openTimStreams: @escaping (String?) -> Void) {
             self.openStreamCorner = openStreamCorner
             self.openTimStreams = openTimStreams
             super.init()
@@ -194,9 +194,16 @@ struct CommandCentreWebView: UIViewRepresentable {
             if message.name == "nativeTimStreams" {
                 guard trustedMainFrame(message.frameInfo),
                       message.webView === webView,
-                      message.body as? String == "cc-open-timstreams" else { return }
+                      let command = message.body as? String else { return }
+                let slug: String?
+                if command == "cc-open-timstreams" { slug = nil }
+                else if command.hasPrefix("cc-open-timstreams:") {
+                    let candidate = String(command.dropFirst("cc-open-timstreams:".count))
+                    guard candidate.range(of: #"^[a-z0-9-]{1,120}$"#, options: .regularExpression) != nil else { return }
+                    slug = candidate
+                } else { return }
                 webView?.evaluateJavaScript("window.closeLiveFootball?.();window.stopVideoPlayback?.();")
-                openTimStreams()
+                openTimStreams(slug)
                 return
             }
             if message.name == "nativePlayerFiltering" {

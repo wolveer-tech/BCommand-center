@@ -8,6 +8,7 @@ struct CommandCentreNativeApp: App {
     @StateObject private var privacyLock = NativePrivacyLockManager.shared
     @State private var streamCornerPresented = false
     @State private var timStreamsPresented = false
+    @State private var timStreamsURL = URL(string: "https://tim-streams.com/")!
 
     init() {
         _ = NativeNotificationHandler.shared
@@ -22,8 +23,11 @@ struct CommandCentreNativeApp: App {
             ZStack {
                 CommandCentreWebView(openStreamCorner: {
                     if !privacyLock.isLocked && !privacyLock.isShielded { streamCornerPresented = true }
-                }, openTimStreams: {
-                    if !privacyLock.isLocked && !privacyLock.isShielded { timStreamsPresented = true }
+                }, openTimStreams: { slug in
+                    if !privacyLock.isLocked && !privacyLock.isShielded {
+                        timStreamsURL = slug.flatMap { URL(string: "https://tim-streams.com/watch/\($0)") } ?? URL(string: "https://tim-streams.com/")!
+                        timStreamsPresented = true
+                    }
                 })
                     .privacySensitive()
                     .opacity(privacyLock.isLocked || privacyLock.isShielded ? 0 : 1)
@@ -52,7 +56,7 @@ struct CommandCentreNativeApp: App {
             }
             .fullScreenCover(isPresented: $timStreamsPresented) {
                 ZStack {
-                    NativeTimStreamsView()
+                    NativeTimStreamsView(initialURL: timStreamsURL)
                         .privacySensitive()
                         .opacity(privacyLock.isLocked || privacyLock.isShielded ? 0 : 1)
                         .allowsHitTesting(!privacyLock.isLocked && !privacyLock.isShielded)

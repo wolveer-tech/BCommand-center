@@ -20,11 +20,14 @@ private enum TimStreamsPolicy {
 @MainActor private final class TimStreamsSession: ObservableObject {
     @Published var canGoBack = false
     @Published var status = "Loading TimStreams…"
+    let homeURL: URL
     weak var webView: WKWebView?
+
+    init(homeURL: URL) { self.homeURL = homeURL }
 
     func back() { webView?.goBack() }
     func reload() { webView?.reload() }
-    func home() { webView?.load(URLRequest(url: TimStreamsPolicy.home)) }
+    func home() { webView?.load(URLRequest(url: homeURL)) }
     func close() {
         webView?.stopLoading()
         webView?.loadHTMLString("", baseURL: nil)
@@ -35,7 +38,11 @@ private enum TimStreamsPolicy {
 
 struct NativeTimStreamsView: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var session = TimStreamsSession()
+    @StateObject private var session: TimStreamsSession
+
+    init(initialURL: URL) {
+        _session = StateObject(wrappedValue: TimStreamsSession(homeURL: initialURL))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -84,7 +91,7 @@ private struct TimStreamsBrowser: UIViewRepresentable {
         browser.navigationDelegate = context.coordinator
         browser.uiDelegate = context.coordinator
         session.webView = browser
-        browser.load(URLRequest(url: TimStreamsPolicy.home))
+        browser.load(URLRequest(url: session.homeURL))
         return browser
     }
 

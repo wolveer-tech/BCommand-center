@@ -63,18 +63,20 @@
 /* TimStreams is opened by a fixed native command or at browser top level. */
 (() => {
  const SITE='https://tim-streams.com/';
- function open(){
+ function open(slug){
+  const game=typeof slug==='string'&&/^[a-z0-9-]{1,120}$/.test(slug)?slug:'';
+  const command=game?`cc-open-timstreams:${game}`:'cc-open-timstreams';
   window.closeLiveFootball?.();window.stopVideoPlayback?.();
   if(window.CommandCentreNative?.nativeTimStreams===true&&typeof window.webkit?.messageHandlers?.nativeTimStreams?.postMessage==='function'){
-   window.webkit.messageHandlers.nativeTimStreams.postMessage('cc-open-timstreams');return;
+   window.webkit.messageHandlers.nativeTimStreams.postMessage(command);return;
   }
   if(window.CommandCentreDesktop?.timStreams===true&&typeof window.chrome?.webview?.postMessage==='function'){
-   window.chrome.webview.postMessage('cc-open-timstreams');return;
+   window.chrome.webview.postMessage(command);return;
   }
   if(window.CommandCentreNative||window.CommandCentreDesktop){
    window.alert('Update the Command Centre app to open TimStreams here.');return;
   }
-  window.location.assign(SITE);
+  window.location.assign(game?`${SITE}watch/${game}`:SITE);
  }
  document.addEventListener('click',event=>{if(event.target.closest?.('[data-open-timstreams]'))open();});
  window.CommandCentreTimStreams={open};

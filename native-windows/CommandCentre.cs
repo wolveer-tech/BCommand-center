@@ -165,10 +165,10 @@ namespace CommandCentre.Desktop
         {
             if (closed || openingSource) return;
             string targetUrl = requestedUrl ?? NavigationPolicy.SourceUrl;
-            if (targetUrl != NavigationPolicy.SourceUrl && targetUrl != NavigationPolicy.TimStreamsUrl) return;
+            if (targetUrl != NavigationPolicy.SourceUrl && targetUrl != NavigationPolicy.TimStreamsUrl && !NavigationPolicy.IsTimStreamsGame(targetUrl)) return;
             if (sourceVisible && source != null) { source.Focus(); return; }
             sourceUrl = targetUrl;
-            sourceName = targetUrl == NavigationPolicy.TimStreamsUrl ? "TimStreams" : "StreamCorner";
+            sourceName = NavigationPolicy.IsTimStreams(targetUrl) ? "TimStreams" : "StreamCorner";
             openingSource = true;
             sourceHome.Enabled = false;
             SetStatus("Opening " + sourceName + "...");

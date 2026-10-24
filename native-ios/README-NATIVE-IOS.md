@@ -4,7 +4,7 @@ If Cloudflare Builds and Codemagic share this repository, update its full web
 source too. Uploading only native files can trigger a Cloudflare deployment of
 an older `public` folder that is still in the repository.
 
-Latest native release: **1.17.1 (build 27)** adds TimStreams as a sixth Sport provider while retaining the existing sources. TimStreams and StreamCorner each open in a separate WKWebView within the IPA, with temporary website storage and no dashboard bridge or API-key access. The Back control returns to Command Centre. The StreamCorner view retains its narrow popup-script filter. Update root `codemagic.yaml` and the complete `native-ios` folder, then rebuild and sign the generated IPA.
+Latest native release: **1.17.2 (build 28)** shows TimStreams games directly under Sport. Choosing a game opens its match page in a separate WKWebView within the IPA, skipping the TimStreams catalogue. StreamCorner keeps its existing separate view. Both source views use temporary website storage and have no dashboard bridge or API-key access. The Back control returns to Command Centre. Update root `codemagic.yaml` and the complete `native-ios` folder, then rebuild and sign the generated IPA.
 
 ## v1.15.0 compatible player protection
 

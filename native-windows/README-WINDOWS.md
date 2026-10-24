@@ -1,6 +1,6 @@
-# Command Centre for Windows 1.0.2
+# Command Centre for Windows 1.0.3
 
-Sport includes TimStreams alongside the existing sources. Each website opens in its own isolated WebView2 profile. The player fullscreen button expands the Windows app over the whole screen and restores the previous window when fullscreen ends.
+Sport shows TimStreams games alongside the existing sources. Choosing a game opens its match page directly in an isolated WebView2 profile. The player fullscreen button expands the Windows app over the whole screen and restores the previous window when fullscreen ends.
 
 Extract the entire ZIP to a folder and open CommandCentre.exe. Keep the three
 WebView2 DLL files beside it. This portable app targets 64-bit Windows with

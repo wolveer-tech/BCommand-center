@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="cc-release" content="10.42.2" />
+<meta name="cc-release" content="10.42.3" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#070b14" />
 <meta name="description" content="Personal Command Center — portfolio, manga, Reddit, weather, reminders and daily briefing." />
@@ -2067,16 +2067,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media(max-width:520px){.btn{min-height:42px}.btn.small{min-height:36px}.youtube-library-row{grid-template-columns:78px minmax(0,1fr)}.youtube-library-row img{width:78px}.match-centre-hero{gap:7px;padding:12px}.match-centre-team img{width:36px;height:36px}.match-centre-score{font-size:20px}.match-centre-overview{grid-template-columns:1fr}.match-stat{grid-template-columns:minmax(0,1fr) 66px minmax(0,1fr)}}
 
 </style>
-<link rel="stylesheet" href="/transfers.css?v=10.42.2">
-<script defer src="/transfers.bundle.js?v=10.42.2"></script>
-<link rel="stylesheet" href="/messages.css?v=10.42.2">
-<script defer src="/messages.bundle.js?v=10.42.2"></script>
-<link rel="stylesheet" href="space-motion.css?v=10.42.2" />
-<link rel="stylesheet" href="/games-suite.css?v=10.42.2" />
-<link rel="stylesheet" href="/manga-reader.css?v=10.42.2" />
-<link rel="stylesheet" href="/streamcorner-view.css?v=10.42.2" />
-<link rel="stylesheet" href="/glass-design.css?v=10.42.2" />
-<script src="space-motion.js?v=10.42.2"></script>
+<link rel="stylesheet" href="/transfers.css?v=10.42.3">
+<script defer src="/transfers.bundle.js?v=10.42.3"></script>
+<link rel="stylesheet" href="/messages.css?v=10.42.3">
+<script defer src="/messages.bundle.js?v=10.42.3"></script>
+<link rel="stylesheet" href="space-motion.css?v=10.42.3" />
+<link rel="stylesheet" href="/games-suite.css?v=10.42.3" />
+<link rel="stylesheet" href="/manga-reader.css?v=10.42.3" />
+<link rel="stylesheet" href="/streamcorner-view.css?v=10.42.3" />
+<link rel="stylesheet" href="/glass-design.css?v=10.42.3" />
+<script src="space-motion.js?v=10.42.3"></script>
 </head>
 <body>
 <div id="ccSpaceIntro" role="dialog" aria-modal="true" aria-labelledby="ccSpaceTitle" aria-hidden="true">
@@ -3352,23 +3352,23 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   onclick="backToTop()"
 >↑</button>
 
-<script src="/football-following.js?v=10.42.2"></script>
-<script src="/state-safety.js?v=10.42.2"></script>
-<link rel="stylesheet" href="/notebooks.css?v=10.42.2">
-<link rel="stylesheet" href="/football-pitch.css?v=10.42.2">
-<script src="/football-pitch.js?v=10.42.2"></script>
-<link rel="stylesheet" href="/workspace-design.css?v=10.42.2">
-<script src="/playback-safety.js?v=10.42.2"></script>
-<script src="/note-images.js?v=10.42.2"></script>
-<script src="/notebooks.js?v=10.42.2"></script>
-<link rel="stylesheet" href="/schoolbook-practice.bundle.css?v=10.42.2">
-<script src="/schoolbook-providers.js?v=10.42.2"></script>
-<script src="/ai-keys.js?v=10.42.2"></script>
-<script src="/schoolbook-practice.bundle.js?v=10.42.2"></script>
-<script src="/note-editor.js?v=10.42.2"></script>
-<script src="/accounts-client.js?v=10.42.2"></script>
-<script src="/manga-library.js?v=10.42.2"></script>
-<script src="/comix-links.js?v=10.42.2"></script>
+<script src="/football-following.js?v=10.42.3"></script>
+<script src="/state-safety.js?v=10.42.3"></script>
+<link rel="stylesheet" href="/notebooks.css?v=10.42.3">
+<link rel="stylesheet" href="/football-pitch.css?v=10.42.3">
+<script src="/football-pitch.js?v=10.42.3"></script>
+<link rel="stylesheet" href="/workspace-design.css?v=10.42.3">
+<script src="/playback-safety.js?v=10.42.3"></script>
+<script src="/note-images.js?v=10.42.3"></script>
+<script src="/notebooks.js?v=10.42.3"></script>
+<link rel="stylesheet" href="/schoolbook-practice.bundle.css?v=10.42.3">
+<script src="/schoolbook-providers.js?v=10.42.3"></script>
+<script src="/ai-keys.js?v=10.42.3"></script>
+<script src="/schoolbook-practice.bundle.js?v=10.42.3"></script>
+<script src="/note-editor.js?v=10.42.3"></script>
+<script src="/accounts-client.js?v=10.42.3"></script>
+<script src="/manga-library.js?v=10.42.3"></script>
+<script src="/comix-links.js?v=10.42.3"></script>
 <script>
 'use strict';
 
@@ -7081,7 +7081,7 @@ function renderLiveFootballProviders(){
   const auto=`<button class="live-provider-btn${liveFootballProviderId==='auto'?' active':''}" type="button" data-live-provider="auto">✨ Auto<span class="mode">SMART</span></button>`;
   const manual=liveFootballProviders.map(p=>`
     <button class="live-provider-btn${p.id===liveFootballProviderId?' active':''}" type="button" data-live-provider="${esc(p.id)}">
-      ${esc(p.name)}<span class="mode">${esc(['embedded','website'].includes(p.mode)?'In app':p.mode)}</span>
+      ${esc(p.name)}<span class="mode">${esc(p.mode==='timstreams'?'Games':['embedded','website'].includes(p.mode)?'In app':p.mode)}</span>
     </button>`).join('');
   wrap.innerHTML=auto+manual;
   const backup=qs('#liveFootballBackupBtn');
@@ -7116,7 +7116,7 @@ async function selectLiveFootballProvider(providerId){
   await loadLiveFootball(true);
 }
 async function fetchPpvOnDevice(category){
-  const {fetchPublicSports}=await import('/sports-providers.js?v=10.42.2');
+  const {fetchPublicSports}=await import('/sports-providers.js?v=10.42.3');
   const data=await fetchPublicSports('ppv',category,{fetcher:(url,options)=>fetch(url,{...options,headers:{accept:'application/json'},credentials:'omit'})});
   return {...data,providerId:'5',providerName:'PPV',mode:'ppv',count:data.streams.length,updatedAt:nowIso()};
 }
@@ -7211,14 +7211,12 @@ async function loadLiveFootball(force=false,kind=liveSportKind()){
     if(!current())return;
     liveFootballStreams=Array.isArray(data.streams)?data.streams:[];
 
-    if(['embedded','website'].includes(data.mode)){
-      const site=selected?.id==='2'?{url:'https://streamcorner.st/',name:'StreamCorner',action:'data-open-streamcorner'}
-        :selected?.id==='6'?{url:'https://tim-streams.com/',name:'TimStreams',action:'data-open-timstreams'}:null;
-      if(!site||(data.browserUrl||data.websiteUrl)!==site.url)throw new Error('This provider returned an unsupported website address.');
+    if(data.mode==='embedded'){
+      if(selected?.id!=='2'||(data.browserUrl||data.websiteUrl)!=='https://streamcorner.st/')throw new Error('This provider returned an unsupported website address.');
       liveFootballStreams=[];
       closeLiveFootball();
-      grid.innerHTML=`<div class="empty" style="grid-column:1 / -1"><h3>${site.name}</h3><p>Browse matches and choose a source. In a browser, ${site.name} opens in this tab; use Back to return.</p><button class="btn primary" type="button" ${site.action}>Browse &amp; watch</button><p class="section-note">Native apps open a separate in-app view.</p></div>`;
-      status.textContent=`${site.name} • Choose a source`;
+      grid.innerHTML='<div class="empty" style="grid-column:1 / -1"><h3>StreamCorner</h3><p>Browse matches and choose a source. In a browser, StreamCorner opens in this tab; use Back to return.</p><button class="btn primary" type="button" data-open-streamcorner>Browse &amp; watch</button><p class="section-note">Native apps open a separate in-app view.</p></div>';
+      status.textContent='StreamCorner • Choose a source';
       renderLiveFootballProviders();
       return;
     }
@@ -7368,6 +7366,13 @@ function openLiveFootball(index){
   if(!stream)return;
   const sources=liveSourceEntries(stream);
   if(!sources.length)return;
+  if((liveFootballResolvedProviderId||liveFootballProviderId)==='6'&&(window.CommandCentreNative?.nativeTimStreams||window.CommandCentreDesktop?.timStreams)){
+    const slug=String(stream.id||'');
+    if(/^[a-z0-9-]{1,120}$/.test(slug)){
+      window.CommandCentreTimStreams?.open(window.CommandCentreNative?.nativeTimStreamsGame||window.CommandCentreDesktop?.timStreamsGame?slug:undefined);
+      return;
+    }
+  }
   liveFootballCurrentStreamIndex=Number(index);
   liveFootballCurrentSourceIndex=0;
   const wrap=qs('#liveFootballPlayerWrap');
@@ -11191,12 +11196,12 @@ loadNews(false);
 if(notificationPermission()==='granted')syncNewsPreferences();
 </script>
 <dialog id="streamCornerView" aria-label="StreamCorner inside Command Centre"><header class="streamcorner-toolbar"><button id="streamCornerBack" type="button">← Back to Command Centre</button><strong>StreamCorner</strong><button id="streamCornerRestart" type="button">Restart</button></header><iframe id="streamCornerFrame" title="StreamCorner: browse matches and watch" src="about:blank" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe><p id="streamCornerNotice" role="status" aria-live="polite" hidden></p></dialog>
-<script src="/streamcorner-view.js?v=10.42.2"></script>
-<script src="/manga-reader.js?v=10.42.2"></script>
-<script src="/workspace-design.js?v=10.42.2"></script>
-<script src="/storage-tools.js?v=10.42.2"></script>
-<script src="/crossword-clues.js?v=10.42.2"></script>
-<script src="/games-content.js?v=10.42.2"></script>
-<script src="/games-suite.js?v=10.42.2"></script>
+<script src="/streamcorner-view.js?v=10.42.3"></script>
+<script src="/manga-reader.js?v=10.42.3"></script>
+<script src="/workspace-design.js?v=10.42.3"></script>
+<script src="/storage-tools.js?v=10.42.3"></script>
+<script src="/crossword-clues.js?v=10.42.3"></script>
+<script src="/games-content.js?v=10.42.3"></script>
+<script src="/games-suite.js?v=10.42.3"></script>
 </body>
 </html>

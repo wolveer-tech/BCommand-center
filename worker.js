@@ -482,7 +482,7 @@ function liveProviderConfig(env,providerId='1'){
   if(id==='4')return {id,name:'Matchora',mode:'matchora',baseUrl:'https://matchora.to',embedHosts:'matchora.to',categoryAliases:{}};
   if(id==='5')return {id,name:'PPV',mode:'ppv',baseUrl:'https://ppv.tj',embedHosts:'taifood-blog.asia',categoryAliases:{}};
   if(id==='2')return {id,name:'StreamCorner',mode:'embedded',baseUrl:'https://streamcorner.st',embedHosts:'streamcorner.st',categoryAliases:{}};
-  if(id==='6')return {id,name:'TimStreams',mode:'website',baseUrl:'https://tim-streams.com',embedHosts:'tim-streams.com',categoryAliases:{}};
+  if(id==='6')return {id,name:'TimStreams',mode:'timstreams',baseUrl:'https://tim-streams.com',embedHosts:'ehgembxe.cfd',categoryAliases:{}};
 
   if(id==='1'){
     return {
@@ -1394,9 +1394,9 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
   const safeCategory=String(category||'soccer').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40)||'soccer';
 
   // These sites supply their own matches and player choices; no synthetic feed.
-  if(['embedded','website'].includes(cfg.mode))return {
+  if(cfg.mode==='embedded')return {
     providerId:cfg.id,providerName:cfg.name,mode:cfg.mode,category:safeCategory,
-    browserUrl:cfg.id==='2'?'https://streamcorner.st/':'https://tim-streams.com/',count:0,providerCount:0,streams:[],
+    browserUrl:'https://streamcorner.st/',count:0,providerCount:0,streams:[],
     diagnostic:'Browse matches and choose a source inside Command Centre.',
     updatedAt:new Date().toISOString()
   };
@@ -1416,7 +1416,7 @@ async function liveContentStreams(env,category='soccer',requestUrl='https://loca
     cache=null;key=null;
   }
 
-  const data=['matchora','ppv'].includes(cfg.mode)
+  const data=['matchora','ppv','timstreams'].includes(cfg.mode)
     ?await fetchPublicSports(cfg.mode,safeCategory)
     :cfg.mode==='titanium'
     ?await fetchTitaniumSports(safeCategory,{backup})

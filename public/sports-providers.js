@@ -1,5 +1,6 @@
 // Public provider feeds. Keep categories separate and accept only observed embeds.
 const PPV_FEEDS=['https://api.ppv.tj/api/streams','https://api.ppv.st/api/streams'];
+const TIMSTREAMS_FEED='https://tim-streams.com/api/live-upcoming';
 const categories={soccer:['soccer','football'],tennis:['tennis'],basketball:['basketball'],athletics:['athletics','track and field']};
 const text=(value,max=180)=>String(value??'').slice(0,max);
 function embed(value,host,path){
@@ -30,6 +31,38 @@ export function parsePpvFeed(data,category='soccer',now=Date.now()/1000){
   }
   return {streams,providerCount:streams.length};
 }
+function timStreamsTime(value){
+  const match=/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(String(value||''));
+  if(!match)return null;
+  const year=Number(match[1]),month=Number(match[2]),day=Number(match[3]),hour=Number(match[4]),minute=Number(match[5]),second=Number(match[6]||0);
+  const utc=Date.UTC(year,month-1,day,hour,minute,second);
+  const date=new Date(utc);
+  if(date.getUTCFullYear()!==year||date.getUTCMonth()!==month-1||date.getUTCDate()!==day||date.getUTCHours()!==hour||date.getUTCMinutes()!==minute)return null;
+  // TimStreams displays its unzoned schedule in New York time.
+  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).formatToParts(date).filter(part=>part.type!=='literal').map(part=>[part.type,Number(part.value)]));
+  const offset=Date.UTC(parts.year,parts.month-1,parts.day,parts.hour,parts.minute,parts.second)-utc;
+  return (utc-offset)/1000;
+}
+export function parseTimStreamsFeed(data,category='soccer'){
+  const genres=new Map(),subgenres=new Map(),seen=new Set(),streams=[];
+  for(const genre of Array.isArray(data?.genres)?data.genres:[]){
+    genres.set(Number(genre.id),String(genre.name||'').toLowerCase());
+    for(const sub of Array.isArray(genre.sub_categories)?genre.sub_categories:[])subgenres.set(`${genre.id}:${sub.id}`,text(sub.name,120));
+  }
+  for(const event of (Array.isArray(data?.events)?data.events:[]).slice(0,500)){
+    if(event?.vip||!matches(genres.get(Number(event?.genre)),category))continue;
+    const id=String(event.url||'');
+    if(!/^[a-z0-9-]{1,120}$/.test(id)||seen.has(id))continue;
+    const sources=(Array.isArray(event.streams)?event.streams:[]).filter(source=>!source?.vip).map(source=>{
+      const url=embed(source.url,'ehgembxe.cfd',/^\/[a-z0-9-]{1,120}\/?$/);
+      return {url,label:text(source.name||'Player',60)};
+    }).filter(source=>source.url).slice(0,20);
+    if(!sources.length)continue;
+    seen.add(id);
+    streams.push({id,name:text(event.name||'Live game'),league:subgenres.get(`${event.genre}:${event.sub_genre}`)||'Live sport',category,match_timestamp:timStreamsTime(event.time),viewers:Number(event.viewers)||0,thumbnail_url:text(event.logo,500),sources});
+  }
+  return {streams,providerCount:streams.length};
+}
 async function feed(url,fetcher,headers={}){
   const response=await fetcher(url,{headers:{accept:'application/json',...headers},redirect:'manual',signal:AbortSignal.timeout(6500)});
   if(!response.ok)throw new Error(`Sports provider returned HTTP ${response.status}.`);
@@ -39,6 +72,7 @@ async function feed(url,fetcher,headers={}){
 }
 export async function fetchPublicSports(provider,category,{fetcher=fetch}={}){
   if(provider==='matchora')return parseMatchoraFeed(await feed('https://matchora.to/api/v1/schedule?watchable=1',fetcher),category);
+  if(provider==='timstreams')return parseTimStreamsFeed(await feed(TIMSTREAMS_FEED,fetcher),category);
   if(provider!=='ppv')throw new Error('Unknown sports provider.');
   let error;for(const url of PPV_FEEDS){try{
     const data=await feed(url,fetcher,{referer:'https://ppv.tj/','user-agent':'Mozilla/5.0',origin:'https://ppv.tj'});
