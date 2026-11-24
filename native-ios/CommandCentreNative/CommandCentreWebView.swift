@@ -3,7 +3,7 @@ import UIKit
 import WebKit
 
 struct CommandCentreWebView: UIViewRepresentable {
-    var openStreamCorner: () -> Void
+    var openStreamCorner: (URL) -> Void
     var openTimStreams: (String?) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(openStreamCorner: openStreamCorner, openTimStreams: openTimStreams) }
@@ -46,7 +46,7 @@ struct CommandCentreWebView: UIViewRepresentable {
 
         let bridgeScript = WKUserScript(
             source: """
-            window.CommandCentreNative = { nativeMusic: true, replayKit: true, nativeScreenMirror: true, nativeNotifications: true, backgroundRefresh: true, dataBridge: true, credentialVault: true, privacyLock: true, nativeHaptics: true, nativeWidgets: true, liveActivities: true, stateVault: true, storageMaintenance: true, nativeStreamCorner: true, nativeTimStreams: true, platform: 'ios', minimumRuntime: 'iOS 26' };
+            window.CommandCentreNative = { nativeMusic: true, replayKit: true, nativeScreenMirror: true, nativeNotifications: true, backgroundRefresh: true, dataBridge: true, credentialVault: true, privacyLock: true, nativeHaptics: true, nativeWidgets: true, liveActivities: true, stateVault: true, storageMaintenance: true, nativeStreamCorner: true, sourceSelection: true, nativeTimStreams: true, platform: 'ios', minimumRuntime: 'iOS 26' };
             """,
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
@@ -111,10 +111,10 @@ struct CommandCentreWebView: UIViewRepresentable {
         private var memoryObserver: NSObjectProtocol?
         private var recoveryAlertVisible = false
         private var storageMaintenanceScheduled = false
-        private let openStreamCorner: () -> Void
+        private let openStreamCorner: (URL) -> Void
         private let openTimStreams: (String?) -> Void
 
-        init(openStreamCorner: @escaping () -> Void, openTimStreams: @escaping (String?) -> Void) {
+        init(openStreamCorner: @escaping (URL) -> Void, openTimStreams: @escaping (String?) -> Void) {
             self.openStreamCorner = openStreamCorner
             self.openTimStreams = openTimStreams
             super.init()
@@ -186,9 +186,10 @@ struct CommandCentreWebView: UIViewRepresentable {
             if message.name == "nativeStreamCorner" {
                 guard trustedMainFrame(message.frameInfo),
                       message.webView === webView,
-                      message.body as? String == "cc-open-streamcorner" else { return }
+                      let command = message.body as? String,
+                      let sourceURL = StreamCornerPolicy.sourceURL(for: command) else { return }
                 webView?.evaluateJavaScript("window.CommandCentreStreamCorner?.close();window.closeLiveFootball?.();window.stopVideoPlayback?.();")
-                openStreamCorner()
+                openStreamCorner(sourceURL)
                 return
             }
             if message.name == "nativeTimStreams" {

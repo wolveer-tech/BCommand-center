@@ -3,8 +3,24 @@ import UIKit
 import WebKit
 
 /// The provider is a top-level WKWebView, never a frame below the app origin.
-private enum StreamCornerPolicy {
+enum StreamCornerPolicy {
     static let home = URL(string: "https://streamcorner.st/")!
+    private static let selectedSites: [String: URL] = [
+        "streamcorner.st": URL(string: "https://streamcorner.st/")!,
+        "streamcorner.foo": URL(string: "https://streamcorner.foo/")!,
+        "streamcorner.cloud": URL(string: "https://streamcorner.cloud/")!,
+        "streamcorner.fun": URL(string: "https://streamcorner.fun/")!,
+        "streamninja.cloud": URL(string: "https://streamninja.cloud/")!,
+        "streamninja.fun": URL(string: "https://streamninja.fun/")!
+    ]
+
+    static func sourceURL(for command: String?) -> URL? {
+        guard let command else { return nil }
+        if command == "cc-open-streamcorner" { return home }
+        let prefix = "cc-open-streamcorner-"
+        guard command.hasPrefix(prefix) else { return nil }
+        return selectedSites[String(command.dropFirst(prefix.count))]
+    }
     private static let hosts: Set<String> = [
         "streamcorner.st", "www.streamcorner.st", "cornerstream.tech", "www.cornerstream.tech",
         "streamcorner.foo", "www.streamcorner.foo", "streamcorner.cloud", "www.streamcorner.cloud",
@@ -25,13 +41,18 @@ private enum StreamCornerPolicy {
 
 @MainActor private final class StreamCornerSession: ObservableObject {
     @Published var canGoBack = false
-    @Published var status = "Loading StreamCorner…"
+    @Published var status: String
+    let initialURL: URL
     weak var webView: WKWebView?
-    var initialLoadStarted = false
+
+    init(initialURL: URL) {
+        self.initialURL = initialURL
+        self.status = "Loading StreamCorner…"
+    }
 
     func back() { webView?.goBack() }
     func reload() { webView?.reload() }
-    func home() { webView?.load(URLRequest(url: StreamCornerPolicy.home)) }
+    func home() { webView?.load(URLRequest(url: initialURL)) }
     func close() {
         webView?.stopLoading()
         webView?.loadHTMLString("", baseURL: nil)
@@ -42,7 +63,11 @@ private enum StreamCornerPolicy {
 
 struct NativeStreamCornerView: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var session = StreamCornerSession()
+    @StateObject private var session: StreamCornerSession
+
+    init(initialURL: URL = StreamCornerPolicy.home) {
+        _session = StateObject(wrappedValue: StreamCornerSession(initialURL: initialURL))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -91,7 +116,7 @@ private struct StreamCornerBrowser: UIViewRepresentable {
         browser.navigationDelegate = context.coordinator
         browser.uiDelegate = context.coordinator
         session.webView = browser
-        context.coordinator.preparePopupFilter(browser)
+        browser.load(URLRequest(url: session.initialURL))
         return browser
     }
 
@@ -108,36 +133,6 @@ private struct StreamCornerBrowser: UIViewRepresentable {
     @MainActor final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         let session: StreamCornerSession
         init(session: StreamCornerSession) { self.session = session }
-
-        // StreamCorner's public aclib PopUnder loader intercepted channel taps.
-        // Block only that exact script, keeping all player scripts and CSP intact.
-        private static let popupRule = #"""
-        [{"trigger":{"url-filter":"^https://cdn\\.jsdelivr\\.net/gh/senbonzakura000/jambalaya/bootstrap\\.min\\.js([?].*)?$","resource-type":["script"]},"action":{"type":"block"}}]
-        """#
-
-        func preparePopupFilter(_ browser: WKWebView) {
-            let identifier = "command-centre-streamcorner-popup-v1"
-            let finish: (WKContentRuleList?) -> Void = { [weak self, weak browser] list in
-                DispatchQueue.main.async {
-                    guard let self, let browser, self.session.webView === browser,
-                          !self.session.initialLoadStarted else { return }
-                    self.session.initialLoadStarted = true
-                    if let list { browser.configuration.userContentController.add(list) }
-                    browser.load(URLRequest(url: StreamCornerPolicy.home))
-                }
-            }
-            guard let store = WKContentRuleListStore.default() else {
-                finish(nil)
-                return
-            }
-            store.lookUpContentRuleList(forIdentifier: identifier) { cached, _ in
-                if let cached { finish(cached); return }
-                store.compileContentRuleList(forIdentifier: identifier, encodedContentRuleList: Self.popupRule) { compiled, _ in
-                    finish(compiled)
-                }
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { finish(nil) }
-        }
 
         func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             if action.targetFrame == nil {

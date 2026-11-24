@@ -7,6 +7,7 @@ struct CommandCentreNativeApp: App {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var privacyLock = NativePrivacyLockManager.shared
     @State private var streamCornerPresented = false
+    @State private var streamCornerURL = URL(string: "https://streamcorner.st/")!
     @State private var timStreamsPresented = false
     @State private var timStreamsURL = URL(string: "https://tim-streams.com/")!
 
@@ -21,8 +22,8 @@ struct CommandCentreNativeApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                CommandCentreWebView(openStreamCorner: {
-                    if !privacyLock.isLocked && !privacyLock.isShielded { streamCornerPresented = true }
+                CommandCentreWebView(openStreamCorner: { url in
+                    if !privacyLock.isLocked && !privacyLock.isShielded { streamCornerURL = url; streamCornerPresented = true }
                 }, openTimStreams: { slug in
                     if !privacyLock.isLocked && !privacyLock.isShielded {
                         timStreamsURL = slug.flatMap { URL(string: "https://tim-streams.com/watch/\($0)") } ?? URL(string: "https://tim-streams.com/")!
@@ -41,7 +42,7 @@ struct CommandCentreNativeApp: App {
             .ignoresSafeArea(.container, edges: .bottom)
             .fullScreenCover(isPresented: $streamCornerPresented) {
                 ZStack {
-                    NativeStreamCornerView()
+                    NativeStreamCornerView(initialURL: streamCornerURL)
                         .privacySensitive()
                         .opacity(privacyLock.isLocked || privacyLock.isShielded ? 0 : 1)
                         .allowsHitTesting(!privacyLock.isLocked && !privacyLock.isShielded)
